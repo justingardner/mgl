@@ -8,6 +8,7 @@ purpose: mex function to draw a polygon in an OpenGL screen opened with mglOpen.
 	 x and y can be vectors (the polygon will be closed)
   usage: mglPolygon(x, y, [color])
 			  
+$Id$
 =========================================================================
 #endif
 

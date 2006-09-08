@@ -7,6 +7,7 @@
      purpose: sets up a texture element to be in VRAM
               see Red book Chapter 9
 
+$Id$
 =========================================================================
 #endif
 

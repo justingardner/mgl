@@ -8,6 +8,7 @@
        usage: mglGluDisk(x,y,size,color)
               needs glu.h
 
+$Id$
 =========================================================================
 #endif
 

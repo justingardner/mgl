@@ -7,6 +7,7 @@
      purpose: moves a texture on to the screen
               see Red book Chapter 9
 
+$Id$
 =========================================================================
 #endif
 
