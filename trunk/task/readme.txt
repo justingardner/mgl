@@ -9,30 +9,38 @@ How to get started
 1.2 How to setup experimental parameters
 1.3 What if I have a group of parameters
 1.4 What if I have parameters that are not single numbers
+1.5 How to setup segment times
+1.6 How to randomize the length of segments
+1.7 Keeping time in seconds, volumes or monitor refreshes
+1.8 How do I use callbacks
+
 ============================================================================
 1.1 A quick overview
 ============================================================================
 The structure for these experiments involves three main variables:
 
 myscreen: Hold information about the screen parameters like resolution, etc.
-task: Holds information about the block/trial/segment structure of the experiment
+task: Holds info about the block/trial/segment structure of the experiment
 stimulus: Holds strucutres associated with the stimulus.
 
 To create and run an experiment, your program will do the following:
 
 1) Initialize the screen using initScreen
-2) Create callback functions that will be called at various times in the experiment
-   like at the beginning of a trial or when the subject responds with a keypress
-   or before each display refresh.
+2) Create callback functions that will run at various times in the experiment
+   like at the beginning of a trial or when the subject responds with
+    a keypress or before each display refresh.
 3) Set up the task variable which holds your task structure and initialize the
    task with initTask
 4) Initialize the stimulus (e.g. create bitmaps or setup parameters)
-5) Create a display loop which calls updateTask to update your task, and tickScreen
-   to refresh the display.
+5) Create a display loop which calls updateTask to update your task,
+    and tickScreen to refresh the display.
 
 A simple example experiment is in this directory can be run:
 
 >> testExperiment
+
+The code for this experiment serves as the basic help information
+for how to use this code. This file contains some extra details.
 
 ============================================================================
 1.2 How to setup experimental parameters
@@ -48,11 +56,12 @@ task.parameter.myParameter2 = [-1 1];
 You can add any number of parameters that you want. updateTask will chose
 a value on each trial and put those values into the thistrial structure:
 
-task.thistrial.myParameter
+task.thistrial.myParameter1
+task.thistrial.myParameter2
 
-would equal the setting on that particular trial. In each block every combination
-of parameters will be presented. You can randomize the order of the parameters by
-setting:
+would equal the setting on that particular trial. In each block every
+combination of parameters will be presented. You can randomize the order
+of the parameters by setting:
 
 task.random = 1;
 
@@ -85,3 +94,91 @@ task.strings = {'string1','string2','string3'}
 and get the appropriate string on each trial by doing:
 
 task.thistrial.thisstring = task.strings{task.thistrial.stringNum};
+
+============================================================================
+1.5 How to setup segment times
+============================================================================
+Each trial can be divided into multiple segments where different things happen,
+like for instance you might have a stimulus segment and response segment
+that you want to have occur for 1.3 and 2.4 seconds respectively:
+
+task.seglen = [1.3 2.4];
+
+At the beginning of each segment the callback startSegment will be
+called and you can find out which segment is being run by looking at:
+
+task.thistrial.thisseg
+
+============================================================================
+1.6 How to randomize the length of segments
+============================================================================
+
+If you want to randomize the length of segments over a uniform distribution,
+like for instance when you want the first segment to be exactly 1.3
+seconds and the second segments to be randomized over the interval
+2-2.5 seconds:
+
+task.segmin = [1.3 2];
+task.segmax = [1.3 2.5];
+
+In this case, do not specify task.seglen.
+
+If you want the second interval to be randomized over the interval 2-2.5
+seconds in intervals of 0.1 seconds (i.e. you want it to be 
+either 2,2.1,2.2,2.3,2.4 or 2.5:
+
+task.segmin = [1.3 2];
+task.segmax = [1.3 2.5];
+task.segquant = [0 0.1];
+
+============================================================================
+1.7 Keeping time in seconds, volumes or refreshes
+============================================================================
+
+Trial segments can keep time in either seconds (default), volumes 
+or monitor refreshes.
+
+To change timing to use volumes:
+
+task.timeInVols = 1;
+
+To change timing to use monitor refreshes:
+
+task.timeInTicks = 1;
+
+With timeInVols or timeInTicks, your segment times should now b
+integer values that specify time in Vols or monitor refreshes (e.g.):
+
+task.seglen = [3 2];
+
+Note, that the defualt (time in seconds) adjusts for segment
+overruns that might occur when you drop monitor frames, but the 
+timeInTicks will not and is therefore usually less accurate.
+
+============================================================================
+1.8 How do I use callbacks
+============================================================================
+
+Callbacks are the way that you control what happens on different
+portions of the trial and what gets drawn to the screen. The most
+important callback is the drawStimulusCallback to define one,
+you define a function:
+
+function [task myscreen] = drawStimulusCallback(task, myscreen)
+% do your draw functions in here.
+
+The other mandatory callback is the one that is called at the
+beginning of each segment:
+
+function [task myscreen] = startSegmentCallback(task, myscreen)
+
+Then you need to set this as your drawStimulus callback when
+you call initTask:
+
+task = initTask(task,myscreen,@startSegmentCallback,@drawStimulusCallback);
+
+The other callbacks that are available (optional) are explained in
+the help for initTask. You can omit any callback by either not
+specifying it as an argument to initTask or setting it to [].
+
+
