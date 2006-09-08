@@ -14,6 +14,12 @@ How to get started
 1.7 Keeping time in seconds, volumes or monitor refreshes
 1.8 How do I use callbacks
 
+todo:
+explain writeTrace
+explain blockLen and trialLen
+explain multiple phase tasks
+explain how save works
+
 ============================================================================
 1.1 A quick overview
 ============================================================================
