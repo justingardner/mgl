@@ -3,20 +3,20 @@ MGL (Matlab GL): A suite of mex/m files for displaying psychophysics stimuli.
                  Runs on Mac OS X and Linux.
 ============================================================================
 
-
 ****************************************************************************
 How to get started
 ****************************************************************************
 1.1 What is in this directory
 1.2 How do I use this?
 1.3 How do I recompile
+1.4 If all else fails, how can I get back control over the display
 
 ****************************************************************************
 Known issues that you should be aware of
 ****************************************************************************
 2.1 Matlab license manager causes timing glitches every 30 seconds
 2.2 Some functions not supported yet on Linux
-
+2.3 This distribution is intended to work with Mac OS 10.4 or greater
 
 ============================================================================
 1.1 What is in this directory
@@ -25,7 +25,7 @@ Known issues that you should be aware of
 mgl/mgllib: The main distribution that has all functions for displaying to
             the screen.
 mgl/task: A set of higher level routines that set up a structure for running
-          tasks and trials. Relies on functions in mgl/core. You do not
+          tasks and trials. Relies on functions in mgl/mgllib. You do not
 	  need to use any of these functions if you just want to use this
 	  library for drawing to the screen.
 mgl/utils: Various utility functions.
@@ -56,6 +56,15 @@ and run:
 >> mglMake(1);
 
 ============================================================================
+1.4 If all else fails, how can I get back control over the display
+============================================================================
+If you can't do mglClose, you can always press:
+
+option-open apple-esc
+
+this will quit your matlab session as well.
+
+============================================================================
 2.1 Matlab license manager causes timing glitches every 30 seconds
 ============================================================================
 
@@ -78,3 +87,10 @@ mglText
 
 If you want to use text under the linux operating system, you can use
 mglStrokeText.
+
+============================================================================
+2.3 This distribution is intended to work with Mac OS 10.4 or greater
+============================================================================
+
+In particular opening in a window (mglOpen(0)) is unstable for versions before
+Mac OS 10.4
