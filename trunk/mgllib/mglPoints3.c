@@ -1,5 +1,5 @@
 #ifdef documentation
--f=========================================================================
+=========================================================================
 
      program: mglPoints3.c
           by: justin gardner & Jonas Larsson
@@ -7,6 +7,7 @@
      purpose: mex function to plot 2D points on an OpenGL screen opened with mglOpen
        usage: mglPoints3(x,y,z,size,color)
 
+$Id$
 =========================================================================
 #endif
 

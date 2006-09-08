@@ -1,7 +1,7 @@
 #ifdef documentation
 =========================================================================
 
-     program: glPoints.c
+     program: mglPoints.c
           by: justin gardner
         date: 04/03/06
      purpose: mex function to plot points on an OpenGL screen opened with glopen
@@ -11,6 +11,7 @@
               glpoints(0.5,0.5,2,[1 0.6 1]);
               glpoints(-1+2*rand(1,10000),-1+2*rand(1,10000));
 
+$Id$
 =========================================================================
 #endif
 
@@ -19,14 +20,6 @@
 //   include section   //
 /////////////////////////
 #include "mgl.h"
-
-////////////////////////
-//   define section   //
-////////////////////////
-
-///////////////////////////////
-//   function declarations   //
-///////////////////////////////
 
 /////////////
 //   main   //
