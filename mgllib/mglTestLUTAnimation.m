@@ -1,5 +1,6 @@
 % mglTestLUTAnimation.m
 %
+%        $Id$
 %      usage: mglTestLUTAnimation(screenNumber)
 %         by: justin gardner
 %       date: 05/27/06

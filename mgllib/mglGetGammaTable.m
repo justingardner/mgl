@@ -1,5 +1,6 @@
 % mglGetGammaTable.m
 %
+%        $Id$
 %      usage: mglGetGammaTable()
 %         by: justin gardner
 %       date: 05/27/06

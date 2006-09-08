@@ -1,5 +1,6 @@
 % mglFixationCross.m
 %
+%        $Id$
 %      usage: mglFixationCross([width], [linewidth], [color], [origin]);
 %             mglFixationCross( params ) 
 %               params(1)=width

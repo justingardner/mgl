@@ -1,5 +1,6 @@
 % mglTestAlignment.m
 %
+%        $Id$
 %      usage: mglTestAlignment(screenNumber)
 %         by: justin gardner
 %       date: 09/05/06

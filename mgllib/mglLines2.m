@@ -1,5 +1,6 @@
 % mglLines2.m
 %
+%        $Id$
 %       usage: mglLines(x0, y0, x1, y1,size,color,bgcolor)
 %          by: justin gardner
 %        date: 04/03/06

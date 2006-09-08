@@ -1,5 +1,6 @@
 % mglClose.m
 %
+%        $Id$
 %     program: mglClose.m
 %          by: justin gardner
 %        date: 04/03/06

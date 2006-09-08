@@ -1,5 +1,6 @@
 % mglClearScreen.m
 %
+%        $Id$
 %      usage: mglClearScreen()
 %         by: Jonas Larsson
 %       date: 04/10/06

@@ -1,5 +1,6 @@
 % mglTestText.m
 %
+%        $Id$
 %      usage: mglTestText()
 %         by: justin gardner
 %       date: 05/10/06

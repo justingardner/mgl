@@ -1,5 +1,6 @@
 % mglStencilCreateBegin
 %
+%        $Id$
 %      usage: mglStencilCreateBegin(stencilNumber,invert)
 %         by: justin gardner
 %       date: 05/26/2006
