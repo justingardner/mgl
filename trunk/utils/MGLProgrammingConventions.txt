@@ -1,0 +1,43 @@
+Naming conventions
+==================
+
+User functions:		mglFunctionName.m/mex
+Private functions:	mglPrivateFunctionName.m/mex (avoid /private subdirectory)
+
+Variables
+=========
+
+Reserved:	MGL - GL state variables only. Don't put stimulus-specific stuff in this variable
+
+*Suggestion* let's make MGL a persistent, rather than global, variable, and write a wrapper function mglGlobal to set/get mgl entries. 
+
+Need an mglInit *script* to mlock this function, to prevent users from inadvertently removing global variable
+
+
+
+
+Global variables in UPPERCASE
+
+Programming guidelines
+======================
+
+- Minimize C-code - if something can be done as quickly in an m-file, don't write it in C (for transparency and flexibility)
+
+- Exception: C functions that change MGL state should do so inside the function for robustness, rather than calling a separate m-file
+
+- Strict error checking in mex functions - functions should never segfault due to bad input.
+
+- Vector arguments should be permitted to be either row or column vectors (stored internally same way)
+
+- Coordinates should be input in separate matrices for X,Y,Z for consistency
+
+- Coordinates should be input as <# items> x <# of coords per item>, e.g. to specify 3 quads the input should be 3 rows and 4 columns (3 x 4)
+
+- Don't write separate functions for 2D or 3D but check dimensions of input to determine which draw function to use
+
+5) 
+
+
+
+
+

@@ -1,0 +1,67 @@
+UPDATED
+mexopts.sh // JL: added X support for Linux
+mgl.h      // JL: added X support for Linux plus various fixes by JG
+mglOpen.c  // JL: added X support for Linux plus various fixes by JG
+mglClose.c // JL: added X support for Linux
+mglFlush.c // JL: added X support for Linux
+mglClearScreen.c // JG: modified to use previous colour or input 
+mglLines2.c  // JG: added color support and corrected line width setting
+mglPoints2.c // JG: added color support; JL: added support for variable width points for older GL systems that only support point size=1
+mglPoints3.c // JG: added color support; JL: added support for variable width points for older GL systems that only support point size=1
+mglOpenDisplay.m // JG & JL: various bug fixes
+mglVisualAngleCoordinates.m // JG & JL: various bug fixes. JL: changed MGL.coord to MGL.deviceCoords
+mglScreenCoordinates.m // JL: changed MGL.coord to MGL.deviceCoords
+mglTransform.c // added an explicit cast of malloc() to (char*) as required by ANSI C
+mglCreateTexture.c // JL added texture axes field to output and modified ordering of texture to match Matlab array order
+mglPrivate_BltTexture.c // formerly mglBltTexture.c JL fixed bugs in texture mapping axes and updated to use texture axes
+mglBltTexture.m // wrapper for mglPrivate_BltTexture.c 
+
+NO CHANGE
+mglFixationCross.m
+mglGetViewport.c 0
+mglQuad.c 0
+mglStrokeText.m 0
+mglStrokeText.c 0
+mexify.m 0
+mglFixationCross.m 0
+
+
+NEW
+mglTestDots.m //
+mglTestGammaGUI.m
+mglTestGamma.m // JL: changed call to mglBltTextureAligned to mglBltTexture
+mglTestLUTAnimation.m
+mglTestStencil.m
+mglTestTexCompare.m
+mglTestTex.m // JL:changed call to mglBltTextureAligned to mglBltTexture
+mglTestText.m // JL: changed call to mglBltTextureAligned to mglBltTexture
+mglText.c  // doesn't work on Linux
+mglTextDraw.m // doesn't work on Linux
+mglText.m // doesn't work on Linux
+mglTextSet.m // doesn't work on Linux
+mglGetGammaTable.c  // doesn't work on Linux
+mglGetGammaTable.m // doesn't work on Linux
+mglSetGammaTable.c // doesn't work on Linux
+mglSetGammaTable.m  // doesn't work on Linux
+mglStencilCreateBegin.c  // should work on Linux with a better graphics card!
+mglStencilCreateBegin.m // should work on Linux with a better graphics card!
+mglStencilCreateEnd.c // should work on Linux with a better graphics card!
+mglStencilCreateEnd.m // should work on Linux with a better graphics card!
+mglStencilSelect.c // should work on Linux with a better graphics card!
+mglStencilSelect.m // should work on Linux with a better graphics card!
+mglFillOval.c // works on Linux
+mglFillOval.m // works on Linux
+mglFillRect.c // works on Linux
+mglFillRect.m // works on Linux
+mglGluDisk.c // works on Linux
+mglGluDisk.m // works on Linux
+mglMake.m // works on Linux
+mglPolygon.c // works on Linux
+mglPolygon.m // works on Linux
+
+DEFUNCT
+mglScreenCoordinates.c 0
+
+FIX
+
+
