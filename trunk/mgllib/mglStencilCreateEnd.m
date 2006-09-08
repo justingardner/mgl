@@ -1,5 +1,6 @@
 % mglStencilCreateEnd
 %
+%        $Id$
 %      usage: mglStencilCreateEnd
 %         by: justin gardner
 %       date: 05/26/2006

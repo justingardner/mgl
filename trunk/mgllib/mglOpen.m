@@ -1,5 +1,6 @@
 % mglOpen: Open an mgl window
 %
+%        $Id$
 %      usage: mglOpen(whichScreen, screenWidth,screenHeight,frameRate,bitDepth)
 %         by: justin gardner
 %       date: 04/10/06

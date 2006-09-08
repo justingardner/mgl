@@ -1,5 +1,6 @@
 % mglQuad.m
 %
+%      $Id$
 %    usage: mglQuad( vX, vY, rgbColor, [antiAliasFlag] );
 %       by: eli merriam, based on mglPoints.c by justin gardner & Jonas Larsson
 %     date: 04/20/06

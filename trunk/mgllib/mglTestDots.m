@@ -1,5 +1,6 @@
 % mglTestDots.m
 %
+%        $Id$
 %      usage: mglTestDots(screenNumber,numsec)
 %         by: justin gardner
 %       date: 04/05/06

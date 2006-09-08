@@ -1,3 +1,4 @@
+%     $Id$
 % program: mglPolygon.c
 %      by: denis schluppeck, based on mglQuad/mglPoints by eli, 
 %          justin, jonas

@@ -1,5 +1,6 @@
 % mglTextDraw.m
 %
+%        $Id$
 %      usage: mglTextDraw(str,pos,hAlignment,vAlignment)
 %         by: justin gardner
 %       date: 05/13/06

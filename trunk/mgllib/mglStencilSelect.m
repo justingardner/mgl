@@ -1,5 +1,6 @@
 % mglStencilSelect 
 %
+%        $Id$
 %      usage:  = mglStencilSelect(stencilNumber)
 %         by: justin gardner
 %       date: 05/26/2006

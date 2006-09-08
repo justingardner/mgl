@@ -1,5 +1,6 @@
 % mglText.m
 %
+%        $Id$
 %      usage: mglText('string')
 %         by: justin gardner
 %       date: 05/10/06

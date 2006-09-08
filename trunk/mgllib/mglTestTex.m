@@ -1,5 +1,6 @@
 % mglTestTex.m
 %
+%        $Id$
 %      usage: mglTestTex(screenNum)
 %         by: justin gardner
 %       date: 04/11/06

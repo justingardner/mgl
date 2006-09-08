@@ -1,5 +1,6 @@
 % mglCreateTexture.m
 %
+%        $Id$
 %      usage: mglCreateTexture(image)
 %         by: justin gardner
 %       date: 04/10/06

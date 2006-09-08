@@ -1,5 +1,6 @@
 % mglMake.m
 %
+%        $Id$
 %      usage: mglMake(rebuild)
 %         by: justin gardner
 %       date: 05/04/06
@@ -19,7 +20,6 @@ end
 
 if ~exist('rebuild','var'),rebuild = 0;end
 
-
 % remove all mex files if called for
 if rebuild
   delete(sprintf('*.%s',mexext));
@@ -27,13 +27,21 @@ end
 
 % make sure we have the mgl.h file--this will make
 % sure we are in the correct directory
-mgldir = dir('*.c');
 hfile = dir('mgl.h');
 if (length(hfile) == 0)
-  disp(sprintf('(mglMake) UHOH: Could not find mgl.h'));
-  disp(sprintf('(mglMake) Changed to the mgl/core directory'));
-  return
+  % try to switch to the diretory where mglOpen lives
+  mgldir = fileparts(which('mglOpen'));
+  if ~isempty(mgldir)
+    cd(mgldir);
+    hfile = dir('mgl.h');
+  else
+    disp(sprintf('(mglMake) Could not find source files'));
+    return
+  end
 end
+
+% get the files in the mgldir
+mgldir = dir('*.c');
 
 for i = 1:length(mgldir)
   if (~strcmp('.#',mgldir(i).name(1:2)))

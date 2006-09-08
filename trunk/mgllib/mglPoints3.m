@@ -1,5 +1,6 @@
 % mglPoints3.m
 %
+%        $Id$
 %      usage: mglPoints3()
 %         by: justin gardner & Jonas Larsson
 %       date: 04/03/06
