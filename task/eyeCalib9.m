@@ -1,0 +1,22 @@
+% eyeCalib9.m
+%
+%      usage: eyeCalib9.m()
+%         by: justin gardner
+%       date: 02/24/05
+%
+function retval = eyeCalib9()
+
+% init the screen
+myscreen = initScreen;
+  
+% default paramaters for eye calibration
+myscreen.eyecalib.x = [5 0 -5 5 0 -5 5 0 -5];
+myscreen.eyecalib.y = [5 5 5 0 0 0 -5 -5 -5];
+myscreen.eyecalib.n = length(myscreen.eyecalib.x);
+myscreen.eyecalib.waittime = inf;
+
+% do eye calibration
+eyeCalibDisp(myscreen);
+myscreen = tickScreen(myscreen);
+fishcamp(1,0);
+
