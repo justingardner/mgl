@@ -135,7 +135,7 @@ checkTime = 30*frameRate;
 timeTaken = zeros(1,checkTime);
 for i = 1:checkTime
   flushStart = GetSecs;
-  WaitSecs(1/frameRate);
+  mglFlush;
   timeTaken(i) = GetSecs-flushStart;
 end
 mglClose;
