@@ -34,6 +34,14 @@ end
 
 global gDisppercent;
 
+% systems without mydisp (print w/out return that flushes buffers)
+if exist('mydisp') ~= 3
+  if (percentdone == -inf) && (nargin == 2)
+    disp(mesg);
+  end
+  return
+end
+
 % if this is an init then remember time
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 if (percentdone == -inf)
