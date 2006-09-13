@@ -46,5 +46,6 @@ global MGL;
 MGL.initialGammaTable = mglGetGammaTable;
 
 % set some other added global
+MGL.screenCoordinates = 0;
 MGL.deviceHDirection = 1;
 MGL.deviceVDirection = 1;

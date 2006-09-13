@@ -58,4 +58,5 @@
 %  mglTestTex                : Draws a gabor
 %  mglTestTexMulti           : Draws many small images to screen
 %  mglTestText               : Draws text
+%  mglTestKeys               : Returns keyboard codes
 

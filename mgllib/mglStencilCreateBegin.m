@@ -25,6 +25,6 @@
 %mglStencilSelect(1);
 %mglPoints2(rand(1,5000)*500,rand(1,5000)*500);
 %mglFlush;
-
+%mglStencilSelect(0);
 
 
