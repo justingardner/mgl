@@ -156,7 +156,12 @@ of funcitons not supported yet are:
 
 mglGetGammaTable
 mglSetGammaTable
+mglGetKeys
+mglGetKeyEvent
+mglGetMouse
+mglGetMouseEvent
 mglText
+mglTextDraw
 
 If you want to use text under the linux operating system, you can use
 mglStrokeText.
