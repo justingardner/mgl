@@ -66,9 +66,8 @@ for i = 1:MGL.frameRate*numsec
 end
 endtime = GetSecs;
 
-% clear the screen, reset gammaTable and close
+% clear the screen and close
 mglClearScreen;mglFlush;
-mglSetGammaTable(gammaTable.redTable,gammaTable.greenTable,gammaTable.blueTable);
 mglClose;
 
 % check how long it ran for
