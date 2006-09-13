@@ -5,7 +5,7 @@
 %  mglFlush                  : Flips front and back buffer
 %  mglClose                  : Closes the screen
 %
-%Functions to adjust coordinate frame
+%Functions to adjust the coordinate frame
 %  mglVisualAngleCoordinates : Visual angle coordinates
 %  mglScreenCoordinates      : Pixel coordinate frame
 %  mglTransform              : Low-level function to adjust transforms
@@ -19,7 +19,7 @@
 %Drawing text
 %  mglTextSet                : Set parameters for drawing text
 %  mglText                   : Create a texture from a string
-%  mglTextDraw               : Draws text directly to screen (slow)
+%  mglTextDraw               : Draws text to screen (simple but slow)
 %  mglStrokeText             : Simple text for systems w/out text support
 %
 %Gamma tables
@@ -42,6 +42,12 @@
 %  mglStencilCreateBegin     : Start drawing a stencil
 %  mglStencilCreateEnd       : End drawing a stencil
 %  mglStencilSelect          : Select a stencil 
+%
+%Functions to get keyboard/mouse status
+%  mglGetKeys                : Get keyboard state
+%  mglGetMouse               : Get mouse state
+%  mglGetKeyEvent            : Get a key down event off of queue
+%  mglGetMouseEvent          : Get a mouse button down event off of queue
 %
 %Test/Demo programs
 %  mglTestAlignment          : Alignment of textures
