@@ -1,8 +1,10 @@
 % eyeCalib9.m
 %
+%        $Id$
 %      usage: eyeCalib9.m()
 %         by: justin gardner
 %       date: 02/24/05
+%  copyright: (c) 2006 Justin Gardner (GPL see mgl/COPYING)
 %
 function retval = eyeCalib9()
 

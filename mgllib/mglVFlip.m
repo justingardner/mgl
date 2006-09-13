@@ -4,6 +4,7 @@
 %      usage: mglVFlip
 %         by: justin gardner
 %       date: 09/06/06
+%  copyright: (c) 2006 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
 %    purpose: flips coordinate frame vertically,
 %   see also: mglHFlip
 %       e.g.:

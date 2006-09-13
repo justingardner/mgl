@@ -4,6 +4,7 @@
 %      usage: mglGetMouseEvent(waitTicks)
 %         by: justin gardner
 %       date: 09/12/06
+%  copyright: (c) 2006 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
 %    purpose: returns a mouse down event
 %             waitTicks specifies how long to wait for a mouse event
 %             in "ticks" which on Mac OS X are approximately 1/60 of

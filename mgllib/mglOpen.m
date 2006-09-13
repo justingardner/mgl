@@ -4,6 +4,7 @@
 %      usage: mglOpen(whichScreen, screenWidth,screenHeight,frameRate,bitDepth)
 %         by: justin gardner
 %       date: 04/10/06
+%  copyright: (c) 2006 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
 %    purpose: Opens an openGL window
 %      usage: open last monitor in list wwith current window settings
 %             mglOpen

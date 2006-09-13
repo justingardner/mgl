@@ -4,6 +4,7 @@
      program: mglText.c
           by: justin gardner
         date: 05/04/06
+   copyright: (c) 2006 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
 
 $Id$
 =========================================================================

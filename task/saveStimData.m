@@ -1,8 +1,10 @@
 % savestimdata.m
 %
+%        $Id$
 %      usage: savestimdata.m()
 %         by: justin gardner
 %       date: 12/22/04
+%  copyright: (c) 2006 Justin Gardner (GPL see mgl/COPYING)
 %
 function retval = saveStimData(myscreen,task)
 

@@ -4,6 +4,7 @@
 %      usage: mglStencilCreateEnd
 %         by: justin gardner
 %       date: 05/26/2006
+%  copyright: (c) 2006 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
 %    purpose: Ends drawing to stencil
 %
 %       e.g.:

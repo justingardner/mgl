@@ -4,6 +4,7 @@
 %      usage: mglSetGammaTable()
 %         by: justin gardner
 %       date: 05/27/06
+%  copyright: (c) 2006 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
 %    purpose: Set the gamma table
 %             set gamma with a function using 9 arguments:
 %

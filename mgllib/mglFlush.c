@@ -4,6 +4,7 @@
      program: mglFlush.c
      by: justin gardner; X support by Jonas Larsson
         date: 04/03/06
+   copyright: (c) 2006 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
 
      Warning: if using mglFlush to keep timing, keep in mind that Matlab checks for license every 30s, screwing up timing at this interval. Installing a local copy of the license manager appears to solve problem, mostly.
 

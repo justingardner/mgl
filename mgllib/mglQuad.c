@@ -3,6 +3,7 @@
 program: mglQuad.c
 by:      eli merriam, based on mglPoints.c by justin gardner & Jonas Larsson
 date:    04/20/06
+copyright: (c) 2006 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
 purpose: mex function to draw a quad in an OpenGL screen opened with mglOpen
 usage:   mglQuad([xV, yV, rgbColor)
 

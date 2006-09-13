@@ -4,6 +4,7 @@
 %      usage: mglHFlip()
 %         by: justin gardner
 %       date: 09/06/06
+%  copyright: (c) 2006 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
 %    purpose: flips coordinate frame horizontally, useful for when
 %             the display is viewed through a mirror
 %       e.g.:

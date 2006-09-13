@@ -4,6 +4,7 @@
      program: mglBltTexture.c
           by: justin gardner with modifications by Jonas Larsson
         date: 04/09/06
+   copyright: (c) 2006 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
      purpose: moves a texture on to the screen
               see Red book Chapter 9
 

@@ -4,6 +4,7 @@
 %      usage: mglMake(rebuild)
 %         by: justin gardner
 %       date: 05/04/06
+%  copyright: (c) 2006 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
 %    purpose: rebuilds mex file, with no arguments checks
 %             dates to see whether it should rebuild. With
 %             rebuild set to 1 removes all mex files for

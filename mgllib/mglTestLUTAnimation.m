@@ -4,6 +4,7 @@
 %      usage: mglTestLUTAnimation(screenNumber)
 %         by: justin gardner
 %       date: 05/27/06
+%  copyright: (c) 2006 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
 %    purpose: do a LUT animation using gammaTables
 %
 function retval = mglTestLUTAnimation(screenNumber)

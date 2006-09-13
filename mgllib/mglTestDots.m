@@ -4,6 +4,7 @@
 %      usage: mglTestDots(screenNumber,numsec)
 %         by: justin gardner
 %       date: 04/05/06
+%  copyright: (c) 2006 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
 %    purpose: test OpenGL dots
 %
 function retval = mglTestDots(screenNumber,numsec)

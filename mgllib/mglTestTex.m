@@ -4,6 +4,7 @@
 %      usage: mglTestTex(screenNum)
 %         by: justin gardner
 %       date: 04/11/06
+%  copyright: (c) 2006 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
 %    purpose: 
 %
 function retval = mglTestTex(screenNumber)

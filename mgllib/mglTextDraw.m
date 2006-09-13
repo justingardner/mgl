@@ -4,6 +4,7 @@
 %      usage: mglTextDraw(str,pos,hAlignment,vAlignment)
 %         by: justin gardner
 %       date: 05/13/06
+%  copyright: (c) 2006 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
 %    purpose: wrapper around mglText and mglBltTexture to
 %             draw some text on the string. If you need
 %             to draw text more quickly, you will have to

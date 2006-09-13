@@ -1,8 +1,10 @@
 % updateTask - update the task in running in stimulus programs
 %
+%        $Id$
 %      usage: [task, myscreen, tnum] = updateTask(task,myscreen,tnum)
 %         by: justin gardner
 %       date: 2006-04-27
+%  copyright: (c) 2006 Justin Gardner (GPL see mgl/COPYING)
 %     inputs: stimulus,task,myscreen,tnum
 %    outputs: stimulus task myscreen tnum
 %    purpose: runs experimental tasks

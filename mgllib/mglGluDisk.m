@@ -4,6 +4,7 @@
 %      usage: [  ] = mglGluDisk( x, y, size, color, [nslices], [nloops] )
 %         by: denis schluppeck
 %       date: 2006-05-12
+%  copyright: (c) 2006 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
 %     inputs: x, y, size, color
 %         
 %             nslices - number of wedges used in polygon->circle

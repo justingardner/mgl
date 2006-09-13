@@ -1,3 +1,4 @@
+//copyright: (c) 2006 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
 //$Id$
 
 /////////////////////////

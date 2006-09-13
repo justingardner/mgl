@@ -4,6 +4,7 @@
 %       usage: mglLines(x0, y0, x1, y1,size,color,bgcolor)
 %          by: justin gardner
 %        date: 04/03/06
+%  copyright: (c) 2006 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
 %     purpose: mex function to plot lines on an OpenGL screen opened with glopen
 %       e.g.: 
 %

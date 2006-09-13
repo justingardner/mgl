@@ -1,8 +1,10 @@
 % tickScreen.m
 %
+%        $Id$
 %      usage: tickScreen
 %         by: justin gardner
 %       date: 12/10/04
+%  copyright: (c) 2006 Justin Gardner (GPL see mgl/COPYING)
 %    purpose: flip screen and update counter - for MGL
 %
 function myscreen = tickScreen(myscreen,task)

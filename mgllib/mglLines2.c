@@ -4,6 +4,7 @@
      program: glLines2.c
           by: justin gardner
         date: 04/03/06
+   copyright: (c) 2006 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
      purpose: mex function to plot lines on an OpenGL screen opened with glopen
        usage: mglLines(x0,y0, x1, y1,size,color,bgcolor)
        e.g.: mglLines2(x0, y0, x1, y1, 2, [1 0.6 1]);
