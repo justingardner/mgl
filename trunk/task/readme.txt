@@ -6,13 +6,14 @@ task: A set of functions that handle basic structures of experiments
 How to get started
 ****************************************************************************
 1.1 A quick overview
-1.2 How to setup experimental parameters
-1.3 What if I have a group of parameters
-1.4 What if I have parameters that are not single numbers
-1.5 How to setup segment times
-1.6 How to randomize the length of segments
-1.7 Keeping time in seconds, volumes or monitor refreshes
-1.8 How do I use callbacks
+1.2 These programs are free to distribute under the GNU General Public License
+1.3 How to setup experimental parameters
+1.4 What if I have a group of parameters
+1.5 What if I have parameters that are not single numbers
+1.6 How to setup segment times
+1.7 How to randomize the length of segments
+1.8 Keeping time in seconds, volumes or monitor refreshes
+1.9 How do I use callbacks
 
 todo:
 explain writeTrace
@@ -56,7 +57,12 @@ The code for this experiment serves as the basic help information
 for how to use this code. This file contains some extra details.
 
 ============================================================================
-1.2 How to setup experimental parameters
+1.2 These programs are free to distribute under the GNU General Public License
+============================================================================
+See the file mgl/COPYING for details
+
+============================================================================
+1.3 How to setup experimental parameters
 ============================================================================
 
 For your experiment you can choose what parameters you have and what values
@@ -79,7 +85,7 @@ of the parameters by setting:
 task.random = 1;
 
 ============================================================================
-1.3 What if I have a group of parameters
+1.4 What if I have a group of parameters
 ============================================================================
 
 Then you could do something like
@@ -96,7 +102,7 @@ On each trial, you get the parameters by doing
 task.thistrial.thisgroup = task.group{task.thistrial.groupNum};
 
 ============================================================================
-1.4 What if I have parameters that are not single numbers
+1.5 What if I have parameters that are not single numbers
 ============================================================================
 
 Again, do something like the above (1.3)
@@ -109,7 +115,7 @@ and get the appropriate string on each trial by doing:
 task.thistrial.thisstring = task.strings{task.thistrial.stringNum};
 
 ============================================================================
-1.5 How to setup segment times
+1.6 How to setup segment times
 ============================================================================
 Each trial can be divided into multiple segments where different things happen,
 like for instance you might have a stimulus segment and response segment
@@ -123,7 +129,7 @@ called and you can find out which segment is being run by looking at:
 task.thistrial.thisseg
 
 ============================================================================
-1.6 How to randomize the length of segments
+1.7 How to randomize the length of segments
 ============================================================================
 
 If you want to randomize the length of segments over a uniform distribution,
@@ -145,7 +151,7 @@ task.segmax = [1.3 2.5];
 task.segquant = [0 0.1];
 
 ============================================================================
-1.7 Keeping time in seconds, volumes or refreshes
+1.8 Keeping time in seconds, volumes or refreshes
 ============================================================================
 
 Trial segments can keep time in either seconds (default), volumes 
@@ -169,7 +175,7 @@ overruns that might occur when you drop monitor frames, but the
 timeInTicks will not and is therefore usually less accurate.
 
 ============================================================================
-1.8 How do I use callbacks
+1.9 How do I use callbacks
 ============================================================================
 
 Callbacks are the way that you control what happens on different

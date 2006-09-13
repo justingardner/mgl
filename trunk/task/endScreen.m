@@ -21,7 +21,7 @@ end
 % display tick rate
 if isfield(myscreen,'totalflip')
   disp(sprintf('Average tick rate = %0.6f %0.5fHz effective',myscreen.totalflip/myscreen.tick,1/(myscreen.totalflip/myscreen.tick)));
-  disp(sprintf('Dropped frames = %i (%0.2f%%)',myscreen.dropcount,100*myscreen.dropcount/myscreen.tick));
+  disp(sprintf('Dropped frames = %i (%0.2f%%) (i.e. frames %0.1f%% longer than expected)',myscreen.dropcount,100*myscreen.dropcount/myscreen.tick,(myscreen.dropThreshold-1)*100));
 end
   
 disp(sprintf('-----------------------------'));

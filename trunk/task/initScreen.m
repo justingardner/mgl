@@ -201,6 +201,7 @@ myscreen.intick = 0;
 myscreen.fliptime = inf;
 myscreen.dropcount = 0;
 myscreen.checkForDroppedFrames = 1;
+myscreen.dropThreshold = 1.05;
 
 % set keyboard info
 myscreen.keyboard.esc = 46;
