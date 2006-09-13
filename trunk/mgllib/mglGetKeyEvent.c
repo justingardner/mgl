@@ -69,7 +69,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
   mxSetField(plhs[0],0,"when",mxCreateDoubleMatrix(1,1,mxREAL));
   outptr = (double*)mxGetPr(mxGetField(plhs[0],0,"when"));
-  *outptr = (double)theEvent.when;
+  *outptr = (double)TicksToEventTime(theEvent.when);
 #endif
 
 #ifdef __linux__
