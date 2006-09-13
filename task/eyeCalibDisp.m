@@ -55,6 +55,7 @@ for j = 1:myscreen.eyecalib.n
     while (myscreen.eyecalib.waittime > (GetSecs-startTime));
       if mglGetKeys(myscreen.keyboard.esc)
 	mglClearScreen;mglFlush;
+	mglClearScreen;mglFlush;
 	return
       end
     end

@@ -9,9 +9,10 @@ How to get started
 1.0 A quick overview
 1.1 What is in this directory
 1.2 How do I use this?
-1.3 How do I recompile
-1.4 If all else fails, how can I get back control over the display
-1.5 Can I get access to all OpenGL functions?
+1.3 These programs are free to distribute under the GNU General Public License
+1.4 How do I recompile
+1.5 If all else fails, how can I get back control over the display
+1.6 Can I get access to all OpenGL functions?
 
 ****************************************************************************
 Known issues that you should be aware of
@@ -87,7 +88,12 @@ There are a bunch of test programs (names start with mglTest) that you can
 use to test the distribution and see how things are done.
 
 ============================================================================
-1.3 How do I recompile
+1.3 These programs are free to distribute under the GNU General Public License
+============================================================================
+See the file mgl/COPYING for details
+
+============================================================================
+1.4 How do I recompile
 ============================================================================
 
 If you need to recompile the distribution:
@@ -95,7 +101,7 @@ If you need to recompile the distribution:
 >> mglMake(1);
 
 ============================================================================
-1.4 If all else fails, how can I get back control over the display
+1.5 If all else fails, how can I get back control over the display
 ============================================================================
 If you can't do mglClose, you can always press:
 
@@ -104,7 +110,7 @@ option-open apple-esc
 this will quit your matlab session as well.
 
 ============================================================================
-1.5 Can I get access to all OpenGL functions?
+1.6 Can I get access to all OpenGL functions?
 ============================================================================
 We have only exposed parts of the OpenGL functionality. If you need to dig
 deeper to code your stimulus, consider writing your own mex file. This will
