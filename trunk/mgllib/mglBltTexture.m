@@ -4,6 +4,7 @@
 %      usage: mglBltTexture(texture,position,hAlignment,vAlignment)
 %         by: justin gardner
 %       date: 05/10/06
+%  copyright: (c) 2006 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
 %    purpose: Draw a texture to the screen in desired position.
 %
 %             texture: A texture structure created by mglCreateTexture or

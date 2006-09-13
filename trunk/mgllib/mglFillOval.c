@@ -4,6 +4,7 @@
      program: mglFillOval.c
           by: denis schluppeck (based on code by justin gardner & Jonas Larsson)
         date: 04/03/06
+   copyright: (c) 2006 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
      purpose: mex function to plot an oval on an OpenGL screen opened with mglOpen
        usage: mglFillOval(x,y,size,color)
               needs glu.h

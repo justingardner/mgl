@@ -1,8 +1,10 @@
 % eyeCalibDisp.m
 %
+%        $Id$
 %      usage: eyeCalibDisp()
 %         by: justin gardner
 %       date: 12/10/04
+%  copyright: (c) 2006 Justin Gardner (GPL see mgl/COPYING)
 %    purpose: eye calibration - MGL version
 %             stimuli should be defined in visual angle coords
 %

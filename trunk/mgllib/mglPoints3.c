@@ -4,6 +4,7 @@
      program: mglPoints3.c
           by: justin gardner & Jonas Larsson
         date: 04/03/06
+   copyright: (c) 2006 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
      purpose: mex function to plot 2D points on an OpenGL screen opened with mglOpen
        usage: mglPoints3(x,y,z,size,color)
 

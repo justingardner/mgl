@@ -4,6 +4,7 @@
 %      usage: mglCreateTexture(image)
 %         by: justin gardner
 %       date: 04/10/06
+%  copyright: (c) 2006 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
 %    purpose: Create a texture for display on the screen with mglBltTexture
 %             image can either be grayscale nxm, color nxmx3 or
 %             color+alpha nxmx4

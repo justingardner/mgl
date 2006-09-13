@@ -1,8 +1,10 @@
 % fixStairInitTask.m
 %
+%        $Id$
 %      usage: fixStairInitTask()
 %         by: justin gardner
 %       date: 09/07/06
+%  copyright: (c) 2006 Justin Gardner (GPL see mgl/COPYING)
 %    purpose: 
 %
 function task = fixStairInitTask(myscreen)

@@ -9,6 +9,7 @@
 %               params(6:7)=origin
 %         by: jonas larsson
 %       date: 
+%  copyright: (c) 2006 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
 %    purpose: draws a fixation cross
 %             with no arguments, draws a fixation cross at origin
 %             (default width 0.2 with linewidth 1 in white at [0,0])

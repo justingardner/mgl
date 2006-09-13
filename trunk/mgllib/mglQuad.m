@@ -4,6 +4,7 @@
 %    usage: mglQuad( vX, vY, rgbColor, [antiAliasFlag] );
 %       by: eli merriam, based on mglPoints.c by justin gardner & Jonas Larsson
 %     date: 04/20/06
+%  copyright: (c) 2006 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
 %  purpose: mex function to draw a quad in an OpenGL screen opened with mglOpen
 %           vX: 4 row by N column matrix of 'X' coordinates
 %           vY: 4 row by N column matrix of 'Y' coordinates

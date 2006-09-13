@@ -4,6 +4,7 @@
      program: mglPrivateOpen.c
           by: justin gardner with modifications by jonas larsson
         date: 04/03/06
+   copyright: (c) 2006 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
      purpose: opens an OpenGL window on Mac OS X or Linux
               See Macintosh OpenGL Programming Guide
 
@@ -186,7 +187,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
      CGLSetFullScreen( contextObj ) ;
 
     // Hide cursor
-    //CGDisplayHideCursor( kCGDirectMainDisplay ) ; 
+    CGDisplayHideCursor( kCGDirectMainDisplay ) ; 
    } else {
 
      // Open a Carbon window and set up an AGL rendering context

@@ -4,6 +4,7 @@
 %      usage: mglScreenCoordinates()
 %         by: justin gardner
 %       date: 05/27/06
+%  copyright: (c) 2006 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
 %    purpose: Set coordinate frame so that it is in pixels
 %             with 0,0 in the top left hand corrner
 %

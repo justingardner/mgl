@@ -5,6 +5,7 @@
           by: justin gardner
         date: 09/12/06
      purpose: return a mouse down event
+   copyright: (c) 2006 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
 
 $Id$
 =========================================================================

@@ -4,6 +4,7 @@
 %      usage: mglTestText()
 %         by: justin gardner
 %       date: 05/10/06
+%  copyright: (c) 2006 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
 %    purpose: 
 %
 function retval = mglTestText(screenNumber,noClose)

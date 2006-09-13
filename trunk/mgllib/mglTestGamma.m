@@ -4,6 +4,7 @@
 %      usage: mglTestGamma()
 %         by: justin gardner
 %       date: 06/30/06
+%  copyright: (c) 2006 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
 %    purpose: 
 %
 function retval = mglTestGamma(screenNumber)

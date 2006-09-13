@@ -1,6 +1,7 @@
 function mglVisualAngleCoordinates(physicalDistance,physicalSize);
 % mglVisualAngleCoordinates(physicalDistance,physicalSize);
 % 
+%  copyright: (c) 2006 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
 %        $Id$
 % Sets view transformation to correspond to visual angles (in degrees)
 % given size and distance of display. Display must be open and have 

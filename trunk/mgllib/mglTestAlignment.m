@@ -4,6 +4,7 @@
 %      usage: mglTestAlignment(screenNumber)
 %         by: justin gardner
 %       date: 09/05/06
+%  copyright: (c) 2006 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
 %    purpose: 
 %
 function retval = mglTestAlignment(screenNumber,noClose)

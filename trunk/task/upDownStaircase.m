@@ -1,8 +1,10 @@
 % upDownStaircase.m
 %
+%        $Id$
 %      usage: upDownStaircase()
 %         by: justin gardner
 %       date: 06/20/05
+%  copyright: (c) 2006 Justin Gardner (GPL see mgl/COPYING)
 %    purpose: implements a upDownStaircasecase 
 % 
 %       e.g.: to start a 1up-3down upDownStaircasecase with given step size

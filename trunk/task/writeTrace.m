@@ -1,8 +1,10 @@
 % writetrace.m
 %
+%        $Id$
 %      usage: writetrace.m()
 %         by: justin gardner
 %       date: 02/17/05
+%  copyright: (c) 2006 Justin Gardner (GPL see mgl/COPYING)
 %    purpose: function for experiments that writes data
 %             to a trace. because saving data in a trace
 %             for every timestep starts to bog everything
@@ -10,7 +12,7 @@
 %             the ticknumber and the data of the event
 %             when it is different than the previous ones.
 %
-function myscreen = writetrace(data,tracenum,myscreen)
+function myscreen = writeTrace(data,tracenum,myscreen)
 
 % find last occurrence of data on this trace
 getlast = last(find((myscreen.events.tracenum == tracenum)));

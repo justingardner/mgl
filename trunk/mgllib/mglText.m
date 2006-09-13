@@ -4,6 +4,7 @@
 %      usage: mglText('string')
 %         by: justin gardner
 %       date: 05/10/06
+%  copyright: (c) 2006 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
 %    purpose: Returns image of string.
 %
 %       e.g.: 

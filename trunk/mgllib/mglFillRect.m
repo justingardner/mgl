@@ -4,6 +4,7 @@
 %      usage: [  ] = mglFillRect(x,y, size, [rgb])
 %         by: denis schluppeck
 %       date: 2006-05-12
+%  copyright: (c) 2006 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
 %     inputs: x,y - vectors of x and y coordinates of center
 %             size - [width height] of oval
 %             color - [r g b] triplet for color

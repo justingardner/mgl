@@ -4,6 +4,7 @@
      program: mglTransform.c
           by: Jonas Larsson
         date: 2006-04-07
+   copyright: (c) 2006 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
      purpose: applies view transformations 
      syntax:  mglTransform( whichMatrix, whichTransform, whichParameters )
 

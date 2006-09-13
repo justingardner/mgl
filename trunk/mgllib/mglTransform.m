@@ -4,6 +4,7 @@
 %      usage: mglTransform(whichMatrix, whichTransform, [whichParameters])
 %         by: Jonas Larsson
 %       date: 2006-04-07
+%  copyright: (c) 2006 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
 %    purpose: applies view transformations 
 %  arguments: whichMatrix: 'GL_MODELVIEW', 'GL_PROJECTION', or 'GL_TEXTURE'
 %             whichTransform:  'glRotate', 'glTranslate', 'glScale', 

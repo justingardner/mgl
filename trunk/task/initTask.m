@@ -3,8 +3,10 @@
 %      usage: [ task ] = initTask( task, myscreen, startSegmentCallback, ...
 %			 trialResponseCallback, trialStimulusCallback, ...
 %			 endTrialCallback )
+%        $Id$
 %         by: justin gardner
 %       date: 2006-04-27
+%  copyright: (c) 2006 Justin Gardner (GPL see mgl/COPYING)
 %     inputs: task, myscreen
 %  callbacks:
 %     -- function handles for callback functions --

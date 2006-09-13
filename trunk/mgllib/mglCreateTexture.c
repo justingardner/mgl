@@ -4,6 +4,7 @@
      program: mglCreateTexture.c 
           by: justin gardner with add-ons by Jonas Larsson
         date: 04/09/06
+   copyright: (c) 2006 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
      purpose: sets up a texture element to be in VRAM
               see Red book Chapter 9
 

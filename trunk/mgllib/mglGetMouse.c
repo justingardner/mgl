@@ -5,12 +5,11 @@
           by: justin gardner
         date: 09/12/06
      purpose: return state of mouse buttons
+   copyright: (c) 2006 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
 
 $Id$
 =========================================================================
 #endif
-
-
 
 /////////////////////////
 //   include section   //

@@ -4,6 +4,7 @@
      program: mglPoints.c
           by: justin gardner
         date: 04/03/06
+   copyright: (c) 2006 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
      purpose: mex function to plot points on an OpenGL screen opened with glopen
        usage: glpoints(x,y,size,color,bgcolor)
         e.g.: glpoints(0.5,0.5);

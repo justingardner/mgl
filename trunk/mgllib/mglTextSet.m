@@ -4,6 +4,7 @@
 %      usage: mglTextSet(fontName,fontSize,fontColor,fontVFlip,fontHFlip,fontRotation,fontBold,fontItalic,fontUnderline,fontStrikeThrough)
 %         by: justin gardner
 %       date: 05/10/06
+%  copyright: (c) 2006 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
 %    purpose: Set text properties for mglText, to accept defaults
 %             pass []
 %       e.g.: mglTextSet('Helvetica');

@@ -1,8 +1,10 @@
 % testExperiment.m
 %
+%        $Id$
 %      usage: testExperiment
 %         by: justin gardner
 %       date: 09/07/06
+%  copyright: (c) 2006 Justin Gardner (GPL see mgl/COPYING)
 %    purpose: example program to show how to use the task structure
 %
 function myscreen = testExperiment
