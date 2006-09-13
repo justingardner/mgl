@@ -22,6 +22,12 @@ $Id$
 //////////////
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
+  if (nrhs != 0) {
+    usageError("mglGetMouse");
+    return;
+  }
+
+#ifdef __APPLE__
   // get next event on queue
   EventRecord theEvent;
   EventMask theMask = mDownMask;
@@ -48,5 +54,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   mxSetField(plhs[0],0,"buttons",mxCreateDoubleMatrix(1,1,mxREAL));
   outptr = (double*)mxGetPr(mxGetField(plhs[0],0,"buttons"));
   *outptr = (double)GetCurrentButtonState();
+#endif
+#ifdef __linux__
+  mexPrintf("(mglGetMouse) Not supported yet on linux\n");
+  return;
+#endif 
 }
 

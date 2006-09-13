@@ -36,7 +36,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   else {
     usageError("mglGetMouseEvent");
   }
-  
+
+#ifdef __APPLE__  
   // get next event on queue
   EventRecord theEvent;
   EventMask theMask = mDownMask;
@@ -65,5 +66,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   mxSetField(plhs[0],0,"when",mxCreateDoubleMatrix(1,1,mxREAL));
   outptr = (double*)mxGetPr(mxGetField(plhs[0],0,"when"));
   *outptr = (double)theEvent.when;
+#endif
+
+#ifdef __linux__
+  mexPrintf("(mglGetMouseEvent) Not supported yet on linux\n");
+  return;
+#endif 
 }
 
