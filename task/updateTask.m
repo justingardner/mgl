@@ -135,8 +135,7 @@ end
 % if we have to collect observer response, then look for that
 if (task{tnum}.getResponse(task{tnum}.thistrial.thisseg))
   % get keyboard state
-  buttons(1) = PsychHID('RawState',myscreen.HID.xkeysdev,myscreen.HID.xkeys.nums(1));
-  buttons(2) = PsychHID('RawState',myscreen.HID.xkeysdev,myscreen.HID.xkeys.nums(2));
+  buttons = mglGetKeys(myscreen.keyboard.nums);
   % if a button was pressed, then record response
   if (any(buttons) && (~isequal(buttons,task{tnum}.thistrial.buttonState)))
     task{tnum}.thistrial.buttonState = buttons;

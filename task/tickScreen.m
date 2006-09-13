@@ -10,7 +10,7 @@ function myscreen = tickScreen(myscreen,task)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%
 % get back tick status
 %%%%%%%%%%%%%%%%%%%%%%%%%%%
-thistick = PsychHID('RawState',myscreen.HID.xkeysdev,myscreen.HID.xkeys.tick)+PsychHID('RawState',myscreen.HID.keydev,myscreen.HID.keys.tick);;
+thistick = mglGetKeys(myscreen.keyboard.backtick);
 
 %ttltick = bitand(fishcamp(0),1);
 %thistick = ttltick | thistick;
@@ -58,7 +58,7 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%
 % check for esc key
 %%%%%%%%%%%%%%%%%%%%%%%%%%%
-if PsychHID('RawState',myscreen.HID.keydev,myscreen.HID.keys.esc)
+if mglGetKeys(myscreen.keyboard.esc)
   % finish up, compute traces etc.
   myscreen = endScreen(myscreen);
   saveStimData(myscreen,task);
@@ -76,9 +76,9 @@ myscreen.tick = myscreen.tick + 1;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%
 % if called for pause on space bar
 %%%%%%%%%%%%%%%%%%%%%%%%%%%
-if myscreen.allowpause && PsychHID('RawState',myscreen.HID.keydev,myscreen.HID.keys.space)
+if myscreen.allowpause && mglGetKeys(myscreen.keyboard.space)
   mydisp(sprintf('PAUSED: hit RETURN to continue'));
-  while ~PsychHID('RawState',myscreen.HID.keydev,myscreen.HID.keys.enter)
+  while ~mglGetKeys(myscreen.keyboard.return)
   end
 end
 
