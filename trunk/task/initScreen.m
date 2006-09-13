@@ -200,78 +200,12 @@ myscreen.fliptime = inf;
 myscreen.dropcount = 0;
 myscreen.checkForDroppedFrames = 1;
 
-% keyboard stuff.
-myscreen.HID.n = PsychHID('NumDevices');
-myscreen.HID.devices = PsychHID('Devices');
-% find the keyboard
-myscreen.HID.keydev = 0;myscreen.HID.xkeysdev = 0;
-for i = 1:myscreen.HID.n
-  if (strcmp(myscreen.HID.devices(i).usageName,'Keyboard'))
-    if (strfind(myscreen.HID.devices(i).product,'Apple Extended USB Keyboard'))
-      myscreen.HID.keydev = i;
-    end
-    if (strcmp(myscreen.HID.devices(i).product,'Keyboard'))
-      myscreen.HID.keydev = i;
-    end
-    if (strcmp(myscreen.HID.devices(i).product,'Apple Internal Keyboard / Trackpad'))
-      myscreen.HID.keydev = i;
-    end
-    if (strfind(myscreen.HID.devices(i).product,'Xkeys Matrix'))
-      myscreen.HID.xkeysdev = i;
-    end
-  end
-end
-if (myscreen.HID.keydev == 0)
-  disp(sprintf('UHOH: Could not find keyboard\n'));
-end
-if (myscreen.HID.xkeysdev == 0)
-  myscreen.HID.xkeysdev = myscreen.HID.keydev;
-end
-
-% get keyboard elements
-myscreen.HID.keyelements = PsychHID('Elements',myscreen.HID.keydev);
-% get the important code numbers
-for i = 1:length(myscreen.HID.keyelements)
-  switch (myscreen.HID.keyelements(i).usageValue)
-    case { myscreen.tickcode }
-      myscreen.HID.keys.tick = i;
-    case { hex2dec('29') }
-      myscreen.HID.keys.esc = i;
-    case { hex2dec('2c') }
-      myscreen.HID.keys.space = i;
-    case { hex2dec('28') }
-      myscreen.HID.keys.enter = i;
-  end
-end
-% get keyboard elements
-myscreen.HID.xkeyselements = PsychHID('Elements',myscreen.HID.xkeysdev);
-% get the important code numbers
-for i = 1:length(myscreen.HID.xkeyselements)
-  switch (myscreen.HID.xkeyselements(i).usageValue)
-    case { myscreen.tickcode }
-      myscreen.HID.xkeys.tick = i;
-    case { hex2dec('1e') }
-      myscreen.HID.xkeys.nums(1)= i;
-    case { hex2dec('1f') }
-      myscreen.HID.xkeys.nums(2) = i;
-    case { hex2dec('20') }
-      myscreen.HID.xkeys.nums(3) = i;
-    case { hex2dec('21') }
-      myscreen.HID.xkeys.nums(4) = i;
-    case { hex2dec('22') }
-      myscreen.HID.xkeys.nums(5) = i;
-    case { hex2dec('23') }
-      myscreen.HID.xkeys.nums(6) = i;
-    case { hex2dec('24') }
-      myscreen.HID.xkeys.nums(7) = i;
-    case { hex2dec('25') }
-      myscreen.HID.xkeys.nums(8) = i;
-    case { hex2dec('25') }
-      myscreen.HID.xkeys.nums(9) = i;
-    case { hex2dec('26') }
-      myscreen.HID.xkeys.nums(10) = i;
-  end
-end
+% set keyboard info
+myscreen.keyboard.esc = 46;
+myscreen.keyboard.return = 61;
+myscreen.keyboard.space = 42;
+myscreen.keyboard.backtick = 43;
+myscreen.keyboard.nums = [11 12 13 14 16 15 3 5 2 6];
 
 %init traces
 numinit = 2000;
@@ -282,7 +216,9 @@ myscreen.events.ticknum = zeros(1,numinit);
 myscreen.events.volnum = zeros(1,numinit);
 myscreen.events.time = zeros(1,numinit);
 
-myscreen.stimtrace = 5;
+% first stimtrace is reserved for acq pulses
+% second for heart and 3rd for respiration
+myscreen.stimtrace = 4;
 
 % save the beginning of time
 myscreen.starttime = datestr(clock);

@@ -19,6 +19,13 @@ explain writeTrace
 explain blockLen and trialLen
 explain multiple phase tasks
 explain how save works
+explain where variables are stored
+deal with subject responses
+-have each task decide on which trace to use from myscreen
+-automatic saving of trial and segment info
+-gamma tables for monitors downstairs
+-use read/writeDigPort to control tracker
+-send syncing information to eye tracker
 
 ============================================================================
 1.1 A quick overview

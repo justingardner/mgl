@@ -25,11 +25,11 @@ if (myscreen.eyecalib.prompt)
   mydisp(sprintf('Esc aborts at any time\n'));
   mydisp(sprintf('-----------------------------\n'));
 
-  while ~PsychHID('RawState',myscreen.HID.keydev,myscreen.HID.keys.space)
-    if PsychHID('RawState',myscreen.HID.keydev,myscreen.HID.keys.esc)
+  while ~mglGetKeys(myscreen.keyboard.space)
+    if mglGetKeys(myscreen.keyboard.esc)
       return
     end
-    if PsychHID('RawState',myscreen.HID.keydev,myscreen.HID.keys.enter)
+    if mglGetKeys(myscreen.keyboard.return)
       % starting experiment, start the eye tracker
       myscreen.fishcamp = bitor(myscreen.fishcamp,1);
       fishcamp(1,myscreen.fishcamp);
@@ -51,7 +51,7 @@ for j = 1:myscreen.eyecalib.n
   startTime = GetSecs;
   if ~isinf(myscreen.eyecalib.waittime)
     while (myscreen.eyecalib.waittime > (GetSecs-startTime));
-      if PsychHID('RawState',myscreen.HID.keydev,myscreen.HID.keys.esc)
+      if mglGetKeys(myscreen.keyboard.esc)
 	mglClearScreen;mglFlush;
 	return
       end
