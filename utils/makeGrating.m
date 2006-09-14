@@ -1,17 +1,23 @@
 % makeGrating.m
 %
-%      usage: makeGrating()
+%      usage: makeGrating(width,height,sf,angle,phase)
 %         by: justin gardner
 %       date: 09/14/06
-%    purpose: 
+%    purpose: create a 2D grating. You should start MGL
+%             and set to visual angle coordinates frist.
+%             angle and phase are in degrees
 %
-function m = makeGrating(width,height,angle,phase,sf)
+function m = makeGrating(width,height,sf,angle,phase)
 
 % check arguments
-if ~any(nargin == [5])
+if ~any(nargin == [3 4 5])
   help makeGrating
   return
 end
+
+if ~exist('sf','var'),sf = 1;end
+if ~exist('angle','var'),angle = 0;end
+if ~exist('phase','var'),phase = 0;end
 
 global MGL;
 
@@ -37,16 +43,3 @@ a=cos(angle)*sf*2*pi;
 b=sin(angle)*sf*2*pi;
 % compute grating
 m = sin(a*xMesh+b*yMesh+phase);
-m = 255*(m+1)/2;
-% compute gaussian window
-%win = exp(-((xMesh.^2)/((texWidth/5)^2)+(yMesh.^2)/((texHeight/5)^2)));
-% clamp small values to 0 so that we fade completely to gray.
-%win(win(:)<0.01) = 0;
-% now create and RGB + alpha image with the gaussian window
-% as the alpha channel
-%  m4(:,:,1) = m;
-%  m4(:,:,2) = m;
-%  m4(:,:,3) = m;
-%  m4(:,:,4) = 255*win;
-% now create the texture
-%tex(i) = mglCreateTexture(m4);

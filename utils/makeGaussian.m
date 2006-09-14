@@ -1,9 +1,9 @@
 % makeGaussian.m
 %
-%      usage: makeGaussian()
+%      usage: makeGaussian(width,height,sdx,sdy)
 %         by: justin gardner
 %       date: 09/14/06
-%    purpose: 
+%    purpose: make a 2D gaussian
 %
 function m = makeGaussian(width,height,sdx,sdy)
 
