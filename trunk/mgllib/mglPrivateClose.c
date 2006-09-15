@@ -92,13 +92,23 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     
     AGLDrawable drawableObj = aglGetDrawable(contextObj);
     
-    // clear context and close window
-    if (!aglDestroyContext(contextObj)) {
-      mexPrintf("(mglPrivateClose) UHOH: aglDestroyContext returned error\n");
-    }
-    
-    // close window
-    DisposeWindow(GetWindowFromPort(drawableObj));
+    // Note, rather than destroying the window here, we just
+    // hide it now. This was done in a (failed) effort to improve
+    // stability when running with the Matlab desktop.  The only
+    // thing that apparently helps is not closing the window.
+    //aglSetCurrentContext(NULL);
+    //QDFlushPortBuffer(drawableObj,NULL);
+    // destroy the context
+    //if (QDDone(drawableObj))
+      // clear context and close window
+    //  if (!aglDestroyContext(contextObj)) {
+    //	mexPrintf("(mglPrivateClose) UHOH: aglDestroyContext returned error\n");
+    //  }
+    //else 
+    //  mexPrintf("(mglPrivateClose) Quick draw is blocking close. Try again\n");
+
+    // hide window
+    HideWindow(GetWindowFromPort(drawableObj));
   }
 #endif // ifdef __APPLE__
 

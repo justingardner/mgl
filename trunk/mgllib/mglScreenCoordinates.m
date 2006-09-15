@@ -18,6 +18,11 @@ end
 
 global MGL;
 
+if ~isfield(MGL,'displayNumber') || (MGL.displayNumber < 0)
+  disp(sprintf('(mglVisualAngleCoordinates) No open display'));
+  return
+end
+
 % set the transforms to identity
 mglTransform('GL_MODELVIEW','glLoadIdentity');
 mglTransform('GL_PROJECTION','glLoadIdentity')
