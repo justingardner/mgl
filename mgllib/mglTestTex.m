@@ -102,7 +102,7 @@ endtime = GetSecs;
 
 % reset gamma and close screen
 mglSetGammaTable(gamma.redTable,gamma.greenTable,gamma.blueTable);
-%mglClose;
+mglClose;
 
 % check how long it ran for
 disp(sprintf('Ran for: %0.8f sec Intended: %0.8f sec',endtime-starttime,numsec));
