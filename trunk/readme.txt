@@ -19,7 +19,7 @@ Known issues that you should be aware of
 ****************************************************************************
 2.1 Matlab license manager can cause timing glitches every 30 seconds
 2.2 Some functions not supported yet on Linux
-2.3 This distribution is intended to work with Mac OS 10.4 or greater
+2.3 Opening in a window (mglOpen(0)) is unstable when using the matlab desktop
 
 ============================================================================
 1.0 A quick overview
@@ -173,8 +173,14 @@ If you want to use text under the linux operating system, you can use
 mglStrokeText.
 
 ============================================================================
-2.3 This distribution is intended to work with Mac OS 10.4 or greater
+2.3 Opening in a window (mglOpen(0)) is unstable when using the matlab desktop
 ============================================================================
 
-In particular opening in a window (mglOpen(0)) is unstable for versions before
-Mac OS 10.4
+There seems to be some interaction with having mutliple threads in the workspace
+that causes working within a window (as opposed to fullscreen) to be unstable.
+The workaround for now is not to close the window once it is opened. This seems
+to work fairly well. When one is completely finished working with the window,
+one can call mglPrivateClose to close the window. But after that, calling
+mglOpen(0) is likely to crash. 
+
+mglOpen(0) works fine if running matlab -nojvm or -nodesktop. 
