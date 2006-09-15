@@ -53,11 +53,9 @@ grating1tex = mglCreateTexture(grating1);
 grating2tex = mglCreateTexture(grating2);
 plaidtex = mglCreateTexture(plaid);
 
+% clear the screen and draw the plaid
 mglClearScreen(0.5);
 mglBltTexture(plaidtex,[0 0]);
 mglFlush;
 
-mglClearScreen(0.5);
-mglBltTexture(plaidtex,[0 0]);
-mglFlush;
 keyboard

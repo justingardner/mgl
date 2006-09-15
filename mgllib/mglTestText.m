@@ -30,7 +30,11 @@ global MGL
 doExpandingText = 1;
 if doExpandingText
   % render the text into textures
-  if exist('disppercent'),disppercent(-inf,'Rendering text');,end
+  if exist('disppercent')
+    disppercent(-inf,'Rendering text');
+  else
+    disp(sprintf('Rendering text'));
+  end
   clear expandingText contractingText;
   nFrames = 0;
   for i = 16:40

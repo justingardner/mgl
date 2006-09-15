@@ -72,6 +72,7 @@ for i = 1:MGL.frameRate*numsec
 end
 endtime=GetSecs;
 
+mglStencilSelect(0);
 mglClose;
 
 % check how long it ran for

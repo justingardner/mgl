@@ -17,7 +17,7 @@ How to get started
 ****************************************************************************
 Known issues that you should be aware of
 ****************************************************************************
-2.1 Matlab license manager causes timing glitches every 30 seconds
+2.1 Matlab license manager can cause timing glitches every 30 seconds
 2.2 Some functions not supported yet on Linux
 2.3 This distribution is intended to work with Mac OS 10.4 or greater
 

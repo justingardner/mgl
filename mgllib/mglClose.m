@@ -24,7 +24,7 @@ if MGL.displayNumber == -1
 end
 
 % clear screen to avoid flickering 
-mglClearScreen;mglFlush;mglClearScreen;mglFlush;
+mglClearScreen(0);mglFlush;mglClearScreen(0);mglFlush;
 
 % if we have an initial gamma table set, then go back to that.
 if isfield(MGL,'initialGammaTable') && ~isempty(MGL.initialGammaTable)
