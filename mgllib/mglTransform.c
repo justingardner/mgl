@@ -26,6 +26,19 @@ $Id$
 //////////////
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
+  // if display number does not exist, then there is nothing to do
+  if (!mglIsGlobal("displayNumber")) {
+    mexPrintf("(mglTransform) No open window\n");
+    return;
+  }
+
+  // get what display number we have
+  int displayNumber = (int)mglGetGlobalDouble("displayNumber");
+  if (displayNumber<0) {
+    mexPrintf("(mglTransform) No open window\n");
+    return;
+  }
+
   // get parameters
   if (nrhs<1) {
     usageError("mglTransform");

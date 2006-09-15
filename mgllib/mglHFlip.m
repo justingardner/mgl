@@ -25,5 +25,10 @@ end
 
 global MGL;
 
+if ~isfield(MGL,'displayNumber') || (MGL.displayNumber < 0)
+  disp(sprintf('(mglVisualAngleCoordinates) No open display'));
+  return
+end
+
 % flip the modelviews horizontal axis
 mglTransform('GL_MODELVIEW','glScale',-1,1,1);

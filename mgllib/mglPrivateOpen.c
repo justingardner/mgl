@@ -188,8 +188,31 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
     // Hide cursor
     CGDisplayHideCursor( kCGDirectMainDisplay ) ; 
-   } else {
+   } 
+   else {
 
+    // run in a window: get agl context
+    AGLContext contextObj = aglGetCurrentContext();
+    
+    if (contextObj != NULL) {
+      if (verbose > 1)
+	mexPrintf("(mglPrivateOpen) Using previously created context\n");
+      AGLDrawable drawableObj = aglGetDrawable(contextObj);
+      // show window, using the desktop it is apparently in this
+      // call that mglPrivateOpen fails.
+      ShowWindow(GetWindowFromPort(drawableObj));
+
+      // get an event (don't know if this is necessary, but the thought
+      // was to give back control to the OS for some ticks so that it
+      // could do whatever processing it needs to do)-
+      EventRecord theEvent;
+      EventMask theMask = keyDownMask;
+      // either return immediately or wait till we get an event
+      WaitNextEvent(theMask,&theEvent,6,nil);
+    }
+    else {
+    
+    
      // Open a Carbon window and set up an AGL rendering context
      WindowRef         theWindow; 
      WindowAttributes  windowAttrs;
@@ -198,30 +221,70 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
      CFStringRef       windowTitle; 
      OSStatus          result; 
 
-     windowAttrs = kWindowStandardDocumentAttributes 
-     | kWindowStandardHandlerAttribute 
-     | kWindowInWindowMenuAttribute; 
-     SetRect (&contentRect, 100, 100, 100+screenWidth, 100+screenHeight );
+     windowAttrs = kWindowInWindowMenuAttribute | kWindowAsyncDragAttribute | kWindowNoUpdatesAttribute | kWindowStandardHandlerAttribute; 
+     SetRect (&contentRect, 0, 0, screenWidth, screenHeight );
 
      // create a new window
      if (verbose>1) mexPrintf("(mglPrivateOpen) Creating new window\n");
-     CreateNewWindow (kDocumentWindowClass, windowAttrs, &contentRect, &theWindow);
+     result = CreateNewWindow (kDocumentWindowClass, windowAttrs, &contentRect, &theWindow);
+     if (result != noErr) {
+       mexPrintf("(mglPrivateOpen) Could not CreateNewWindow\n");
+       return;
+     }
+
+     // don't ever activate window
+     SetWindowActivationScope(theWindow,kWindowActivationScopeNone);
+     
+     // get an event (don't know if this is necessary, but the thought
+     // was to give back control to the OS for some ticks so that it
+     // could do whatever processing it needs to do)-
+     EventRef theEvent;
+     EventTargetRef theTarget;
+     theTarget = GetEventDispatcherTarget();
+     if (verbose>1) mexPrintf("(mglPrivateOpen) ReceiveNextEvent\n");
+     InstallStandardEventHandler(theTarget);
+     if (ReceiveNextEvent(0,NULL,1,true,&theEvent) == noErr) {
+       SendEventToEventTarget(theEvent,theTarget);
+       ReleaseEvent(theEvent);
+     }
+
+     // get a proxy icon for the window
+     if (verbose>1) mexPrintf("(mglPrivateOpen) Setting window proxy and creator\n");
+     result = SetWindowProxyCreatorAndType(theWindow,0,'TEXT',kOnSystemDisk);
+     if (result != noErr) {
+       mexPrintf("(mglPrivateOpen) Could not SetWindowProxyCreatorAndType\n");
+       return;
+     }
+
      // setting the title: This crashes on the SetWindowTitleWithCFString call
-     //if (verbose) mexPrintf("(mglPrivateOpen) Setting the title\n");
-     //titleKey = CFSTR("Matlab OpenGL Viewport"); 
-     //windowTitle = CFCopyLocalizedString(titleKey, NULL); 
-     //result = SetWindowTitleWithCFString (theWindow, windowTitle); 
-     //CFRelease (titleKey); 
-     //CFRelease (windowTitle); 
+     if (verbose) mexPrintf("(mglPrivateOpen) Setting the title\n");
+     titleKey = CFSTR("Matlab OpenGL Viewport"); 
+     windowTitle = CFCopyLocalizedString(titleKey, NULL); 
+     result = SetWindowTitleWithCFString (theWindow, windowTitle); 
+     CFRelease (titleKey); 
+     CFRelease (windowTitle); 
+
 
      /// get the agl PixelFormat
      if (verbose>1) mexPrintf("(mglPrivateOpen) Getting AGL pixel format\n");
-     GLint attrib[] = {AGL_RGBA, AGL_DOUBLEBUFFER, AGL_STENCIL_SIZE, 8, AGL_NONE, AGL_ACCELERATED, AGL_NO_RECOVERY };
+     GLint attrib[] = {AGL_RGBA, AGL_DOUBLEBUFFER, AGL_STENCIL_SIZE, 8, AGL_ACCELERATED, AGL_NO_RECOVERY, AGL_NONE };
      AGLPixelFormat aglPixFmt = aglChoosePixelFormat (NULL, 0, attrib);
+     if (aglPixFmt == NULL) {
+       mexPrintf("(mglPrivateOpeen) Could not get AGLPixelFormat\n");
+       return;
+     }
 
      // set up drawing context
      if (verbose>1) mexPrintf("(mglPrivateOpen) Getting AGL Context\n");
      AGLContext aglContextObj = aglCreateContext (aglPixFmt, NULL);
+     if (aglContextObj == NULL) {
+       mexPrintf("(mglPrivateOpen) Could not create agl context\n");
+       return;
+     }
+
+     // clean up pixel format
+     result = aglGetError();
+     aglDestroyPixelFormat(aglPixFmt);
 
      // insure that we wait for vertical blank on flush
      if (verbose>1) mexPrintf("(mglPrivateOpen) Setting AGL swap interval\n");
@@ -237,17 +300,16 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
      if (! aglSetCurrentContext ( aglContextObj )) {
        mexPrintf("(mglPrivateOpen) warning: failed to set drawable context found\n");
      }
-
-     AGLContext contextObj = aglGetCurrentContext ();
-
-     if (!contextObj) {
-       mexPrintf("(mglPrivateOpen) warning: no drawable context found\n");
+     // display the window
+     if (verbose>1) mexPrintf("(mglPrivateOpen) Displaying the window\n");
+     result = TransitionWindow(theWindow,kWindowZoomTransitionEffect,kWindowShowTransitionAction,nil);
+     if (result != noErr) {
+       mexPrintf("(mglPrivateOpen) Could not TransitionWindow\n");
+       return;
      }
      if (verbose>1) mexPrintf("(mglPrivateOpen) Repositioning window\n");
      RepositionWindow (theWindow, NULL, kWindowCascadeOnMainScreen); 
-     if (verbose>1) mexPrintf("(mglPrivateOpen) ShowWindow\n");
-
-     ShowWindow (theWindow); 
+    }
    }
 #endif //#ifdef __APPLE__
 
@@ -390,11 +452,24 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
    glClear(GL_COLOR_BUFFER_BIT); 
 
 #ifdef __APPLE__
-   // get the current context
-   CGLContextObj contextObj = CGLGetCurrentContext();
-   // and flip the double buffered screen
-   // this call waits for vertical blanking
-   CGLFlushDrawable(contextObj); 
+   if (displayNumber) {
+     // get the current context
+     CGLContextObj contextObj = CGLGetCurrentContext();
+     // and flip the double buffered screen
+     // this call waits for vertical blanking
+     CGLFlushDrawable(contextObj); 
+   }
+   else {
+    // run in a window: get agl context
+    AGLContext contextObj=aglGetCurrentContext ();
+
+    if (!contextObj) {
+      printf("warning: no drawable context found\n");
+    }
+     
+    // swap buffers
+    aglSwapBuffers (contextObj);
+   }
 #endif
 
 #ifdef __linux__

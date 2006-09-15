@@ -31,7 +31,10 @@ if isfield(MGL,'initialGammaTable') && ~isempty(MGL.initialGammaTable)
   mglSetGammaTable(MGL.initialGammaTable);
 end
 
-
-% call the mex file to close the screen
-mglPrivateClose;
+% call the mex file to close the screen, don't close the screen
+% if we are running on the desktop with a windowed context, since
+% that seems to cause instability
+if ~(isempty(javachk('desktop'))  && (MGL.displayNumber == 0))
+  mglPrivateClose;
+end
 

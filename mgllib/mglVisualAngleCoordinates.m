@@ -23,6 +23,11 @@ end
 % declare MGL global
 global MGL
 
+if ~isfield(MGL,'displayNumber') || (MGL.displayNumber < 0)
+  disp(sprintf('(mglVisualAngleCoordinates) No open display'));
+  return
+end
+
 % get distance and size of screen (either from
 % passed in variables or from global
 if (exist('physicalDistance','var') & length(physicalDistance)==1)

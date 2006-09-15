@@ -30,6 +30,23 @@ if ~exist('screenHeight','var'), screenHeight = 600; end
 if ~exist('frameRate','var'), frameRate = 60; end
 if ~exist('bitDepth','var'), bitDepth = 32; end
 
+% get the MGL global
+global MGL;
+
+if isempty(javachk('desktop'))  && (whichScreen == 0)
+  disp(sprintf('(mglOpen) Using a windowed openGl context with the matlab desktop'));
+  disp(sprintf('          can be unstable due to some interactions with multiple'));
+  disp(sprintf('          threads. If you encounter crashing consider either using'));
+  disp(sprintf('          a full window context, (ie not mglOpen(0)) or run matlab'));
+  disp(sprintf('          using -nojvm or -nodesktop. Note that to improve stability'));
+  disp(sprintf('          mglClose will not close the window. If you are done using'));
+  disp(sprintf('          mgl and want to force the window closed, use mglPrivateClose'));
+  if ~isfield(MGL,'desktopWarning')
+    % next time this is run it will allow the user to open the window
+    MGL.desktopWarning = 1;
+  end
+end
+  
 % call the private mex function
 if nargin <= 1
   % if passed in with zero or one argument then use default settings
@@ -38,9 +55,6 @@ else
   % otherwise send all of the arguments
   mglPrivateOpen(whichScreen,screenWidth,screenHeight,frameRate,bitDepth);
 end
-
-% get the MGL global
-global MGL;
 
 % and remember the initial gamma table setting
 MGL.initialGammaTable = mglGetGammaTable;
