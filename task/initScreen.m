@@ -7,10 +7,7 @@
 %  copyright: (c) 2006 Justin Gardner (GPL see mgl/COPYING)
 %    purpose: init screen parameters (using MGL)
 %
-function myscreen = initScreen(randstate)
-
-% get globals
-global myscreen;
+function myscreen = initScreen(myscreen,randstate)
 
 % get globals
 global MGL;
