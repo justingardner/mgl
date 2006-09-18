@@ -12,9 +12,8 @@ function myscreen = tickScreen(myscreen,task)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%
 % get back tick status
 %%%%%%%%%%%%%%%%%%%%%%%%%%%
-%thistick = mglGetKeys(myscreen.keyboard.backtick);
-
-thistick = readDigPort & 1;
+thistick = mglGetKeys(myscreen.keyboard.backtick);
+ttltick = readDigPort & 1;
 
 %thistick = ttltick | thistick;
 
@@ -62,9 +61,6 @@ end
 % check for esc key
 %%%%%%%%%%%%%%%%%%%%%%%%%%%
 if mglGetKeys(myscreen.keyboard.esc)
-  % finish up, compute traces etc.
-  myscreen = endScreen(myscreen);
-  saveStimData(myscreen,task);
   % make sure the variable myscreen is set in caller context
   assignin('caller','myscreen',myscreen);
   % use try/catch to return to sender

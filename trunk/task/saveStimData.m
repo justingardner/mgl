@@ -55,6 +55,14 @@ else
   end
 end
 
+%make the string for also saving the stimulus structures
+getStimuliCommand = '';
+stimuliNames = '';
+for stimulusNum = 1:length(myscreen.stimulusNames)
+  getStimuliCommand = sprintf('%sglobal %s;',getStimuliCommand,myscreen.stimulusNames{stimulusNum});
+  stimuliNames = sprintf('%s %s',stimuliNames,myscreen.stimulusNames{stimulusNum});
+end
+
 if (strcmp(lower(response),'n'))
   % user aborts, decrement save number
   gNumSaves = gNumSaves - 1;
@@ -63,9 +71,9 @@ elseif (strcmp(response,'y'))
   % user accepts, save data
   mydisp(sprintf('Saving %s...',filename));
   if (str2num(first(version)) < 7)
-    eval(sprintf('save %s myscreen task',filename));
+    eval(sprintf('save %s myscreen task %s',filename,stimuliNames));
   else
-    eval(sprintf('save %s myscreen task -V6',filename));
+    eval(sprintf('save %s myscreen task %s -V6',filename,stimuliNames));
   end    
   mydisp(sprintf('done.\n'));
 elseif (~isempty(str2num(response)) && (sigfig(str2num(response)) == 0))
@@ -76,9 +84,9 @@ elseif (~isempty(str2num(response)) && (sigfig(str2num(response)) == 0))
   % and save it
   mydisp(sprintf('Saving %s...',filename));
   if (str2num(first(version)) < 7)
-    eval(sprintf('save %s myscreen task',filename));
+    eval(sprintf('save %s myscreen task %s',filename,stimuliNames));
   else
-    eval(sprintf('save %s myscreen task -V6',filename));
+    eval(sprintf('save %s myscreen task %s -V6',filename,stimuliNames));
   end
   mydisp(sprintf('done.\n'));
 else
@@ -86,9 +94,9 @@ else
   % user has input a filename
   mydisp(sprintf('Saving %s...',response));
   if (str2num(first(version)) < 7)
-    eval(sprintf('save %s myscreen task',response));
+    eval(sprintf('save %s myscreen task %s',response,stimuliNames));
   else
-    eval(sprintf('save %s myscreen task -V6',response));
+    eval(sprintf('save %s myscreen task %s -V6',response,stimuliNames));
   end
   mydisp(sprintf('done.\n'));
 end
