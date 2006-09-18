@@ -12,10 +12,10 @@ function myscreen = tickScreen(myscreen,task)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%
 % get back tick status
 %%%%%%%%%%%%%%%%%%%%%%%%%%%
-thistick = mglGetKeys(myscreen.keyboard.backtick);
+%thistick = mglGetKeys(myscreen.keyboard.backtick);
 
-%thistick = readDigPort & 1;
-%ttltick = bitand(fishcamp(0),1);
+thistick = readDigPort & 1;
+
 %thistick = ttltick | thistick;
 
 % if we are transitioning into a tick down state
