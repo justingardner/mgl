@@ -203,6 +203,10 @@ end
 % set how many total trials we have run
 task.trialnumTotal = 0;
 
+if ~isfield(task,'writeSegmentsTrace')
+  task.writeSegmentsTrace = 4;
+end
+
 % set function handles
 if exist('startSegmentCallback','var') && ~isempty(startSegmentCallback)
   task.callback.startSegment = startSegmentCallback;

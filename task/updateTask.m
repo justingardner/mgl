@@ -66,6 +66,9 @@ if task{tnum}.thistrial.segstart == -inf
   end
   % write out appropriate trace
   myscreen = taskWriteTrace(task{tnum},myscreen);
+  if task{tnum}.writeSegmentsTrace
+    myscreen = writeTrace(1,task{tnum}.writeSegmentsTrace,myscreen,1);
+  end
   % restart segment clock and continue on
   % as if the segment just started
   if task{tnum}.timeInTicks
@@ -130,6 +133,9 @@ if (segover)
   task{tnum} = resetSegmentClock(task{tnum},myscreen);
   % write out appropriate trace
   myscreen = taskWriteTrace(task{tnum},myscreen);
+  if task{tnum}.writeSegmentsTrace
+    myscreen = writeTrace(task{tnum}.thistrial.thisseg,task{tnum}.writeSegmentsTrace,myscreen,1);
+  end
   % set stimulus parameters
   [task{tnum} myscreen] = feval(task{tnum}.callback.startSegment,task{tnum},myscreen);
 end
@@ -309,7 +315,7 @@ if (isfield(task.writeTrace{task.thistrial.thisseg},'tracenum'))
       % find parameter number
       paramval = eval(sprintf('find(paramval == task.parameter.%s(%i,:))',thisWriteTrace.tracevar{i},thisWriteTrace.tracerow(i)));
     end
-    eval(sprintf('myscreen = writeTrace(paramval,thisWriteTrace.tracenum(i)-1+myscreen.stimtrace,myscreen);',thisWriteTrace.tracevar{i},thisWriteTrace.tracerow(i)));
+    eval(sprintf('myscreen = writeTrace(paramval,thisWriteTrace.tracenum(i)-1+myscreen.stimtrace,myscreen,1);',thisWriteTrace.tracevar{i},thisWriteTrace.tracerow(i)));
   end
 else
   for i = 1:task.numstimtraces

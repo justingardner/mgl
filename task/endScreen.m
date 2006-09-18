@@ -21,7 +21,7 @@ end
 % display tick rate
 if isfield(myscreen,'totalflip')
   disp(sprintf('Average tick rate = %0.6f %0.5fHz effective',myscreen.totalflip/myscreen.tick,1/(myscreen.totalflip/myscreen.tick)));
-  disp(sprintf('Dropped frames = %i (%0.2f%%) (i.e. frames %0.1f%% longer than expected)',myscreen.dropcount,100*myscreen.dropcount/myscreen.tick,(myscreen.dropThreshold-1)*100));
+  disp(sprintf('Dropped frames = %i (%0.2f%%) (i.e. frames >= %0.1f%% longer than expected)',myscreen.dropcount,100*myscreen.dropcount/myscreen.tick,(myscreen.dropThreshold-1)*100));
 end
   
 disp(sprintf('-----------------------------'));
@@ -48,7 +48,12 @@ if (nargin == 1)
       % get the tick num for this event
       ticknum = myscreen.events.ticknum(i);
       % put the data into the trace
-      myscreen.traces(myscreen.events.tracenum(i),ticknum:maxtick) = myscreen.events.data(i);
+      % if it is a force, then only set the current one
+      if myscreen.events.force(i)
+	myscreen.traces(myscreen.events.tracenum(i),ticknum) = myscreen.events.data(i);
+      else
+	myscreen.traces(myscreen.events.tracenum(i),ticknum:maxtick) = myscreen.events.data(i);
+      end
       % get the time in between the last time and this time
       thistime = myscreen.events.time(i);
       lasttime = myscreen.time(lastticknum);

@@ -14,6 +14,7 @@ function myscreen = tickScreen(myscreen,task)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%
 thistick = mglGetKeys(myscreen.keyboard.backtick);
 
+%thistick = readDigPort & 1;
 %ttltick = bitand(fishcamp(0),1);
 %thistick = ttltick | thistick;
 
@@ -24,13 +25,13 @@ if (thistick)
     myscreen = writeTrace(1,1,myscreen);
     myscreen.intick = 1;
     myscreen.volnum = myscreen.volnum+1;
-    fishcamp(1,bitor(myscreen.fishcamp,bin2dec('10')));
+    %fishcamp(1,bitor(myscreen.fishcamp,bin2dec('10')));
   end
 else
   if (myscreen.intick)
     myscreen = writeTrace(0,1,myscreen);
     myscreen.intick = 0;
-    fishcamp(1,myscreen.fishcamp);
+    %fishcamp(1,myscreen.fishcamp);
   end
 end
 

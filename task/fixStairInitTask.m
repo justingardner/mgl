@@ -39,6 +39,7 @@ if ~isfield(fixStimulus,'diskSize') fixStimulus.diskSize = 1; end
 task{1}.seglen = [fixStimulus.interTime fixStimulus.stimTime fixStimulus.interTime fixStimulus.stimTime fixStimulus.interTime fixStimulus.responseTime];
 task{1}.getResponse = [0 0 0 0 0 1];
 task{1}.parameter.trialtype = 1;
+task{1}.writeSegmentsTrace = 0;
 
 % init the staircase
 fixStimulus.staircase = upDownStaircase(fixStimulus.stairUp,fixStimulus.stairDown,fixStimulus.threshold,fixStimulus.stairStepSize,fixStimulus.stairUseLevitt);
