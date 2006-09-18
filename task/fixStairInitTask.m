@@ -1,13 +1,13 @@
 % fixStairInitTask.m
 %
 %        $Id$
-%      usage: fixStairInitTask()
+%      usage: [fixTask myscreen] = fixStairInitTask(myscreen)
 %         by: justin gardner
 %       date: 09/07/06
 %  copyright: (c) 2006 Justin Gardner (GPL see mgl/COPYING)
 %    purpose: 
 %
-function task = fixStairInitTask(myscreen)
+function [task myscreen] = fixStairInitTask(myscreen)
 
 % check arguments
 if ~any(nargin == [1])
@@ -18,6 +18,7 @@ end
 % create the stimulus for the experiment, use defaults if they are
 % not already set
 global fixStimulus;
+myscreen = initStimulus('fixStimulus',myscreen);
 if ~isfield(fixStimulus,'threshold') fixStimulus.threshold = 0.5; end
 if ~isfield(fixStimulus,'pedestal') fixStimulus.pedestal = 0.4; end
 if ~isfield(fixStimulus,'stairUp') fixStimulus.stairUp = 1; end
@@ -29,7 +30,7 @@ if ~isfield(fixStimulus,'responseColor') fixStimulus.responseColor = [1 1 0]; en
 if ~isfield(fixStimulus,'interColor') fixStimulus.interColor = [0 1 1]; end
 if ~isfield(fixStimulus,'correctColor') fixStimulus.correctColor = [0 1 0]; end
 if ~isfield(fixStimulus,'incorrectColor') fixStimulus.incorrectColor = [1 0 0]; end
-if ~isfield(fixStimulus,'traceNum') fixStimulus.traceNum = 2; end
+if ~isfield(fixStimulus,'traceNum') fixStimulus.traceNum = 3; end
 if ~isfield(fixStimulus,'responseTime') fixStimulus.responseTime = 1; end
 if ~isfield(fixStimulus,'stimTime') fixStimulus.stimTime = 0.2; end
 if ~isfield(fixStimulus,'interTime') fixStimulus.interTime = 0.5; end
@@ -38,7 +39,6 @@ if ~isfield(fixStimulus,'diskSize') fixStimulus.diskSize = 1; end
 % create a fixation task
 task{1}.seglen = [fixStimulus.interTime fixStimulus.stimTime fixStimulus.interTime fixStimulus.stimTime fixStimulus.interTime fixStimulus.responseTime];
 task{1}.getResponse = [0 0 0 0 0 1];
-task{1}.parameter.trialtype = 1;
 task{1}.writeSegmentsTrace = 0;
 
 % init the staircase
@@ -46,6 +46,10 @@ fixStimulus.staircase = upDownStaircase(fixStimulus.stairUp,fixStimulus.stairDow
 
 % init the task
 task{1} = initTask(task{1},myscreen,@fixStartSegmentCallback,@fixDrawStimulusCallback,@fixTrialResponseCallback,@fixTrialStartCallback);
+
+% keep the correct and incorrect counts
+task{1}.correct = 0;
+task{1}.incorrect = 0;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % function that gets called at the start of each segment
@@ -86,7 +90,7 @@ else
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% function that gets called every frame udpate to raw the fixation 
+% function that gets called every frame udpate to draw the fixation 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function [task myscreen] = fixDrawStimulusCallback(task, myscreen)
 
@@ -105,13 +109,20 @@ global fixStimulus;
 % get correct or incorrect
 response = find(task.thistrial.buttonState) == task.thistrial.sigInterval;
 
-% change fixation color
 if response
+  % set to correct fixation color
   fixStimulus.thisColor = fixStimulus.correctColor;
+  % set trace to 2 to indicate correct response
   myscreen = writeTrace(2,fixStimulus.traceNum,myscreen);
+  % and update correct count
+  task.correct = task.correct+1;
 else
+  % set to incorrect fixation color
   fixStimulus.thisColor = fixStimulus.incorrectColor;
+  % set trace to -2 to indicate incorrect response
   myscreen = writeTrace(-2,fixStimulus.traceNum,myscreen);
+  % and update incorrect count
+  task.incorrect = task.incorrect+1;
 end
 
 % update staircase

@@ -210,7 +210,7 @@ myscreen.keyboard.backtick = 43;
 myscreen.keyboard.nums = [11 12 13 14 16 15 3 5 2 6];
 
 %init traces
-numinit = 2000;
+numinit = 3000;
 myscreen.events.n = 0;
 myscreen.events.tracenum = zeros(1,numinit);
 myscreen.events.data = zeros(1,numinit);
@@ -219,7 +219,9 @@ myscreen.events.volnum = zeros(1,numinit);
 myscreen.events.time = zeros(1,numinit);
 
 % first stimtrace is reserved for acq pulses
-% second for heart and 3rd for respiration
+% second is for segment times
+% third is for fix task
+% fourth is for future use
 myscreen.stimtrace = 5;
 
 % save the beginning of time

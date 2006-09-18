@@ -19,7 +19,7 @@ end
 myscreen = initScreen;
 
 % set the first task to be the fixation staircase task
-task{1} = fixStairInitTask(myscreen);
+[task{1} myscreen] = fixStairInitTask(myscreen);
 
 % set our task to have two phases. 
 % one starts out with dots moving for incohrently for 10 seconds
@@ -39,6 +39,7 @@ task{2}{2}.random = 1;
 % and set to remember the values for dir
 task{2}{2}.writetrace{1}.tracenum = 1;
 task{2}{2}.writetrace{1}.tracevar{1} = 'dir';
+task{2}{2}.writetrace{1}.usenum = 1;
 
 % initialize our task
 for phaseNum = 1:length(task{2})
@@ -47,6 +48,7 @@ end
 
 % init the stimulus
 global stimulus;
+myscreen = initStimulus('stimulus',myscreen);
 stimulus = initDots(stimulus,myscreen);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -69,8 +71,9 @@ try
   end
 
   % if we got here, we are at the end of the experiment
-  myscreen = endScreen(myscreen);
-  saveStimData(myscreen,task);
+  % this throw is here to go to the endTask in the catch
+  % below, since it is also called from tickScreen which
+  % would have no other way of ending up in the write place
   throw('taskend');
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -78,25 +81,7 @@ try
 % from tickscreen, which captures the user hitting ESC
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 catch
-  % see if the last error was just the error
-  % thrown by ending the task
-  err = lasterror;
-  % if not rethrow the error
-  if (isempty(strfind(err.message,'taskend')))
-    if isfield(err,'stack')
-      for i = 1:length(err.stack)
-	disp(sprintf('%s at %i',err.stack(i).name, err.stack(i).line));
-      end
-    end
-    rethrow(err);
-  else
-    mydisp(sprintf('End task\n'));
-    % otherwise we are done
-    % package up the output variables
-    myscreen.task = task;
-    myscreen.stimulus = stimulus;
-    return
-  end
+  myscreen = endTask(myscreen,task);
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

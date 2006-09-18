@@ -52,7 +52,7 @@ end
 
 % check for parameters
 if ~isfield(task,'parameter')
-  error(sprintf('UHOH: No task parameters found'));
+  task.parameter.default = 1;
 end
 
 % find out how many parameters we have
@@ -204,7 +204,7 @@ end
 task.trialnumTotal = 0;
 
 if ~isfield(task,'writeSegmentsTrace')
-  task.writeSegmentsTrace = 4;
+  task.writeSegmentsTrace = 2;
 end
 
 % set function handles
