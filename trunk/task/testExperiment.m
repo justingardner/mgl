@@ -59,30 +59,18 @@ myscreen = eyeCalibDisp(myscreen);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Main display loop
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-try
-  tnum = 1;
-  while tnum <= length(task{2})
-    % update the dots
-    [task{2} myscreen tnum] = updateTask(task{2},myscreen,tnum);
-    % update the fixation task
-    [task{1} myscreen] = updateTask(task{1},myscreen,1);
-    % flip screen
-    myscreen = tickScreen(myscreen,task);
-  end
-
-  % if we got here, we are at the end of the experiment
-  % this throw is here to go to the endTask in the catch
-  % below, since it is also called from tickScreen which
-  % would have no other way of ending up in the write place
-  throw('taskend');
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% End of program, usually gets here from error thrown
-% from tickscreen, which captures the user hitting ESC
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-catch
-  myscreen = endTask(myscreen,task);
+tnum = 1;
+while (tnum <= length(task{2})) && ~myscreen.userHitEsc
+  % update the dots
+  [task{2} myscreen tnum] = updateTask(task{2},myscreen,tnum);
+  % update the fixation task
+  [task{1} myscreen] = updateTask(task{1},myscreen,1);
+  % flip screen
+  myscreen = tickScreen(myscreen,task);
 end
+
+% if we got here, we are at the end of the experiment
+myscreen = endTask(myscreen,task);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % function that gets called at the start of each segment

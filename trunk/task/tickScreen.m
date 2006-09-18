@@ -61,10 +61,7 @@ end
 % check for esc key
 %%%%%%%%%%%%%%%%%%%%%%%%%%%
 if mglGetKeys(myscreen.keyboard.esc)
-  % make sure the variable myscreen is set in caller context
-  assignin('caller','myscreen',myscreen);
-  % use try/catch to return to sender
-  error('taskend');
+  myscreen.userHitEsc = 1;
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%

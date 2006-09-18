@@ -268,3 +268,5 @@ myscreen.eyecalib.color = [1 1 0];
 myscreen.eyecalib.waittime = 1;
 
 mydisp(sprintf('-----------------------------\n'));
+
+myscreen.userHitEsc = 0;
