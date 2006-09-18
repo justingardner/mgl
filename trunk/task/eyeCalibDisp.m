@@ -33,8 +33,8 @@ if (myscreen.eyecalib.prompt)
     end
     if mglGetKeys(myscreen.keyboard.return)
       % starting experiment, start the eye tracker
-      myscreen.fishcamp = bitor(myscreen.fishcamp,1);
-      fishcamp(1,myscreen.fishcamp);
+      %myscreen.fishcamp = bitor(myscreen.fishcamp,1);
+      %fishcamp(1,myscreen.fishcamp);
       % reset fliptime
       myscreen.fliptime = inf;
       return
@@ -43,8 +43,8 @@ if (myscreen.eyecalib.prompt)
 end
 
 % make sure eye tracker is on and recording that this is an eyecalibration
-myscreen.fishcamp = bitor(myscreen.fishcamp,bin2dec('101'));
-fishcamp(1,myscreen.fishcamp);
+%myscreen.fishcamp = bitor(myscreen.fishcamp,bin2dec('101'));
+%fishcamp(1,myscreen.fishcamp);
 
 for j = 1:myscreen.eyecalib.n
   mglClearScreen;
@@ -67,8 +67,8 @@ mglClearScreen;mglFlush;
 mglClearScreen;mglFlush;
 
 % turn off trace for eye calibration
-myscreen.fishcamp = bitand(hex2dec('FF01'),myscreen.fishcamp);
-fishcamp(1,myscreen.fishcamp);
+%myscreen.fishcamp = bitand(hex2dec('FF01'),myscreen.fishcamp);
+%fishcamp(1,myscreen.fishcamp);
 % reset fliptime
 myscreen.fliptime = inf;
 

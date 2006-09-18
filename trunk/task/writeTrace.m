@@ -12,13 +12,21 @@
 %             the ticknumber and the data of the event
 %             when it is different than the previous ones.
 %
-function myscreen = writeTrace(data,tracenum,myscreen)
+function myscreen = writeTrace(data,tracenum,myscreen,force)
+
+% decide whether to force
+if nargin == 3
+  force = 0;
+end
 
 % find last occurrence of data on this trace
-getlast = last(find((myscreen.events.tracenum == tracenum)));
+getlast = find((myscreen.events.tracenum == tracenum));
+if ~isempty(getlast)
+  getlast = getlast(end);
+end
 
 % if there is no last time point or the data is the same at that timepoint
-if isempty(getlast) || ~isequal(myscreen.events.data(getlast),data)
+if force || isempty(getlast) || ~isequal(myscreen.events.data(getlast),data)
   % then save the datapoint
   myscreen.events.n = myscreen.events.n+1;
   myscreen.events.tracenum(myscreen.events.n) = tracenum;
@@ -26,4 +34,5 @@ if isempty(getlast) || ~isequal(myscreen.events.data(getlast),data)
   myscreen.events.ticknum(myscreen.events.n) = myscreen.tick;
   myscreen.events.volnum(myscreen.events.n) = myscreen.volnum;
   myscreen.events.time(myscreen.events.n) = GetSecs;
+  myscreen.events.force(myscreen.events.n) = force;
 end
