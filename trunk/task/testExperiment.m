@@ -69,6 +69,8 @@ try
   end
 
   % if we got here, we are at the end of the experiment
+  myscreen = endScreen(myscreen);
+  saveStimData(myscreen,task);
   throw('taskend');
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
