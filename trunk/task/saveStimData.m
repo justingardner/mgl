@@ -17,6 +17,9 @@ else
   gNumSaves = gNumSaves+1;
 end
 
+% convert task handles to strings
+task = removeTaskFunctionHandles(task);
+
 % get filename
 thedate = [datestr(now,'yy') datestr(now,'mm') datestr(now,'dd')];
 filename = sprintf('%s_stim%02i',thedate,gNumSaves);
