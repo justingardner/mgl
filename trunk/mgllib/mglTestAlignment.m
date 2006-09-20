@@ -21,6 +21,8 @@ if ~exist('noClose','var'),noClose = 0;,end
 
 global MGL;
 
+
+
 % open up mgl window
 mglTextSet('Helvetica',32,[1 1 1],0,0,0,0,0,0,0);
 mglOpen(screenNumber);

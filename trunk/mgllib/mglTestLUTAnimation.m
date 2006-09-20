@@ -48,23 +48,23 @@ mglBltTexture(gratingTexture,[0 0],-1,-1);mglFlush;
 mglBltTexture(gratingTexture,[0 0],-1,-1);mglFlush;
 
 numsec = 5;
-starttime = GetSecs;
+starttime = mglGetSecs;
 % now do the animation
 for i = 1:MGL.frameRate*numsec
   % now create a lut that looks into the gamma tables to
   % set the phase values in the bitmap to a sine wave grating
   % first get the phase values for this frame
-  phaseValues = circshift((1:255)',4*round(255*(i/MGL.frameRate)))';
+  phaseValues = circshift((0:255)',4*round(255*(i/MGL.frameRate)))';
   % convert those phase values into intensity values
   intensityValues = sin(2*pi*phaseValues/255);
   % convert these into values that can reference the LUT
-  lutValues = ceil(255*(intensityValues+1)/2+1);
+  lutValues = round(255*(intensityValues+1)/2+1);  
   % now set the gamma table
   mglSetGammaTable(gammaTable.redTable(lutValues),gammaTable.greenTable(lutValues),gammaTable.blueTable(lutValues));
   % wait for a frame refresh
   mglFlush;
 end
-endtime = GetSecs;
+endtime = mglGetSecs;
 
 % clear the screen and close
 mglClearScreen;mglFlush;

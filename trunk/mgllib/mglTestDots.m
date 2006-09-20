@@ -35,7 +35,7 @@ dots.x = MGL.deviceRect(1)+rand(1,numdots)*MGL.deviceWidth;
 dots.y = MGL.deviceRect(2)+rand(1,numdots)*MGL.deviceHeight;
 
 % get start time
-starttime = GetSecs;
+starttime = mglGetSecs;
 
 % set dot speed to 10 deg/sec
 dx = 10/MGL.frameRate;
@@ -55,7 +55,7 @@ for i = 1:MGL.frameRate*numsec
   % move them to the other side
   dots.x(dots.x<MGL.deviceRect(1)) = dots.x(dots.x<MGL.deviceRect(1))+MGL.deviceWidth;
 end
-endtime = GetSecs;
+endtime = mglGetSecs;
 
 % display how long the program took to run
 disp(sprintf('Ran for: %0.8f sec Intended: %0.8f sec',endtime-starttime,numsec));

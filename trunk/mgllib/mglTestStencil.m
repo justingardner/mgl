@@ -54,7 +54,7 @@ dots(2).y = MGL.deviceRect(2)+rand(1,5000)*MGL.deviceHeight;
 dx = 10/MGL.frameRate;
 
 numsec = 5;
-starttime = GetSecs;
+starttime = mglGetSecs;
 for i = 1:MGL.frameRate*numsec
   % now draw the dots using the two stencil's we'ver created
   mglStencilSelect(1);
@@ -70,7 +70,7 @@ for i = 1:MGL.frameRate*numsec
   dots(2).x = dots(2).x+dx;
   dots(2).x(dots(2).x>MGL.deviceRect(3)) = dots(2).x(dots(2).x>MGL.deviceRect(3))-MGL.deviceWidth;
 end
-endtime=GetSecs;
+endtime=mglGetSecs;
 
 mglStencilSelect(0);
 mglClose;
