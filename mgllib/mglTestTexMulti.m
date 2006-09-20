@@ -84,7 +84,7 @@ end
 
 numsec = 5;
 if multi==0
-  starttime = GetSecs;
+  starttime = mglGetSecs;
   for i = 1:frameRate*numsec
     if mgl
       mglBltTexture(tex(mod(i,nsteps)+1),[0 0]);
@@ -93,9 +93,9 @@ if multi==0
     end
     if mgl,mglFlush,else,Screen('flip',myscreen.w);,end
   end
-  endtime = GetSecs;
+  endtime = mglGetSecs;
 else
-  starttime = GetSecs;
+  starttime = mglGetSecs;
   for i = 1:frameRate*numsec
     for j = 0:2.2:6.6
       for k = 0:2.2:4.4
@@ -123,7 +123,7 @@ else
     end
     if mgl,mglFlush,else,Screen('flip',myscreen.w);,end
   end
-  endtime = GetSecs;
+  endtime = mglGetSecs;
 end  
 
 % check how long it ran for
