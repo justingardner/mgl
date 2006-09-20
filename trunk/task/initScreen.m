@@ -38,7 +38,7 @@ screenParams{end+1} = {'dhcp.bnf.brain.riken.jp','',0,1024,768,57,[31 23],[],[],
 screenParams{end+1} = {'kirkwood','',1,1152,870,[],[],18,24,75,1,0,defaultGammaFunction,''};
 screenParams{end+1} = {'alta','',[],1024,768,57,[31 23],[],[],60,1,0,defaultGammaFunction,''};
 screenParams{end+1} = {'dsltop','',0,400,300,[],[],18,24,60,1,0,defaultGammaFunction,''};
-screenParams{end+1} = {'whistler.cns.nyu.edu','',[],1280, 1024,[],[],18,24,60,1,0,defaultGammaFunction,''};
+screenParams{end+1} = {'whistler.cns.nyu.edu','',2,1280,1024,57,[31 23],[],[],60,1,0,defaultGammaFunction,''};
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % find matching database parameters
