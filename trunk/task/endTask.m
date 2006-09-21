@@ -34,7 +34,6 @@ saveStimData(myscreen,task);
 %else
   mydisp(sprintf('End task\n'));
   % otherwise we are done
-  % package up the output variables
   myscreen.task = task;
   % package up stimuli
   myscreen.stimuli = '';

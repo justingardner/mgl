@@ -26,7 +26,7 @@ end
 global MGL;
 
 if ~isfield(MGL,'displayNumber') || (MGL.displayNumber < 0)
-  disp(sprintf('(mglVisualAngleCoordinates) No open display'));
+  disp(sprintf('(mglHFlip) No open display'));
   return
 end
 
