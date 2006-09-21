@@ -90,8 +90,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       DAQmxBaseClearTask (taskHandle);
    }
 
-   if (error)
-     printf ("DAQmxBase Error %d: %s\n", error, errBuff);
+   if ((error) && (error != -200220))
+     mexPrintf ("DAQmxBase Error %d: %s\n", error, errBuff);
 
    *outptr = (double)-1;
 
