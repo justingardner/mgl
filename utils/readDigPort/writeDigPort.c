@@ -66,7 +66,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
    // get input value
    val = (uInt32)*mxGetPr(prhs[0]);
 
-   printf("Data to write: 0x%X\n", val);
+   mexPrintf("Data to write: 0x%X\n", val);
 
    DAQmxErrChk (DAQmxBaseWriteDigitalU32(taskHandle,1,1,10.0,DAQmx_Val_GroupByChannel,&val,&written,NULL));
 
