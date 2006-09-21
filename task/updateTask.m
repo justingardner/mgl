@@ -32,7 +32,7 @@ end
 % if we have finished how many trials were called for go to next task
 if (task{tnum}.trialnumTotal > task{tnum}.numTrials)
   tnum = tnum+1;
-  [task myscreen] = updateTask(task,myscreen);
+  [task myscreen tnum] = updateTask(task,myscreen,tnum);
   return
 end
 

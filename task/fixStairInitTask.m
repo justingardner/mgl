@@ -108,6 +108,7 @@ global fixStimulus;
 
 % get correct or incorrect
 response = find(task.thistrial.buttonState) == task.thistrial.sigInterval;
+response = response(1);
 
 if response
   % set to correct fixation color
