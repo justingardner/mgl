@@ -33,7 +33,7 @@ textHeight = abcTexture.imageHeight;
 textHeightDevice = textHeight*MGL.yPixelsToDevice;
 
 % get the maximum number of lines we can display
-maxlines = floor(MGL.screenHeight/textHeight);
+maxlines = floor(MGL.screenHeight/textHeight)-1;
 
 % some init values
 str = 'start';textnum = 1;
@@ -45,7 +45,7 @@ while ~isempty(str)
   % convert text to texture
   textTexture(textnum) = mglText(str);
   % set vertical offset
-  voffset = 0;
+  voffset = textHeightDevice;
   % clear screen
   mglClearScreen;
   % now go through and draw all text lines in memory
