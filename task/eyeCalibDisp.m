@@ -50,9 +50,9 @@ for j = 1:myscreen.eyecalib.n
   mglClearScreen;
   mglGluDisk(myscreen.eyecalib.x(j),myscreen.eyecalib.y(j),myscreen.eyecalib.size/2,myscreen.eyecalib.color);
   mglFlush;
-  startTime = GetSecs;
+  startTime = mglGetSecs;
   if ~isinf(myscreen.eyecalib.waittime)
-    while (myscreen.eyecalib.waittime > (GetSecs-startTime));
+    while (myscreen.eyecalib.waittime > (mglGetSecs-startTime));
       if mglGetKeys(myscreen.keyboard.esc)
 	mglClearScreen;mglFlush;
 	mglClearScreen;mglFlush;

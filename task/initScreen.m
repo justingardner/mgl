@@ -226,7 +226,7 @@ myscreen.stimtrace = 5;
 
 % save the beginning of time
 myscreen.starttime = datestr(clock);
-myscreen.time = GetSecs;
+myscreen.time = mglGetSecs;
 
 global gNumSaves;
 

@@ -31,7 +31,7 @@ if (nargin == 1)
   % representation of the value). This is all done to keep the
   % trace arrays from getting too large and slowing things done
   % while the task is running
-  endtime = GetSecs;
+  endtime = mglGetSecs;
   if (isfield(myscreen,'events'))
     maxtick = myscreen.tick;
     % make up time in between first and end time, we will make this 
