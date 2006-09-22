@@ -46,7 +46,7 @@ mglFlush();
 % check for dropped frames
 %%%%%%%%%%%%%%%%%%%%%%%%%%%
 if myscreen.checkForDroppedFrames
-  fliptime = GetSecs;
+  fliptime = mglGetSecs;
   if ((fliptime-myscreen.fliptime) > myscreen.dropThreshold*myscreen.frametime)
     %disp(sprintf('Dropped frame (%0.5f)',fliptime-myscreen.fliptime));
     myscreen.dropcount = myscreen.dropcount+1;

@@ -33,6 +33,6 @@ if force || isempty(getlast) || ~isequal(myscreen.events.data(getlast),data)
   myscreen.events.data(myscreen.events.n) = data;
   myscreen.events.ticknum(myscreen.events.n) = myscreen.tick;
   myscreen.events.volnum(myscreen.events.n) = myscreen.volnum;
-  myscreen.events.time(myscreen.events.n) = GetSecs;
+  myscreen.events.time(myscreen.events.n) = mglGetSecs;
   myscreen.events.force(myscreen.events.n) = force;
 end

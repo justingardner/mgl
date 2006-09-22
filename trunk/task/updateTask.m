@@ -78,8 +78,8 @@ if task{tnum}.thistrial.segstart == -inf
     task{tnum}.thistrial.trialstart = myscreen.volnum;
     task{tnum}.thistrial.segstart = myscreen.volnum;
   else
-    task{tnum}.thistrial.trialstart = GetSecs;
-    task{tnum}.thistrial.segstart = GetSecs;
+    task{tnum}.thistrial.trialstart = mglGetSecs;
+    task{tnum}.thistrial.segstart = mglGetSecs;
   end
   task{tnum} = resetSegmentClock(task{tnum},myscreen);
   % get trial parameters
@@ -107,7 +107,7 @@ elseif task{tnum}.timeInVols
   end
 % check end of segment in seconds
 else
-  if (GetSecs-task{tnum}.thistrial.segstart) >= task{tnum}.thistrial.seglen(task{tnum}.thistrial.thisseg)
+  if (mglGetSecs-task{tnum}.thistrial.segstart) >= task{tnum}.thistrial.seglen(task{tnum}.thistrial.thisseg)
     segover = 1;
   end
 end
@@ -241,7 +241,7 @@ if (task.timeInTicks)
 elseif (task.timeInVols)
   task.thistrial.trialstart = myscreen.volnum;
 else
-  task.thistrial.trialstart = GetSecs;
+  task.thistrial.trialstart = mglGetSecs;
 end
 
 % set up start volume for checking for backticks
@@ -296,7 +296,7 @@ usedtime = sum(task.thistrial.seglen(1:(task.thistrial.thisseg-1)));
 task.thistrial.segstart = task.thistrial.trialstart+usedtime;
 
 % get start of segment in real seconds
-task.thistrial.segStartSeconds = GetSecs;
+task.thistrial.segStartSeconds = mglGetSecs;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % write trace if called for
