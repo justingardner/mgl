@@ -2,9 +2,11 @@
 =========================================================================
 
      program: mglGetSecs.c
+   copyright: (c) 2006 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
           by: Jonas Larsson
         date: 09/20/06
 
+$Id$
 =========================================================================
 #endif
 
