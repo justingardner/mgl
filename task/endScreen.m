@@ -42,9 +42,9 @@ if (nargin == 1)
     % fill traces with zero
     myscreen.traces = zeros(max(myscreen.events.tracenum),maxtick);
     lastticknum = 1;
-    disppercent(-inf,'Creating stimulus traces');
+    if exist('disppercent'),disppercent(-inf,'Creating stimulus traces');end
     for i = 1:myscreen.events.n
-      disppercent(i/myscreen.events.n);
+      if exist('disppercent'),disppercent(i/myscreen.events.n);end
       % get the tick num for this event
       ticknum = myscreen.events.ticknum(i);
       % put the data into the trace
@@ -78,6 +78,6 @@ if (nargin == 1)
     myscreen.time = myscreen.time - myscreen.time(1);
   end
   myscreen.endtime = datestr(clock);
-  disppercent(inf);
+  if exist('disppercent'),disppercent(inf);end
 end
 

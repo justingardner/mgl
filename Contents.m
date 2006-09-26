@@ -49,6 +49,10 @@
 %  mglGetKeyEvent            : Get a key down event off of queue
 %  mglGetMouseEvent          : Get a mouse button down event off of queue
 %
+%Timing functions
+%  mglGetSecs                : Get time in seconds
+%  mglWaitSecs               : Wait for a time in seconds
+%
 %Test/Demo programs
 %  mglTestAlignment          : Alignment of textures
 %  mglTestDots               : Draws dots
