@@ -7,3 +7,6 @@
 %  copyright: (c) 2006 Justin Gardner (GPL see mgl/COPYING)
 %    purpose: read the National Instruments board digital input.
 %             this reads form "port1" on the board
+function retval = readDigPort(portNum)
+
+     retval = 0;
