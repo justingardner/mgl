@@ -1,8 +1,8 @@
 % initTask - initializes task for stimuli programs
 %
 %      usage: [ task ] = initTask( task, myscreen, startSegmentCallback, ...
-%			 trialResponseCallback, trialStimulusCallback, ...
-%			 endTrialCallback )
+%			 drawStimulusCallback, trialResponseCallback, ...
+%			 startTrialCallback, endTrialCallback, startBlockCallback )
 %        $Id$
 %         by: justin gardner
 %       date: 2006-04-27
@@ -99,6 +99,10 @@ end
 % if it is set to 0 then all random values  between 1 and 5 are possible
 if ~isfield(task,'segquant') 
   task.segquant = zeros(1,length(task.segmin));
+end
+
+if ~isfield(task,'synchToVol')
+  task.synchToVol = zeros(1,length(task.segmin));
 end
 
 task.numsegs = length(task.segmin);
