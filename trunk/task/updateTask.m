@@ -108,7 +108,19 @@ elseif task{tnum}.timeInVols
 % check end of segment in seconds
 else
   if (mglGetSecs-task{tnum}.thistrial.segstart) >= task{tnum}.thistrial.seglen(task{tnum}.thistrial.thisseg)
-    segover = 1;
+    % if we need to synch to volume
+    if task{tnum}.synchToVol(task{tnum}.thistrial.thisseg)
+      % then first time through set the volume number
+      if task{tnum}.thistrial.synchVol == -1
+	task{tnum}.thistrial.synchVol = myscreen.volnum;
+      % then see if we have gone past that volume	
+      elseif task{tnum}.thistrial.synchVol < myscreen.volnum
+	segover = 1;
+      end
+    %w/out synch to volume the segment is over
+    else
+      segover = 1;
+    end
   end
 end
 
@@ -288,6 +300,9 @@ task.thistrial.waitingToInit = 0;
 % function to reset segment time
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function task = resetSegmentClock(task,myscreen)
+
+% reset the synch volume
+task.thistrial.synchVol = -1;
 
 % get amount of time already used
 usedtime = sum(task.thistrial.seglen(1:(task.thistrial.thisseg-1)));

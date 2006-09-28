@@ -12,11 +12,7 @@ function myscreen = eyeCalibDisp(myscreen)
 
 % set the screen background color
 if (myscreen.background ~= 0)
-  if myscreen.useMGL
-    mglClearScreen(myscreen.background);
-  else
-    Screen('FillRect', myscreen.w, myscreen.background);
-  end
+  mglClearScreen(myscreen.background);
 end
 myscreen = tickScreen(myscreen);
 
