@@ -9,14 +9,17 @@
 %       e.g.:
 %mglWaitSecs(1);
 %
-function mglWaitSecs(waitTime)
+function mglWaitSecs(waitTime,startTime)
 
 % check arguments
-if ~any(nargin == [1])
+if ~any(nargin == [1 2])
   help mglWaitSecs
   return
 end
 
-startTime = mglGetSecs;
+if nargin == 1
+  startTime = mglGetSecs;
+end
+
 while (mglGetSecs(startTime) < waitTime),end
 
