@@ -374,7 +374,7 @@ for i = 1:length(filenames)
   end
 end
 if maxnum > 0
-  filename = sprintf('%s/task/displays/%04i_%s_%s',fileparts(fileparts(which('moncal'))),maxnum,hostname,datestr(now,'yymmdd'));
+  filename = sprintf('%s/task/displays/%04i_%s_%s',fileparts(fileparts(which('initScreen'))),maxnum,hostname,datestr(now,'yymmdd'));
 else
   filename = '';
 end
