@@ -27,7 +27,11 @@
 %             photometer then you need to change the functions
 %             photometerInit and photometerMeasure 
 %
-function retval = moncal(screenNumber,stepsize,numRepeats)
+%             If you pass it in a calib matlab structure that it has
+%             saved then it will display the calibration. It will
+%             also continue with a calibration that has only partially
+%             been finished (like if you forced a quit in the middle)
+function calib = moncal(screenNumber,stepsize,numRepeats)
 
 % check arguments
 if ~any(nargin == [0 1 2 3])
@@ -37,7 +41,8 @@ end
 
 global verbose;
 verbose = 1;
-doGamma = 0;
+doGamma = 1;
+
 % open the serial port
 portnum = initSerialPort;
 if (portnum == 0),return,end
@@ -48,76 +53,114 @@ if (photometerInit(portnum) == -1)
   return
 end
 
+filename = getSaveFilename(getHostName);
+  
+% see if we were actually passed in a calib structure
+if (nargin > 0) & isfield(screenNumber,'screenNumber')
+  calib = screenNumber;
+else
+  if ~exist('screenNumber','var')
+    calib.screenNumber = [];
+  else
+    calib.screenNumber = screenNumber;
+  end
+  if ~exist('stepsize','var')
+    calib.stepsize = 1/32;
+  else
+    calib.stepsize = stepsize;
+  end
+  if ~exist('numRepeats','var')
+    calib.numRepeats = 4;
+  else
+    calib.numRepeats = numRepeats;
+  end
+end
+
 % now open the screen
-if ~exist('screenNumber','var'),screenNumber = [];end
-mglOpen(screenNumber);
+mglOpen(calib.screenNumber);
 
 % choose the range of values over which to do the gamma testing
-if ~exist('stepsize','var'),stepsize = 1/32;,end
-testRange = 0:stepsize:1;
+testRange = 0:calib.stepsize:1;
 % choose the range of values over which to test for the number
 % of bits the gamma table can be set to
 bitTestRange = 0.5:(1/1024):0.5+16*(1/1024);
-% choose the number of repeats of each measurement to do
-if ~exist('numRepeats','var'),numRepeats = 4;end
+
+% set the date of the calibration
+if ~isfield(calib,'date'),calib.date = datestr(now);end
 
 if doGamma
-% do the gamma measurements
-retval.uncorrected = measureOutput(portnum,testRange,numRepeats);
-figure;subplot(1,2,1);
-dispLuminanceFigure(retval.uncorrected);
+ % do the gamma measurements
+ if ~isfield(calib,'uncorrected')
+   calib.uncorrected = measureOutput(portnum,testRange,calib.numRepeats);
+   eval(sprintf('save %s calib',filename));
+ else
+   disp(sprintf('Uncorrected luminance measurement already done'));
+ end
+ figure;subplot(1,2,1);
+ dispLuminanceFigure(calib.uncorrected);
 
-% get the exponent
-retval.fit = fitExponent(retval.uncorrected.outputValues,retval.uncorrected.luminance,1);
-retval.gamma = -1/retval.fit.fitparams(2);
-retval.minval = retval.fit.minx;
-retval.maxval = retval.fit.maxx;
-gammaStr = sprintf('Monitor gamma = %f minval=%f maxval = %f',retval.gamma,retval.minval,retval.maxval);
-title(gammaStr);disp(gammaStr);
+ % get the exponent
+ calib.fit = fitExponent(calib.uncorrected.outputValues,calib.uncorrected.luminance,1);
+ calib.gamma = -1/calib.fit.fitparams(2);
+ calib.minval = calib.fit.minx;
+ calib.maxval = calib.fit.maxx;
+ gammaStr = sprintf('Monitor gamma = %f minval=%f maxval = %f',calib.gamma,calib.minval,calib.maxval);
+ title(gammaStr);disp(gammaStr);drawnow
 
-% now build a reverse lookup table
-% get the function that fits the data
-x = 0:1/1024:1;
-y = interp1(retval.uncorrected.outputValues,retval.uncorrected.luminance,x,'linear');
-plot(x,y,'b:');
-% find the closest x value that gives the desired output value
-desiredOutput = min(y);
-tableSize = 256;
-for i = 1:tableSize
-  matchVal = find(min(abs(y-desiredOutput))==abs(y-desiredOutput));
-  matchVal = matchVal(1);
-  retval.table(i) = x(matchVal);
-  desiredOutput = desiredOutput+(max(y)-min(y))/(tableSize-1);
+ % now build a reverse lookup table
+ % use linear interpolation
+ desiredOutput = min(calib.uncorrected.luminance):(max(calib.uncorrected.luminance)-min(calib.uncorrected.luminance))/255:max(calib.uncorrected.luminance);
+ % check to make sure that we have unique values,
+ % otherwise interp1 will fail
+ while length(calib.uncorrected.luminance) ~= length(unique(calib.uncorrected.luminance))
+   disp(sprintf('Adjusting luminance values to make them unique'));
+   % slight hack here, adding a bit of noise to keep the values
+   % unique, shouldn't really distort anything though since the
+   % noise is very small.
+   calib.uncorrected.luminance = calib.uncorrected.luminance + rand(size(calib.uncorrected.luminance))/1000000;
+ end
+ % interpolate table
+ calib.table = interp1(calib.uncorrected.luminance,calib.uncorrected.outputValues,desiredOutput,'linear')';
+ eval(sprintf('save %s calib',filename));
+
+ % now reset the gamma table with the exponent
+ disp(sprintf('Using function values to linearize gamma'));
+ mglSetGammaTable(calib.minval,calib.maxval,1/calib.gamma,calib.minval,calib.maxval,1/calib.gamma,calib.minval,calib.maxval,1/calib.gamma);
+
+ %and see how well we have done
+ if ~isfield(calib,'corrected')
+   calib.corrected = measureOutput(portnum,calib.uncorrected.outputValues,calib.numRepeats,0);
+   eval(sprintf('save %s calib',filename));
+ else
+   disp(sprintf('Function corrected luminance measurement already done'));
+ end
+ dispLuminanceFigure(calib.corrected,'r');
+
+ % now reset the gamma table with the calculated table
+ disp(sprintf('Using table values to linearize gamma'));
+ mglSetGammaTable(calib.table);
+
+ %and see how well we have done
+ if ~isfield(calib,'tableCorrected')
+   calib.tableCorrected = measureOutput(portnum,calib.uncorrected.outputValues,calib.numRepeats,0);
+   eval(sprintf('save %s calib',filename));
+ else
+   disp(sprintf('Table corrected luminance measurement already done'));
+ end
+ dispLuminanceFigure(calib.tableCorrected,'c');
+
+ % plot the ideal
+ plot(calib.corrected.outputValues,calib.corrected.outputValues*(max(calib.corrected.luminance)-min(calib.corrected.luminance))+min(calib.corrected.luminance),'g-');
+ mylegend({'uncorrected','corrected (gamma)','corrected (table)','ideal'},{'ko','ro','co','go'});
 end
-% this is the reverse lookup table to use
-retval.table = retval.table';
 
-% now reset the gamma table with the exponent
-disp(sprintf('Using function values to linearize gamma'));
-mglSetGammaTable(retval.minval,retval.maxval,1/retval.gamma,retval.minval,retval.maxval,1/retval.gamma,retval.minval,retval.maxval,1/retval.gamma);
-
-%and see how well we have done
-retval.corrected = measureOutput(portnum,retval.uncorrected.outputValues,numRepeats,0);
-dispLuminanceFigure(retval.corrected,'r');
-
-% now reset the gamma table with the calculated table
-disp(sprintf('Using table values to linearize gamma'));
-mglSetGammaTable(retval.table);
-
-%and see how well we have done
-retval.tableCorrected = measureOutput(portnum,retval.uncorrected.outputValues,numRepeats,0);
-dispLuminanceFigure(retval.tableCorrected,'c');
-
-% plot the ideal
-plot(retval.corrected.outputValues,retval.corrected.outputValues*(max(retval.corrected.luminance)-min(retval.corrected.luminance))+min(retval.corrected.luminance),'g-');
-mylegend({'uncorrected','corrected (gamma)','corrected (table)','ideal'},{'ko','ro','co','go'});
-
-end
 % test to see how many bits we have in the gamma table
 disp(sprintf('Testing how many bits the gamma table is'));
-retval.bittest = measureOutput(portnum,bitTestRange,numRepeats);
+if ~isfield(calib,'bittest')
+  calib.bittest = measureOutput(portnum,bitTestRange,calib.numRepeats);
+end
 subplot(1,2,2);
-dispLuminanceFigure(retval.bittest);
+dispLuminanceFigure(calib.bittest);
 
 % close the screen
 mglClose;
@@ -125,11 +168,12 @@ mglClose;
 % close the serial port
 closeSerialPort(portnum);
 
-% plot the curve
-keyboard
+% save file
+eval(sprintf('save %s calib',filename));
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% function that sets the gamma table to all the values in val
+
+ %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ % function that sets the gamma table to all the values in val
 % and checks the luminance
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function retval = measureOutput(portnum,outputValues,numRepeats,setGamma)
@@ -274,7 +318,7 @@ else
   thisMessage = errorMsg{thisMessageNum(1)};
 end
 global verbose
-if (verbose>1),disp(sprintf('%s Luminance=%f cd/m^-2 (1931 CIE x)=%f (1931 CIE y)=%f',thisMessage,Y(i),x(i),y(i)));end
+if ((verbose>1) || thisMessageNum),disp(sprintf('%s Luminance=%f cd/m^-2 (1931 CIE x)=%f (1931 CIE y)=%f',thisMessage,Y(i),x(i),y(i)));end
 
 if quality(i) ~= 0
   luminance = nan;
@@ -444,10 +488,19 @@ initparams = [max(y)-min(y) -median(x) min(y) min(y) max(y)];
 % get the fit
 bestparams.resnorm = inf;
 if verbose == 1,disppercent(-inf,'Fitting data'),end
-minxrange = 0:0.05:0.5;
+
+% minxrange and maxx are used to fit with a flat portion of
+% the curve for the beginning and end of the values. In 
+% practice this didn't work that well, so we just fit
+% a single gamme exponent. uncomment the minxrange line
+% below, the for maxx line and also the line in experr
+% that calculates the model fit assuming linear pieces
+%minxrange = 0:0.05:0.5;
+minxrange = 0;
 for minx = minxrange
   if verbose==1,disppercent((find(minx==minxrange)-1)/length(minxrange));end
-  for maxx = 0.8:0.05:1
+%  for maxx = 0.8:0.05:1
+  for maxx = 1
     warning off
     [fitparams resnorm residual exitflag output lambda jacobian] = lsqnonlin(@experr,initparams,minfit,maxfit,optimset('LevenbergMarquardt','on','MaxIter',maxiter,'Display',displsqnonlin),x,y,minx,maxx);
     warning on
@@ -483,7 +536,8 @@ end
 function [err] = experr(params,x,y,minx,maxx)
 
 % calculate function
-model = params(4)*(x<=minx)+(x>=maxx)*params(5)+(params(1)*((x<maxx)&(x>minx)).*(1-exp(-(x)/params(2)))+params(4));
+%model = params(4)*(x<=minx)+(x>=maxx)*params(5)+(params(1)*((x<maxx)&(x>minx)).*(1-exp(-(x)/params(2)))+params(4));
+model = params(1)*(1-exp(-(x)/params(2)));
 
 err = y-model;
 
@@ -714,3 +768,82 @@ minutes = floor((t-hours*60*60)/60);
 seconds = floor(t-hours*60*60-minutes*60);
 
 retval = sprintf('%02i:%02i:%02i',hours,minutes,seconds);
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% support function that gets host name using system command
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function hostname = getHostName()
+
+[retval hostname] = system('hostname');
+% sometimes there is more than one line (errors from csh startup)
+% so need to strip those off
+hostname = strread(hostname,'%s','delimiter','\n');
+hostname = hostname{end};
+if (retval == 0)
+  % get it again
+  [retval hostname2] = system('hostname');
+  hostname2 = strread(hostname2,'%s','delimiter','\n');
+  hostname2 = hostname2{end};
+  if (retval == 0)
+    % find the matching last characers
+    % this is necessary, because matlab's system command
+    % picks up stray key strokes being written into
+    % the terminal but puts those at the beginning of
+    % what is returned by stysem. so we run the
+    % command twice and find the matching end part of
+    % the string to get the hostrname
+    minlen = min(length(hostname),length(hostname2));
+    for k = 0:minlen
+      if (k < minlen)
+	if hostname(length(hostname)-k) ~= hostname2(length(hostname2)-k)
+	  break
+	end
+      end
+    end
+    if (k > 0)
+      hostname = hostname(length(hostname)-k+1:length(hostname));
+      hostname = lower(hostname);
+      hostname = hostname(find(((hostname <= 'z') & (hostname >= 'a')) | '.'));
+    else
+      hostname = 'unknown';
+    end
+  else
+    hostname = 'unknown';
+  end
+else
+  hostname = 'unknown';
+end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% gets the name to save as
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function filename = getSaveFilename(hostname)
+
+% get the ouptut filename
+hostname = strread(hostname,'%s','delimiter','.');
+hostname = hostname{1};
+defaultdir = sprintf('%s/task/displays/*%s*',fileparts(fileparts(which('moncal'))),hostname);
+filenames = dir(defaultdir);
+maxnum = 0;
+for i = 1:length(filenames)
+  filenum = strread(filenames(i).name,'%s','delimiter','_');
+  filenum = str2num(filenum{1});
+  if (filenum > maxnum)
+    maxnum = filenum;
+  end
+end
+filename = sprintf('%s/task/displays/%04i_%s_%s',fileparts(fileparts(which('moncal'))),maxnum+1,hostname,datestr(now,'yymmdd'));
+
+disp(sprintf('Default calibration name: %s',filename));
+response = input('Calibration save name (hit enter to accept default): ','s');
+if ~isempty(response)
+  % if it is not a fully qualified path then, make it into a monitor
+  if isempty(fileparts(response))
+    filename = getSaveFilename(response);
+  else
+    filename = response;
+  end
+  return
+end
+disp(sprintf('Saving with name: %s',filename));
+
