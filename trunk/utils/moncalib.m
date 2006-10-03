@@ -1,6 +1,6 @@
-% moncal.m
+% moncalib.m
 %
-%      usage: moncal(screenNumber,stepsize,numRepeats)
+%      usage: moncalib(screenNumber,stepsize,numRepeats)
 %         by: justin gardner & jonas larsson
 %       date: 10/02/06
 %    purpose: routine to do monitor calibration
@@ -31,11 +31,11 @@
 %             saved then it will display the calibration. It will
 %             also continue with a calibration that has only partially
 %             been finished (like if you forced a quit in the middle)
-function calib = moncal(screenNumber,stepsize,numRepeats)
+function calib = moncalib(screenNumber,stepsize,numRepeats)
 
 % check arguments
 if ~any(nargin == [0 1 2 3])
-  help moncal
+  help moncalib
   return
 end
 
@@ -822,7 +822,7 @@ function filename = getSaveFilename(hostname)
 % get the ouptut filename
 hostname = strread(hostname,'%s','delimiter','.');
 hostname = hostname{1};
-defaultdir = sprintf('%s/task/displays/*%s*',fileparts(fileparts(which('moncal'))),hostname);
+defaultdir = sprintf('%s/task/displays/*%s*',fileparts(fileparts(which('moncalib'))),hostname);
 filenames = dir(defaultdir);
 maxnum = 0;
 for i = 1:length(filenames)
@@ -832,7 +832,7 @@ for i = 1:length(filenames)
     maxnum = filenum;
   end
 end
-filename = sprintf('%s/task/displays/%04i_%s_%s',fileparts(fileparts(which('moncal'))),maxnum+1,hostname,datestr(now,'yymmdd'));
+filename = sprintf('%s/task/displays/%04i_%s_%s',fileparts(fileparts(which('moncalib'))),maxnum+1,hostname,datestr(now,'yymmdd'));
 
 disp(sprintf('Default calibration name: %s',filename));
 response = input('Calibration save name (hit enter to accept default): ','s');
