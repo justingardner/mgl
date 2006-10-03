@@ -27,8 +27,8 @@ screenParamsList = {'computerName','displayName','screenNumber',...
 		    'screenWidth','screenHeight','displayDistance',...
 		    'displaySize','imageWidth','imageHeight',...
 		    'framesPerSecond','autoCloseScreen',...
-		    'saveData','gammaFunction','gammaTablename'};
-screenParams{1} = {'yoyodyne.cns.nyu.edu','',2,1280,1024,57,[31 23],[],[],60,1,0,defaultGammaFunction,''};
+		    'saveData','gammaFunction','calibFilename'};
+screenParams{1} = {'yoyodyne.cns.nyu.edu','',2,1280,1024,57,[31 23],[],[],60,1,0,defaultGammaFunction,'yoyodyne'};
 screenParams{end+1} = {'Stimulus.local','projector',2,1024,768,57,[31 23],[],[],60,0,50,defaultGammaFunction,''};
 screenParams{end+1} = {'Stimulus.local','lcd',2,800,600,157.5,[43.2 32.5],[],[],60,0,50,[0 1 0.4790 0 1 0.4790 0 1 0.4790],''};
 screenParams{end+1} = {'stimulus-g5.local','projector',2,1024,768,57,[31 23],[],[],60,0,50,defaultGammaFunction,''};
@@ -139,18 +139,36 @@ myscreen.grayIndex = 128;
 myscreen.inc = myscreen.whiteIndex - myscreen.grayIndex;
 
 % but first go and check if we need to load a table
-if isfield(myscreen,'gammaTablename') && ~isempty(myscreen.gammaTablename)
-  % load the table 
-  if isfile(myscreen.gammaTablename)
-    load(myscreen.gammaTablename);
-    % the table is a variable called gammaTable that has
-    % a gamma table returned by mglGetGammaTable;
-    mglSetGammaTable(gammaTable);
-    myscreen.gammaTable = gammaTable;
-  else
-    disp(sprintf('UHOH: Could not find %s',myscreen.gammaTablename));
+gammaNotSet = 1;
+if isfield(myscreen,'calibFilename')
+  calibFilename = myscreen.calibFilename;
+  % if the user specified a particular name for the calibration file.
+  % this could either be an exact filename, or it could be one of a standard
+  % set i.e. 0001_yoyodyne_LCD2_061013, so we check for those types
+  % if we can't find the exact match
+  if ~isfile(sprintf('%s.mat',calibFilename))
+    calibFilename = getCalibFilename(calibFilename);
   end
 else
+  calibFilename = getCalibFilename(myscreen.computer);
+end
+if ~isempty(calibFilename)
+  if isfile(sprintf('%s.mat',calibFilename))
+    load(calibFilename);
+    if exist('calib','var') && isfield(calib,'table')
+      myscreen.gammaTable = calib.table;
+      mglSetGammaTable(myscreen.gammaTable);
+      gammaNotSet = 0;
+      [calibPath calibFilename] = fileparts(calibFilename);
+      disp(sprintf('Gamma: Set to table from calibration file %s created on %s',calibFilename,calib.date));
+    end
+  else
+    disp(sprintf('UHOH: Could not find montior calibration file %s',calibFilename));
+  end
+end
+
+% use the table if we do not have a valid filename
+if gammaNotSet
   % display what the settings are
   disp(sprintf('Gamma: red [%0.2f %0.2f %0.2f] green [%0.2f %0.2f %0.2f] blue [%0.2f %0.2f %0.2f] (min max exp)',myscreen.gammaFunction(1),myscreen.gammaFunction(2),myscreen.gammaFunction(3),myscreen.gammaFunction(4),myscreen.gammaFunction(5),myscreen.gammaFunction(6),myscreen.gammaFunction(7),myscreen.gammaFunction(8),myscreen.gammaFunction(9)));
   % and then set it
@@ -336,4 +354,29 @@ if (fid ~= -1)
 else
   retval = 0;
 end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% gets the name of the gamma calibration
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function filename = getCalibFilename(hostname)
+
+% get the ouptut filename
+hostname = strread(hostname,'%s','delimiter','.');
+hostname = hostname{1};
+defaultdir = sprintf('%s/displays/*%s*',fileparts(which('initScreen')),hostname);
+filenames = dir(defaultdir);
+maxnum = 0;
+for i = 1:length(filenames)
+  filenum = strread(filenames(i).name,'%s','delimiter','_');
+  filenum = str2num(filenum{1});
+  if (filenum > maxnum)
+    maxnum = filenum;
+  end
+end
+if maxnum > 0
+  filename = sprintf('%s/task/displays/%04i_%s_%s',fileparts(fileparts(which('moncal'))),maxnum,hostname,datestr(now,'yymmdd'));
+else
+  filename = '';
+end
+
 
