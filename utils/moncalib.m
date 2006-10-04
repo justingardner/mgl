@@ -41,20 +41,8 @@ end
 
 global verbose;
 verbose = 1;
-doGamma = 1;
+doGamma = 0;
 
-% open the serial port
-portnum = initSerialPort;
-if (portnum == 0),return,end
-
-% init the device
-if (photometerInit(portnum) == -1)
-  closeSerialPort(portnum);
-  return
-end
-
-filename = getSaveFilename(getHostName);
-  
 % see if we were actually passed in a calib structure
 if (nargin > 0) & isfield(screenNumber,'screenNumber')
   calib = screenNumber;
@@ -70,20 +58,36 @@ else
     calib.stepsize = stepsize;
   end
   if ~exist('numRepeats','var')
-    calib.numRepeats = 4;
+    calib.numRepeats = 1;
   else
     calib.numRepeats = numRepeats;
   end
 end
 
-% now open the screen
-mglOpen(calib.screenNumber);
+justdisplay = 1;
+if ~isfield(calib,'bittest')
+  justdisplay = 0;
+  % open the serial port
+  portnum = initSerialPort;
+  if (portnum == 0),return,end
+
+  % init the device
+  if (photometerInit(portnum) == -1)
+    closeSerialPort(portnum);
+    return
+  end
+
+  filename = getSaveFilename(getHostName);
+  
+  % now open the screen
+  mglOpen(calib.screenNumber);
+end
 
 % choose the range of values over which to do the gamma testing
 testRange = 0:calib.stepsize:1;
 % choose the range of values over which to test for the number
 % of bits the gamma table can be set to
-bitTestRange = 0.5:(1/1024):0.5+16*(1/1024);
+bitTestRange = 0.25:(1/(2048)):0.25+8*(1/(2048));
 
 % set the date of the calibration
 if ~isfield(calib,'date'),calib.date = datestr(now);end
@@ -121,7 +125,9 @@ if doGamma
  end
  % interpolate table
  calib.table = interp1(calib.uncorrected.luminance,calib.uncorrected.outputValues,desiredOutput,'linear')';
- eval(sprintf('save %s calib',filename));
+ if ~justdisplay
+   eval(sprintf('save %s calib',filename));
+ end
 
  % now reset the gamma table with the exponent
  disp(sprintf('Using function values to linearize gamma'));
@@ -162,14 +168,16 @@ end
 subplot(1,2,2);
 dispLuminanceFigure(calib.bittest);
 
-% close the screen
-mglClose;
+if ~justdisplay
+  % close the serial port
+  %closeSerialPort(portnum);
 
-% close the serial port
-closeSerialPort(portnum);
+  % close the screen
+  mglClose;
 
-% save file
-eval(sprintf('save %s calib',filename));
+  % save file
+  eval(sprintf('save %s calib',filename));
+end
 
 
  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
