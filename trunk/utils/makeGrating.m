@@ -19,6 +19,9 @@ if ~exist('sf','var'),sf = 1;end
 if ~exist('angle','var'),angle = 0;end
 if ~exist('phase','var'),phase = 0;end
 
+% make it so that angle of 0 is horizontal
+angle = -angle-90;
+
 global MGL;
 
 if ~isfield(MGL,'xDeviceToPixels') || ~isfield(MGL,'yDeviceToPixels')
