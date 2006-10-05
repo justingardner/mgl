@@ -41,7 +41,7 @@ end
 
 global verbose;
 verbose = 1;
-doGamma = 0;
+doGamma = 1;
 
 % see if we were actually passed in a calib structure
 if (nargin > 0) & isfield(screenNumber,'screenNumber')

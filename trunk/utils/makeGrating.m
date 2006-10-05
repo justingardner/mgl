@@ -20,7 +20,7 @@ if ~exist('angle','var'),angle = 0;end
 if ~exist('phase','var'),phase = 0;end
 
 % make it so that angle of 0 is horizontal
-angle = -angle-90;
+angle = angle-90;
 
 global MGL;
 
@@ -32,6 +32,8 @@ end
 % get size in pixels
 widthPixels = round(width*MGL.xDeviceToPixels);
 heightPixels = round(height*MGL.yDeviceToPixels);
+widthPixels = widthPixels + mod(widthPixels+1,2);
+heightPixels = heightPixels + mod(heightPixels+1,2);
 
 % get a grid of x and y coordinates that has 
 % the correct number of pixels
@@ -45,4 +47,4 @@ angle = pi*angle/180;
 a=cos(angle)*sf*2*pi;
 b=sin(angle)*sf*2*pi;
 % compute grating
-m = sin(a*xMesh+b*yMesh+phase);
+m = cos(a*xMesh+b*yMesh+phase);
