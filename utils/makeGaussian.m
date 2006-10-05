@@ -23,6 +23,8 @@ end
 % get size in pixels
 widthPixels = round(width*MGL.xDeviceToPixels);
 heightPixels = round(height*MGL.yDeviceToPixels);
+widthPixels = widthPixels + mod(widthPixels+1,2);
+heightPixels = heightPixels + mod(heightPixels+1,2);
 
 % get a grid of x and y coordinates that has 
 % the correct number of pixels

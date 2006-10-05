@@ -39,6 +39,7 @@ screenParams{end+1} = {'kirkwood','',1,1152,870,[],[],18,24,75,1,0,defaultGammaF
 screenParams{end+1} = {'alta','',[],1024,768,57,[31 23],[],[],60,1,0,defaultGammaFunction,''};
 screenParams{end+1} = {'dsltop','',0,400,300,[],[],18,24,60,1,0,defaultGammaFunction,''};
 screenParams{end+1} = {'whistler.cns.nyu.edu','',2,1280,1024,57,[31 23],[],[],60,1,0,defaultGammaFunction,''};
+screenParams{end+1} = {'froh.cns.nyu.edu','',[],1280,1024,57,[31 23],[],[],100,1,0,defaultGammaFunction,''};
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % find matching database parameters
@@ -140,7 +141,8 @@ myscreen.inc = myscreen.whiteIndex - myscreen.grayIndex;
 
 % but first go and check if we need to load a table
 gammaNotSet = 1;
-if isfield(myscreen,'calibFilename')
+
+if isfield(myscreen,'calibFilename') && ~isempty(myscreen.calibFilename)
   calibFilename = myscreen.calibFilename;
   % if the user specified a particular name for the calibration file.
   % this could either be an exact filename, or it could be one of a standard
