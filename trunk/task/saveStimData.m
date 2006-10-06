@@ -65,6 +65,7 @@ for stimulusNum = 1:length(myscreen.stimulusNames)
   getStimuliCommand = sprintf('%sglobal %s;',getStimuliCommand,myscreen.stimulusNames{stimulusNum});
   stimuliNames = sprintf('%s %s',stimuliNames,myscreen.stimulusNames{stimulusNum});
 end
+eval(getStimuliCommand);
 
 if (strcmp(lower(response),'n'))
   % user aborts, decrement save number
