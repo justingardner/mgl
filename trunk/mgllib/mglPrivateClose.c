@@ -51,12 +51,15 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     Display * dpy=(Display *)dpyptr;
     int winptr=(int)mglGetGlobalDouble("XWindowPointer");  
     Window * win=(Window *)winptr;
-    XUnmapWindow( dpy, *win );
-    XDestroyWindow( dpy, *win );
     GLXContext ctx=glXGetCurrentContext();
     glXDestroyContext( dpy, ctx );
+    XUnmapWindow( dpy, *win );
+    XDestroyWindow( dpy, *win );
+    XFlush(dpy);
     mglSetGlobalDouble("XDisplayPointer",0);
     mglSetGlobalDouble("XWindowPointer",0);
+    XCloseDisplay(dpy);
+
   }
 #endif // #ifdef __linux__
 
