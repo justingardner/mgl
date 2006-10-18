@@ -39,7 +39,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   // set defaults
    int screenWidth=800;
    int screenHeight=600;
-   int frameRate=60; // Hz
+   double frameRate=60; // Hz
    int bitDepth=32;
    int displayNumber=-1;
    int defaultSettings = 0;
@@ -80,7 +80,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
    // frameRate
    if (nrhs>3) {
      if (mxGetPr(prhs[3]) != NULL)
-       frameRate = (int) *mxGetPr( prhs[3] );
+       frameRate = (double) *mxGetPr( prhs[3] );
    }
    // bitDepth
    if (nrhs>4) {
@@ -188,132 +188,137 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
     // Hide cursor
     CGDisplayHideCursor( kCGDirectMainDisplay ) ; 
-   } 
-   else {
 
-    // run in a window: get agl context
-    AGLContext contextObj = aglGetCurrentContext();
-    
-    if (contextObj != NULL) {
-      if (verbose > 1)
-	mexPrintf("(mglPrivateOpen) Using previously created context\n");
-      AGLDrawable drawableObj = aglGetDrawable(contextObj);
-      // show window, using the desktop it is apparently in this
-      // call that mglPrivateOpen fails.
-      ShowWindow(GetWindowFromPort(drawableObj));
-
-      // get an event (don't know if this is necessary, but the thought
-      // was to give back control to the OS for some ticks so that it
-      // could do whatever processing it needs to do)-
-      EventRecord theEvent;
-      EventMask theMask = keyDownMask;
-      // either return immediately or wait till we get an event
-      WaitNextEvent(theMask,&theEvent,6,nil);
-    }
-    else {
-    
-    
-     // Open a Carbon window and set up an AGL rendering context
-     WindowRef         theWindow; 
-     WindowAttributes  windowAttrs;
-     Rect              contentRect; 
-     CFStringRef       titleKey;
-     CFStringRef       windowTitle; 
-     OSStatus          result; 
-
-     windowAttrs = kWindowInWindowMenuAttribute | kWindowAsyncDragAttribute | kWindowNoUpdatesAttribute | kWindowStandardHandlerAttribute; 
-     SetRect (&contentRect, 0, 0, screenWidth, screenHeight );
-
-     // create a new window
-     if (verbose>1) mexPrintf("(mglPrivateOpen) Creating new window\n");
-     result = CreateNewWindow (kDocumentWindowClass, windowAttrs, &contentRect, &theWindow);
-     if (result != noErr) {
-       mexPrintf("(mglPrivateOpen) Could not CreateNewWindow\n");
-       return;
-     }
-
-     // don't ever activate window
-     SetWindowActivationScope(theWindow,kWindowActivationScopeNone);
+   } else {
      
-     // get an event (don't know if this is necessary, but the thought
-     // was to give back control to the OS for some ticks so that it
-     // could do whatever processing it needs to do)-
-     EventRef theEvent;
-     EventTargetRef theTarget;
-     theTarget = GetEventDispatcherTarget();
-     if (verbose>1) mexPrintf("(mglPrivateOpen) ReceiveNextEvent\n");
-     InstallStandardEventHandler(theTarget);
-     if (ReceiveNextEvent(0,NULL,1,true,&theEvent) == noErr) {
-       SendEventToEventTarget(theEvent,theTarget);
-       ReleaseEvent(theEvent);
-     }
-
-     // get a proxy icon for the window
-     if (verbose>1) mexPrintf("(mglPrivateOpen) Setting window proxy and creator\n");
-     result = SetWindowProxyCreatorAndType(theWindow,0,'TEXT',kOnSystemDisk);
-     if (result != noErr) {
-       mexPrintf("(mglPrivateOpen) Could not SetWindowProxyCreatorAndType\n");
-       return;
-     }
-
-     // setting the title: This crashes on the SetWindowTitleWithCFString call
-     if (verbose) mexPrintf("(mglPrivateOpen) Setting the title\n");
-     titleKey = CFSTR("Matlab OpenGL Viewport"); 
-     windowTitle = CFCopyLocalizedString(titleKey, NULL); 
-     result = SetWindowTitleWithCFString (theWindow, windowTitle); 
-     CFRelease (titleKey); 
-     CFRelease (windowTitle); 
-
-
-     /// get the agl PixelFormat
-     if (verbose>1) mexPrintf("(mglPrivateOpen) Getting AGL pixel format\n");
-     GLint attrib[] = {AGL_RGBA, AGL_DOUBLEBUFFER, AGL_STENCIL_SIZE, 8, AGL_ACCELERATED, AGL_NO_RECOVERY, AGL_NONE };
-     AGLPixelFormat aglPixFmt = aglChoosePixelFormat (NULL, 0, attrib);
-     if (aglPixFmt == NULL) {
-       mexPrintf("(mglPrivateOpeen) Could not get AGLPixelFormat\n");
-       return;
-     }
-
-     // set up drawing context
-     if (verbose>1) mexPrintf("(mglPrivateOpen) Getting AGL Context\n");
-     AGLContext aglContextObj = aglCreateContext (aglPixFmt, NULL);
-     if (aglContextObj == NULL) {
-       mexPrintf("(mglPrivateOpen) Could not create agl context\n");
-       return;
-     }
-
-     // clean up pixel format
-     result = aglGetError();
-     aglDestroyPixelFormat(aglPixFmt);
-
-     // insure that we wait for vertical blank on flush
-     if (verbose>1) mexPrintf("(mglPrivateOpen) Setting AGL swap interval\n");
-     GLint sync = 1;
-     aglSetInteger(aglContextObj, AGL_SWAP_INTERVAL, &sync);
+     // run in a window: get agl context
+     AGLContext contextObj = aglGetCurrentContext();
      
-     // attach window to context
-     if (verbose>1) mexPrintf("(mglPrivateOpen) Attaching window\n");
-     CGrafPtr winPtr=GetWindowPort ( theWindow );
-     if (!aglSetDrawable( aglContextObj, winPtr)) {
-       mexPrintf("(mglPrivateOpen) Warning: failed to set drawable\n");
+     if (contextObj != NULL) {
+       if (verbose > 1)
+	 mexPrintf("(mglPrivateOpen) Using previously created context\n");
+       AGLDrawable drawableObj = aglGetDrawable(contextObj);
+       // show window, using the desktop it is apparently in this
+       // call that mglPrivateOpen fails.
+       ShowWindow(GetWindowFromPort(drawableObj));
+       
+       // get an event (don't know if this is necessary, but the thought
+       // was to give back control to the OS for some ticks so that it
+       // could do whatever processing it needs to do)-
+       EventRecord theEvent;
+       EventMask theMask = keyDownMask;
+       // either return immediately or wait till we get an event
+       WaitNextEvent(theMask,&theEvent,6,nil);
+     } else {
+       
+       
+       // Open a Carbon window and set up an AGL rendering context
+       WindowRef         theWindow; 
+       WindowAttributes  windowAttrs;
+       Rect              contentRect; 
+       CFStringRef       titleKey;
+       CFStringRef       windowTitle; 
+       OSStatus          result; 
+       
+       windowAttrs = kWindowInWindowMenuAttribute | kWindowAsyncDragAttribute | kWindowNoUpdatesAttribute | kWindowStandardHandlerAttribute; 
+       SetRect (&contentRect, 0, 0, screenWidth, screenHeight );
+       
+       // create a new window
+       if (verbose>1) mexPrintf("(mglPrivateOpen) Creating new window\n");
+       result = CreateNewWindow (kDocumentWindowClass, windowAttrs, &contentRect, &theWindow);
+       if (result != noErr) {
+	 mexPrintf("(mglPrivateOpen) Could not CreateNewWindow\n");
+	 return;
+       }
+       
+       // don't ever activate window
+       SetWindowActivationScope(theWindow,kWindowActivationScopeNone);
+       
+       // get an event (don't know if this is necessary, but the thought
+       // was to give back control to the OS for some ticks so that it
+       // could do whatever processing it needs to do)-
+       EventRef theEvent;
+       EventTargetRef theTarget;
+       theTarget = GetEventDispatcherTarget();
+       if (verbose>1) mexPrintf("(mglPrivateOpen) ReceiveNextEvent\n");
+       InstallStandardEventHandler(theTarget);
+       if (ReceiveNextEvent(0,NULL,1,true,&theEvent) == noErr) {
+	 SendEventToEventTarget(theEvent,theTarget);
+	 ReleaseEvent(theEvent);
+       }
+       
+       // get a proxy icon for the window
+       if (verbose>1) mexPrintf("(mglPrivateOpen) Setting window proxy and creator\n");
+       result = SetWindowProxyCreatorAndType(theWindow,0,'TEXT',kOnSystemDisk);
+       if (result != noErr) {
+	 mexPrintf("(mglPrivateOpen) Could not SetWindowProxyCreatorAndType\n");
+	 return;
+       }
+       
+       // setting the title: This crashes on the SetWindowTitleWithCFString call
+       if (verbose) mexPrintf("(mglPrivateOpen) Setting the title\n");
+       titleKey = CFSTR("Matlab OpenGL Viewport"); 
+       windowTitle = CFCopyLocalizedString(titleKey, NULL); 
+       result = SetWindowTitleWithCFString (theWindow, windowTitle); 
+       CFRelease (titleKey); 
+       CFRelease (windowTitle); 
+       
+       
+       /// get the agl PixelFormat
+       if (verbose>1) mexPrintf("(mglPrivateOpen) Getting AGL pixel format\n");
+       GLint attrib[] = {AGL_RGBA, AGL_DOUBLEBUFFER, AGL_STENCIL_SIZE, 8, AGL_ACCELERATED, AGL_NO_RECOVERY, AGL_NONE };
+       AGLPixelFormat aglPixFmt = aglChoosePixelFormat (NULL, 0, attrib);
+       if (aglPixFmt == NULL) {
+	 mexPrintf("(mglPrivateOpeen) Could not get AGLPixelFormat\n");
+	 return;
+       }
+       
+       // set up drawing context
+       if (verbose>1) mexPrintf("(mglPrivateOpen) Getting AGL Context\n");
+       AGLContext aglContextObj = aglCreateContext (aglPixFmt, NULL);
+       if (aglContextObj == NULL) {
+	 mexPrintf("(mglPrivateOpen) Could not create agl context\n");
+	 return;
+       }
+       
+       // clean up pixel format
+       result = aglGetError();
+       aglDestroyPixelFormat(aglPixFmt);
+       
+       // insure that we wait for vertical blank on flush
+       if (verbose>1) mexPrintf("(mglPrivateOpen) Setting AGL swap interval\n");
+       GLint sync = 1;
+       aglSetInteger(aglContextObj, AGL_SWAP_INTERVAL, &sync);
+       
+       // attach window to context
+       if (verbose>1) mexPrintf("(mglPrivateOpen) Attaching window\n");
+       CGrafPtr winPtr=GetWindowPort ( theWindow );
+       if (!aglSetDrawable( aglContextObj, winPtr)) {
+	 mexPrintf("(mglPrivateOpen) Warning: failed to set drawable\n");
+       }
+       if (! aglSetCurrentContext ( aglContextObj )) {
+	 mexPrintf("(mglPrivateOpen) warning: failed to set drawable context found\n");
+       }
+       // display the window
+       if (verbose>1) mexPrintf("(mglPrivateOpen) Displaying the window\n");
+       result = TransitionWindow(theWindow,kWindowZoomTransitionEffect,kWindowShowTransitionAction,nil);
+       if (result != noErr) {
+	 mexPrintf("(mglPrivateOpen) Could not TransitionWindow\n");
+	 return;
+       }
+       if (verbose>1) mexPrintf("(mglPrivateOpen) Repositioning window\n");
+       RepositionWindow (theWindow, NULL, kWindowCascadeOnMainScreen); 
      }
-     if (! aglSetCurrentContext ( aglContextObj )) {
-       mexPrintf("(mglPrivateOpen) warning: failed to set drawable context found\n");
-     }
-     // display the window
-     if (verbose>1) mexPrintf("(mglPrivateOpen) Displaying the window\n");
-     result = TransitionWindow(theWindow,kWindowZoomTransitionEffect,kWindowShowTransitionAction,nil);
-     if (result != noErr) {
-       mexPrintf("(mglPrivateOpen) Could not TransitionWindow\n");
-       return;
-     }
-     if (verbose>1) mexPrintf("(mglPrivateOpen) Repositioning window\n");
-     RepositionWindow (theWindow, NULL, kWindowCascadeOnMainScreen); 
-    }
    }
+   
 #endif //#ifdef __APPLE__
 
 #ifdef __linux__
+
+   // This environment variable is necessary to get OpenGL to sync with vertical blank for Radeon cards.
+   // Not optimal, of course! should be made system-independent.
+   setenv("LIBGL_SYNC_REFRESH", "t", 1);
+
    XVisualInfo *vi;
    XSetWindowAttributes swa;
    XEvent event;
@@ -322,7 +327,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
    dpy = XOpenDisplay(0);
    // get an appropriate visual 
    int attributeList[] = { GLX_DOUBLEBUFFER, GLX_RGBA, GLX_BUFFER_SIZE, 32, \
-			   GLX_RED_SIZE,8, GLX_GREEN_SIZE,8, GLX_BLUE_SIZE,8, GLX_ALPHA_SIZE, 8, None };
+			   GLX_RED_SIZE,8, GLX_GREEN_SIZE,8, GLX_BLUE_SIZE,8, GLX_ALPHA_SIZE, 8, \
+			   GLX_STENCIL_SIZE, 8, None };
 
    bool fullscreen=false;
    if (displayNumber>-1) {
@@ -344,35 +350,58 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
      return;
    }
 
+   // get vertical refresh rate. should eventually implement video mode switching here.
+   XF86VidModeModeLine modeline;
+   int pixelclock;
+   XF86VidModeGetModeLine( dpy, displayNumber, &pixelclock, &modeline );
+   frameRate=(double) pixelclock*1000/modeline.htotal/modeline.vtotal;
+   if (verbose) 
+     mexPrintf("Vertical Refresh rate:%f Hz\n",frameRate);
 
    int value[2];
    int event_base_return, error_base_return;
-   if (verbose>0) {
-     if (XSyncQueryExtension ( dpy , &event_base_return , &error_base_return )) {
+   if (XSyncQueryExtension ( dpy , &event_base_return , &error_base_return )) {
+     if (verbose) 
        mexPrintf("X Synchronization supported.\n");
-       int n_counters_return, n;
-       XSyncSystemCounter * syscounts=XSyncListSystemCounters (dpy, &n_counters_return);
+     int n_counters_return, n;
+     XSyncSystemCounter * syscounts=XSyncListSystemCounters (dpy, &n_counters_return);
+     if (verbose) {
        mexPrintf("%i\n",n_counters_return);
-       for (n=0;n<n_counters_return;n++)
-	 mexPrintf("%s %i %i\n",syscounts[n].name, (int) syscounts[n].counter, (int) XSyncValueLow32(syscounts[n].resolution) );
-     } else
-       mexPrintf("X Synchronization not supported.\n");
-     //     glXSwapIntervalSGI( 1 );
-
-     glXGetConfig( dpy, vi, GLX_BUFFER_SIZE, value );
+       mexPrintf("%s %i %i\n",syscounts[n].name, (int) syscounts[n].counter, (int) XSyncValueLow32(syscounts[n].resolution) );
+     }
+   } else if (verbose)
+     mexPrintf("X Synchronization not supported.\n");
+   
+   glXGetConfig( dpy, vi, GLX_BUFFER_SIZE, value );
+   int alphaBits=*value;
+   if (verbose)
      mexPrintf("GLX_BUFFER_SIZE:%i\n", *value);
-     glXGetConfig( dpy, vi, GLX_RED_SIZE, value );
+   glXGetConfig( dpy, vi, GLX_RED_SIZE, value );
+   if (verbose)
      mexPrintf("GLX_RED_SIZE:%i\n", *value);
-     glXGetConfig( dpy, vi, GLX_RED_SIZE, value );
+   alphaBits-=*value;
+   glXGetConfig( dpy, vi, GLX_GREEN_SIZE, value );
+   if (verbose)
      mexPrintf("GLX_GREEN_SIZE:%i\n", *value);
-     glXGetConfig( dpy, vi, GLX_BLUE_SIZE, value );
+   alphaBits-=*value;
+   glXGetConfig( dpy, vi, GLX_BLUE_SIZE, value );
+   if (verbose)
      mexPrintf("GLX_BLUE_SIZE:%i\n", *value);
-     glXGetConfig( dpy, vi, GLX_ALPHA_SIZE, value );
+   alphaBits-=*value;
+   glXGetConfig( dpy, vi, GLX_ALPHA_SIZE, value );
+   if (verbose)
      mexPrintf("GLX_ALPHA_SIZE:%i\n", *value);
-     glXGetConfig(dpy,vi,GL_ALPHA_BITS, value);
+   glXGetConfig(dpy,vi,GL_ALPHA_BITS, value);
+   if (verbose)
      mexPrintf("GL_ALPHA_BITS:%i\n", *value);
+   if (verbose)
+     mexPrintf("Computed ALPHA_BITS:%i\n", alphaBits);
+
+   //   mglSetGlobalDouble("alphaBits",(double)alphaBits);
+
+   if (verbose)
      mexPrintf("Depth:%i\n", vi->depth);
-   }
+     
    // create a GLX context 
    static GLXContext cx;
    cx = glXCreateContext(dpy, vi, 0, GL_TRUE);
@@ -382,7 +411,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
    // create a window 
    swa.colormap = cmap;
    swa.border_pixel = 0;
-   swa.event_mask = StructureNotifyMask;
+   swa.event_mask = StructureNotifyMask | KeyPressMask | KeyReleaseMask | ButtonPressMask | ButtonReleaseMask;
+   //swa.backing_store=Always;
+   //swa.save_under=True;
    // if fullscreen, bypass window manager
    int w,h;
    w=XDisplayWidth(dpy, vi->screen);
@@ -399,20 +430,22 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 				     0, vi->depth, InputOutput, vi->visual,
 				     CWBorderPixel|CWColormap|CWEventMask|CWOverrideRedirect, &swa);
 
-   // Hide cursor
-   Pixmap bm_no;
-   Cursor no_ptr;
-   XColor black, dummy;
-   static char bm_no_data[] = {0, 0, 0, 0, 0, 0, 0, 0};
-   XAllocNamedColor(dpy, cmap, "black", &black, &dummy);
-   bm_no = XCreateBitmapFromData(dpy, win, bm_no_data, 8, 8);
-   no_ptr = XCreatePixmapCursor(dpy, bm_no, bm_no, &black, &black, 0, 0);
-   XDefineCursor(dpy, win, no_ptr);
-   XFreeCursor(dpy, no_ptr);
-   if (bm_no != None)
-     XFreePixmap(dpy, bm_no);
-   XFreeColors(dpy, cmap, &black.pixel, 1, 0);
-   
+   // Hide cursor if fullscreen
+   if (fullscreen) {
+     Pixmap bm_no;
+     Cursor no_ptr;
+     XColor black, dummy;
+     static char bm_no_data[] = {0, 0, 0, 0, 0, 0, 0, 0};
+     XAllocNamedColor(dpy, cmap, "black", &black, &dummy);
+     bm_no = XCreateBitmapFromData(dpy, win, bm_no_data, 8, 8);
+     no_ptr = XCreatePixmapCursor(dpy, bm_no, bm_no, &black, &black, 0, 0);
+     XDefineCursor(dpy, win, no_ptr);
+     XFreeCursor(dpy, no_ptr);
+     if (bm_no != None)
+       XFreePixmap(dpy, bm_no);
+     XFreeColors(dpy, cmap, &black.pixel, 1, 0);
+   }
+
    // set hints
    XSizeHints * hints=XAllocSizeHints();
    hints->x=0;
@@ -427,18 +460,14 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
    // connect the context to the window 
    glXMakeCurrent(dpy, win, cx);
    glXWaitGL();
-   glEnable(GL_TEXTURE_2D);
-   glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_DECAL);
+   //   glEnable(GL_TEXTURE_2D);
+   // glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_DECAL);
    glEnable(GL_LINE_SMOOTH);
    GLboolean antialias;
    glGetBooleanv(GL_LINE_SMOOTH,&antialias);
    if (~antialias && verbose)
      mexPrintf("Antialiased lines not supported on this platform.\n");
-   // clear the buffer 
-   glClearColor(0.5,0.5,0.5,1);
-   glClear(GL_COLOR_BUFFER_BIT);
-   glXSwapBuffers( dpy, glXGetCurrentDrawable() );
-   
+
    // save screen as display number
    int winPtr=(int) &win;
    mglSetGlobalDouble("XWindowPointer",(double)winPtr);
