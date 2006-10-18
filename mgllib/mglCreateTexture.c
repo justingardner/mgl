@@ -21,6 +21,8 @@ $Id$
 //   define section   //
 ////////////////////////
 #define BYTEDEPTH 4
+#define TEXTURE_DATATYPE GL_UNSIGNED_BYTE // Independent of endianness
+// #define TEXTURE_DATATYPE GL_UNSIGNED_INT_8_8_8_8 // This is endian-dependent and should be avoided
 
 int sub2ind( int row, int col, int height, int elsize ) {
   // return linear index corresponding to (row,col) into Matlab array
@@ -88,16 +90,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   // get image size and type
   int imageWidth = dims[1], imageHeight = dims[0]; // 
   
-#ifndef GL_TEXTURE_RECTANGLE_EXT
-  // No support for rectangular textures
-  double lw=log(imageWidth)/log(2);
-  double lh=log(imageHeight)/log(2);
-  if (lw!=round(lw) | lh!=round(lh)) {
-    mexPrintf("Sorry: only support for power-of-2 sized textures on this platform.\n");
-    return;
-  }
-#endif
-  
   int imageType;
   if (ndims == 2) imageType = 1; else imageType = dims[2];
 
@@ -159,36 +151,51 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   }
 
   GLuint textureNumber;
-
   // get a unique texture identifier name
   glGenTextures(1, &textureNumber);
-  
-  // bind the texture to be a 2D texture
-#ifdef GL_TEXTURE_RECTANGLE_EXT
-  glBindTexture(GL_TEXTURE_RECTANGLE_EXT, textureNumber);
-#else
+
+  // If rectangular textures are unsupported, scale image to nearest dimensions
+#ifndef GL_TEXTURE_RECTANGLE_EXT
+  // No support for non-power of two textures
+  int po2Width=imageWidth;
+  int po2Height=imageHeight;
+  double lw=log(imageWidth)/log(2);
+  double lh=log(imageHeight)/log(2);
+  if (lw!=round(lw) | lh!=round(lh)) {
+    po2Width=(int) pow(2,round(lw));
+    po2Height=(int) pow(2,round(lh));
+    if (verbose) {
+      mexPrintf("Only support for power-of-2 sized textures on this platform.\n");
+      mexPrintf("Scaling image to nearest power-of-2 size...\n");
+      mexPrintf("Scaled size is (width x height): %i x %i\n",po2Width,po2Height);
+    }
+    GLubyte * tmp =(GLubyte*)malloc(po2Width*po2Height*sizeof(GLubyte)*BYTEDEPTH);
+    gluScaleImage( GL_RGBA, imageWidth, imageHeight, TEXTURE_DATATYPE, imageFormatted, po2Width, po2Height, TEXTURE_DATATYPE, tmp);
+    free(imageFormatted);
+    imageFormatted=tmp;
+  }
   glBindTexture(GL_TEXTURE_2D, textureNumber);
-#endif
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glPixelStorei(GL_UNPACK_ROW_LENGTH,0);
+
+  // now place the data into the texture
+  glTexImage2D(GL_TEXTURE_2D,0,4,po2Width,po2Height,0,GL_RGBA,TEXTURE_DATATYPE,imageFormatted);
+
+#else
+  // Support for non-power of two textures
+  glBindTexture(GL_TEXTURE_RECTANGLE_EXT, textureNumber);
 
 #ifdef __APPLE__
   // tell GL that the memory will be handled by us. (apple)
   glPixelStorei(GL_UNPACK_CLIENT_STORAGE_APPLE,0);
-
-#ifdef GL_TEXTURE_RECTANGLE_EXT
   // now, try to store the memory in VRAM (apple)
   glTexParameteri(GL_TEXTURE_RECTANGLE_EXT,GL_TEXTURE_STORAGE_HINT_APPLE,GL_STORAGE_CACHED_APPLE);
-  //  glTexParameteri(GL_TEXTURE_RECTANGLE_EXT,GL_TEXTURE_STORAGE_HINT_APPLE,GL_STORAGE_SHARED_APPLE);
   glTextureRangeAPPLE(GL_TEXTURE_RECTANGLE_EXT,imageWidth*imageHeight*BYTEDEPTH,imageFormatted);
-#else
-  // now, try to store the memory in VRAM (apple)
-  glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_STORAGE_HINT_APPLE,GL_STORAGE_CACHED_APPLE);
-  //  glTexParameteri(GL_TEXTURE_RECTANGLE_EXT,GL_TEXTURE_STORAGE_HINT_APPLE,GL_STORAGE_SHARED_APPLE);
-  glTextureRangeAPPLE(GL_TEXTURE_2D,imageWidth*imageHeight*BYTEDEPTH,imageFormatted);
-
 #endif
-#endif
-
-#ifdef GL_TEXTURE_RECTANGLE_EXT
+  
   // some other stuff
   glTexParameteri(GL_TEXTURE_RECTANGLE_EXT, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
   glTexParameteri(GL_TEXTURE_RECTANGLE_EXT, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
@@ -197,19 +204,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   glPixelStorei(GL_UNPACK_ROW_LENGTH,0);
 
   // now place the data into the texture
-  glTexImage2D(GL_TEXTURE_RECTANGLE_EXT,0,GL_RGBA,imageWidth,imageHeight,0,GL_RGBA,GL_UNSIGNED_INT_8_8_8_8,imageFormatted);
-#else
-  // some other stuff
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-  glPixelStorei(GL_UNPACK_ROW_LENGTH,0);
-
-  // now place the data into the texture
-  glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA,imageWidth,imageHeight,0,GL_RGBA,GL_UNSIGNED_INT_8_8_8_8,imageFormatted);
-
-#endif    
+  glTexImage2D(GL_TEXTURE_RECTANGLE_EXT,0,GL_RGBA,imageWidth,imageHeight,0,GL_RGBA,TEXTURE_DATATYPE,imageFormatted);
+  
+#endif 
+  
 
   GLenum err=glGetError();
   if (err) {
