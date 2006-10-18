@@ -2,7 +2,7 @@
 =========================================================================
 
      program: mglSetGammaTable.c
-          by: justin gardner
+          by: justin gardner. Bug fixes and X support by Jonas Larsson
         date: 05/27/06
    copyright: (c) 2006 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
 
@@ -19,13 +19,23 @@ $Id$
 //   define section   //
 ////////////////////////
 #define kMaxDisplays 8
-#define TABLESIZE 256
+#ifdef __linux__
+#define GAMMAVALUE unsigned short
+#define GAMMAVALUESIZE sizeof(unsigned short)
+#define MAXGAMMAVALUE 65535
+#endif
+#ifdef __APPLE__
+#define GAMMAVALUE CGGammaValue
+#define GAMMAVALUESIZE sizeof(CGGammaValue)
+#endif
+
 
 //////////////
 //   main   //
 //////////////
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
+
   // get globals
   int verbose = (int)mglGetGlobalDouble("verbose");
   int displayNumber;
@@ -36,15 +46,33 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     return;
   }
 
-  if (verbose)
-    mexPrintf("(mglSetGammaTable) Setting gamma table for display %i\n",displayNumber);
-
   // and some variables
   double redMin,redMax,redGamma,greenMin,greenMax,greenGamma,blueMin,blueMax,blueGamma;
   int useFormula = 0;
-  CGGammaValue redTable[TABLESIZE],greenTable[TABLESIZE],blueTable[TABLESIZE];
   double *redInputTable,*greenInputTable,*blueInputTable,*inputTable;
   int tableSize = 0,i;
+  int systemTableSize;
+
+#ifdef __APPLE__
+  // Fixed length for now - should really be queried from the hardware
+  systemTableSize=256;
+#endif
+
+#ifdef __linux__
+  // On Linux/X, we can query the hardware for gamma table to be safe
+  int dpyptr=(int)mglGetGlobalDouble("XDisplayPointer");
+  if (dpyptr<=0) return;
+  Display * dpy=(Display *)dpyptr;
+  int screen =XDefaultScreen(dpy);
+  XF86VidModeGetGammaRampSize(dpy,screen,&systemTableSize);
+#endif
+
+  if (verbose)
+    mexPrintf("(mglSetGammaTable) Setting gamma table for display %i\n",displayNumber);
+
+  GAMMAVALUE *redTable=(GAMMAVALUE *)malloc(GAMMAVALUESIZE*systemTableSize);
+  GAMMAVALUE *greenTable=(GAMMAVALUE *)malloc(GAMMAVALUESIZE*systemTableSize);
+  GAMMAVALUE *blueTable=(GAMMAVALUE *)malloc(GAMMAVALUESIZE*systemTableSize);
 
   // nine arguments means to set formula
   if (nrhs == 9) {
@@ -68,6 +96,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   // form that
   else if (nrhs == 1) {
     if (mxIsStruct(prhs[0])) {
+      // Get values from struct
       if (verbose) mexPrintf("(mglSetGammaTable) Using input structure\n");
       mxArray *redInputArray, *greenInputArray, *blueInputArray;
       redInputArray = mxGetField(prhs[0],0,"redTable");
@@ -90,12 +119,19 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       blueInputTable = (double *)mxGetPr(blueInputArray);
       // now set the table
       for (i=0;i<tableSize;i++) {
+#ifdef __APPLE__
 	redTable[i] = (CGGammaValue)redInputTable[i];
 	greenTable[i] = (CGGammaValue)greenInputTable[i];
 	blueTable[i] = (CGGammaValue)blueInputTable[i];
+#endif
+#ifdef __linux__
+	redTable[i] = (GAMMAVALUE)MAXGAMMAVALUE*redInputTable[i];
+	greenTable[i] = (GAMMAVALUE)MAXGAMMAVALUE*greenInputTable[i];
+	blueTable[i] = (GAMMAVALUE)MAXGAMMAVALUE*blueInputTable[i];	
+#endif
       }
-    }
-    else {
+    } else {
+      // Get values from vector/array input
       // get size of table and table pointer
       tableSize = mxGetM(prhs[0]);
       inputTable = (double *)mxGetPr(prhs[0]);
@@ -113,40 +149,55 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 	if (mxGetN(prhs[0]) == 1) {
 	  if (verbose) mexPrintf("(mglSetGammaTable) Using same table for RGB\n");
 	  if (verbose) mexPrintf("(mglSetGammaTable) tableSize = %i\n",tableSize);
-	  if (tableSize > TABLESIZE) {
-	    mexPrintf("(mglSetGammaTable) UHOH: Table size too large (n=%i)\n",tableSize);
+	  if (tableSize != systemTableSize) {
+	    mexPrintf("(mglSetGammaTable) UHOH: Table size (n=%i) differs from system table size %i\n",tableSize,systemTableSize);
 	    return;
 	  }
 	  // and set the tables from the input table
 	  for (i=0;i<tableSize;i++) {
+#ifdef __APPLE__
 	    redTable[i] = (CGGammaValue)inputTable[i];
 	    greenTable[i] = (CGGammaValue)inputTable[i];
 	    blueTable[i] = (CGGammaValue)inputTable[i];
+#endif
+#ifdef __linux__
+	    redTable[i] = (GAMMAVALUE)MAXGAMMAVALUE*inputTable[i];
+	    greenTable[i] = (GAMMAVALUE)MAXGAMMAVALUE*inputTable[i];
+	    blueTable[i] = (GAMMAVALUE)MAXGAMMAVALUE*inputTable[i];	
+#endif
 	  }
 	}
 	else if (mxGetN(prhs[0]) == 3) {
 	  if (verbose) mexPrintf("(mglSetGammaTable) Using different tables for RGB\n");
 	  if (verbose) mexPrintf("(mglSetGammaTable) tableSize = %i\n",tableSize);
-	  if (tableSize > TABLESIZE) {
-	    mexPrintf("(mglSetGammaTable) UHOH: Table size too large (n=%i)\n",tableSize);
+	  if (tableSize != systemTableSize) {
+	    mexPrintf("(mglSetGammaTable) UHOH: Table size (n=%i) differs from system table size %i\n",tableSize,systemTableSize);
 	    return;
 	  }
 	  // and set the tables from the input table
 	  for (i=0;i<tableSize;i++) {
+#ifdef __APPLE__
 	    redTable[i] = (CGGammaValue)inputTable[i];
 	    greenTable[i] = (CGGammaValue)inputTable[i+tableSize];
 	    blueTable[i] = (CGGammaValue)inputTable[i+2*tableSize];
+#endif
+#ifdef __linux__
+	    redTable[i] = (GAMMAVALUE)MAXGAMMAVALUE*inputTable[i];
+	    greenTable[i] = (GAMMAVALUE)MAXGAMMAVALUE*inputTable[i+tableSize];
+	    blueTable[i] = (GAMMAVALUE)MAXGAMMAVALUE*inputTable[i+2*tableSize];	
+#endif
 	  }
 	}
 	else {
-	  mexPrintf("(mglSetGammaTable) UHOH: Gamma table should be nx1 or nx3 (%ix%i)\n",mxGetM(prhs[0]),mxGetN(prhs[0]));
+	  mexPrintf("(mglSetGammaTable) UHOH: Gamma table should be %ix1 or %ix3 (%ix%i)\n",\
+		    systemTableSize,systemTableSize,mxGetM(prhs[0]),mxGetN(prhs[0]));
 	  return;
 	}
       }
     }
   }
   else if (nrhs == 3) {
-    if (verbose) mexPrintf("(mglSetGammaTable) Using differnet tables for RGB\n");
+    if (verbose) mexPrintf("(mglSetGammaTable) Using different tables for RGB\n");
     // get size of table
     tableSize = mxGetN(prhs[0]);
     if ((tableSize != mxGetN(prhs[1])) || (tableSize != mxGetN(prhs[2]))) {
@@ -155,8 +206,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     }
     // display some info
     if (verbose) mexPrintf("(mglSetGammaTable) tableSize = %i\n",tableSize);
-    if (tableSize > TABLESIZE) {
-      mexPrintf("(mglSetGammaTable) UHOH: Table size too large (n=%i)\n",tableSize);
+    if (tableSize != systemTableSize) {
+      mexPrintf("(mglSetGammaTable) UHOH: Table size (n=%i) differs from system table size %i\n",tableSize,systemTableSize);
       return;
     }
     // get table pointer
@@ -165,9 +216,16 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     blueInputTable = (double *)mxGetPr(prhs[2]);
     // and set the tables fom the input tables
     for (i=0;i<tableSize;i++) {
-      redTable[i] = (CGGammaValue)redInputTable[i];
-      greenTable[i] = (CGGammaValue)greenInputTable[i];
-      blueTable[i] = (CGGammaValue)blueInputTable[i];
+#ifdef __APPLE__
+	redTable[i] = (CGGammaValue)redInputTable[i];
+	greenTable[i] = (CGGammaValue)greenInputTable[i];
+	blueTable[i] = (CGGammaValue)blueInputTable[i];
+#endif
+#ifdef __linux__
+	redTable[i] = (GAMMAVALUE)MAXGAMMAVALUE*redInputTable[i];
+	greenTable[i] = (GAMMAVALUE)MAXGAMMAVALUE*greenInputTable[i];
+	blueTable[i] = (GAMMAVALUE)MAXGAMMAVALUE*blueInputTable[i];	
+#endif
     }
   }
   
@@ -183,8 +241,29 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   if (displayNumber < 0) {
     mexPrintf("(mglSetGammaTable) No display is open\n");
     return;
-  }
-  else {
+  } else {
+    
+#ifdef __linux__
+    if (useFormula) {
+      if (verbose) mexPrintf("(mglSetGammaTable) Using formula\n");
+      XF86VidModeGamma gamma;
+      gamma.red=redGamma;
+      gamma.green=greenGamma;
+      gamma.blue=blueGamma;
+      if (!XF86VidModeSetGamma(dpy,screen,&gamma)) {
+	mexPrintf("(mglSetGammaTable) Error setting gamma table.\n");
+      }
+      // seems necessary to call this function to update settings
+      XFlush(dpy);
+    } else {
+      if (verbose) mexPrintf("(mglSetGammaTable) Using table\n");
+      if (!XF86VidModeSetGammaRamp(dpy,screen,systemTableSize,redTable,greenTable,blueTable)) {
+	mexPrintf("(mglSetGammaTable) Error setting gamma table.\n");
+      }
+    }
+#endif
+    
+    
 #ifdef __APPLE__
     CGLError errorNum;CGDisplayErr displayErrorNum;
     CGDirectDisplayID displays[kMaxDisplays];
@@ -223,4 +302,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     }
 #endif
   }
+  
+  free(redTable);
+  free(greenTable);
+  free(blueTable);
+
 }
