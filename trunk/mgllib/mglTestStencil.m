@@ -44,11 +44,14 @@ mglClearScreen;
 
 global MGL;
 
+
+nDots=2500;
+dotSize=5;
 % get some random points
-dots(1).x = MGL.deviceRect(1)+rand(1,5000)*MGL.deviceWidth;
-dots(1).y = MGL.deviceRect(2)+rand(1,5000)*MGL.deviceHeight;
-dots(2).x = MGL.deviceRect(1)+rand(1,5000)*MGL.deviceWidth;
-dots(2).y = MGL.deviceRect(2)+rand(1,5000)*MGL.deviceHeight;
+dots(1).x = MGL.deviceRect(1)+rand(1,nDots)*MGL.deviceWidth;
+dots(1).y = MGL.deviceRect(2)+rand(1,nDots)*MGL.deviceHeight;
+dots(2).x = MGL.deviceRect(1)+rand(1,nDots)*MGL.deviceWidth;
+dots(2).y = MGL.deviceRect(2)+rand(1,nDots)*MGL.deviceHeight;
 
 % set dot speed to 10 deg/sec
 dx = 10/MGL.frameRate;
@@ -58,9 +61,9 @@ starttime = mglGetSecs;
 for i = 1:MGL.frameRate*numsec
   % now draw the dots using the two stencil's we'ver created
   mglStencilSelect(1);
-  mglPoints2(dots(1).x,dots(1).y,2,[0.8 0.4 0.5]);
+  mglPoints2(dots(1).x,dots(1).y,dotSize,[0.8 0.4 0.5]);
   mglStencilSelect(2);
-  mglPoints2(dots(2).x,dots(2).y,2,[0.2 0.8 0.4]);
+  mglPoints2(dots(2).x,dots(2).y,dotSize,[0.2 0.8 0.4]);
   % flush the buffer
   mglFlush;
   mglClearScreen;
@@ -71,6 +74,7 @@ for i = 1:MGL.frameRate*numsec
   dots(2).x(dots(2).x>MGL.deviceRect(3)) = dots(2).x(dots(2).x>MGL.deviceRect(3))-MGL.deviceWidth;
 end
 endtime=mglGetSecs;
+
 
 mglStencilSelect(0);
 mglClose;
