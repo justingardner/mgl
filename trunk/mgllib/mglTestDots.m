@@ -20,7 +20,7 @@ if exist('numsec')~=1,numsec = 5;,end
 if ~exist('screenNumber','var'),screenNumber = [];end
 
 % other parameters
-numdots = 10000;
+numdots = 5000;
 
 % open the mgl screen in visual angle coordinates
 mglOpen(screenNumber);

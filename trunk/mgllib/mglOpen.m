@@ -56,7 +56,7 @@ else
   mglPrivateOpen(whichScreen,screenWidth,screenHeight,frameRate,bitDepth);
 end
 
-% and remember the initial gamma table setting
+% get gamma table
 MGL.initialGammaTable = mglGetGammaTable;
 
 % set some other added global
