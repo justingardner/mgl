@@ -15,6 +15,15 @@ $Id$
 /////////////////////////
 #include "mgl.h"
 
+#ifdef __linux__
+#include <string.h>
+#include <math.h>
+
+#include <ft2build.h>
+#include FT_FREETYPE_H
+#endif
+
+
 ////////////////////////
 //   define section   //
 ////////////////////////
@@ -24,10 +33,42 @@ $Id$
 ///////////////////
 //   functions   //
 ///////////////////
-int sub2ind( int row, int col, int height, int elsize ) {
-  // return linear index corresponding to (row,col) into row-major array (matlab-style)
+int sub2indM( int row, int col, int height, int elsize ) {
+  // return linear index corresponding to (row,col) into row-major array (Matlab-style)
        return ( row*elsize + col*height*elsize );
 }
+
+int sub2indC( int row, int col, int width, int elsize ) {
+  // return linear index corresponding to (row,col) into column-major array (C-style)
+  return ( col*elsize + row*width*elsize );
+}
+
+#ifdef __linux__
+void
+draw_bitmap( FT_Bitmap*  bitmap,
+             FT_Int      x,
+             FT_Int      y,
+	     unsigned char *image,
+	     int width,
+	     int height )
+{
+  FT_Int  i, j, p, q;
+  FT_Int  x_max = x + bitmap->width;
+  FT_Int  y_max = y + bitmap->rows;
+
+
+  for ( i = x, p = 0; i < x_max; i++, p++ )
+  {
+    for ( j = y, q = 0; j < y_max; j++, q++ )
+    {
+      if ( i >= width || j >= height )
+        continue;
+
+      image[sub2indC(y,x,width,1)] |= bitmap->buffer[q * bitmap->width + p];
+    }
+  }
+}
+#endif
 
 //////////////
 //   main   //
@@ -350,11 +391,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   ////////////////////////////////////
   // Set color of bitmap
   ////////////////////////////////////
-  // Apples default bitmap format is transposed and reverse-ordered compared with default matlab format. To avoid dealing with yet another
-  // texture format we create a new buffer with correct ordering. Inefficient, but shouldn't take more than a fraction of a second anyway.
 
-  GLubyte* textureBitmap=(GLubyte*)malloc(bitmapByteCount);
-  
   // copy the data into the buffer
   int n=0;
   for (c = 0; c < 4; c++) {
@@ -449,14 +486,101 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   // free up the original bitmapData
   CGContextRelease(bitmapContext);
   free(bitmapData);
-  free(textureBitmap);
 
 #endif
 
 #ifdef __linux__
-  mexPrintf("Font drawing not yet supported under X. Use mglStrokeText instead.\n");
-  return;
 
+  FT_Library    library;
+  FT_Face       face;
+
+  FT_GlyphSlot  slot;
+  FT_Matrix     matrix;                 /* transformation matrix */
+  FT_UInt       glyph_index;
+  FT_Vector     pen;                    /* untransformed origin  */
+  FT_Error      error;
+
+  double        angle;
+  int           target_height, target_width;
+  int           n, num_chars;
+
+
+  num_chars     = strlen( inputString );
+  angle         = ( fontRotation / 360 ) * 3.14159 * 2;      /* use 25 degrees     */
+  target_height = HEIGHT;
+  target_width = ;
+
+  unsigned char * target_bitmap=(unsigned char *)malloc(target_height*target_width); 
+
+  error = FT_Init_FreeType( &library );              /* initialize library */
+  /* error handling omitted */
+
+  error = FT_New_Face( library, fontName, 0, &face ); /* create face object */
+  /* error handling omitted */
+
+  /* use 50pt at 100dpi */
+  error = FT_Set_Char_Size( face, 50 * 64, 0,
+                            100, 0 );                /* set character size */
+  /* error handling omitted */
+
+  slot = face->glyph;
+
+  /* set up matrix */
+  matrix.xx = (FT_Fixed)( cos( angle ) * 0x10000L );
+  matrix.xy = (FT_Fixed)(-sin( angle ) * 0x10000L );
+  matrix.yx = (FT_Fixed)( sin( angle ) * 0x10000L );
+  matrix.yy = (FT_Fixed)( cos( angle ) * 0x10000L );
+
+  /* the pen position in 26.6 cartesian space coordinates; */
+  /* start at (300,200) relative to the upper left corner  */
+  pen.x = 300 * 64;
+  pen.y = ( target_height - 200 ) * 64;
+
+  for ( n = 0; n < num_chars; n++ )
+  {
+    /* set transformation */
+    FT_Set_Transform( face, &matrix, &pen );
+
+    /* load glyph image into the slot (erase previous one) */
+    error = FT_Load_Char( face, inputString[n], FT_LOAD_RENDER );
+    if ( error )
+      continue;                 /* ignore errors */
+
+    /* now, draw to our target surface (convert position) */
+    draw_bitmap( &slot->bitmap,
+                 slot->bitmap_left,
+                 target_height - slot->bitmap_top, 
+		 target_bitmap,
+		 target_width,
+		 target_height );
+
+    /* increment pen position */
+    pen.x += slot->advance.x;
+    pen.y += slot->advance.y;
+  }
+
+  // Convert text bitmap to RGBA texture map
+  GLubyte * textureBitmap = (GLubyte *)malloc(target_height*target_width*sizeof(GLubyte)*4);
+
+  int offs;
+  for (int j=0; j<target_height; j++)
+    for (int i=0; i<target_width; i++) {
+      offs=sub2indC(j,i,target_width,1);
+      for (int k=0; k<4; k++) {
+	tetxureBitmap[offs+k]=(GLubyte) target_bitmap[offs];
+      }
+    }
+  
+  // create texture from bitmap
+
+
+  FT_Done_Face    ( face );
+  FT_Done_FreeType( library );
+
+  free(target_bitmap);
+  free(textureBitmap);
+
+  
 #endif 
 
 
