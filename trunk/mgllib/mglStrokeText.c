@@ -16,15 +16,17 @@
 //   function declarations   //
 ///////////////////////////////
 
-void drawStrokeCharacter( float x, float y, float * strokesX, float * strokesY, float scaleX, float scaleY, int numstrokes, int hasdots, float rot ) {
+void drawStrokeCharacter( float x, float y, float * strokesX, float * strokesY, float scaleX, float scaleY, int numstrokes, int hasdots, float rot, int rectwidth ) {
   // draw the strokes as a series of lines
   int i;
   float *tx,*ty;
   float globalscale=0.2; // scales to width==1
+  float pointSize;
   scaleX=scaleX*globalscale;
   scaleY=scaleY*globalscale;
   tx=(float*)malloc(sizeof(float)*2*numstrokes);
   ty=(float*)malloc(sizeof(float)*2*numstrokes);
+
   if (rot!=0.0) {
     for (i=0;i<2*numstrokes;i++) {
       tx[i]=cos(rot)*(scaleX*strokesX[i]+x)+sin(rot)*(scaleY*strokesY[i]+y);
@@ -45,14 +47,28 @@ void drawStrokeCharacter( float x, float y, float * strokesX, float * strokesY, 
     }
   }
   glEnd();
+
   if (hasdots) {
-    glBegin(GL_POINTS);
-    for (i=0;i<2*numstrokes-1;i+=2){
-      if (strokesX[i]==strokesX[i+1] && strokesY[i]==strokesY[i+1]) {
-	glVertex2f(tx[i],ty[i]);
+    if (rectwidth) {
+      pointSize=(float)rectwidth/2;
+      if (!(mglGetGlobalDouble("screenCoordinates")>0)) {
+	pointSize=pointSize*mglGetGlobalDouble("xPixelsToDevice");
       }
+      for(i=0;i<2*numstrokes-1;i+=2) {
+	if (strokesX[i]==strokesX[i+1] && strokesY[i]==strokesY[i+1]) {
+	  glRectd(tx[i]-pointSize,ty[i]-pointSize, tx[i]+pointSize,ty[i]+pointSize);
+	}
+      }
+
+    } else {
+      glBegin(GL_POINTS);
+      for (i=0;i<2*numstrokes-1;i+=2) {
+	if (strokesX[i]==strokesX[i+1] && strokesY[i]==strokesY[i+1]) {
+	  glVertex2f(tx[i],ty[i]);
+	}
+      }
+      glEnd();    
     }
-    glEnd();    
   }
   free(tx);
   free(ty);
@@ -202,7 +218,7 @@ static float MGLCharStrokesY[MGLNUMCHARS][MGLMAXSTROKES]={\
 							  {4,4,4,-4,-4,-4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},\
 							  {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},\
 							  {0,0,2,-2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},\
-							  {2,2,-2,-2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},\
+							  {1.5,1.5,-3,-3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},\
 							  {2,2,-3,-4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},\
 							  {4,-2,-4,-4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},\
 							  {2,3,3,4,4,4,4,3,1,3,1,0,0,-1,-1,-3,-4,-4,0,0,0,0,0,0,0,0,0,0,0,0},\
@@ -296,9 +312,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
   else
     linewidth=1;
   if (nrhs>6) {
-    color[0]=*mxGetPr( prhs[6] );
-    color[1]=*(mxGetPr( prhs[6] )+1);
-    color[2]=*(mxGetPr( prhs[6] )+2);
+    color[0]=(float)*mxGetPr( prhs[6] );
+    color[1]=(float)*(mxGetPr( prhs[6] )+1);
+    color[2]=(float)*(mxGetPr( prhs[6] )+2);
   } else {
     color[0]=1.0;
     color[1]=1.0;
@@ -310,8 +326,16 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
     rot=0.0;
 
   glLineWidth(linewidth);
-  glPointSize(linewidth+1);
-  
+
+  int rectWidth=0;
+  GLint range[2];
+  glGetIntegerv(GL_POINT_SIZE_RANGE,range);
+  if (range[1]<linewidth) {
+    rectWidth=linewidth+1;
+  } else {
+    glPointSize(linewidth+1);
+  }
+
   char space[]=" ";
   int iS,iC,numstrokes;
   float * strokesX;
@@ -339,7 +363,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	  strokesY=MGLCharStrokesY[iC];
 	  // Draw character
 	  //	  mexPrintf("%i %i\n",iC, iS);
-	  drawStrokeCharacter( x, y, strokesX, strokesY, scaleX, scaleY, numstrokes, MGLCharsWithDots[iC], rot );	
+	  drawStrokeCharacter( x, y, strokesX, strokesY, scaleX, scaleY, numstrokes, MGLCharsWithDots[iC], rot, rectWidth );	
 	  // Update x,y
 	  x+=(scaleX*1.1); // letter spacing
 	  charFound=true;
@@ -354,7 +378,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	strokesY=MGLCharStrokesY[iC];
 	// Draw character
 	//	mexPrintf("%i %i\n",iC, iS);
-	drawStrokeCharacter( x, y, strokesX, strokesY, scaleX, scaleY, numstrokes, MGLCharsWithDots[iC], rot );	
+	drawStrokeCharacter( x, y, strokesX, strokesY, scaleX, scaleY, numstrokes, MGLCharsWithDots[iC], rot, rectWidth );	
 	// Update x,y
 	x+=(scaleX*1.1); // letter spacing
       }
