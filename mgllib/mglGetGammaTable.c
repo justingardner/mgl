@@ -104,16 +104,22 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   // get globals
   int verbose = (int)mglGetGlobalDouble("verbose");
   int displayNumber;
-  if (mglIsGlobal("displayNumber"))
+  int existDisplayNumber  = mglIsGlobal("displayNumber");
+  if (existDisplayNumber){
     displayNumber = (int)mglGetGlobalDouble("displayNumber");
+  }
   else {
-    mexPrintf("(mglGetGammaTable) No display is open\n");
+    mexPrintf("(mglGetGammaTable) No display is open (exist: %i)\n", existDisplayNumber);
     return;
   }
   
+
+#ifdef __APPLE__
+  
+
   // check to see if we have an open display
   if (displayNumber < 0) {
-    mexPrintf("(mglGetGammaTable) No display is open\n");
+    mexPrintf("(mglGetGammaTable) No display is open ** \n");
     return;
   }
   else {
@@ -162,6 +168,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     if (errorNum) {
       mexPrintf("(mglGetGammaTable) UHOH: Error getting gamma table (error=%d)\n",errorNum);
     }
+
+#endif
 
     // make the output structure, if we gamma formula values then
     // make the structure with those fields and set them, otherwise
