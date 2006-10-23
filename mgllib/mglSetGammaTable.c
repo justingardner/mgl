@@ -39,7 +39,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   // get globals
   int verbose = (int)mglGetGlobalDouble("verbose");
   int displayNumber;
-  if (mglIsGlobal("displayNumber"))
+  int existDisplayNumber = mglIsGlobal("displayNumber");
+  if (existDisplayNumber)
     displayNumber = (int)mglGetGlobalDouble("displayNumber");
   else {
     mexPrintf("(mglSetGammaTable) No display is open\n");
