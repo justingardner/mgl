@@ -49,7 +49,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
      mexPrintf("(mglPrivateOpen) Display number %i is already open\n",(int)mglGetGlobalDouble("displayNumber"));
      return;
    }
-
    // get status of global variable that sets wether to display
    // verbose information
    int verbose = (int)mglGetGlobalDouble("verbose");
@@ -91,8 +90,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
      usageError("mglPrivateOpen");
      return;
    }
-
+   
 #ifdef __APPLE__
+   
    if (displayNumber) {
 
      CGLError errorNum;CGDisplayErr displayErrorNum;
@@ -188,28 +188,29 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
     // Hide cursor
     CGDisplayHideCursor( kCGDirectMainDisplay ) ; 
+   } 
+   else {
 
-   } else {
-     
-     // run in a window: get agl context
-     AGLContext contextObj = aglGetCurrentContext();
-     
-     if (contextObj != NULL) {
-       if (verbose > 1)
-	 mexPrintf("(mglPrivateOpen) Using previously created context\n");
-       AGLDrawable drawableObj = aglGetDrawable(contextObj);
-       // show window, using the desktop it is apparently in this
-       // call that mglPrivateOpen fails.
-       ShowWindow(GetWindowFromPort(drawableObj));
-       
-       // get an event (don't know if this is necessary, but the thought
-       // was to give back control to the OS for some ticks so that it
-       // could do whatever processing it needs to do)-
-       EventRecord theEvent;
-       EventMask theMask = keyDownMask;
-       // either return immediately or wait till we get an event
-       WaitNextEvent(theMask,&theEvent,6,nil);
-     } else {
+    // run in a window: get agl context
+    AGLContext contextObj = aglGetCurrentContext();
+    
+    if (contextObj != NULL) {
+      if (verbose > 1)
+	mexPrintf("(mglPrivateOpen) Using previously created context\n");
+      AGLDrawable drawableObj = aglGetDrawable(contextObj);
+      // show window, using the desktop it is apparently in this
+      // call that mglPrivateOpen fails.
+      ShowWindow(GetWindowFromPort(drawableObj));
+
+      // get an event (don't know if this is necessary, but the thought
+      // was to give back control to the OS for some ticks so that it
+      // could do whatever processing it needs to do)-
+      EventRecord theEvent;
+      EventMask theMask = keyDownMask;
+      // either return immediately or wait till we get an event
+      WaitNextEvent(theMask,&theEvent,6,nil);
+    }
+    else {
        
        
        // Open a Carbon window and set up an AGL rendering context
@@ -481,6 +482,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
    glClear(GL_COLOR_BUFFER_BIT); 
 
 #ifdef __APPLE__
+   
    if (displayNumber) {
      // get the current context
      CGLContextObj contextObj = CGLGetCurrentContext();
@@ -499,6 +501,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     // swap buffers
     aglSwapBuffers (contextObj);
    }
+
 #endif
 
 #ifdef __linux__
@@ -515,7 +518,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   mglSetGlobalDouble("frameRate",(double)frameRate);
   mglSetGlobalDouble("bitDepth",(double)bitDepth);
   mglSetGlobalDouble("stencilBits",(double)8);
-
+    
   // set information about device coordinates
   mglSetGlobalDouble("xPixelsToDevice",(double)2/screenWidth);
   mglSetGlobalDouble("yPixelsToDevice",(double)2/screenHeight);
@@ -529,6 +532,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   deviceRectPtr[0] = -1;deviceRectPtr[1] = -1;
   deviceRectPtr[2] = 1;deviceRectPtr[3] = 1;
   mglSetGlobalField("deviceRect",deviceRect);
+  
 }
 
 
