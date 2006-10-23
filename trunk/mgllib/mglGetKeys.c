@@ -23,6 +23,7 @@ $Id$
 //////////////
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
+  
   int returnAllKeys = 1,i,n,displayKey;
   double *inptr,*outptr;
   // get which key we want
@@ -41,11 +42,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   int longNum;int bitNum;int logicalNum = 0;
   //  get the status of the keyboard
   KeyMap theKeys;
-  GetKeys(theKeys);
+  GetKeys( theKeys );
   unsigned char *keybytes;
   short k;
   keybytes = (unsigned char *) theKeys;
-
+  
   if (!returnAllKeys) {
     // figure out how many elements are desired
     n = mxGetN(prhs[0]);
@@ -54,24 +55,51 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     outptr = mxGetPr(plhs[0]);
     // now go through and get each key
     for (i=0; i<n; i++) {
-      displayKey = (int)*(inptr+i)-1; // 1-offset input
+      displayKey = (int)*(inptr+i);
       if ((displayKey < 0) || (displayKey > 128)) {
 	mexPrintf("(mglGetKeys) Key %i out of range 1:128",displayKey);
 	return;
       }
       k=(short)displayKey;
+
+#if (__LITTLE_ENDIAN__)
+      // mac intel requires some swapping
+      div_t keypos = div(displayKey-1,32);
+      UInt32 currkeys =  theKeys[keypos.quot].bigEndianValue; 
+      UInt32 keyposrem = keypos.rem;
+      *(outptr+i) = (currkeys >> keyposrem ) & 0x1 ;
+#else
+      // on big-endian OSX there are no problems
+      // *(outptr+i) =  (theKeys[keypos.quot] >> keypos.rem ) & 0x1 ;
       *(outptr+i) = ((keybytes[k>>3] & (1 << (k&7))) != 0);
+      
+#endif
     }
   }
   else {
     // return it in a logical array
     plhs[0] = mxCreateLogicalMatrix(1,128);
-    mxLogical *loutptr = mxGetLogicals(plhs[0]);
+    mxLogical *outptr = mxGetLogicals(plhs[0]);
    
     // set the elements of the logical array correctly
     if (verbose) {
       mexPrintf("(mglGetKeys) Keystate = ");
     }
+#if (__LITTLE_ENDIAN__)
+
+    for (longNum = 0;longNum<4;longNum++) {
+      for (bitNum = 0;bitNum<32;bitNum++) {
+	// mac intel requires some swapping
+	UInt32 currkeys = theKeys[longNum].bigEndianValue ;
+	UInt32 currbitnum = bitNum; 
+	*(outptr+logicalNum++) = (currkeys >> currbitnum) & 0x1 ;
+	if (verbose) {
+	  mexPrintf("%i ",(int) *(outptr+logicalNum++));
+	}
+      }
+    }
+#else
+    // no problems on big-endian
     for (i=0;i<128;i++) {
       k=(short)i;
       *(loutptr+i)=((keybytes[k>>3] & (1 << (k&7))) != 0);
@@ -79,70 +107,17 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 	mexPrintf("%i ",(int) *(loutptr+i));
       }
     }
+    // *(outptr+logicalNum++) = (theKeys[longNum] >> bitNum) & 0x1;
+#endif
     if (verbose) {
       mexPrintf("\n");
     }
   }
-
-
+  
 #endif
 #ifdef __linux__
-  Display * dpy;
-  int dpyptr=(int)mglGetGlobalDouble("XDisplayPointer");
-  if (dpyptr<=0) {
-    // open a dummy display
-    dpy=XOpenDisplay(0);
-  } else {
-    dpy=(Display *)dpyptr;
-  }
-  char keys_return[32];
-
-  XQueryKeymap(dpy, keys_return);
-  
-  if (!returnAllKeys) {
-    // figure out how many elements are desired
-    n = mxGetN(prhs[0]);
-    // and create an output matrix
-    plhs[0] = mxCreateDoubleMatrix(1,n,mxREAL);
-    outptr = mxGetPr(plhs[0]);
-    // now go through and get each key
-    for (i=0; i<n; i++) {
-      displayKey = (int)*(inptr+i)-1; // input is 1-offset
-      if ((displayKey < 0) || (displayKey > 256)) {
-	mexPrintf("(mglGetKeys) Key %i out of range 1:256",displayKey);
-	return;
-      }
-      int keypos=(int) floor(displayKey/8);
-      int keyshift=displayKey%8;
-
-      *(outptr+i) = (double) (( keys_return[keypos] >> keyshift) & 0x1);
-    }
-  } else {
-    plhs[0] = mxCreateLogicalMatrix(1,256);
-    mxLogical *loutptr = mxGetLogicals(plhs[0]);
-    
-    for (int n=0; n<32; n++) {
-      for (int m=0; m<8; m++) {
-	*(loutptr+n*8+m) = (double) (( keys_return[n] >> m ) & 0x1);
-      }
-    }
-    if (verbose) {
-      mexPrintf("(mglGetKeys) Keystate = ");
-      for (int n=0; n<32; n++) {
-	for (int m=0; m<8; m++) {
-	  mexPrintf("%i ", ( keys_return[n] >> m ) & 0x1 );
-	}
-      }
-      mexPrintf("\n");
-    }
-  }
-
-  if (dpyptr<=0) {
-    XCloseDisplay(dpy);
-  }
-  
-
-
+  mexPrintf("(mglGetKeys) Not supported yet on linux\n");
+  return;
 #endif 
 }
 
