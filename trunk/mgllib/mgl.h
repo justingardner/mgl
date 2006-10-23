@@ -95,6 +95,22 @@ void usageError(char *);
 mxArray *mglGetGlobalField(char *field);
 void mglSetGlobalField(char *field, mxArray *value);
 
+// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ //
+// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ //
+// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ //
+
+// check global field: separate function for checking fields
+// returns 
+//     2 if field exists and is not empty
+//     1 if field exists but is empty
+//     0 if field does not exist
+int mglCheckGlobalField(char* varname);
+
+// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ //
+// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ //
+// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ //
+
+
 // these fucntions get a double value from the MGL_GLOBAL
 // if get does not find the field it initializes the field
 // and sets it to 0.0
@@ -142,10 +158,10 @@ void mglCreateGlobal(void)
 {
   int ndims[] = {1};int nfields = 1;
   const char *field_names[] = {"version"};
-   
+     
   // create the global with version number set
-  mexPutVariable("global",MGL_GLOBAL_NAME,mxCreateStructArray(1,ndims,nfields,field_names)
-);
+  mexPutVariable("global",MGL_GLOBAL_NAME,mxCreateStructArray(1,ndims,nfields, field_names));
+    
   // set the version number
   mglSetGlobalDouble("version",MGL_VERSION);
 }
@@ -155,16 +171,53 @@ void mglCreateGlobal(void)
 //////////////////////////
 int mglIsGlobal(char *field)
 {
+  
+  // check if MGL exists in global workspace - if not return right away
+  if ((mexGetVariablePtr("global", MGL_GLOBAL_NAME) == NULL)){
+    mexPrintf("(mglIsGlobal) MGL global variable does not seem to exist.\n");
+    return -1;
+  }
+  // now get the variable
   mxArray *MGL = mexGetVariable("global",MGL_GLOBAL_NAME);
+  
+  // get value field by number (via name)
+  mxArray *tmp;
+  int ifield; 
 
-  // no global variable, then it ceratinly does not exist
+  // if MGL is not struct array then there is trouble
+  if ( mxGetClassID(MGL) != mxSTRUCT_CLASS){
+    mexPrintf("(mglIsGlobal) MGL variable is not a struct array.\n");
+    return -1;
+  }
+  // get field number by name; returns -1 if field does not exist
+  ifield = mxGetFieldNumber(MGL,field);
+
+  // check whether it is empty:
+  tmp = mxGetFieldByNumber(MGL, (mwIndex)0, ifield);
+  
+  // check to see if field exists and not empty
+  if ((ifield != -1) && (tmp != NULL))
+    {  // [present and full]
+      return  1;
+    } 
+  if ((ifield != -1) && (tmp == NULL)) 
+    { // [present but empty]
+      return  0;
+    }
+  else { // [not present]    
+    return 0;
+  }
+  
+  // old code
+  /*   // no global variable, then it ceratinly does not exist
   if (MGL == 0) return 0;
   // check to see if we have no field
   if (mxGetField(MGL,0,field) == 0) return 0;
   // or field is empty
   if (mxGetPr(mxGetField(MGL,0,field)) == NULL) return 0;
   // if we made it this far, then the field exists
-  return 1;
+  return 1; */
+
 }
 //////////////////////////
 //   mglGetGlobalDouble //
@@ -172,20 +225,25 @@ int mglIsGlobal(char *field)
 double mglGetGlobalDouble(char *varname)
 {
   mxArray *MGL = mexGetVariable("global",MGL_GLOBAL_NAME);
-
+  
   // global has not been created
-  if ((MGL == 0) || (mxGetPr(MGL) == 0)){
+  if ( (mexGetVariablePtr("global", MGL_GLOBAL_NAME) == NULL) || ( mxGetClassID(MGL) != mxSTRUCT_CLASS)) {
     // create the global
     mglCreateGlobal();
     // now create the asked for variable
     mglSetGlobalDouble(varname,0.0);
-    return 0.0;
+    return -1.0; // initialize new fields with -1
   }
 
   // check to see if field exists
-  if ((mxGetField(MGL,0,varname) != 0) && (mxGetPr(mxGetField(MGL,0,varname)) != NULL))
+  if (mglCheckGlobalField(varname) == 2){
     // if it does return the value
-    return *(double *)mxGetPr(mxGetField(MGL,0,varname));
+    // suggested change for macintel
+    mxArray *value;
+    value = mxGetField(MGL,0,varname);
+    double tmpvalue = mxGetScalar(value); 
+    return tmpvalue;
+  }
   else {
     // does not exist, set asked for variable
     mglSetGlobalDouble(varname,0.0);
@@ -199,16 +257,15 @@ double mglGetGlobalDouble(char *varname)
 mxArray *mglGetGlobalField(char *varname)
 {
   mxArray *MGL = mexGetVariable("global",MGL_GLOBAL_NAME);
-
+  
   // global has not been created
-  if ((MGL == 0) || (mxGetPr(MGL) == 0)){
+  if ( (mexGetVariablePtr("global", MGL_GLOBAL_NAME) == NULL) || ( mxGetClassID(MGL) != mxSTRUCT_CLASS)){
     // create the global
     mglCreateGlobal();
-    return NULL;
   }
-
+  
   // check to see if field exists
-  if ((mxGetField(MGL,0,varname) != 0) && (mxGetPr(mxGetField(MGL,0,varname)) != NULL))
+  if (mglCheckGlobalField(varname) == 2)
     // if it does return the value
     return mxGetField(MGL,0,varname);
   else {
@@ -225,29 +282,42 @@ void mglSetGlobalDouble(char *varname,double value)
   double *mglFieldPointer;
 
   // global has not been created
-  if ((MGL == 0) || (mxGetPr(MGL) == 0)){
+  // if ((MGL == 0)) { // || (mxGetPr(MGL) == 0)){
+  if ( (mexGetVariablePtr("global", MGL_GLOBAL_NAME) == NULL) || (MGL == 0) ){
     // create the global
     mglCreateGlobal();
     MGL = mexGetVariable("global",MGL_GLOBAL_NAME);
   }
 
   // check to see if field exists
-  if (mxGetField(MGL,0,varname) == NULL) {
+  if (mglCheckGlobalField(varname) == 0){
     // if it doesn't then add it.
     mxAddField(MGL,varname);
-    mxSetField(MGL,0,varname,mxCreateDoubleMatrix(1,1,mxREAL));
+    mxSetField(MGL,0,varname,mxCreateDoubleMatrix(1, 1, mxREAL));
   }
-
+  
   // check if field is empty
-  if (mxGetM(mxGetField(MGL,0,varname))==0) {
+  if (mglCheckGlobalField(varname) == 1){
     // if so resize it
-    mxSetField(MGL,0,varname,mxCreateDoubleMatrix(1,1,mxREAL));    
-  }
+    mxSetField(MGL,0,varname,mxCreateDoubleMatrix(1, 1, mxREAL));    
+  }  
+  
 
+  // suggested change for macintel
+  mxArray *tmpvalue;
+  tmpvalue = mxCreateDoubleMatrix(1,1,mxREAL);
+  *mxGetPr(tmpvalue) = value; // pass value into it.
+  mxSetField(MGL,0,varname,tmpvalue);
+    
+  /*
+  // replaces this code
   // now get the field pointer
-  mglFieldPointer = (double*)mxGetPr(mxGetField(MGL,0,varname));
+   mglFieldPointer = (double*)mxGetPr(mxGetField(MGL, 0, varname));
   // and set it
-  *mglFieldPointer = value;
+   *mglFieldPointer = value;
+   mexPrintf("varname: %s, value: %e\n", varname, value);
+  */
+  
   // write the global variable back
   mexPutVariable("global",MGL_GLOBAL_NAME,MGL);
 }
@@ -260,19 +330,20 @@ void mglSetGlobalField(char *varname, mxArray *value)
   mxArray *MGL = mexGetVariable("global",MGL_GLOBAL_NAME);
 
   // global has not been created
-  if ((MGL == 0) || (mxGetPr(MGL) == 0)){
+    if ((MGL == 0) || (mexGetVariablePtr("global", MGL_GLOBAL_NAME) == NULL)){
     // create the global
     mglCreateGlobal();
     MGL = mexGetVariable("global",MGL_GLOBAL_NAME);
   }
 
   // check to see if field exists
-  if (mxGetField(MGL,0,varname) == NULL) {
+  if (mglCheckGlobalField(varname) == 0){
     // if it doesn't then add it.
     mxAddField(MGL,varname);
   }
   // now set the field 
   mxSetField(MGL,0,varname,value);
+  
   // write the global variable back
   mexPutVariable("global",MGL_GLOBAL_NAME,MGL);
 }
@@ -331,5 +402,76 @@ int mglGetColor(const mxArray *colorArray, double *color)
   }
   return 1;
 }
+
+
+// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ //
+// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ //
+// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ //
+// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ //
+
+int mglCheckGlobalField(char* varname) {
+  
+  /*  this function replaces a chunk of code that checks whether a
+      field in a struct array exists and is empty:
+      
+      if ((mxGetField(MGL,0,varname) != 0) &&  \
+             (mxGetPr(mxGetField(MGL,0,varname)) != NULL))
+	     
+      on macintel the above code causes a crash in matlab/
+	     
+      returns 
+          0 if the global is not a struct array
+	  0 if the asked for field does not exist
+	  1 if the field is present but empty
+	  2 if the field is present and filled
+	  
+
+      ds 2006-10-13
+*/
+
+  // check if MGL exists in global workspace - if not create it
+  if ((mexGetVariablePtr("global", MGL_GLOBAL_NAME) == NULL) ){
+    mglCreateGlobal();
+  }
+  
+  mxArray *MGL = mexGetVariable("global",MGL_GLOBAL_NAME);
+  mxArray *tmp;
+  int ifield; 
+  
+  // check that the global is a struct array
+  if ( mxGetClassID(MGL) != mxSTRUCT_CLASS) {
+       mglCreateGlobal();
+       return 0; 
+  }
+  
+  // get field number by name; mxGetFieldNumber returns -1 if field does not exist
+  ifield = mxGetFieldNumber(MGL,varname);
+  // return if field doesn't exist
+  if (ifield < 0)  return 0;
+
+  // otherwise check whether it is empty:
+  tmp = mxGetFieldByNumber(MGL, (mwIndex)0, ifield);
+  
+  // check to see if field exists and not empty
+  if ((ifield != -1) && (tmp != NULL))
+    { // present and field full
+      return  2;
+    } 
+  else if (tmp != NULL) 
+    { // present but field empty 
+      return  1;
+    }
+  else { // field does not exist
+    return 0;
+  }
+} // end function
+
+// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ //
+// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ //
+// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ //
+// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ //
+
+
+
 #endif // #ifndef MGL_H
 
