@@ -66,6 +66,7 @@
 #include <GL/glx.h>
 #include <GL/glu.h>
 #include <X11/extensions/sync.h>
+#include <X11/extensions/xf86vmode.h>
 #endif
 
 
@@ -74,6 +75,10 @@
 ////////////////////////
 #define MGL_GLOBAL_NAME "MGL"
 #define MGL_VERSION 1.0
+
+#ifndef mwIndex
+#define mwIndex int
+#endif
 
 // older versions of OS X don't
 // have kCGColorSpaceGenericRGB
