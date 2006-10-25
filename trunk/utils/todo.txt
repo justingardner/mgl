@@ -1,9 +1,0 @@
-#modify all functions to use MGL rather than MGL_GLOBAL DONE
-#add support for full screen & top-level (window hints) DONE
-
-fix inconsistencies between mglOpen and mglOpenDisplay (e.g. set screenSize in mglOpen)
-set deviceRect and deviceOrigin in mglTransform
-add function to mglTransform: when used with single input (GL_MODELVIEW, GL_PROJECTION, or GL_TEXTURE) return current matrix
-fix texture mapping issues
-FIX issues with MGL crashing when first run
-add X refresh function?
