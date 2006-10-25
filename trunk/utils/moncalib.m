@@ -10,7 +10,7 @@
 %             luminance changes (value < 1.0) (default is 1/32)
 %
 %             numRepeats is the number of repeats you want
-%             to make of the measurements (default is 4)
+%             to make of the measurements (default is 2)
 %
 %             This works by using the serial port interface
 %             to the PR650 and the comm library from the
@@ -31,6 +31,7 @@
 %             saved then it will display the calibration. It will
 %             also continue with a calibration that has only partially
 %             been finished (like if you forced a quit in the middle)
+%             The function saves the calibration file after each step
 function calib = moncalib(screenNumber,stepsize,numRepeats)
 
 % check arguments
@@ -42,6 +43,10 @@ end
 global verbose;
 verbose = 1;
 doGamma = 1;
+doExponent = 1;
+testExponent = 1;
+testTable = 1;
+doBittest = 1;
 
 % see if we were actually passed in a calib structure
 if (nargin > 0) & isfield(screenNumber,'screenNumber')
@@ -58,14 +63,16 @@ else
     calib.stepsize = stepsize;
   end
   if ~exist('numRepeats','var')
-    calib.numRepeats = 1;
+    calib.numRepeats = 2;
   else
     calib.numRepeats = numRepeats;
   end
 end
 
 justdisplay = 1;
-if ~isfield(calib,'bittest')
+if ~isfield(calib,'bittest') | ~isfield(calib,'uncorrected') | ...
+      (~isfield(calib,'corrected') & testExponent) | ...
+      (~isfield(calib,'tableCorrected') & testTable)
   justdisplay = 0;
   % open the serial port
   portnum = initSerialPort;
@@ -77,7 +84,10 @@ if ~isfield(calib,'bittest')
     return
   end
 
-  filename = getSaveFilename(getHostName);
+  % ask to see if we want to save
+  if askuser('Do you want to save the calibration')
+    moncalib.filename = getSaveFilename(getHostName);
+  end
   
   % now open the screen
   mglOpen(calib.screenNumber);
@@ -87,7 +97,15 @@ end
 testRange = 0:calib.stepsize:1;
 % choose the range of values over which to test for the number
 % of bits the gamma table can be set to
-bitTestRange = 0.25:(1/(2048)):0.25+8*(1/(2048));
+if ~isfield(calib,'bittest'),
+  calib.bittest.stepsize = 2048;
+  calib.bittest.base = 0.5;
+  calib.bittest.n = 8;
+end
+% The range will start at bittest.base and then go through bittest.n
+% steps of size bittest.stepsize. A 10 bit monitor should step up
+% luninance for every output increment of 1/1024
+bitTestRange = calib.bittest.base:(1/calib.bittest.stepsize):calib.bittest.base+calib.bittest.n*(1/calib.bittest.stepsize);
 
 % set the date of the calibration
 if ~isfield(calib,'date'),calib.date = datestr(now);end
@@ -96,21 +114,25 @@ if doGamma
  % do the gamma measurements
  if ~isfield(calib,'uncorrected')
    calib.uncorrected = measureOutput(portnum,testRange,calib.numRepeats);
-   eval(sprintf('save %s calib',filename));
+   if isfield(calib,'filename')
+     eval(sprintf('save %s calib',calib.filename));
+   end
  else
    disp(sprintf('Uncorrected luminance measurement already done'));
  end
  figure;subplot(1,2,1);
  dispLuminanceFigure(calib.uncorrected);
 
- % get the exponent
- calib.fit = fitExponent(calib.uncorrected.outputValues,calib.uncorrected.luminance,1);
- calib.gamma = -1/calib.fit.fitparams(2);
- calib.minval = calib.fit.minx;
- calib.maxval = calib.fit.maxx;
- gammaStr = sprintf('Monitor gamma = %f minval=%f maxval = %f',calib.gamma,calib.minval,calib.maxval);
- title(gammaStr);disp(gammaStr);drawnow
-
+ if doExponent
+   % get the exponent
+   calib.fit = fitExponent(calib.uncorrected.outputValues,calib.uncorrected.luminance,1);
+   calib.gamma = -1/calib.fit.fitparams(2);
+   calib.minval = calib.fit.minx;
+   calib.maxval = calib.fit.maxx;
+   gammaStr = sprintf('%s\nMonitor gamma = %f minval=%0.1f maxval = %0.1f',calib.filename,calib.gamma,calib.minval,calib.maxval);
+   title(gammaStr,'interpreter','none');disp(gammaStr);drawnow
+ end
+ 
  % now build a reverse lookup table
  % use linear interpolation
  desiredOutput = min(calib.uncorrected.luminance):(max(calib.uncorrected.luminance)-min(calib.uncorrected.luminance))/255:max(calib.uncorrected.luminance);
@@ -126,62 +148,79 @@ if doGamma
  % interpolate table
  calib.table = interp1(calib.uncorrected.luminance,calib.uncorrected.outputValues,desiredOutput,'linear')';
  if ~justdisplay
-   eval(sprintf('save %s calib',filename));
+   if isfield(calib,'filename')
+     eval(sprintf('save %s calib',calib.filename));
+   end
  end
 
- % now reset the gamma table with the exponent
- disp(sprintf('Using function values to linearize gamma'));
- mglSetGammaTable(calib.minval,calib.maxval,1/calib.gamma,calib.minval,calib.maxval,1/calib.gamma,calib.minval,calib.maxval,1/calib.gamma);
-
- %and see how well we have done
- if ~isfield(calib,'corrected')
-   calib.corrected = measureOutput(portnum,calib.uncorrected.outputValues,calib.numRepeats,0);
-   eval(sprintf('save %s calib',filename));
- else
-   disp(sprintf('Function corrected luminance measurement already done'));
+ if testExponent
+   % now reset the gamma table with the exponent
+   disp(sprintf('Using function values to linearize gamma'));
+   mglSetGammaTable(calib.minval,calib.maxval,1/calib.gamma,calib.minval,calib.maxval,1/calib.gamma,calib.minval,calib.maxval,1/calib.gamma);
+   
+   %and see how well we have done
+   if ~isfield(calib,'corrected')
+     calib.corrected = measureOutput(portnum,calib.uncorrected.outputValues,calib.numRepeats,0);
+     if isfield(calib,'filename')
+       eval(sprintf('save %s calib',calib.filename));
+     end
+   else
+     disp(sprintf('Function corrected luminance measurement already done'));
+   end
+   dispLuminanceFigure(calib.corrected,'r');
  end
- dispLuminanceFigure(calib.corrected,'r');
+ 
+ if testTable
+   % now reset the gamma table with the calculated table
+   disp(sprintf('Using table values to linearize gamma'));
+   mglSetGammaTable(calib.table);
 
- % now reset the gamma table with the calculated table
- disp(sprintf('Using table values to linearize gamma'));
- mglSetGammaTable(calib.table);
-
- %and see how well we have done
- if ~isfield(calib,'tableCorrected')
-   calib.tableCorrected = measureOutput(portnum,calib.uncorrected.outputValues,calib.numRepeats,0);
-   eval(sprintf('save %s calib',filename));
- else
-   disp(sprintf('Table corrected luminance measurement already done'));
+   %and see how well we have done
+   if ~isfield(calib,'tableCorrected')
+     calib.tableCorrected = measureOutput(portnum,calib.uncorrected.outputValues,calib.numRepeats,0);
+     if isfield(calib,'filename')
+       eval(sprintf('save %s calib',calib.filename));
+     end
+   else
+     disp(sprintf('Table corrected luminance measurement already done'));
+   end
+   dispLuminanceFigure(calib.tableCorrected,'c');
  end
- dispLuminanceFigure(calib.tableCorrected,'c');
-
- % plot the ideal
- plot(calib.corrected.outputValues,calib.corrected.outputValues*(max(calib.corrected.luminance)-min(calib.corrected.luminance))+min(calib.corrected.luminance),'g-');
- mylegend({'uncorrected','corrected (gamma)','corrected (table)','ideal'},{'ko','ro','co','go'});
+ if testTable || testExponent
+   % plot the ideal
+   plot(calib.uncorrected.outputValues,calib.uncorrected.outputValues*(max(calib.uncorrected.luminance)-min(calib.uncorrected.luminance))+min(calib.uncorrected.luminance),'g-');
+   mylegend({'uncorrected','corrected (gamma)','corrected (table)','ideal'},{'ko','ro','co','go'},2);
+ end
 end
 
-% test to see how many bits we have in the gamma table
-disp(sprintf('Testing how many bits the gamma table is'));
-if ~isfield(calib,'bittest')
-  calib.bittest = measureOutput(portnum,bitTestRange,calib.numRepeats);
+if doBittest
+  % test to see how many bits we have in the gamma table
+  disp(sprintf('Testing how many bits the gamma table is'));
+  if ~isfield(calib.bittest,'luminance')
+    calib.bittest = measureOutput(portnum,bitTestRange,calib.numRepeats);
+  end
+  subplot(1,2,2);
+  dispLuminanceFigure(calib.bittest);
+  title(sprintf('Output starting at %0.2f\nin steps of 1/%i',calib.bittest.base,calib.bittest.stepsize));
 end
-subplot(1,2,2);
-dispLuminanceFigure(calib.bittest);
 
 if ~justdisplay
-  % close the serial port
+  % close the serial port, it may be better to just leave it
+  % open, so that it you don't have to restart the photometer each time
   %closeSerialPort(portnum);
 
   % close the screen
   mglClose;
 
   % save file
-  eval(sprintf('save %s calib',filename));
+  if isfield(calib,'filename')
+    eval(sprintf('save %s calib',calib.filename));
+  end
 end
 
 
- %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
- % function that sets the gamma table to all the values in val
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% function that sets the gamma table to all the values in val
 % and checks the luminance
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function retval = measureOutput(portnum,outputValues,numRepeats,setGamma)
@@ -210,7 +249,24 @@ for val = outputValues
   mglWaitSecs(0.1);
   % measure the luminace
   for repeatNum = 1:numRepeats
-    thisMeasuredLuminance(repeatNum) = photometerMeasure(portnum);
+    gotMeasurement = 0;badMeasurements = 0;
+    while ~gotMeasurement
+      % get the measurement from the photometer
+      thisMeasuredLuminance(repeatNum) = photometerMeasure(portnum);
+      % check to see if it is a bad measurement
+      if isnan(thisMeasuredLuminance(repeatNum))
+	% if it is and, we have already tried three times, then give up
+	badMeasurements = badMeasurements+1;
+	if (badMeasurements > 3)
+	  disp(sprintf('UHOH: Failed to get measurement 3 times, settint to 0'));
+	  thisMeasuredLuminance(repeatNum) = 0;
+	  gotMeasurement = 1;
+	end
+      % otherwise we whave the measurement, so keep going
+      else
+	gotMeasurement = 1;
+      end
+    end
   end
   % now take average over all repeats of measurement
   measuredLuminance(end+1) = mean(thisMeasuredLuminance(1:numRepeats));
@@ -253,10 +309,12 @@ while(response == 0)
   % tell the user what to expect
   disp(sprintf('\nThe backlight on the back panel of the PR650'))
   disp(sprintf('should be on and it should now say:\n'));
+  disp(sprintf('=================='));
   disp(sprintf('PR-650 REMOTE MODE'));
   disp(sprintf('(CTRL) s/w V1.19'));
-  disp(sprintf('\nCMD B\n'));
-  response = askuser('Does it');
+  disp(sprintf('\nCMD B'));
+  disp(sprintf('==================\n'));
+  response = askuser('Does it look like this');
   if (response == 0)
     disp(sprintf('Either you have failed to send a command within 5 seconds'));
     disp(sprintf('or you have the wrong serial port number. If you think'));
@@ -286,7 +344,7 @@ clc
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % measure luminance with the photometer
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function luminance = photometerMeasure(portnum)
+function [luminance x y] = photometerMeasure(portnum)
 
 % retrieve any info that is pending from the photometer
 readSerialPort(portnum,1024);
@@ -332,6 +390,8 @@ if quality(i) ~= 0
   luminance = nan;
 else
   luminance = Y(i);
+  x = x(i);
+  y = y(i);
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

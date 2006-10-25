@@ -46,7 +46,13 @@ if isempty(javachk('desktop')) & (whichScreen == 0)
     MGL.desktopWarning = 1;
   end
 end
-  
+
+openDisplay = 0;
+% check to see if a display is already open
+if isfield(MGL,'displayNumber') && ~isempty(MGL.displayNumber)
+  openDisplay = 1;
+end
+
 % call the private mex function
 if nargin <= 1
   % if passed in with zero or one argument then use default settings
@@ -57,7 +63,9 @@ else
 end
 
 % get gamma table
-MGL.initialGammaTable = mglGetGammaTable;
+if ~openDisplay
+  MGL.initialGammaTable = mglGetGammaTable;
+end
 
 % set some other added global
 MGL.screenCoordinates = 0;

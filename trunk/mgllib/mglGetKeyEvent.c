@@ -54,8 +54,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   else
     result=GetNextEvent(theMask,&theEvent);
   
-  if (!result)
-  mexPrintf("no event\n");
+  if (!result && verbose)
+    mexPrintf("no event\n");
 
   // create the output structure
   const char *fieldNames[] =  {"charCode","keyCode","keyboard","when" };

@@ -254,13 +254,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     glTexCoord2f(0.0, 0.0);
     glVertex3f(displayRect[0],displayRect[1], 0.0);
     
-    glTexCoord2f(0.0, imageHeight);
+    glTexCoord2f(0.0, imageHeight-1);
     glVertex3f(displayRect[0], displayRect[3], 0.0);
     
-    glTexCoord2f(imageWidth, imageHeight);
+    glTexCoord2f(imageWidth-1, imageHeight-1);
     glVertex3f(displayRect[2], displayRect[3], 0.0);
     
-    glTexCoord2f(imageWidth, 0.0);
+    glTexCoord2f(imageWidth-1, 0.0);
     glVertex3f(displayRect[2], displayRect[1], 0.0);
   }  else if (strncmp(textureAxes,"xy",2)==0) {
     //  using reverse ordered coordinates does require swapping y and x in texture coords.
