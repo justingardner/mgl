@@ -53,7 +53,11 @@ for i = 1:length(mgldir)
     % the date of the mexfile is older than the date of the source file
     if (length(mexfile)<1) || (datenum(mgldir(i).date) > datenum(mexfile(1).date)) || (datenum(hfile(1).date) > datenum(mexfile(1).date))
       disp(sprintf('mex %s',mgldir(i).name));
-      eval(sprintf('mex %s',mgldir(i).name));
+      try
+	eval(sprintf('mex %s',mgldir(i).name));
+      catch
+	disp(['Error compiling ' mgldir(i).name]);
+      end
     else
       disp(sprintf('%s is up to date',mgldir(i).name));
     end    

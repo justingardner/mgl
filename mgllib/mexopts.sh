@@ -56,16 +56,16 @@
 #           gcc -v
 #           gcc version 3.2.3
             CC='g++'
-            CFLAGS='-fPIC -ansi -D_GNU_SOURCE -pthread -fexceptions -m32'
-            CLIBS="$RPATH $MLIBS -lm -lstdc++ -L/usr/X11R6/lib -lXext -lX11 -lXi -lXmu -lGL -lGLU"
+            CFLAGS='-fPIC -ansi -D_GNU_SOURCE -pthread -fexceptions -m32 -I/usr/local/include/FTGL -I/usr/include/freetype2'
+            CLIBS="$RPATH $MLIBS -lm -lstdc++ -L/usr/X11R6/lib -lXext -lXxf86vm -lX11 -lXi -lXmu -lGL -lGLU -lftgl -lfreetype"
             COPTIMFLAGS='-O -DNDEBUG'
             CDEBUGFLAGS='-g'
 #           
 #           g++ -v
 #           gcc version 3.2.3
             CXX='g++'
-            CXXFLAGS='-fPIC -ansi -D_GNU_SOURCE -pthread -DGLX_GLXEXT_LEGACY'
-            CXXLIBS="$RPATH $MLIBS -lm -L/usr/X11R6/lib -lXext -lX11 -lXi -lXmu -lGL -lGLU"
+            CXXFLAGS='-fPIC -ansi -D_GNU_SOURCE -pthread -DGLX_GLXEXT_LEGACY -I/usr/local/include/FTGL -I/usr/include/freetype2'
+            CXXLIBS="$RPATH $MLIBS -lm -L/usr/X11R6/lib -lXext -lXxf86vm -lX11 -lXi -lXmu -lGL -lGLU -lftgl -lfreetype"
             CXXOPTIMFLAGS='-O -DNDEBUG'
             CXXDEBUGFLAGS='-g'
 #
@@ -178,39 +178,6 @@ echo "Error: Did not imbed 'options.sh' code"; exit 1 #imbed options.sh glnxi64 
             POSTLINK_CMDS=':'
 #----------------------------------------------------------------------------
             ;;
-        maci)
-#----------------------------------------------------------------------------
-
-#            CC='g++-3.3'
-           CC='gcc-4.0'
-            CFLAGS='-fno-common -no-cpp-precomp -fexceptions -arch i386'
-            CLIBS="$MLIBS -lstdc++"
-            COPTIMFLAGS='-O3 -DNDEBUG'
-            CDEBUGFLAGS='-g'
-#
-#           g++-3.3 -v
-#           gcc version 3.3 20030304 (Apple Computer, Inc. build 1435)
-            CXX=g++-3.3
-#           CXX=g++-4.0
-            CXXFLAGS='-fno-common -no-cpp-precomp -fexceptions -arch i386'
-            CXXLIBS="$MLIBS -lstdc++"
-            CXXOPTIMFLAGS='-O3 -DNDEBUG'
-            CXXDEBUGFLAGS='-g'
-#
-            FC='g95'
-            FFLAGS=''
-            FLIBS="$MLIBS"
-            FOPTIMFLAGS='-O '
-            FDEBUGFLAGS='-g'
-#
-            LD="$CC"
-            LDEXTENSION='.mexmaci'
-            LDFLAGS="-bundle -Wl,-flat_namespace -undefined suppress -Wl,-exported_symbols_list,$TMW_ROOT/extern/lib/$Arch/$MAPFILE -framework agl -framework Carbon"
-            LDOPTIMFLAGS='-O'
-            LDDEBUGFLAGS='-g'
-#
-            POSTLINK_CMDS=':'
-#----------------------------------------------------------------------------
     esac
 #############################################################################
 #
