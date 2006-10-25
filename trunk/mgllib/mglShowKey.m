@@ -1,7 +1,7 @@
-function keycode=mglShowKey;
-% keycode=mglShowKey;
+function [keycode,keyname]=mglShowKey;
+% [keycode,keyname]=mglShowKey;
 % 
-% Displays the keycode of a single pressed key. Useful for returing the keycodes of 
+% Displays the keycode of a single pressed key. Useful for returning the keycodes of 
 % special keys, e.g. ESC, CTRL, function keys etc.
   
   pause(0.5)
@@ -13,3 +13,5 @@ while(1 & isempty(keycode))
   end
 end
   
+keyname=mglKeycodeToChar(keycode);
+fprintf('Keycode: %i, key name: %s\n',keycode,keyname{1})
