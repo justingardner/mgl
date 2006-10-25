@@ -1,10 +1,11 @@
-function [coords,direction,lifetime]=dotMotionFrame(coords,direction,lifetime,stimParams,displayParams);
-% [coords,direction,lifetime]=dotMotionFrame(coords,direction,lifetime,stimParams,displayParams);
+function [coords,direction,lifetime]=dotMotionFrame(coords,direction,lifetime,stimParams,timeSinceLastUpdate,displayParams);
+% [coords,direction,lifetime]=dotMotionFrame(coords,direction,lifetime,stimParams,timeSinceLastUpdate,displayParams);
 %
 %  Displaces input device coordinates coords corresponding to one motion frame
 %  (single screen refresh) according to global parameters in
 %  structs stimParams and displayParams and
 %  pointwise parameters direction and lifetime.
+%  If timeSinceLastUpdate isn't specified, will uupdate corresponding to one screen refresh.
 %  If displayParams is not specified, will use parameters in
 %  MGL variable
 % 
@@ -41,25 +42,32 @@ function [coords,direction,lifetime]=dotMotionFrame(coords,direction,lifetime,st
 %  lifetime:     remaining lifetime of points in frames at end of frame
 
 global MGL
-if (~exist('displayParams','var'))
+if (~exist('displayParams','var') | isempty(displayParams))
   xrange=MGL.deviceRect(3)-MGL.deviceRect(1);
   yrange=MGL.deviceRect(4)-MGL.deviceRect(2);
   xoffs=MGL.deviceRect(1);
   yoffs=MGL.deviceRect(2);
-  speed=stimParams.speed/MGL.frameRate;
+  dist=stimParams.speed/MGL.frameRate;
 elseif (isfield(displayParams,'deviceRect'))
   xrange=displayParams.deviceRect(3)-displayParams.deviceRect(1);
   yrange=displayParams.deviceRect(4)-displayParams.deviceRect(2);
   xoffs=displayParams.deviceRect(1);
   yoffs=displayParams.deviceRect(2);
-  speed=stimParams.speed/displayParams.frameRate;
+  dist=stimParams.speed/displayParams.frameRate;
 else
   xrange=2;
   yrange=2;
   xoffs=-1;
   yoffs=-1;
-  speed=stimParams.speed;
+  dist=stimParams.speed;
 end
+
+lifetimedec=1;
+if (exist('timeSinceLastUpdate','var') & ~isempty(timeSinceLastUpdate))
+  dist=stimParams.speed*timeSinceLastUpdate;
+  lifetimdec=max([round(timeSinceLastUpdate*MGL.frameRate) 1]);
+end
+
 if (isfield(stimParams,'annulus'))
   orad=2*stimParams.annulus(2);
   if (xrange>orad)
@@ -112,7 +120,7 @@ if (stimParams.coherence<1)
   switch stimParams.incoherentMotionType
     case 'random'
       % Moves every dot in current direction
-      displacement(incohpoints,:)=speed.*[cos(direction(incohpoints)) sin(direction(incohpoints))];
+      displacement(incohpoints,:)=dist.*[cos(direction(incohpoints)) sin(direction(incohpoints))];
     case 'brownian'
       % randomize direction, then displace
       if (isfield(stimParams,'brownianComponent'))
@@ -120,7 +128,7 @@ if (stimParams.coherence<1)
       else 
 	direction(incohpoints)=2*pi*rand(Nincohpoints,1);
       end
-      displacement(incohpoints,:)=speed.*[cos(direction(incohpoints)) sin(direction(incohpoints))];
+      displacement(incohpoints,:)=dist.*[cos(direction(incohpoints)) sin(direction(incohpoints))];
     case 'movshon'
      % plonk down dots anywhere
      coords(incohpoints,:)=[xrange*rand(Nincohpoints,1)+xoffs, yrange*rand(Nincohpoints,1)+yoffs];
@@ -138,19 +146,19 @@ if (stimParams.coherence>0)
    case 'expanding'
     % add outward displacement scaled by position from origin
     % Need to figure out how to keep dot density constant.
-    displacement(cohpoints,:)=speed*...
+    displacement(cohpoints,:)=dist*...
 	(coords(cohpoints,:)-repmat(stimParams.spatial.origin,Ncohpoints,1));
    case 'contracting'
     % add inward displacement scaled by position from origin
-    displacement(cohpoints,:)=-speed*...
+    displacement(cohpoints,:)=-dist*...
 	(coords(cohpoints,:)-repmat(stimParams.spatial.origin,Ncohpoints,1));
    case 'translating'
-    % add direction*speed to coherent points
+    % add direction*dist to coherent points
     % if multiple directions, add each direction to corresponding fraction of dots     
     for n=1:Ndirections
       d=stimParams.direction(n);
       currcohpoints=cohpoints(1+floor((n-1)*Npointsperdir):floor(n*Npointsperdir));
-      displacement(currcohpoints,:)=repmat(speed.*[cos(d) sin(d)],length(currcohpoints),1);
+      displacement(currcohpoints,:)=repmat(dist.*[cos(d) sin(d)],length(currcohpoints),1);
     end
    case 'boundary'
     % compute sine of points 
@@ -165,9 +173,9 @@ if (stimParams.coherence>0)
     pointsx=costheta*coords(cohpoints,1)-sintheta*coords(cohpoints,2);
     whichdir=1+(sin(pointsx*stimParams.spatial.frequency*2*pi+ ...
 		    stimParams.spatial.phase)>0);
-    displacement(cohpoints,1)=speed.* ...
+    displacement(cohpoints,1)=dist.* ...
 	cos(stimParams.direction(whichdir))';    
-    displacement(cohpoints,2)=speed.* ...
+    displacement(cohpoints,2)=dist.* ...
 	sin(stimParams.direction(whichdir))';
     newcoords=coords(cohpoints,:)+displacement(cohpoints,:);
     pointsnewx=costheta*newcoords(:,1)-sintheta*newcoords(:,2); 
@@ -243,7 +251,7 @@ end
 
 % add displacement and update lifetime
 coords=coords+displacement;
-lifetime=lifetime-1;
+lifetime=lifetime-lifetimedec;
 
 % reinitialize dots beyond device rect
 
