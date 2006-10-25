@@ -235,7 +235,8 @@ end
 [st,i] = dbstack;
 task.taskfilename = st(max(i+1,length(st))).file;
 
-
-
+% set the debug mode to stop on error
+dbstop if error
+  
 
 

@@ -42,6 +42,7 @@
 // OS-independent includes
 /////////////////////////
 #include <mex.h>
+#define mwIndex int
 
 /////////////////////////
 // OS-specific includes

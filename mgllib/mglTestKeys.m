@@ -20,7 +20,7 @@ if ~exist('screenNumber','var'),screenNumber = [];,end
 % default key numbers
 ESCKEY = 46;
 RETURNKEY = 61;
-SPACEKEY = 42;
+SPACEKEY = 50;
 
 % test using mglGetKeys
 lastkey = RETURNKEY;thiskey = 0;

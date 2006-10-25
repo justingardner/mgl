@@ -31,7 +31,7 @@ screenParamsList = {'computerName','displayName','screenNumber',...
 screenParams{1} = {'yoyodyne.cns.nyu.edu','',2,1280,1024,57,[31 23],[],[],60,1,0,defaultGammaFunction,'yoyodyne'};
 screenParams{end+1} = {'Stimulus.local','projector',2,1024,768,57,[31 23],[],[],60,0,50,defaultGammaFunction,''};
 screenParams{end+1} = {'Stimulus.local','lcd',2,800,600,157.5,[43.2 32.5],[],[],60,0,50,[0 1 0.4790 0 1 0.4790 0 1 0.4790],''};
-screenParams{end+1} = {'stimulus-g5.local','projector',2,1024,768,57,[31 23],[],[],60,0,50,defaultGammaFunction,''};
+screenParams{end+1} = {'stimulus-g5.local','projector',2,1024,768,57,[31 23],[],[],60,0,50,defaultGammaFunction,'stimulus-g5_projector'};
 screenParams{end+1} = {'stimulus-g5.local','lcd',2,800,600,157.5,[43.2 32.5],[],[],60,0,50,[0 1 0.4790 0 1 0.4790 0 1 0.4790],''};
 screenParams{end+1} = {'eigenstate','',0,1024,768,57,[31 23],[],[],60,1,0,defaultGammaFunction,''};
 screenParams{end+1} = {'dhcp.bnf.brain.riken.jp','',0,1024,768,57,[31 23],[],[],60,1,0,defaultGammaFunction,''};
@@ -154,6 +154,7 @@ if isfield(myscreen,'calibFilename') && ~isempty(myscreen.calibFilename)
 else
   calibFilename = getCalibFilename(myscreen.computer);
 end
+
 if ~isempty(calibFilename)
   if isfile(sprintf('%s.mat',calibFilename))
     load(calibFilename);
@@ -223,11 +224,11 @@ myscreen.checkForDroppedFrames = 1;
 myscreen.dropThreshold = 1.05;
 
 % set keyboard info
-myscreen.keyboard.esc = 46;
-myscreen.keyboard.return = 61;
-myscreen.keyboard.space = 42;
-myscreen.keyboard.backtick = 43;
-myscreen.keyboard.nums = [11 12 13 14 16 15 3 5 2 6];
+myscreen.keyboard.esc = 54;
+myscreen.keyboard.return = 37;
+myscreen.keyboard.space = mglCharToKeycode({' '});
+myscreen.keyboard.backtick = mglCharToKeycode({'`'});
+myscreen.keyboard.nums = mglCharToKeycode({'1' '2' '3' '4' '5' '6' '7' '8' '9' '0'});
 
 %init traces
 numinit = 3000;
@@ -368,17 +369,17 @@ hostname = hostname{1};
 defaultdir = sprintf('%s/displays/*%s*',fileparts(which('initScreen')),hostname);
 filenames = dir(defaultdir);
 maxnum = 0;
+filename = '';
+
+% look for highest number match
 for i = 1:length(filenames)
   filenum = strread(filenames(i).name,'%s','delimiter','_');
   filenum = str2num(filenum{1});
   if (filenum > maxnum)
     maxnum = filenum;
+    [path name] = fileparts(filenames(i).name);
+    filename = sprintf('%s/task/displays/%s',fileparts(fileparts(which('initScreen'))),name);
+
   end
 end
-if maxnum > 0
-  filename = sprintf('%s/task/displays/%04i_%s_%s',fileparts(fileparts(which('initScreen'))),maxnum,hostname,datestr(now,'yymmdd'));
-else
-  filename = '';
-end
-
 
