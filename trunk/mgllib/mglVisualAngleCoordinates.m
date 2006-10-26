@@ -28,6 +28,9 @@ if ~isfield(MGL,'displayNumber') || (MGL.displayNumber < 0)
   return
 end
 
+% get old settings
+oldMGL = MGL;
+
 % get distance and size of screen (either from
 % passed in variables or from global
 if (exist('physicalDistance','var') & length(physicalDistance)==1)
@@ -96,4 +99,13 @@ MGL.deviceCoords = 'visualAngle';
 MGL.screenCoordinates=0;
 MGL.deviceHDirection = 1;
 MGL.deviceVDirection = 1;
+
+% check to see if textures need to be recreated
+if (MGL.numTextures > 0) && ...
+      (oldMGL.DeviceHDirection ~= MGL.deviceHDirection) && ...
+      (oldMGL.DeviceVDirection ~= MGL.deviceVDirection) && ...
+      (oldMGL.XDeviceToPixels ~= MGL.xDeviceToPixels) && ...
+      (oldMGL.YDeviceToPixels ~= MGL.yDeviceToPixels)
+  disp(sprintf('(mglVisualAngleCoordinates) All previously created textures will need to be reoptimized with mglReoptimizeTexture'));
+end
 

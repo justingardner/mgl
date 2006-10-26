@@ -15,4 +15,28 @@
 %             texture = mglCreateTexture(round(rand(100,100)*255));
 %             mglBltTexture(texture,[0 0]);
 %             mglFlush;
+function texture = mglCreateTexture(image)
 
+% create the texture
+texture = mglCreateTexturePrivate(image);
+
+% convert texture string into a nummber
+if strcmp(texture.textureAxes,'xy')
+  textureAxes = 1;
+else
+  textureAxes = 0;
+end
+
+% MGL global
+global MGL;
+
+% set all the params into a single array for quick access
+% note that this also keeps the device to pixel transforms
+% which _could_ change if you change coordinates
+texture.allParams = [texture.textureNumber texture.imageWidth ...
+		    texture.imageHeight textureAxes MGL.xPixelsToDevice ...
+		    MGL.yPixelsToDevice MGL.deviceHDirection ...
+		    MGL.deviceVDirection MGL.verbose];
+
+% increment the texture count
+MGL.numTextures = MGL.numTextures+1;

@@ -116,7 +116,9 @@ for i = 1:MGL.frameRate*numsec
   % clear the screen
   mglClearScreen;
   % and display the gabor patch
+  startBlt = mglGetSecs;
   mglBltTexture(tex(thisPhase),[0 0]);
+  disp(sprintf('mglBltTexture: %f',(mglGetSecs-startBlt)*1000));
   % flush buffers
   mglFlush;
 end  

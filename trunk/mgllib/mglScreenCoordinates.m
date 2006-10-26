@@ -23,6 +23,8 @@ if ~isfield(MGL,'displayNumber') || (MGL.displayNumber < 0)
   return
 end
 
+oldMGL = MGL;
+
 % set the transforms to identity
 mglTransform('GL_MODELVIEW','glLoadIdentity');
 mglTransform('GL_PROJECTION','glLoadIdentity')
@@ -44,4 +46,13 @@ MGL.deviceHeight = MGL.screenHeight;
 MGL.screenCoordinates = 1;
 MGL.deviceHDirection = 1;
 MGL.deviceVDirection = -1;
+
+% check to see if textures need to be recreated
+if (MGL.numTextures > 0) && ...
+      (oldMGL.DeviceHDirection ~= MGL.deviceHDirection) && ...
+      (oldMGL.DeviceVDirection ~= MGL.deviceVDirection) && ...
+      (oldMGL.XDeviceToPixels ~= MGL.xDeviceToPixels) && ...
+      (oldMGL.YDeviceToPixels ~= MGL.yDeviceToPixels)
+  disp(sprintf('(mglVisualAngleCoordinates) All previously created textures will need to be reoptimized with mglReoptimizeTexture'));
+end
 

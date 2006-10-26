@@ -71,3 +71,6 @@ end
 MGL.screenCoordinates = 0;
 MGL.deviceHDirection = 1;
 MGL.deviceVDirection = 1;
+
+% clear the number of textures we have
+MGL.numTextures = 0;
