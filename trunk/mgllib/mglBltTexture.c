@@ -31,6 +31,19 @@ $Id$
 #define XY 1
 #define YX 0
 
+//////////////////////////
+//   type declartions   //
+//////////////////////////
+typedef struct textype {
+  GLuint textureNumber;
+  double imageWidth;
+  double imageHeight;
+  int textureAxes;
+  int vFlip;
+  int hFlip;
+  double textOverhang;
+  int isText;
+} textype;
 //////////////////////////////
 //   function declartions   //
 //////////////////////////////
@@ -64,8 +77,11 @@ double getmsec()
 //////////////
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
-  double functionStartTime = getmsec();
+  int profile = 0;
+  double functionStartTime;
+  if (profile) functionStartTime = getmsec();
 
+  
   // check for open window
   if (!mglIsWindowOpen()) {
     mexPrintf("(mgl) UHOH: No window is open\n");
@@ -79,90 +95,116 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     return;
   }
 
-  GLuint textureNumber;double imageWidth,imageHeight;
+  // declarae some variables
+  int numTextures = mxGetNumberOfElements(prhs[0]);
   char textureAxesString[3];
-  int textureAxes;
   double xPixelsToDevice, yPixelsToDevice,deviceHDirection,deviceVDirection;
   int verbose;
   double startTime;
-  double textOverhang = 0;
-
+  textype *tex;
+  // allocate space for texture info
+  tex = malloc(numTextures*sizeof(textype));
   double *allParams;
-  startTime = getmsec();
 
-  if (mxGetField(prhs[0],0,"allParams") != 0) {
-    // grab all the info from the allParams field
-    allParams = mxGetPr(mxGetField(prhs[0],0,"allParams"));
-    textureNumber = (GLuint)allParams[0];
-    imageWidth = allParams[1];
-    imageHeight = allParams[2];
-    textureAxes = allParams[3];
-    xPixelsToDevice = allParams[4];
-    yPixelsToDevice = allParams[5];
-    deviceHDirection = allParams[6];
-    deviceVDirection = allParams[7];
-    verbose = (int)allParams[8];
-  }
-  else {
-    xPixelsToDevice = mglGetGlobalDouble("xPixelsToDevice");
-    yPixelsToDevice = mglGetGlobalDouble("yPixelsToDevice");
-    verbose = (int)mglGetGlobalDouble("verbose");
-    deviceHDirection = mglGetGlobalDouble("deviceHDirection");
-    deviceVDirection = mglGetGlobalDouble("deviceVDirection");
-    if (verbose) mexPrintf("Globals %f\n",getmsec()-startTime);
-    startTime = getmsec();
+  if (profile) startTime = getmsec();
 
-    // get the texture number and imageWidth and imageHeight
-    // check to make sure that the input strucutre properly contains these fields
-    if (mxGetField(prhs[0],0,"textureNumber") != 0)
-      textureNumber = (GLuint)*mxGetPr(mxGetField(prhs[0],0,"textureNumber"));
-    else {
-      mexPrintf("UHOH (mglBltTexture): TextureNumber field not defined in texture");
-      return;
+  int texnum;
+  for (texnum = 0; texnum < numTextures; texnum++) {
+    if (mxGetField(prhs[0],0,"allParams") != 0) {
+      // grab all the info from the allParams field
+      allParams = mxGetPr(mxGetField(prhs[0],texnum,"allParams"));
+      tex[0].textureNumber = (GLuint)allParams[0];
+      tex[0].imageWidth = allParams[1];
+      tex[0].imageHeight = allParams[2];
+      tex[0].textureAxes = allParams[3];
+      tex[0].hFlip = allParams[4];
+      tex[0].vFlip = allParams[5];
+      tex[0].textOverhang = allParams[6];
+      tex[0].isText = allParams[7];
+      xPixelsToDevice = allParams[8];
+      yPixelsToDevice = allParams[9];
+      deviceHDirection = allParams[10];
+      deviceVDirection = allParams[11];
+      verbose = (int)allParams[12];
     }
-    if (mxGetField(prhs[0],0,"imageWidth") != 0)
-      imageWidth = (double)*mxGetPr(mxGetField(prhs[0],0,"imageWidth"));
     else {
-      mexPrintf("UHOH (mglBltTexture): imageWidth field not defined in texture\n");
-      return;
-    }
-    if (mxGetField(prhs[0],0,"imageHeight") != 0)
-      imageHeight = (double)*mxGetPr(mxGetField(prhs[0],0,"imageHeight"));
-    else {
-      mexPrintf("UHOH (mglBltTexture): imageHeight field not defined in texture\n");
-      return;
-    }
-    if (mxGetField(prhs[0],0,"textureAxes") != 0) {
-      mxGetString(mxGetField(prhs[0],0,"textureAxes"),textureAxesString,3);
-      if (strncmp(textureAxesString,"yx",2)==0) {
-	textureAxes = YX;
+      xPixelsToDevice = mglGetGlobalDouble("xPixelsToDevice");
+      yPixelsToDevice = mglGetGlobalDouble("yPixelsToDevice");
+      verbose = (int)mglGetGlobalDouble("verbose");
+      deviceHDirection = mglGetGlobalDouble("deviceHDirection");
+      deviceVDirection = mglGetGlobalDouble("deviceVDirection");
+      if (profile) {
+	mexPrintf("Globals %f\n",getmsec()-startTime);
+	startTime = getmsec();
       }
-      else if (strncmp(textureAxesString,"xy",2)==0) {
-	textureAxes = XY;
+
+      // get the texture number and imageWidth and imageHeight
+      // check to make sure that the input strucutre properly contains these fields
+      if (mxGetField(prhs[0],texnum,"textureNumber") != 0)
+      tex[texnum].textureNumber = (GLuint)*mxGetPr(mxGetField(prhs[0],texnum,"textureNumber"));
+      else {
+	mexPrintf("UHOH (mglBltTexture): TextureNumber field not defined in texture");
+	return;
       }
-    }
-    else {
-      mexPrintf("UHOH (mglBltTexture): textureAxes field not defined in texture\n");
-      return;
-    }
-    // now check to see if this is a text texture and
-    // offset the vertical position if necessary to deal
-    // with overhang characters like 'g'
-    if (mxGetField(prhs[0],0,"textImageRect") != NULL) {
-      if (mxGetN(mxGetField(prhs[0],0,"textImageRect")) == 4) {
-	// get the second array element of textImageRect and this will
-	// be used to modify the imageHeight for alignment
-	textOverhang = (*(mxGetPr(mxGetField(prhs[0],0,"textImageRect"))+1))*yPixelsToDevice;
+      if (mxGetField(prhs[0],texnum,"imageWidth") != 0)
+	tex[texnum].imageWidth = (double)*mxGetPr(mxGetField(prhs[0],texnum,"imageWidth"));
+      else {
+	mexPrintf("UHOH (mglBltTexture): imageWidth field not defined in texture\n");
+	return;
+      }
+      if (mxGetField(prhs[0],texnum,"imageHeight") != 0)
+	tex[texnum].imageHeight = (double)*mxGetPr(mxGetField(prhs[0],texnum,"imageHeight"));
+      else {
+	mexPrintf("UHOH (mglBltTexture): imageHeight field not defined in texture\n");
+	return;
+      }
+      if (mxGetField(prhs[0],texnum,"textureAxes") != 0) {
+	mxGetString(mxGetField(prhs[0],texnum,"textureAxes"),textureAxesString,3);
+	if (strncmp(textureAxesString,"yx",2)==0) {
+	  tex[texnum].textureAxes = YX;
+	}
+	else if (strncmp(textureAxesString,"xy",2)==0) {
+	  tex[texnum].textureAxes = XY;
+	}
       }
       else {
-	mexPrintf("(mglBltTexture) The input text texture has an invalid textImageRect\n");
-      return;
+	mexPrintf("UHOH (mglBltTexture): textureAxes field not defined in texture\n");
+	return;
       }
-    } 
+      if (mxGetField(prhs[0],texnum,"hFlip") != 0)
+	tex[texnum].hFlip = (double)*mxGetPr(mxGetField(prhs[0],texnum,"hFlip"));
+      else {
+	mexPrintf("UHOH (mglBltTexture): hFlip field not defined in texture\n");
+	return;
+      }
+      if (mxGetField(prhs[0],texnum,"vFlip") != 0)
+	tex[texnum].vFlip = (double)*mxGetPr(mxGetField(prhs[0],texnum,"vFlip"));
+      else {
+	mexPrintf("UHOH (mglBltTexture): vFlip field not defined in texture\n");
+	return;
+      }
+      // now check to see if this is a text texture and
+      // offset the vertical position if necessary to deal
+      // with overhang characters like 'g'
+      if (mxGetField(prhs[0],texnum,"textImageRect") != NULL) {
+	if (mxGetN(mxGetField(prhs[0],texnum,"textImageRect")) == 4) {
+	  // get the second array element of textImageRect and this will
+	  // be used to modify the imageHeight for alignment
+	  tex[texnum].textOverhang = (*(mxGetPr(mxGetField(prhs[0],texnum,"textImageRect"))+1))*yPixelsToDevice;
+	  tex[texnum].isText = 1;
+	}
+	else {
+	  mexPrintf("(mglBltTexture) The input text texture has an invalid textImageRect\n");
+	  return;
+	}
+      } 
+    }
   }
   
-  if (verbose) mexPrintf("Fields %f\n",getmsec()-startTime);
-  startTime = getmsec();
+  if (profile) {
+    mexPrintf("Fields %f\n",getmsec()-startTime);
+    startTime = getmsec();
+  }
 
   // get the xPixelsToDevice and yPixelsToDevice making sure these are set properly
   if ((xPixelsToDevice == 0) || (yPixelsToDevice == 0)) {
@@ -181,8 +223,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   switch (mxGetN(prhs[1])) {
     case 2:
       memcpy(displayRect,inputRect,2*sizeof(double));
-      displayRect[2] = imageWidth*xPixelsToDevice;
-      displayRect[3] = imageHeight*yPixelsToDevice;
+      displayRect[2] = tex[0].imageWidth*xPixelsToDevice;
+      displayRect[3] = tex[0].imageHeight*yPixelsToDevice;
       break;
     case 4:
       memcpy(displayRect,inputRect,4*sizeof(double));
@@ -222,44 +264,44 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   if (verbose) mexPrintf("vAlignment is %s\n",(vAlignment == CENTER)?"center":((vAlignment == TOP)?"top":"bottom"));
 
   // display text overhang
-  if (verbose) mexPrintf("(mglBltTexture) Text overhang = %0.2f\n",textOverhang);
+  if (verbose) mexPrintf("(mglBltTexture) Text overhang = %0.2f\n",tex[0].textOverhang);
 
   // ok now fix horizontal alignment
   if (hAlignment == CENTER) {
-    displayRect[0] = displayRect[0] - (displayRect[2]+textOverhang)/2;
+    displayRect[0] = displayRect[0] - (displayRect[2]+tex[0].textOverhang)/2;
   }
   else if (hAlignment == RIGHT) {
     if (deviceHDirection > 0)
-      displayRect[0] = displayRect[0] - (displayRect[2]+textOverhang);
+      displayRect[0] = displayRect[0] - (displayRect[2]+tex[0].textOverhang);
   }
   else if (hAlignment == LEFT) {
     if (deviceHDirection < 0)
-      displayRect[0] = displayRect[0] + (displayRect[2]+textOverhang);
+      displayRect[0] = displayRect[0] + (displayRect[2]+tex[0].textOverhang);
   }
 
   // ok now fix vertical alignment
   if (vAlignment == CENTER) {
-    displayRect[1] = displayRect[1] - (displayRect[3]+textOverhang)/2;
+    displayRect[1] = displayRect[1] - (displayRect[3]+tex[0].textOverhang)/2;
     if (deviceVDirection > 0) {
       // and adjust overhang
-      displayRect[1] = displayRect[1]+textOverhang;
+      displayRect[1] = displayRect[1]+tex[0].textOverhang;
     }
   }
   else if (vAlignment == BOTTOM) {
     if (deviceVDirection < 0) {
-      displayRect[1] = displayRect[1] - (displayRect[3]+textOverhang);
-      displayRect[1] = displayRect[1]-textOverhang;
+      displayRect[1] = displayRect[1] - (displayRect[3]+tex[0].textOverhang);
+      displayRect[1] = displayRect[1]-tex[0].textOverhang;
     }
     else {
-      displayRect[1] = displayRect[1]+2*textOverhang;
+      displayRect[1] = displayRect[1]+2*tex[0].textOverhang;
     }
   }
   else if (vAlignment == TOP) {
     if (deviceVDirection > 0) {
-      displayRect[1] = displayRect[1] - (displayRect[3]+textOverhang);
+      displayRect[1] = displayRect[1] - (displayRect[3]+tex[0].textOverhang);
     }
     else {
-      displayRect[1] = displayRect[1]+textOverhang;
+      displayRect[1] = displayRect[1]+tex[0].textOverhang;
     }
   }
 
@@ -269,10 +311,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
   // check for flips, this is only necessary for text textures (i.e. ones created by mglText)
   // so that the global variables textHFlip and textVFlip control how the texture is blted
-  if (mxGetField(prhs[0],0,"textImageRect") != NULL) {
+  if (tex[0].isText) {
     // look in global for flips    
     // first check whether coordinate system runs upward or downward
-    if (mglGetGlobalDouble("deviceVDirection") < 0) {
+    if (deviceVDirection < 0) {
       if (verbose) mexPrintf("(mglBltTexture) Flipping vertically to compensate for device\n");
       // coordinate system flipped in y-direction; flip text by default
       double temp;
@@ -282,27 +324,25 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     }
   }
   // see if we need to do vflip
-  if (mxGetField(prhs[0],0,"vFlip") != 0) {
-    if (*mxGetPr(mxGetField(prhs[0],0,"vFlip"))) {
-      if (verbose) mexPrintf("(mglBltTexture) Flipping font vertically\n");
-      double temp;
-      temp = displayRect[1];
-      displayRect[1] = displayRect[3];
-      displayRect[3] = temp;
-    }
+  if (tex[0].vFlip) {
+    if (verbose) mexPrintf("(mglBltTexture) Flipping font vertically\n");
+    double temp;
+    temp = displayRect[1];
+    displayRect[1] = displayRect[3];
+    displayRect[3] = temp;
   }
   // see if we need to do hflip
-  if (mxGetField(prhs[0],0,"hFlip") != 0) {
-    if (*mxGetPr(mxGetField(prhs[0],0,"hFlip"))) {
-      if (verbose) mexPrintf("(mglBltTexture) Flipping font horizontally\n");
-      double temp;
-      temp = displayRect[2];
-      displayRect[2] = displayRect[0];
-      displayRect[0] = temp;
-    }
+  if (tex[0].hFlip) {
+    if (verbose) mexPrintf("(mglBltTexture) Flipping font horizontally\n");
+    double temp;
+    temp = displayRect[2];
+    displayRect[2] = displayRect[0];
+    displayRect[0] = temp;
   }
-  if (verbose) mexPrintf("Processing %f\n",getmsec()-startTime);
-  startTime = getmsec();
+  if (profile) {
+    mexPrintf("Processing %f\n",getmsec()-startTime);
+    startTime = getmsec();
+  }
 
   if (verbose)
     mexPrintf("(mglBltTexture) Display rect = [%0.2f %0.2f %0.2f %0.2f]\n",displayRect[0],displayRect[1],displayRect[2],displayRect[3]);
@@ -314,24 +354,26 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 #ifdef GL_TEXTURE_RECTANGLE_EXT
   // bind the texture we want to draw
   glEnable(GL_TEXTURE_RECTANGLE_EXT);
-  if (verbose) mexPrintf("Enable %f\n",getmsec()-startTime);
-  startTime = getmsec();
-  glBindTexture(GL_TEXTURE_RECTANGLE_EXT, textureNumber);
+  if (profile) {
+    mexPrintf("Enable %f\n",getmsec()-startTime);
+    startTime = getmsec();
+  }
+  glBindTexture(GL_TEXTURE_RECTANGLE_EXT, tex[0].textureNumber);
 
   // and set the transformation
   glBegin(GL_QUADS);
-  if (textureAxes == YX) {
+  if (tex[0].textureAxes == YX) {
     // default texture axes (yx, using matlab coordinates) does not require swapping y and x in texture coords (done in mglCreateTexture)
     glTexCoord2f(0.0, 0.0);
     glVertex3f(displayRect[0],displayRect[1], 0.0);
     
-    glTexCoord2f(0.0, imageHeight-1);
+    glTexCoord2f(0.0, tex[0].imageHeight-1);
     glVertex3f(displayRect[0], displayRect[3], 0.0);
     
-    glTexCoord2f(imageWidth-1, imageHeight-1);
+    glTexCoord2f(tex[0].imageWidth-1, tex[0].imageHeight-1);
     glVertex3f(displayRect[2], displayRect[3], 0.0);
     
-    glTexCoord2f(imageWidth-1, 0.0);
+    glTexCoord2f(tex[0].imageWidth-1, 0.0);
     glVertex3f(displayRect[2], displayRect[1], 0.0);
     glEnd();
 #if 0
@@ -341,29 +383,29 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     glTexCoord2f(0.0, 0.0);
     glVertex3f(xoffset+displayRect[0],displayRect[1], 0.0);
     
-    glTexCoord2f(0.0, imageHeight-1);
+    glTexCoord2f(0.0, tex[0].imageHeight-1);
     glVertex3f(xoffset+displayRect[0], displayRect[3], 0.0);
     
-    glTexCoord2f(imageWidth-1, imageHeight-1);
+    glTexCoord2f(tex[0].imageWidth-1, tex[0].imageHeight-1);
     glVertex3f(xoffset+displayRect[2], displayRect[3], 0.0);
     
-    glTexCoord2f(imageWidth-1, 0.0);
+    glTexCoord2f(tex[0].imageWidth-1, 0.0);
     glVertex3f(xoffset+displayRect[2], displayRect[1], 0.0);
     }
 #endif
 
-  }  else if (textureAxes==XY) {
+  }  else if (tex[0].textureAxes==XY) {
     //  using reverse ordered coordinates does require swapping y and x in texture coords.
     glTexCoord2f(0.0, 0.0);
     glVertex3f(displayRect[0],displayRect[1], 0.0);
     
-    glTexCoord2f(0.0, imageWidth-1);
+    glTexCoord2f(0.0, tex[0].imageWidth-1);
     glVertex3f(displayRect[2], displayRect[1], 0.0);
     
-    glTexCoord2f(imageHeight-1,imageWidth-1);
+    glTexCoord2f(tex[0].imageHeight-1,tex[0].imageWidth-1);
     glVertex3f(displayRect[2], displayRect[3], 0.0);
     
-    glTexCoord2f(imageHeight-1, 0.0);
+    glTexCoord2f(tex[0].imageHeight-1, 0.0);
     glVertex3f(displayRect[0], displayRect[3], 0.0);    
   }
 
@@ -372,11 +414,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 #else
   // bind the texture we want to draw
   glEnable(GL_TEXTURE_2D);
-  glBindTexture(GL_TEXTURE_2D, textureNumber);
+  glBindTexture(GL_TEXTURE_2D, tex[0].textureNumber);
 
   // and set the transformation
   glBegin(GL_QUADS);
-  if (strncmp(textureAxes,"yx",2)==0) {
+  if (strncmp(tex[0].textureAxes,"yx",2)==0) {
     // default texture axes (yx, using matlab coordinates) does not require swapping y and x in texture coords.
     glTexCoord2f(0.0, 0.0);
     glVertex3f(displayRect[0],displayRect[1], 0.0);
@@ -389,7 +431,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     
     glTexCoord2f(1.0, 0.0);
     glVertex3f(displayRect[2], displayRect[1], 0.0);
-  } else if (strncmp(textureAxes,"xy",2)==0) {
+  } else if (strncmp(tex[0].textureAxes,"xy",2)==0) {
     //  using reverse ordered coordinates does require swapping y and x in texture coords.
     glTexCoord2f(0.0, 0.0);
     glVertex3f(displayRect[0],displayRect[1], 0.0);
@@ -406,8 +448,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   }
   glEnd();
 #endif
-  if (verbose) mexPrintf("Blt %f\n",getmsec()-startTime);
-  if (verbose) mexPrintf("mglBltTexture (internal): %f\n",getmsec()-functionStartTime);
+  if (profile) {
+    mexPrintf("Blt %f\n",getmsec()-startTime);
+    mexPrintf("mglBltTexture (internal): %f\n",getmsec()-functionStartTime);
+  }
  
 }
 
