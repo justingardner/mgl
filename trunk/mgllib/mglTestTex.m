@@ -113,11 +113,12 @@ starttime = mglGetSecs;
 for i = 1:MGL.frameRate*numsec
   % calculate next phase step to display
   thisPhase = mod(i,nsteps)+1;
+  thisPhase2 = mod(nsteps-i,nsteps)+1;
   % clear the screen
   mglClearScreen;
   % and display the gabor patch
   %startBlt = mglGetSecs;
-  mglBltTexture(tex([thisPhase 1]),[0 0]);
+  mglBltTexture(tex([thisPhase thisPhase thisPhase2 thisPhase2]),[-6 -6;6 6;-6 6;6 -6]);
   %disp(sprintf('mglBltTexture: %f',(mglGetSecs-startBlt)*1000));
   % flush buffers
   mglFlush;
