@@ -18,7 +18,11 @@
 function texture = mglCreateTexture(image,axes)
 
 % create the texture
-texture = mglPrivateCreateTexture(image);
+if nargin == 2
+  texture = mglPrivateCreateTexture(image,axes);
+else
+  texture = mglPrivateCreateTexture(image);
+end
 
 % add some fields that are only used by mglText.c
 texture.textImageRect = [0 0 0 0];
