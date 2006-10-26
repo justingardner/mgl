@@ -75,10 +75,17 @@ myscreen.tick = myscreen.tick + 1;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%
 % if called for pause on space bar
 %%%%%%%%%%%%%%%%%%%%%%%%%%%
-if myscreen.allowpause && mglGetKeys(myscreen.keyboard.space)
-  mydisp(sprintf('PAUSED: hit RETURN to continue'));
-  while ~mglGetKeys(myscreen.keyboard.return)
+if (myscreen.allowpause && mglGetKeys(myscreen.keyboard.space)) || myscreen.paused
+  disp(sprintf('PAUSED: hit SPACE to advance a frame RETURN to continue'));
+  % wait till space bar is no loner down
+  while mglGetKeys(myscreen.keyboard.space)
   end
+  keys = 0;
+  % then check for return or space
+  while ~any(keys)
+    keys = mglGetKeys([myscreen.keyboard.return myscreen.keyboard.space]);
+  end
+  if keys(2),myscreen.paused = 1;else,myscreen.paused = 0;end
 end
 
 

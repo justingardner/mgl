@@ -102,7 +102,7 @@ end
 if ~isfield(myscreen,'allowpause')
   myscreen.allowpause = 0;
 end
-
+myscreen.paused = 0;
 % init the MGL screen
 if ~isempty(myscreen.screenNumber)
   % laptop setting
