@@ -100,7 +100,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     verbose = (int)mglGetGlobalDouble("verbose");
     deviceHDirection = mglGetGlobalDouble("deviceHDirection");
     deviceVDirection = mglGetGlobalDouble("deviceVDirection");
-    mexPrintf("Globals %f\n",getmsec()-startTime);
+    if (verbose) mexPrintf("Globals %f\n",getmsec()-startTime);
     startTime = getmsec();
 
     // get the texture number and imageWidth and imageHeight
@@ -152,7 +152,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     } 
   }
   
-  mexPrintf("Fields %f\n",getmsec()-startTime);
+  if (verbose) mexPrintf("Fields %f\n",getmsec()-startTime);
   startTime = getmsec();
 
   // get the xPixelsToDevice and yPixelsToDevice making sure these are set properly
@@ -292,7 +292,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       displayRect[0] = temp;
     }
   }
-  mexPrintf("Processing %f\n",getmsec()-startTime);
+  if (verbose) mexPrintf("Processing %f\n",getmsec()-startTime);
   startTime = getmsec();
 
   if (verbose)
@@ -305,7 +305,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 #ifdef GL_TEXTURE_RECTANGLE_EXT
   // bind the texture we want to draw
   glEnable(GL_TEXTURE_RECTANGLE_EXT);
-  mexPrintf("Enable %f\n",getmsec()-startTime);
+  if (verbose) mexPrintf("Enable %f\n",getmsec()-startTime);
   startTime = getmsec();
   glBindTexture(GL_TEXTURE_RECTANGLE_EXT, textureNumber);
 
@@ -397,8 +397,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   }
   glEnd();
 #endif
- mexPrintf("Blt %f\n",getmsec()-startTime);
- mexPrintf("mglBltTexture (internal): %f\n",getmsec()-functionStartTime);
+  if (verbose) mexPrintf("Blt %f\n",getmsec()-startTime);
+  if (verbose) mexPrintf("mglBltTexture (internal): %f\n",getmsec()-functionStartTime);
  
 }
 
