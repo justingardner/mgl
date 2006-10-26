@@ -54,11 +54,20 @@ mglTransform('GL_PROJECTION','glLoadIdentity')
 mglTransform('GL_TEXTURE','glLoadIdentity')
 
 % Set view transformation for 2D display
-% Calculate pixels/deg based on x direction only - we assume
-% isotropic pixels and screens
 
-MGL.deviceWidth=360*atan(MGL.devicePhysicalSize(1)/MGL.devicePhysicalDistance)/(2*pi);
-MGL.deviceHeight=360*atan(MGL.devicePhysicalSize(2)/MGL.devicePhysicalDistance)/(2*pi);
+% We calculate the size of the display in degrees based on the smaller (height) 
+% dimension only. While this is not quite correct, it makes for much easier drawing,
+% since we can assume that distances are equal in x and y dimensions and do not change
+% with viewing angle (which would be true if the screen was spherical, but is 
+% increasingly incorrect for a flat screen the greater the eccentricity).
+% If we correctly calculated the visual angle subtended separately for each dimension,
+% a rectangle defined by (-1,-1) to (1,1) would not be exactly quadratic.
+
+%MGL.deviceWidth=360*atan(MGL.devicePhysicalSize(1)/MGL.devicePhysicalDistance)/(2*pi);
+%MGL.deviceHeight=360*atan(MGL.devicePhysicalSize(2)/MGL.devicePhysicalDistance)/(2*pi);
+%MGL.deviceWidth=2*atan(0.5*MGL.devicePhysicalSize(1)/MGL.devicePhysicalDistance)/pi*180;
+MGL.deviceHeight=2*atan(0.5*MGL.devicePhysicalSize(2)/MGL.devicePhysicalDistance)/pi*180;
+MGL.deviceWidth=MGL.deviceHeight/MGL.screenHeight*MGL.screenWidth;
 
 % display if verbose
 if (MGL.verbose)
