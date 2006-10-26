@@ -56,14 +56,14 @@ if doExpandingText
       mglBltTexture(expandingText(i),[MGL.screenWidth/2 MGL.screenHeight/2],0,0);
       mglFlush;
     end
-    WaitSecs(0.3);
+    mglWaitSecs(0.3);
     % display contracting text
     for i = nFrames:-1:1
       mglClearScreen;
       mglBltTexture(contractingText(i),[MGL.screenWidth/2 MGL.screenHeight/2],0,0);
       mglFlush;
     end
-    WaitSecs(0.3);
+    mglWaitSecs(0.3);
   end
 end
 

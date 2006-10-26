@@ -426,9 +426,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   glTexImage2D(GL_TEXTURE_RECTANGLE_EXT,0,GL_RGBA,pixelsWide,pixelsHigh,0,GL_RGBA,GL_UNSIGNED_INT_8_8_8_8,bitmapData);  
 
   // create the output structure
-  const char *fieldNames[] =  {"textureNumber","imageWidth","imageHeight","textureAxes","textImageRect","hFlip","vFlip" };
+  const char *fieldNames[] =  {"textureNumber","imageWidth","imageHeight","textureAxes","textImageRect","hFlip","vFlip","isText" };
   int outDims[2] = {1, 1};
-  plhs[0] = mxCreateStructArray(1,outDims,7,fieldNames);
+  plhs[0] = mxCreateStructArray(1,outDims,8,fieldNames);
   
   // now set the textureNumber field
   double *outptr;
@@ -464,6 +464,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   mxSetField(plhs[0],0,"vFlip",mxCreateDoubleMatrix(1,1,mxREAL));
   outptr = (double*)mxGetPr(mxGetField(plhs[0],0,"vFlip"));
   *outptr = mglGetGlobalDouble("fontVFlip");
+
+  mxSetField(plhs[0],0,"isText",mxCreateDoubleMatrix(1,1,mxREAL));
+  outptr = (double*)mxGetPr(mxGetField(plhs[0],0,"isText"));
+  *outptr = (double)1;
 
   // get a buffer for the bitmap data
   c = 0;
