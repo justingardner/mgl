@@ -36,6 +36,15 @@ $Id$
 //////////////////////////////
 double getmsec()
 { 
+#ifdef __linux__
+  struct timeval tp;
+  struct timezone tz;
+
+  gettimeofday( &tp, &tz );
+  double doubleValue = (double) tp.tv_sec + (double) tp.tv_usec * 0.000001;
+  doubleValue = doubleValue * 1000;
+#endif
+#ifdef __APPLE__
   UnsignedWide currentTime; 
   Microseconds(&currentTime); 
 
@@ -46,7 +55,7 @@ double getmsec()
   double lowerHalf = (double)currentTime.lo; 
   
   doubleValue = (upperHalf * twoPower32) + lowerHalf; 
-
+#endif
   return(doubleValue/1000); 
 }
 
