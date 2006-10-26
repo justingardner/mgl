@@ -74,9 +74,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     }
     for (i=0;i<128;i++) {
       k=(short)i;
-      *(outptr+i)=((keybytes[k>>3] & (1 << (k&7))) != 0);
+      *(loutptr+i)=((keybytes[k>>3] & (1 << (k&7))) != 0);
       if (verbose) {
-	mexPrintf("%i ",(int) *(outptr+i));
+	mexPrintf("%i ",(int) *(loutptr+i));
       }
     }
     if (verbose) {
