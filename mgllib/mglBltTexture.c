@@ -435,13 +435,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       glTexCoord2f(0.0, 0.0);
       glVertex3f(tex[texnum].displayRect[0],tex[texnum].displayRect[1], 0.0);
     
-      glTexCoord2f(0.0, tex[texnum].imageHeight-1);
+      glTexCoord2f(0.0, tex[texnum].imageHeight);
       glVertex3f(tex[texnum].displayRect[0], tex[texnum].displayRect[3], 0.0);
     
-      glTexCoord2f(tex[texnum].imageWidth-1, tex[texnum].imageHeight-1);
+      glTexCoord2f(tex[texnum].imageWidth, tex[texnum].imageHeight);
       glVertex3f(tex[texnum].displayRect[2], tex[texnum].displayRect[3], 0.0);
     
-      glTexCoord2f(tex[texnum].imageWidth-1, 0.0);
+      glTexCoord2f(tex[texnum].imageWidth, 0.0);
       glVertex3f(tex[texnum].displayRect[2], tex[texnum].displayRect[1], 0.0);
       glEnd();
     }  else if (tex[texnum].textureAxes==XY) {
@@ -449,13 +449,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       glTexCoord2f(0.0, 0.0);
       glVertex3f(tex[texnum].displayRect[0],tex[texnum].displayRect[1], 0.0);
     
-      glTexCoord2f(0.0, tex[texnum].imageWidth-1);
+      glTexCoord2f(0.0, tex[texnum].imageWidth);
       glVertex3f(tex[texnum].displayRect[2], tex[texnum].displayRect[1], 0.0);
     
-      glTexCoord2f(tex[texnum].imageHeight-1,tex[texnum].imageWidth-1);
+      glTexCoord2f(tex[texnum].imageHeight,tex[texnum].imageWidth);
       glVertex3f(tex[texnum].displayRect[2], tex[texnum].displayRect[3], 0.0);
     
-      glTexCoord2f(tex[texnum].imageHeight-1, 0.0);
+      glTexCoord2f(tex[texnum].imageHeight, 0.0);
       glVertex3f(tex[texnum].displayRect[0], tex[texnum].displayRect[3], 0.0);    
     }
 
