@@ -81,6 +81,10 @@ if ~isfield(myscreen,'screenWidth'),myscreen.screenWidth = 1024;end
 if ~isfield(myscreen,'screenHeight'),myscreen.screenHeight = 768;end
 if ~isfield(myscreen,'framesPerSecond'),myscreen.framesPerSecond = 60;end
 if ~isfield(myscreen,'saveData'),myscreen.saveData = -1;end
+if ~isfield(myscreen,'displayDistance'),myscreen.displayDistance = 57;end
+if ~isfield(myscreen,'displaySize'),myscreen.displaySize = [31 23];end
+if ~isfield(myscreen,'imageWidth'),myscreen.imageWidth = [];end
+if ~isfield(myscreen,'imageHeight'),myscreen.imageHeight = [];end
 
 % switch to data directory if we are saving data
 if isdir('~/data') && (myscreen.saveData>0)
@@ -111,8 +115,8 @@ else
   % otherwise open a default window
   mglOpen;
   global MGL;
-  mgl.screenWidth = MGL.screenWidth;
-  mgl.screenHeight = MGL.screenHeight;
+  myscreen.screenWidth = MGL.screenWidth;
+  myscreen.screenHeight = MGL.screenHeight;
 end
 
 % use visual angle coordinates
