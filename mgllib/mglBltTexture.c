@@ -46,6 +46,7 @@ typedef struct textype {
   double displayRect[4];
   double rotation;
 } textype;
+
 //////////////////////////////
 //   function declartions   //
 //////////////////////////////
@@ -104,9 +105,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   int verbose;
   double startTime;
   textype *tex;
+  double *allParams;
+  int texnum;
+
   // allocate space for texture info
   tex = malloc(numTextures*sizeof(textype));
-  double *allParams;
 
   // now get destination rectangle
   double *inputRect;
@@ -115,22 +118,22 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     free(tex);
     return;
   }
-  int destRectCols = (int)mxGetN(prhs[1]);
-  int destRectRows = (int)mxGetM(prhs[1]);
+  int inputRectCols = (int)mxGetN(prhs[1]);
+  int inputRectRows = (int)mxGetM(prhs[1]);
   int inputRectOffset;
-  if ((destRectRows != 1) && (destRectRows != numTextures)) {
+  if ((inputRectRows != 1) && (inputRectRows != numTextures)) {
     mexPrintf("(mglBltTexture) Dest rect must be either 1 or number of texture rows long");
     free(tex);
     return;
   }
-  if ((destRectCols != 2) && (destRectRows != 4)) {
+  if ((inputRectCols != 2) && (inputRectRows != 4)) {
     mexPrintf("(mglBltTexture) Dest rect must be either 2 or 4 columns long");
     free(tex);
     return;
   }
+
   if (profile) startTime = getmsec();
 
-  int texnum;
   for (texnum = 0; texnum < numTextures; texnum++) {
     if (mxGetField(prhs[0],texnum,"allParams") != 0) {
       // grab all the info from the allParams field
@@ -242,20 +245,20 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
     // check the length of position
 
-    inputRectOffset = (destRectRows == 1) ? 0 : texnum;
+    inputRectOffset = (inputRectRows == 1) ? 0 : texnum;
     if (verbose) mexPrintf("inputRectOffset: %i\n",inputRectOffset);
-    switch (destRectCols) {
+    switch (inputRectCols) {
       case 2:
 	tex[texnum].displayRect[0] = inputRect[inputRectOffset];
-	tex[texnum].displayRect[1] = inputRect[inputRectOffset+destRectRows];
+	tex[texnum].displayRect[1] = inputRect[inputRectOffset+inputRectRows];
 	tex[texnum].displayRect[2] = tex[texnum].imageWidth*xPixelsToDevice;
 	tex[texnum].displayRect[3] = tex[texnum].imageHeight*yPixelsToDevice;
 	break;
       case 4:
 	tex[texnum].displayRect[0] = inputRect[inputRectOffset];
-	tex[texnum].displayRect[1] = inputRect[inputRectOffset+destRectRows];
-	tex[texnum].displayRect[2] = inputRect[inputRectOffset+destRectRows*2];
-	tex[texnum].displayRect[3] = inputRect[inputRectOffset+destRectRows*3];
+	tex[texnum].displayRect[1] = inputRect[inputRectOffset+inputRectRows];
+	tex[texnum].displayRect[2] = inputRect[inputRectOffset+inputRectRows*2];
+	tex[texnum].displayRect[3] = inputRect[inputRectOffset+inputRectRows*3];
 	break;
       default:
 	mexPrintf("UHOH (mglBltTexture): Destination rectangle must be either [xmin ymin] or [xmin ymin xmax ymax]\n");
@@ -302,7 +305,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       tex[texnum].rotation = 0;
     }
     else {
-      tex[texnum].rotation = (mxGetN(prhs[5]) > texnum) ? *(mxGetPr(prhs[5])+texnum) : *mxGetPr(prhs[5]);
+      tex[texnum].rotation = (mxGetN(prhs[4]) > texnum) ? *(mxGetPr(prhs[4])+texnum) : *mxGetPr(prhs[4]);
     }
     if (verbose) mexPrintf("rotation is %f\n",tex[texnum].rotation);
 
@@ -391,20 +394,39 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
   }
 
+  // set blending functions etc.
   glEnable(GL_BLEND);
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
   glColor4f(1,1,1,1);
   
+  // cycle through all the texture, and display them using gl functions
   for (texnum = 0; texnum < numTextures; texnum++) {
+
+    // calculate the amount of shift we need to
+    // move the axis
+    double xshift = tex[texnum].displayRect[0]+xPixelsToDevice*tex[texnum].imageWidth/2;
+    double yshift = tex[texnum].displayRect[1]+yPixelsToDevice*tex[texnum].imageHeight/2;
+    tex[texnum].displayRect[3] -= yshift;
+    tex[texnum].displayRect[2] -= xshift;
+    tex[texnum].displayRect[1] -= yshift;
+    tex[texnum].displayRect[0] -= xshift;
+
+    // now shift and rotate the coordinate frame
+    glMatrixMode( GL_MODELVIEW );    
+    glPushMatrix();
+    glTranslated(xshift,yshift,0);
+    glRotated(tex[texnum].rotation,0,0,1);
 
 #ifdef GL_TEXTURE_RECTANGLE_EXT
     // bind the texture we want to draw
     glEnable(GL_TEXTURE_RECTANGLE_EXT);
+    glBindTexture(GL_TEXTURE_RECTANGLE_EXT, tex[texnum].textureNumber);
+
+    // profile info
     if (profile) {
       mexPrintf("Enable %f\n",getmsec()-startTime);
       startTime = getmsec();
     }
-    glBindTexture(GL_TEXTURE_RECTANGLE_EXT, tex[texnum].textureNumber);
 
     // and set the transformation
     glBegin(GL_QUADS);
@@ -476,6 +498,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     }
     glEnd();
 #endif
+    glPopMatrix();
   }
   if (profile) {
     mexPrintf("Blt %f\n",getmsec()-startTime);

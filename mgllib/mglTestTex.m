@@ -72,7 +72,7 @@ for i = 1:nsteps;
   mglFlush;
   % calculate image parameters
   phase = i*2*pi/nsteps;
-  angle = pi*55/180;
+  angle = 0;
   f=0.8*2*pi; 
   a=cos(angle)*f;
   b=sin(angle)*f;
@@ -98,7 +98,7 @@ for i = 1:nsteps;
     m4(:,:,3) = m.*win+127;    
   end
   % now create the texture
-  tex(i) = mglCreateTexture(m4);
+  tex(i) = mglCreateTextureFast(m4);
 end
 
 % display each texture to back buffer, to make sure
@@ -106,6 +106,12 @@ end
 for i = 1:nsteps
   mglBltTexture(tex(i),[0 0]);
 end
+
+% calculate tex positions, making sure they are offset
+% from each other by atleast 1/2 height and width
+texPos = [-1 1;1 1;1 -1;-1 -1];
+texPos(:,1) = texPos(:,1)*(texWidth/2+2);
+texPos(:,2) = texPos(:,2)*(texHeight/2+2);
 
 % this is the main display loop
 numsec = 5;
@@ -118,7 +124,8 @@ for i = 1:MGL.frameRate*numsec
   mglClearScreen;
   % and display the gabor patch
   %startBlt = mglGetSecs;
-  mglBltTexture(tex([thisPhase thisPhase thisPhase2 thisPhase2]),[-6 -6;6 6;-6 6;6 -6]);
+  mglBltTexture(tex([thisPhase thisPhase2 thisPhase thisPhase2]),texPos,0,0,[0 45 90 135]);
+  mglBltTexture(tex(1),[0 0],0,0,360*i/(MGL.frameRate*numsec));
   %disp(sprintf('mglBltTexture: %f',(mglGetSecs-startBlt)*1000));
   % flush buffers
   mglFlush;
