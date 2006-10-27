@@ -134,9 +134,9 @@ frameRate = 60;
 checkTime = 30*frameRate;
 timeTaken = zeros(1,checkTime);
 for i = 1:checkTime
-  flushStart = GetSecs;
+  flushStart = mglGetSecs;
   mglFlush;
-  timeTaken(i) = GetSecs-flushStart;
+  timeTaken(i) = mglGetSecs(flushStart);
 end
 mglClose;
 plot((1:checkTime)/frameRate,timeTaken);
@@ -162,10 +162,6 @@ of funcitons not supported yet are:
 
 mglGetGammaTable
 mglSetGammaTable
-mglGetKeys
-mglGetKeyEvent
-mglGetMouse
-mglGetMouseEvent
 mglText
 mglTextDraw
 
