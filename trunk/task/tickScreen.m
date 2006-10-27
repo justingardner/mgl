@@ -7,7 +7,7 @@
 %  copyright: (c) 2006 Justin Gardner (GPL see mgl/COPYING)
 %    purpose: flip screen and update counter - for MGL
 %
-function myscreen = tickScreen(myscreen,task)
+function [myscreen task] = tickScreen(myscreen,task)
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%
 % get back tick status
@@ -76,6 +76,7 @@ myscreen.tick = myscreen.tick + 1;
 % if called for pause on space bar
 %%%%%%%%%%%%%%%%%%%%%%%%%%%
 if (myscreen.allowpause && mglGetKeys(myscreen.keyboard.space)) || myscreen.paused
+  startPause = mglGetSecs;
   disp(sprintf('PAUSED: hit SPACE to advance a frame RETURN to continue'));
   % wait till space bar is no loner down
   while mglGetKeys(myscreen.keyboard.space)
@@ -86,6 +87,9 @@ if (myscreen.allowpause && mglGetKeys(myscreen.keyboard.space)) || myscreen.paus
     keys = mglGetKeys([myscreen.keyboard.return myscreen.keyboard.space]);
   end
   if keys(2),myscreen.paused = 1;else,myscreen.paused = 0;end
+  % fix task times
+  task = pauseTask(task,mglGetSecs(startPause));
+  myscreen.fliptime = mglGetSecs;
 end
 
 
