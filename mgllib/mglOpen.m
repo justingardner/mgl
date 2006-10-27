@@ -47,6 +47,10 @@ if isempty(javachk('desktop')) & (whichScreen == 0)
   end
 end
 
+if ~isfield(MGL,'verbose')
+  MGL.verbose = 0;
+end
+
 openDisplay = 0;
 % check to see if a display is already open
 if isfield(MGL,'displayNumber') && ~isempty(MGL.displayNumber)
