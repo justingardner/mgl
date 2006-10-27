@@ -33,7 +33,7 @@ screenParams{end+1} = {'Stimulus.local','projector',2,1024,768,57,[31 23],[],[],
 screenParams{end+1} = {'Stimulus.local','lcd',2,800,600,157.5,[43.2 32.5],[],[],60,0,50,[0 1 0.4790 0 1 0.4790 0 1 0.4790],''};
 screenParams{end+1} = {'stimulus-g5.local','projector',2,1024,768,57,[31 23],[],[],60,0,50,defaultGammaFunction,'stimulus-g5_projector'};
 screenParams{end+1} = {'stimulus-g5.local','lcd',2,800,600,157.5,[43.2 32.5],[],[],60,0,50,[0 1 0.4790 0 1 0.4790 0 1 0.4790],''};
-screenParams{end+1} = {'eigenstate','',0,1024,768,57,[31 23],[],[],60,1,0,defaultGammaFunction,''};
+screenParams{end+1} = {'eigenstate','',[],1024,768,57,[31 23],[],[],60,1,0,defaultGammaFunction,''};
 screenParams{end+1} = {'dhcp.bnf.brain.riken.jp','',0,1024,768,57,[31 23],[],[],60,1,0,defaultGammaFunction,''};
 screenParams{end+1} = {'kirkwood','',1,1152,870,[],[],18,24,75,1,0,defaultGammaFunction,''};
 screenParams{end+1} = {'alta','',[],1024,768,57,[31 23],[],[],60,1,0,defaultGammaFunction,''};
@@ -110,6 +110,9 @@ if ~isempty(myscreen.screenNumber)
 else
   % otherwise open a default window
   mglOpen;
+  global MGL;
+  mgl.screenWidth = MGL.screenWidth;
+  mgl.screenHeight = MGL.screenHeight;
 end
 
 % use visual angle coordinates
