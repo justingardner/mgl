@@ -43,20 +43,9 @@ else
   mglStrokeText('Calculating textures (0 percent done)',-8,0,0.5,0.8,2);mglFlush;
 end
 
-
 % size of textures in degrees
 texWidth = 10;
 texHeight = 10;
-
-% get size in pixels
-texWidthPixels = round(texWidth*MGL.xDeviceToPixels);
-texHeightPixels = round(texHeight*MGL.yDeviceToPixels);
-
-% get a grid of x and y coordinates that has 
-% the correct number of pixels
-x = -texWidth/2:texWidth/(texWidthPixels-1):texWidth/2;
-y = -texHeight/2:texHeight/(texHeightPixels-1):texHeight/2;
-[xMesh,yMesh] = meshgrid(x,y);
 
 % now create each image with a different phase (use nsteps of phase)
 nsteps = 30;
@@ -70,19 +59,9 @@ for i = 1:nsteps;
     mglStrokeText(msg,-8,0,0.5,0.8,2);
   end
   mglFlush;
-  % calculate image parameters
-  phase = i*2*pi/nsteps;
-  angle = 0;
-  f=0.8*2*pi; 
-  a=cos(angle)*f;
-  b=sin(angle)*f;
-  % compute grating
-  m = sin(a*xMesh+b*yMesh+phase);
-  % compute gaussian window
-  win = exp(-((xMesh.^2)/((texWidth/5)^2)+(yMesh.^2)/((texHeight/5)^2)));
-  win=win./max(max(win));
-  % clamp small values to 0 so that we fade completely to gray.
-  win(win(:)<0.01) = 0;
+  % calculate grating and gaussian window
+  m = makeGrating(texWidth,texHeight,0.8,0,i*360/nsteps);
+  win = makeGaussian(texWidth,texHeight,texWidth/7,texHeight/7);
   % now create and RGB + alpha image with the gaussian window
   % as the alpha channel
   if (strcmp(lower(computer),'mac'))
@@ -91,14 +70,13 @@ for i = 1:nsteps;
     m4(:,:,2) = m;
     m4(:,:,3) = m;
     m4(:,:,4) = 255*win;
+  % on linux, if we don't have alpha channel then explicitly
+  % make the gabor, then the texture will be a simple grayscale one
   else
-    m=m*128;
-    m4(:,:,1) = m.*win+127;
-    m4(:,:,2) = m.*win+127;
-    m4(:,:,3) = m.*win+127;    
+    m4=m*128.*win+127;
   end
   % now create the texture
-  tex(i) = mglCreateTextureFast(m4);
+  tex(i) = mglCreateTexture(m4);
 end
 
 % display each texture to back buffer, to make sure
@@ -122,9 +100,10 @@ for i = 1:MGL.frameRate*numsec
   thisPhase2 = mod(nsteps-i,nsteps)+1;
   % clear the screen
   mglClearScreen;
-  % and display the gabor patch
   %startBlt = mglGetSecs;
+  % and display four gabor patches
   mglBltTexture(tex([thisPhase thisPhase2 thisPhase thisPhase2]),texPos,0,0,[0 45 90 135]);
+  % and the rotating one at the center
   mglBltTexture(tex(1),[0 0],0,0,360*i/(MGL.frameRate*numsec));
   %disp(sprintf('mglBltTexture: %f',(mglGetSecs-startBlt)*1000));
   % flush buffers
@@ -132,10 +111,7 @@ for i = 1:MGL.frameRate*numsec
 end  
 endtime = mglGetSecs;
 
-if (strcmp(lower(computer),'mac'))
-  % reset gamma and close screen
-  mglSetGammaTable(gamma.redTable,gamma.greenTable,gamma.blueTable);
-end
+% close the screen
 mglClose;
 
 % check how long it ran for
