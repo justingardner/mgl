@@ -50,6 +50,21 @@ if ~isfield(task,'verbose')
   task.verbose = 1;
 end
 
+% check for capitalization errors
+knownFieldnames = {'verbose','parameter','seglen','segmin','segmax','segquant','synchToVol','writeTrace','getResponse','numBlocks','numTrials','waitForBacktick','random','timeInTicks','timeInVols','writeSegmentsTrace','parameterCode','private'};
+taskFieldnames = fieldnames(task);
+for i = 1:length(taskFieldnames)
+  matches = find(strcmp(upper(taskFieldnames{i}),upper(knownFieldnames)));
+  if  matches &	~any(strcmp(taskFieldnames{i},knownFieldnames))
+    disp(sprintf('(initTask) task.%s is miscapitalized. Changed to task.%s.',taskFieldnames{i},knownFieldnames{matches}));
+    fieldval = eval(sprintf('task.%s',taskFieldnames{i}));
+    task = rmfield(task,taskFieldnames{i});
+    eval(sprintf('task.%s = fieldval;',knownFieldnames{matches}));
+  elseif isempty(matches)
+    disp(sprintf('Unknown task field: task.%s',taskFieldnames{i}));
+  end
+end
+
 % check for parameters
 if ~isfield(task,'parameter')
   task.parameter.default = 1;
@@ -121,6 +136,7 @@ if ~isfield(task,'writeTrace'),task.writeTrace = {};,end
 for i = (length(task.writeTrace)+1):task.numsegs
   task.writeTrace{i} = {};
 end
+
 % now make sure the writeTrace references existing variables
 maxtracenum = -inf;
 for i = 1:length(task.writeTrace)
@@ -237,6 +253,7 @@ task.taskfilename = st(max(i+1,length(st))).file;
 
 % set the debug mode to stop on error
 dbstop if error
-  
+
+
 
 
