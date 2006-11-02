@@ -267,7 +267,7 @@ segmaxlen = task.segmax;
 if (task.timeInTicks || task.timeInVols)
   task.thistrial.seglen = segminlen + floor(rand*(segmaxlen-segminlen+1));
 else
-  task.thistrial.seglen = segminlen + (segmaxlen-segminlen);
+  task.thistrial.seglen = segminlen + rand*(segmaxlen-segminlen);
 
   % deal with the segment quantization, if segquant is set to
   % zero there is no effect, otherwise we will round segment
