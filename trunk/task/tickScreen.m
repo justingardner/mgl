@@ -16,9 +16,9 @@ function [myscreen task] = tickScreen(myscreen,task)
 thistick = mglGetKeys(myscreen.keyboard.backtick);
 
 % read the TTL pulse (comment out to prevent reading digital port)
-ttltick = readDigPort;
-ttltick = (ttltick>0) && (ttltick&1);
-thistick = ttltick | thistick;
+%ttltick = readDigPort;
+%ttltick = (ttltick>0) && (ttltick&1);
+%thistick = ttltick | thistick;
 
 % if we are transitioning into a tick down state
 % then this is the beginning of a new volume
