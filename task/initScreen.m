@@ -40,6 +40,8 @@ screenParams{end+1} = {'alta','',[],1024,768,57,[31 23],[],[],60,1,0,defaultGamm
 screenParams{end+1} = {'dsltop','',0,400,300,[],[],18,24,60,1,0,defaultGammaFunction,''};
 screenParams{end+1} = {'whistler.cns.nyu.edu','',2,1280,1024,57,[31 23],[],[],60,1,0,defaultGammaFunction,''};
 screenParams{end+1} = {'froh.cns.nyu.edu','',[],1280,1024,57,[31 23],[],[],100,1,0,defaultGammaFunction,''};
+screenParams{end+1} = {'cronos.psychology.nottingham.ac.uk','',2,1280,1024,57,[31 23],[],[],100,1,0,defaultGammaFunction,''};
+screenParams{end+1} = {'hyperion.local','',0,800,600,57,[31 23],[],[],100,1,0,defaultGammaFunction,''};
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % find matching database parameters
@@ -214,8 +216,8 @@ disp(sprintf('imageWidth: %0.2f imageHeight: %0.2f',myscreen.imageWidth,myscreen
 % default paramaters for eye calibration
 myscreen.eyecalib.n = 1;
 myscreen.eyecalib.fixtime = 1.5;
-myscreen.eyecalib.loc = {[5 0],[0 -5],[-5 0],[0 5]};
 myscreen.eyecalib.shape = 'spot';
+myscreen.eyecalib.loc = {[5 0],[0 -5],[-5 0],[0 5]};
 myscreen.eyecalib.size = [1 1]; % deg visual angle
 myscreen.eyecalib.color = [255 255 0];
 myscreen.eyecalib.refix = 1;
