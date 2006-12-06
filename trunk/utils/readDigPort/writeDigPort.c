@@ -44,18 +44,33 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
    char        errBuff[2048];
 
    // Channel parameters
-   const char  chan[] = "Dev1/port2";
+   char chan[256];
 
    // write variables
    int32       written;
 
    // pointer to output data
    double *outptr;
-   uInt32 val;
+   uInt32 val, channelNum = 2;
 
    // set up return value
    plhs[0] = mxCreateDoubleMatrix(1,1,mxREAL);
    outptr = mxGetPr(plhs[0]);
+
+   // chekc input arguments
+   if (nrhs < 1) {
+     mexPrintf("Usage: writeDigPort(value,[portnum])\n");
+     mexPrintf("       portnum defaults to 2\n");
+     *outptr = (double)0;
+     return;
+   }
+
+   // get the channel number
+   if (nrhs == 2) {
+     channelNum = (uInt32)*mxGetPr(prhs[1]);
+   }
+   sprintf(chan,"Dev1/port%i",channelNum);
+   mexPrintf("%s\n",chan);
 
    // Create Digital Output (DO) Task and Channel
    DAQmxErrChk (DAQmxBaseCreateTask ("", &taskHandle));
@@ -65,8 +80,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
    // get input value
    val = (uInt32)*mxGetPr(prhs[0]);
-
-   mexPrintf("Data to write: 0x%X\n", val);
 
    DAQmxErrChk (DAQmxBaseWriteDigitalU32(taskHandle,1,1,10.0,DAQmx_Val_GroupByChannel,&val,&written,NULL));
 
