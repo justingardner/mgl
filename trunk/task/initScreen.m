@@ -28,7 +28,8 @@ screenParamsList = {'computerName','displayName','screenNumber',...
 		    'displaySize','imageWidth','imageHeight',...
 		    'framesPerSecond','autoCloseScreen',...
 		    'saveData','gammaFunction','calibFilename'};
-screenParams{1} = {'yoyodyne.cns.nyu.edu','',2,1280,1024,57,[31 23],[],[],60,1,0,defaultGammaFunction,'yoyodyne'};
+screenParams{1} = {'yoyodyne.cns.nyu.edu','projector',2,1280,1024,57,[31 23],[],[],60,1,0,defaultGammaFunction,'yoyodyne'};
+screenParams{end+1} = {'yoyodyne.cns.nyu.edu','lcd',2,1280,1024,157.5,[43.2 32.5],[],[],60,1,0,defaultGammaFunction,'yoyodyne'};
 screenParams{end+1} = {'Stimulus.local','projector',2,1024,768,57,[31 23],[],[],60,0,50,defaultGammaFunction,''};
 screenParams{end+1} = {'Stimulus.local','lcd',2,800,600,157.5,[43.2 32.5],[],[],60,0,50,[0 1 0.4790 0 1 0.4790 0 1 0.4790],''};
 screenParams{end+1} = {'stimulus-g5.local','projector',2,1024,768,57,[31 23],[],[],60,0,50,defaultGammaFunction,'stimulus-g5_projector'};
@@ -181,7 +182,10 @@ end
 
 % use the table if we do not have a valid filename
 if gammaNotSet
-  % display what the settings are
+  if ~isfield(myscreen,'gammaFunction')
+    myscreen.gammaFunction = defaultGammaFunction;
+  end
+% display what the settings are
   disp(sprintf('Gamma: red [%0.2f %0.2f %0.2f] green [%0.2f %0.2f %0.2f] blue [%0.2f %0.2f %0.2f] (min max exp)',myscreen.gammaFunction(1),myscreen.gammaFunction(2),myscreen.gammaFunction(3),myscreen.gammaFunction(4),myscreen.gammaFunction(5),myscreen.gammaFunction(6),myscreen.gammaFunction(7),myscreen.gammaFunction(8),myscreen.gammaFunction(9)));
   % and then set it
   mglSetGammaTable(myscreen.gammaFunction);

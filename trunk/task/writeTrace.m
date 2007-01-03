@@ -1,7 +1,7 @@
 % writetrace.m
 %
 %        $Id$
-%      usage: writetrace.m()
+%      usage: myscreen = writetrace(data,tracenum,myscreen,force)
 %         by: justin gardner
 %       date: 02/17/05
 %  copyright: (c) 2006 Justin Gardner (GPL see mgl/COPYING)
@@ -11,6 +11,13 @@
 %             down as the traces get to long, we just save
 %             the ticknumber and the data of the event
 %             when it is different than the previous ones.
+%             data is the value to set
+%             tracenum specifies which trace to write to
+%             myscreen is the variable returned by initScreen
+%             force if set to 1 saves the value regardless
+%             of whether it is the same or different from
+%             previous values. The default is to only save
+%             the event if it causes a change in the trace
 %
 function myscreen = writeTrace(data,tracenum,myscreen,force)
 

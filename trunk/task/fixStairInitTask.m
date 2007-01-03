@@ -35,6 +35,7 @@ if ~isfield(fixStimulus,'responseTime') fixStimulus.responseTime = 1; end
 if ~isfield(fixStimulus,'stimTime') fixStimulus.stimTime = 0.2; end
 if ~isfield(fixStimulus,'interTime') fixStimulus.interTime = 0.5; end
 if ~isfield(fixStimulus,'diskSize') fixStimulus.diskSize = 1; end
+if ~isfield(fixStimulus,'pos') fixStimulus.pos = [0 0]; end
 
 % create a fixation task
 task{1}.seglen = [fixStimulus.interTime fixStimulus.stimTime fixStimulus.interTime fixStimulus.stimTime fixStimulus.interTime fixStimulus.responseTime];
@@ -95,9 +96,9 @@ end
 function [task myscreen] = fixDrawStimulusCallback(task, myscreen)
 
 global fixStimulus;
-mglGluDisk(0,0,fixStimulus.diskSize*[1 1],myscreen.background,60);
+mglGluDisk(fixStimulus.pos(1),fixStimulus.pos(2),fixStimulus.diskSize*[1 1],myscreen.background,60);
 
-mglFixationCross(0.5,1,fixStimulus.thisColor);
+mglFixationCross(0.5,1,fixStimulus.thisColor,fixStimulus.pos);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % function that gets called when subject responds
