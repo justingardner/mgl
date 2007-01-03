@@ -27,5 +27,8 @@ else
     if isfield(task.thistrial,'segstart')
       task.thistrial.segstart = task.thistrial.segstart+pauseInterval;
     end
+    if isfield(task.thistrial,'segStartSeconds')
+      task.thistrial.segStartSeconds = task.thistrial.segStartSeconds+pauseInterval;
+    end
   end
 end
