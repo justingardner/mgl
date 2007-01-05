@@ -27,10 +27,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   int verbose = mglGetGlobalDouble("verbose");
 
   int nkeys,i;
-  if (nrhs == 1 && (mxGetData(prhs[0]) != NULL)) {
+  if ((nrhs == 1) && (mxGetPr(prhs[0]) != NULL)) {
     nkeys=mxGetNumberOfElements(prhs[0]);
   } else {
     usageError("mglKeycodeToChar");
+    return;
   }
 
   mxArray * out=mxCreateCellMatrix(1,nkeys);
