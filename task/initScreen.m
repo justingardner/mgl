@@ -112,8 +112,8 @@ end
 myscreen.paused = 0;
 % init the MGL screen
 if ~isempty(myscreen.screenNumber)
-  % laptop setting
-  mglOpen(myscreen.screenNumber, myscreen.screenWidth, myscreen.screenHeight);
+  % setting with specified screenNumber
+  mglOpen(myscreen.screenNumber, myscreen.screenWidth, myscreen.screenHeight, myscreen.framesPerSecond);
 else
   % otherwise open a default window
   mglOpen;
