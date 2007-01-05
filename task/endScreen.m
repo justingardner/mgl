@@ -18,6 +18,9 @@ else
   mglClearScreen;mglFlush;
 end
 
+% turn off eye tracker
+writeDigPort(0,2);
+
 % display tick rate
 if isfield(myscreen,'totalflip')
   disp(sprintf('Average tick rate = %0.6f %0.5fHz effective',myscreen.totalflip/myscreen.tick,1/(myscreen.totalflip/myscreen.tick)));
