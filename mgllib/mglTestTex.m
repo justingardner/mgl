@@ -25,12 +25,6 @@ if exist('screenNumber')~=1,screenNumber = [];,end
 mglOpen(screenNumber);
 mglVisualAngleCoordinates(57,[40 30]);
 
-if (strcmp(lower(computer),'mac'))
-  % change the gamma of the monitor
-  gamma = mglGetGammaTable;
-  mglSetGammaTable([0 1 1.7 0 1 1.7 0 1 1.7]);
-end
-
 % clear both buffers to gray
 mglClearScreen(0.5);mglFlush;
 mglClearScreen;mglFlush;

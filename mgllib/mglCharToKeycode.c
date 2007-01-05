@@ -29,16 +29,19 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   // mxArray *mxGetCell(const mxArray *pm, mwIndex index);
 
   int nkeys,i;
-  if (nrhs == 1 && (mxGetData(prhs[0]) != NULL) && mxIsCell(prhs[0])) {
+  if ((nrhs == 1) && (mxGetPr(prhs[0]) != NULL) && mxIsCell(prhs[0])) {
     // input is a cell array of chars
     // calculate size of array
     nkeys=mxGetNumberOfElements(prhs[0]);
     for (i=0;i<nkeys;i++) {
-      if (!mxIsChar(mxGetCell(prhs[0],i)))
+      if (!mxIsChar(mxGetCell(prhs[0],i))) {
 	usageError("mglCharToKeycode");
+	return;
+      }
     }
   } else {
     usageError("mglCharToKeycode");
+    return;
   }
   plhs[0] = mxCreateDoubleMatrix(1,nkeys,mxREAL);
 
