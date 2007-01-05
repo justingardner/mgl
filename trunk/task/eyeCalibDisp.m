@@ -29,6 +29,7 @@ if (myscreen.eyecalib.prompt)
     end
     if mglGetKeys(myscreen.keyboard.return)
       % starting experiment, start the eye tracker
+      writeDigPort(16,2);
       %myscreen.fishcamp = bitor(myscreen.fishcamp,1);
       %fishcamp(1,myscreen.fishcamp);
       % reset fliptime
@@ -41,11 +42,17 @@ end
 % make sure eye tracker is on and recording that this is an eyecalibration
 %myscreen.fishcamp = bitor(myscreen.fishcamp,bin2dec('101'));
 %fishcamp(1,myscreen.fishcamp);
+writeDigPort(16,2);
 
 for j = 1:myscreen.eyecalib.n
   mglClearScreen;
   mglGluDisk(myscreen.eyecalib.x(j),myscreen.eyecalib.y(j),myscreen.eyecalib.size/2,myscreen.eyecalib.color);
   mglFlush;
+  if ((myscreen.eyecalib.x(j) ~= 0) || (myscreen.eyecalib.y(j) ~= 0))
+    writeDigPort(48,2);
+  else
+    writeDigPort(16,2);
+  end
   startTime = mglGetSecs;
   if ~isinf(myscreen.eyecalib.waittime)
     while (myscreen.eyecalib.waittime > (mglGetSecs-startTime));
@@ -68,4 +75,5 @@ mglClearScreen;mglFlush;
 % reset fliptime
 myscreen.fliptime = inf;
 
+writeDigPort(16,2);
 

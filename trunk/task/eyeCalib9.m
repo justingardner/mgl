@@ -9,7 +9,8 @@
 function retval = eyeCalib9()
 
 % init the screen
-myscreen = initScreen;
+myscreen.background = 'gray';
+myscreen = initScreen(myscreen);
   
 % default paramaters for eye calibration
 myscreen.eyecalib.x = [5 0 -5 5 0 -5 5 0 -5];
@@ -20,5 +21,5 @@ myscreen.eyecalib.waittime = inf;
 % do eye calibration
 eyeCalibDisp(myscreen);
 myscreen = tickScreen(myscreen);
-fishcamp(1,0);
+
 
