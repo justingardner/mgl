@@ -38,7 +38,7 @@ task{2}{2}.parameter.coherence = 1;
 task{2}{2}.random = 1;
 % and set to remember the values for dir
 task{2}{2}.writetrace{1}.tracenum = 1;
-task{2}{2}.writetrace{1}.tracevar{1} = 'dir';
+task{2}{2}.writetrace{1}.tracevar = 'dir';
 task{2}{2}.writetrace{1}.usenum = 1;
 
 % initialize our task
