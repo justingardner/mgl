@@ -14,7 +14,7 @@
 %             will need to mex readDigPort.c, this requires
 %             you to install the NI-DAQmx Base Frameworks from:
 %             http://sine.ni.com/nips/cds/view/p/lang/en/nid/14480
-function retval = writeDigPort(portNum)
+function retval = writeDigPort(portNum,val)
 
 retval = 0;
 

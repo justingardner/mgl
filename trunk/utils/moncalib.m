@@ -43,8 +43,8 @@ end
 global verbose;
 verbose = 1;
 doGamma = 1;
-doExponent = 1;
-testExponent = 1;
+doExponent = 0;
+testExponent = 0;
 testTable = 1;
 doBittest = 1;
 
@@ -75,13 +75,22 @@ if ~isfield(calib,'bittest') | ~isfield(calib,'uncorrected') | ...
       (~isfield(calib,'tableCorrected') & testTable)
   justdisplay = 0;
   % open the serial port
-  portnum = initSerialPort;
-  if (portnum == 0),return,end
-
-  % init the device
-  if (photometerInit(portnum) == -1)
-    closeSerialPort(portnum);
-    return
+  if askuser('Do you want to do an auto calibration using the serial port')
+    portnum = initSerialPort;
+    if (portnum == 0),return,end
+    % init the device
+    if (photometerInit(portnum) == -1)
+      closeSerialPort(portnum);
+      return
+    end
+  else
+    % manual calibration
+    portnum = [];
+    verbose = 0;
+    % ask the user if they want to do these things, since they
+    % take a long time
+    testTable = askuser('After calibration you can test the calibration, but this will force you to measure the luminances twice, do you want to test the calibration');
+    doBittest = askuser('Do you want to test whether you have a 10 bit gamma table');
   end
 
   % ask to see if we want to save
@@ -122,7 +131,7 @@ if doGamma
  end
  figure;subplot(1,2,1);
  dispLuminanceFigure(calib.uncorrected);
-
+ hold on
  if doExponent
    % get the exponent
    calib.fit = fitExponent(calib.uncorrected.outputValues,calib.uncorrected.luminance,1);
@@ -207,7 +216,9 @@ end
 if ~justdisplay
   % close the serial port, it may be better to just leave it
   % open, so that it you don't have to restart the photometer each time
-  %closeSerialPort(portnum);
+  %if ~isempty(portnum)
+  %  closeSerialPort(portnum);
+  %mglCend
 
   % close the screen
   mglClose;
@@ -346,6 +357,13 @@ clc
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function [luminance x y] = photometerMeasure(portnum)
 
+if isempty(portnum)
+  luminance = getnum('Enter luminance measurement: ');
+  x = 0;
+  y = 0;
+  return
+end
+
 % retrieve any info that is pending from the photometer
 readSerialPort(portnum,1024);
 % now take a measurement and read
@@ -478,8 +496,7 @@ function r = getnum(str,range)
 
 % check arguments
 if nargin~=2
-  help getnum
-  return
+  range = [];
 end
 
 r = [];
@@ -495,7 +512,7 @@ while(isempty(r))
     r = [];
   end
   % check if it is in range
-  if isempty(r) || ~any(r==range)
+  if isempty(r) || (~isempty(range) && ~any(r==range))
     r = [];
   end
 end
