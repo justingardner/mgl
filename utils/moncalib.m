@@ -17,7 +17,6 @@
 %             mathworks site:
 %
 %http://www.mathworks.com/matlabcentral/fileexchange/loadFile.do?objectId=4952&objectType=file
-%
 %             If you want to rewrite this function to use a different
 %             serial port interface function, then you just need
 %             to change the functions initSerialPort, closeSerialPort
@@ -63,7 +62,7 @@ else
     calib.stepsize = stepsize;
   end
   if ~exist('numRepeats','var')
-    calib.numRepeats = 2;
+    calib.numRepeats = 4;
   else
     calib.numRepeats = numRepeats;
   end
@@ -95,7 +94,7 @@ if ~isfield(calib,'bittest') | ~isfield(calib,'uncorrected') | ...
 
   % ask to see if we want to save
   if askuser('Do you want to save the calibration')
-    moncalib.filename = getSaveFilename(getHostName);
+    calib.filename = getSaveFilename(getHostName);
   end
   
   % now open the screen
@@ -107,9 +106,10 @@ testRange = 0:calib.stepsize:1;
 % choose the range of values over which to test for the number
 % of bits the gamma table can be set to
 if ~isfield(calib,'bittest'),
-  calib.bittest.stepsize = 2048;
+  calib.bittest.stepsize = 2^11;
   calib.bittest.base = 0.5;
   calib.bittest.n = 8;
+  calib.bittest.numRepeats = 24;
 end
 % The range will start at bittest.base and then go through bittest.n
 % steps of size bittest.stepsize. A 10 bit monitor should step up
@@ -198,18 +198,22 @@ if doGamma
  if testTable || testExponent
    % plot the ideal
    plot(calib.uncorrected.outputValues,calib.uncorrected.outputValues*(max(calib.uncorrected.luminance)-min(calib.uncorrected.luminance))+min(calib.uncorrected.luminance),'g-');
-   mylegend({'uncorrected','corrected (gamma)','corrected (table)','ideal'},{'ko','ro','co','go'},2);
+   if isfield(calib,'gamma')
+     mylegend({'uncorrected','corrected (gamma)','corrected (table)','ideal'},{'ko','ro','co','go'},2);
+   else
+     mylegend({'uncorrected','corrected (table)','ideal'},{'ko','co','go'},2);
+   end
  end
 end
 
 if doBittest
   % test to see how many bits we have in the gamma table
   disp(sprintf('Testing how many bits the gamma table is'));
-  if ~isfield(calib.bittest,'luminance')
-    calib.bittest = measureOutput(portnum,bitTestRange,calib.numRepeats);
+  if ~isfield(calib.bittest,'data')
+    calib.bittest.data = measureOutput(portnum,bitTestRange,calib.bittest.numRepeats);
   end
   subplot(1,2,2);
-  dispLuminanceFigure(calib.bittest);
+  dispLuminanceFigure(calib.bittest.data);
   title(sprintf('Output starting at %0.2f\nin steps of 1/%i',calib.bittest.base,calib.bittest.stepsize));
 end
 
