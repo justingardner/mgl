@@ -301,15 +301,10 @@ myscreen.eyecalib.size = [0.2 0.2];
 myscreen.eyecalib.color = [1 1 0];
 myscreen.eyecalib.waittime = 1;
 
-% init stimulus names if it does not exist already
-if ~isfield(myscreen,'stimulusNames')
-  myscreen.stimulusNames = {};
-end
-
 mydisp(sprintf('-----------------------------\n'));
 
 myscreen.userHitEsc = 0;
-myscreen.flushOnce = 0;
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % support function that gets host name using system command
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
