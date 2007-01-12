@@ -40,7 +40,19 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%
 % flip screen
 %%%%%%%%%%%%%%%%%%%%%%%%%%%
-mglFlush();
+% normally we flush every screen update
+if ~myscreen.flushOnce
+  mglFlush();
+% but if flushOnce is set then we flush the screen once
+elseif myscreen.flushOnce == 1
+  mglFlush();
+  myscreen.flushOnce = 2;
+  myscreen.startOfFlush = mglGetSecs;
+% and then on subsequent calls we just wait 1/framesPerSecond
+elseif myscreen.flushOnce > 1
+  mglWaitSecs(myscreen.frametime-mglGetSecs(myscreen.startOfFlush));
+  myscreen.startOfFlush = mglGetSecs;
+end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%
 % check for dropped frames
