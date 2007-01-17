@@ -284,8 +284,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   // get the height and width of the text image
   int pixelsWide = (abs(textImageRect.right)+abs(textImageRect.left))+5;
   int pixelsHigh = (abs(textImageRect.bottom)+abs(textImageRect.top))+3;
-  //pixelsWide = (int)(16.0*ceil(((double)pixelsWide)/16.0));
-  //pixelsHigh = (int)(16.0*ceil(((double)pixelsHigh)/16.0));
+  pixelsWide = (int)(2.0*ceil(((double)pixelsWide)/2.0));
+  pixelsHigh = (int)(2.0*ceil(((double)pixelsHigh)/2.0));
 
   ////////////////////////////////////
   // allocate bitmap context
