@@ -10,9 +10,9 @@
 %       e.g.: 
 %
 %mglOpen
-%mglScreenCoordinates
-%mglTextSet('Helvetica',32,[1 1 1]);
-%thisText = mglText('hello')
+%mglVisualAngleCoordinates(57,[16 12]);
+%mglTextSet('Helvetica',32,[1 1 1],0,0,0);
+%thisText = mglText('Hello')
 %mglBltTexture(thisText,[0 0],'left','top');
 %mglFlush;
 
