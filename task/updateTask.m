@@ -30,7 +30,7 @@ if (task{tnum}.blocknum == 0) || (task{tnum}.trialnum > task{tnum}.block(task{tn
 end
 
 % if we have finished how many trials were called for go to next task
-if (task{tnum}.trialnumTotal > task{tnum}.numTrials)
+if (task{tnum}.trialnumTotal >= task{tnum}.numTrials)
   tnum = tnum+1;
   [task myscreen tnum] = updateTask(task,myscreen,tnum);
   return
@@ -233,7 +233,6 @@ end
 % set up start time to tell routines to init trial properly
 [task myscreen] = initTrial(task,myscreen);
 task.trialnum = 1;
-task.trialnumTotal = 1;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % init trial
