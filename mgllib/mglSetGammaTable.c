@@ -51,7 +51,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   double redMin,redMax,redGamma,greenMin,greenMax,greenGamma,blueMin,blueMax,blueGamma;
   int useFormula = 0;
   double *redInputTable,*greenInputTable,*blueInputTable,*inputTable;
-  int tableSize = 0,i;
+  int numTableEntries = 0,i,rowOffset,tableEntrySize = 0;
   int systemTableSize;
 
 #ifdef __APPLE__
@@ -108,10 +108,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 	mexPrintf("(mglSetGammaTable) Table structure must have redTable, greenTable and blueTable\n");
 	return;
       }
-      tableSize = mxGetN(redInputArray);
+      numTableEntries = mxGetN(redInputArray);
       // and check that they are the right length
-      if ((mxGetN(greenInputArray)!=tableSize) || (mxGetN(blueInputArray)!=tableSize)) {
-	mexPrintf("(mglSetGammaTable) Tables in structure must all have have the same %i elements\n",tableSize);
+      if ((mxGetN(greenInputArray)!=numTableEntries) || (mxGetN(blueInputArray)!=numTableEntries)) {
+	mexPrintf("(mglSetGammaTable) Tables in structure must all have have the same %i elements\n",numTableEntries);
 	return;
       }
       // now get the ponters
@@ -119,7 +119,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       greenInputTable = (double *)mxGetPr(greenInputArray);
       blueInputTable = (double *)mxGetPr(blueInputArray);
       // now set the table
-      for (i=0;i<tableSize;i++) {
+      for (i=0;i<numTableEntries;i++) {
 #ifdef __APPLE__
 	redTable[i] = (CGGammaValue)redInputTable[i];
 	greenTable[i] = (CGGammaValue)greenInputTable[i];
@@ -131,14 +131,25 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 	blueTable[i] = (GAMMAVALUE)MAXGAMMAVALUE*blueInputTable[i];	
 #endif
       }
-    } else {
+    } 
+    else {
       // Get values from vector/array input
       // get size of table and table pointer
-      tableSize = mxGetM(prhs[0]);
+      // allow the user o pass either a row or column vector
+      numTableEntries = mxGetN(prhs[0]);
+      rowOffset = 1;
+      tableEntrySize = mxGetM(prhs[0]);
+      if (numTableEntries < tableEntrySize) {
+	numTableEntries = mxGetM(prhs[0]);
+	rowOffset = numTableEntries;
+	tableEntrySize = mxGetN(prhs[0]);
+      }
+      if (verbose)
+	mexPrintf("(mglSetGammaTable) %ix%i\n",numTableEntries,tableEntrySize);
       inputTable = (double *)mxGetPr(prhs[0]);
       // if the table size is 9 then this means that we are setting
       // by formula
-      if ((mxGetM(prhs[0]) == 1) && (mxGetN(prhs[0]) == 9)) {
+      if ((tableEntrySize == 1) && (numTableEntries == 9)) {
 	useFormula = 1;
 	// set the function values
 	redMin = inputTable[0];redMax = inputTable[1];redGamma = inputTable[2];
@@ -147,15 +158,15 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       }
       // looks like it is not a formula, see what kind of table it is
       else {
-	if (mxGetN(prhs[0]) == 1) {
+	if (tableEntrySize == 1) {
 	  if (verbose) mexPrintf("(mglSetGammaTable) Using same table for RGB\n");
-	  if (verbose) mexPrintf("(mglSetGammaTable) tableSize = %i\n",tableSize);
-	  if (tableSize != systemTableSize) {
-	    mexPrintf("(mglSetGammaTable) UHOH: Table size (n=%i) differs from system table size %i\n",tableSize,systemTableSize);
+	  if (verbose) mexPrintf("(mglSetGammaTable) numTableEntries = %i\n",numTableEntries);
+	  if (numTableEntries != systemTableSize) {
+	    mexPrintf("(mglSetGammaTable) UHOH: Table size (n=%i) differs from system table size %i\n",numTableEntries,systemTableSize);
 	    return;
 	  }
 	  // and set the tables from the input table
-	  for (i=0;i<tableSize;i++) {
+	  for (i=0;i<numTableEntries;i++) {
 #ifdef __APPLE__
 	    redTable[i] = (CGGammaValue)inputTable[i];
 	    greenTable[i] = (CGGammaValue)inputTable[i];
@@ -168,24 +179,24 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 #endif
 	  }
 	}
-	else if (mxGetN(prhs[0]) == 3) {
+	else if (tableEntrySize == 3) {
 	  if (verbose) mexPrintf("(mglSetGammaTable) Using different tables for RGB\n");
-	  if (verbose) mexPrintf("(mglSetGammaTable) tableSize = %i\n",tableSize);
-	  if (tableSize != systemTableSize) {
-	    mexPrintf("(mglSetGammaTable) UHOH: Table size (n=%i) differs from system table size %i\n",tableSize,systemTableSize);
+	  if (verbose) mexPrintf("(mglSetGammaTable) numTableEntries = %i\n",numTableEntries);
+	  if (numTableEntries != systemTableSize) {
+	    mexPrintf("(mglSetGammaTable) UHOH: Table size (n=%i) differs from system table size %i\n",numTableEntries,systemTableSize);
 	    return;
 	  }
 	  // and set the tables from the input table
-	  for (i=0;i<tableSize;i++) {
+	  for (i=0;i<numTableEntries;i++) {
 #ifdef __APPLE__
 	    redTable[i] = (CGGammaValue)inputTable[i];
-	    greenTable[i] = (CGGammaValue)inputTable[i+tableSize];
-	    blueTable[i] = (CGGammaValue)inputTable[i+2*tableSize];
+	    greenTable[i] = (CGGammaValue)inputTable[i+rowOffset];
+	    blueTable[i] = (CGGammaValue)inputTable[i+2*rowOffset];
 #endif
 #ifdef __linux__
 	    redTable[i] = (GAMMAVALUE)MAXGAMMAVALUE*inputTable[i];
-	    greenTable[i] = (GAMMAVALUE)MAXGAMMAVALUE*inputTable[i+tableSize];
-	    blueTable[i] = (GAMMAVALUE)MAXGAMMAVALUE*inputTable[i+2*tableSize];	
+	    greenTable[i] = (GAMMAVALUE)MAXGAMMAVALUE*inputTable[i+rowOffset];
+	    blueTable[i] = (GAMMAVALUE)MAXGAMMAVALUE*inputTable[i+2*rowOffset];	
 #endif
 	  }
 	}
@@ -200,15 +211,15 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   else if (nrhs == 3) {
     if (verbose) mexPrintf("(mglSetGammaTable) Using different tables for RGB\n");
     // get size of table
-    tableSize = mxGetN(prhs[0]);
-    if ((tableSize != mxGetN(prhs[1])) || (tableSize != mxGetN(prhs[2]))) {
+    numTableEntries = mxGetN(prhs[0]);
+    if ((numTableEntries != mxGetN(prhs[1])) || (numTableEntries != mxGetN(prhs[2]))) {
       mexPrintf("(mglSetGammaTable) UHOH: All three tables should be of same length\n");
       return;
     }
     // display some info
-    if (verbose) mexPrintf("(mglSetGammaTable) tableSize = %i\n",tableSize);
-    if (tableSize != systemTableSize) {
-      mexPrintf("(mglSetGammaTable) UHOH: Table size (n=%i) differs from system table size %i\n",tableSize,systemTableSize);
+    if (verbose) mexPrintf("(mglSetGammaTable) numTableEntries = %i\n",numTableEntries);
+    if (numTableEntries != systemTableSize) {
+      mexPrintf("(mglSetGammaTable) UHOH: Table size (n=%i) differs from system table size %i\n",numTableEntries,systemTableSize);
       return;
     }
     // get table pointer
@@ -216,7 +227,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     greenInputTable = (double *)mxGetPr(prhs[1]);
     blueInputTable = (double *)mxGetPr(prhs[2]);
     // and set the tables fom the input tables
-    for (i=0;i<tableSize;i++) {
+    for (i=0;i<numTableEntries;i++) {
 #ifdef __APPLE__
 	redTable[i] = (CGGammaValue)redInputTable[i];
 	greenTable[i] = (CGGammaValue)greenInputTable[i];
@@ -295,7 +306,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     }
     else {
       if (verbose) mexPrintf("(mglSetGammaTable) Using table\n");
-      errorNum = CGSetDisplayTransferByTable(whichDisplay,tableSize,redTable,greenTable,blueTable);
+      errorNum = CGSetDisplayTransferByTable(whichDisplay,numTableEntries,redTable,greenTable,blueTable);
     }
 
     if (errorNum) {
