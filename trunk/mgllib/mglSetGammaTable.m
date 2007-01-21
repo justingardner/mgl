@@ -27,11 +27,11 @@
 %             blueGammaTable = (0:1/255:1).^0.75;
 %             mglSetGammaTable(redGammaTable,greenGammaTable,blueGammaTable);
 %            
-%             can also be called with an nx3 table
+%             can also be called with an 3xn table
 %
-%             gammaTable(:,1) = (0:1/255:1).^0.8;
-%             gammaTable(:,2) = (0:1/255:1).^0.9;
-%             gammaTable(:,3) = (0:1/255:1).^0.75;
+%             gammaTable(1,:) = (0:1/255:1).^0.8;
+%             gammaTable(2,:) = (0:1/255:1).^0.9;
+%             gammaTable(3,:) = (0:1/255:1).^0.75;
 %             mglSetGammaTable(gammaTable);
 %
 %             can also be called with the structure returned
