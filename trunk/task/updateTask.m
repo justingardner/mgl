@@ -82,13 +82,7 @@ if task{tnum}.thistrial.segstart == -inf
     task{tnum}.thistrial.segstart = mglGetSecs;
   end
   task{tnum} = resetSegmentClock(task{tnum},myscreen);
-  % get trial parameters
-  if task{tnum}.thistrial.thisseg == 1
-    for i = 1:task{tnum}.parameterN
-      eval(sprintf('task{tnum}.thistrial.%s = task{tnum}.block(task{tnum}.blocknum).parameter.%s(:,task{tnum}.trialnum);',task{tnum}.parameterNames{i},task{tnum}.parameterNames{i}));
-    end
-  end
-  % set stimulus parameters
+  % call segment start callback
   [task{tnum} myscreen] = feval(task{tnum}.callback.startSegment,task{tnum},myscreen);
 end
 
@@ -139,6 +133,8 @@ if (segover)
     % update the trial number
     task{tnum}.trialnum = task{tnum}.trialnum + 1;
     task{tnum}.trialnumTotal = task{tnum}.trialnumTotal+1;
+    % set the trial to init when it hits updateTrial again 
+    % (this will happen from the updateTask called below)
     task{tnum}.thistrial.waitingToInit = 1;
     % now we have to update the task
     [task myscreen tnum] = updateTask(task,myscreen,tnum);
@@ -151,7 +147,7 @@ if (segover)
   if task{tnum}.writeSegmentsTrace
     myscreen = writeTrace(task{tnum}.thistrial.thisseg,task{tnum}.writeSegmentsTrace,myscreen,1);
   end
-  % set stimulus parameters
+  % call segment start callback
   [task{tnum} myscreen] = feval(task{tnum}.callback.startSegment,task{tnum},myscreen);
 end
 
@@ -181,52 +177,18 @@ function [task myscreen] = initBlock(task,myscreen)
 % start up a new block
 % select a randomization of trial parameters
 task.blocknum = task.blocknum+1;
-% get a randomperm for use for total randomization
-completeRandperm = randperm(task.parameterTotalN);
-% create a randomization of the parameters
-innersize = 1;
-for paramnum = 1:task.parameterN
-  paramnums = [];
-  for rownum = 1:task.parameterSize(paramnum,1)
-    lastcol = 0;
-    for paramreps = 1:(task.parameterTotalN/task.parameterSize(paramnum,2))/innersize
-      % if we need to randomize, then do it here so that
-      % arrays with multiple rows have different randomizations
-      if task.random > 0
-	thisparamnums = randperm(task.parameterSize(paramnum,2));
-      else
-	thisparamnums = 1:task.parameterSize(paramnum,2);
-      end
-      % spread it out over inner dimensions
-      thisparamnums = thisparamnums*repmat(eye(length(thisparamnums)),1,innersize);
-      thisparamnums = reshape(reshape(thisparamnums,length(thisparamnums)/innersize,innersize)',1,length(thisparamnums));
-      % stick into array appropriately
-      paramnums(rownum,lastcol+1:lastcol+length(thisparamnums)) = thisparamnums;
-      lastcol = lastcol+length(thisparamnums);
-    end
-  end
-  % need to convert it
-  for rownum = 1:task.parameterSize(paramnum,1)
-    % and then convert the numbers into proper subscripts to
-    % actually get the proper stimulus values
-    paramnums(rownum,:) = (paramnums(rownum,:)-1)*task.parameterSize(paramnum,1)+rownum;
-    % if we complete randomization then do it here
-    if task.random == 1
-      paramnums(rownum,:) = paramnums(rownum,completeRandperm);
-    end
-  end
-  % now go and set this blocks parameters appropriately
-  eval(sprintf('task.block(task.blocknum).parameter.%s = task.parameter.%s(paramnums);',task.parameterNames{paramnum},task.parameterNames{paramnum}));
-  
-  % update the size of the inner dimensions
-  innersize = innersize*task.parameterSize(paramnum,2);
+
+% update the parameter order for this block
+% using the randomization callback, if this
+% pass previous block if it is available
+if task.blocknum > 1
+  task.block(task.blocknum) = feval(task.callback.rand,task.parameter,[],task.block(task.blocknum-1),task);
+else
+  task.block(task.blocknum) = feval(task.callback.rand,task.parameter,[],[],task);
 end
 
-% set the total number of trials in block
-task.block(task.blocknum).trialn = task.parameterTotalN;
-
 % set the initial trial
-task.trialnum = 0;
+task.trialnum = 1;
 
 % call the init block callback
 if isfield(task.callback,'startBlock')
@@ -235,7 +197,6 @@ end
 
 % set up start time to tell routines to init trial properly
 [task myscreen] = initTrial(task,myscreen);
-task.trialnum = 1;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % init trial
@@ -279,7 +240,7 @@ else
 end
 
 % see if we need to wait for backtick
-if task.waitForBacktick && (task.blocknum == 1) && (task.trialnum == 0)
+if task.waitForBacktick && (task.blocknum == 1) && (task.trialnum == 1)
   task.thistrial.waitForBacktick = 1;
   disp(sprintf('Waiting for backtick (`)'));
 else
@@ -295,6 +256,12 @@ if isfield(task.callback,'startTrial')
   [task myscreen] = feval(task.callback.startTrial,task,myscreen);
 end
 
+% get trial parameters
+for i = 1:task.parameter.n
+  eval(sprintf('task.thistrial.%s = task.block(task.blocknum).parameter.%s(:,task.trialnum);',task.parameter.names{i},task.parameter.names{i}));
+end
+
+  % set stimulus parameters
 % the trial is no longer waiting to start
 task.thistrial.waitingToInit = 0;
 

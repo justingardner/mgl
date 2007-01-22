@@ -23,8 +23,8 @@ task{1}.waitForBacktick = 1;
 % is 3 seconds long followed by another that is 
 % 6-9 seconds (randomized in steps of 1.5 seconds)
 % change this to what you want for your trial
-task{1}.segmin = [3 6];
-task{1}.segmax = [3 9];
+task{1}.segmin = [1 1];
+task{1}.segmax = [1 1];
 task{1}.segquant = [0 1.5];
 % fix: enter the parameter of your choice
 task{1}.parameter.myParameter = [0 30 90];
@@ -34,9 +34,9 @@ task{1}.random = 1;
 % when.
 % fix: You will need to change this to save out the
 % parameters that you are actually want to keep track of.
-task{1}.writetrace{1}.tracenum = 1;
-task{1}.writetrace{1}.tracevar{1} = 'myParameter';
-task{1}.writetrace{1}.usenum = 1;
+task{1}.writeTrace{1}.tracenum = 1;
+task{1}.writeTrace{1}.tracevar{1} = 'myParameter';
+task{1}.writeTrace{1}.usenum = 1;
 
 % initialize the task
 for phaseNum = 1:length(task)
