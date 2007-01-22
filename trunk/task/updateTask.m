@@ -116,6 +116,9 @@ else
       % then see if we have gone past that volume	
       elseif task{tnum}.thistrial.synchVol < myscreen.volnum
 	segover = 1;
+	% reset the segment time to match how much time elapsed
+	% so that the next segment won't be shortened
+	task{tnum}.thistrial.seglen(task{tnum}.thistrial.thisseg) = mglGetSecs-task{tnum}.thistrial.segstart;
       end
     %w/out synch to volume the segment is over
     else
