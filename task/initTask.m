@@ -31,6 +31,9 @@
 %    [task myscreen] = startBlockCallback(task,myscreen)
 %    Gets called at beginning of block
 %
+%    block = randCallback(paramaters,block,previousBlock,task);
+%    gets called at beginning of block to randomize parameters
+%
 %    outputs: task
 %    purpose: initializes task for stimuli programs - you need to
 %    write functions (and provide function handles to them) to
@@ -39,7 +42,8 @@
 % 
 function task = initTask(task, myscreen, startSegmentCallback, ...
 			 drawStimulusCallback, trialResponseCallback,...
-			 startTrialCallback, endTrialCallback, startBlockCallback)
+			 startTrialCallback, endTrialCallback, startBlockCallback,...
+			 randCallback);
 
 if ~any(nargin == [4:8])
   help initTask;
@@ -71,19 +75,19 @@ if ~isfield(task,'parameter')
 end
 
 % find out how many parameters we have
-task.parameterNames = fieldnames(task.parameter);
-task.parameterN = length(task.parameterNames);
-for i = 1:task.parameterN
-  paramsize = eval(sprintf('size(task.parameter.%s)',task.parameterNames{i}));
+task.parameter.names = fieldnames(task.parameter);
+task.parameter.n = length(task.parameter.names);
+for i = 1:task.parameter.n
+  paramsize = eval(sprintf('size(task.parameter.%s)',task.parameter.names{i}));
   % check for column vectors
   if (paramsize(1) > 1) && (paramsize(2) == 1)
     if task.verbose
-      disp(sprintf('Parameter %s is a column vector',task.parameterNames{i}));
+      disp(sprintf('Parameter %s is a column vector',task.parameter.names{i}));
     end
   end
-  task.parameterSize(i,:) = eval(sprintf('size(task.parameter.%s)',task.parameterNames{i}));
+  task.parameter.size(i,:) = eval(sprintf('size(task.parameter.%s)',task.parameter.names{i}));
 end
-task.parameterTotalN = prod(task.parameterSize(:,2));
+task.parameter.totalN = prod(task.parameter.size(:,2));
 
 % set up trial and block numbers
 task.blocknum = 0;
@@ -245,6 +249,11 @@ if exist('startTrialCallback','var') && ~isempty(startTrialCallback)
 end
 if exist('startBlockCallback','var') && ~isempty(startBlockCallback)
   task.callback.startBlock = startBlockCallback;
+end
+if exist('randCallback','var') && ~isempty(randCallback)
+  task.callback.rand = randCallback;
+else
+  task.callback.rand = @blockRandomization;
 end
 
 % get calling name

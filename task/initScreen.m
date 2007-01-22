@@ -30,6 +30,7 @@ screenParamsList = {'computerName','displayName','screenNumber',...
 		    'saveData','gammaFunction','calibFilename'};
 screenParams{1} = {'yoyodyne.cns.nyu.edu','projector',2,1280,1024,57,[31 23],[],[],60,1,0,defaultGammaFunction,'yoyodyne'};
 screenParams{end+1} = {'yoyodyne.cns.nyu.edu','lcd',2,1280,1024,157.5,[43.2 32.5],[],[],60,1,0,defaultGammaFunction,'yoyodyne'};
+screenParams{1} = {'yoyodyne.cns.nyu.edu','',2,1280,1024,57,[31 23],[],[],60,1,0,defaultGammaFunction,'yoyodyne'};
 screenParams{end+1} = {'Stimulus.local','projector',2,1024,768,57,[31 23],[],[],60,0,50,defaultGammaFunction,''};
 screenParams{end+1} = {'Stimulus.local','lcd',2,800,600,157.5,[43.2 32.5],[],[],60,0,50,[0 1 0.4790 0 1 0.4790 0 1 0.4790],''};
 screenParams{end+1} = {'stimulus-g5.local','projector',2,1024,768,57,[31 23],[],[],60,0,50,defaultGammaFunction,'stimulus-g5_projector'};

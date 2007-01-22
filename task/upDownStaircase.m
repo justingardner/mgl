@@ -159,3 +159,14 @@ end
 % keep track of direction we are in
 s.direction = stepdir;
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% returns first element of input array
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function retval = first(x)
+
+if (isempty(x))
+  retval = [];
+else
+  retval = x(1);
+end
+
