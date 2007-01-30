@@ -13,6 +13,6 @@
 %mglScreenCoordinates
 %mglTextSet('Helvetica',32,[1 1 1]);
 %thisText = mglText('hello')
-%mglBltTexture(thisText,[0 0],'left','top');
+%mglBltTexture(thisText,[0 0],-1,1); % -1 = left; 1 = bottom
 %mglFlush;
 
