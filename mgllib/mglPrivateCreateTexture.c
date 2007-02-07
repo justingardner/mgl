@@ -56,7 +56,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   // get status of global variable that sets wether to display
   // verbose information
   int verbose = (int)mglGetGlobalDouble("verbose");
-  
   // check for null input pointer
   if (mxGetPr(prhs[0]) == NULL) {
     mexPrintf("UHOH: Input is empty\n");
@@ -208,11 +207,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   
 #endif 
   
+  // error status checking commented out, since it just returns
+  // a number that doesn't mean anything to the user.
+  //GLenum err=glGetError();
+  //if (err != noErr) {
+  //  mexPrintf("(mglCreateTexture): Got gl error number %i\n", err);
+  //}
 
-  GLenum err=glGetError();
-  if (err) {
-    mexPrintf("%i\n", err);
-  }
   // free temporary image storage
   free(imageFormatted);
 

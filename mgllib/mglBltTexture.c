@@ -122,12 +122,12 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   int inputRectRows = (int)mxGetM(prhs[1]);
   int inputRectOffset;
   if ((inputRectRows != 1) && (inputRectRows != numTextures)) {
-    mexPrintf("(mglBltTexture) Dest rect must be either 1 or number of texture rows long");
+    mexPrintf("(mglBltTexture) Dest rect must be either 1 or number of texture rows long\n");
     free(tex);
     return;
   }
-  if ((inputRectCols != 2) && (inputRectRows != 4)) {
-    mexPrintf("(mglBltTexture) Dest rect must be either 2 or 4 columns long");
+  if ((inputRectCols != 2) && (inputRectCols != 4)) {
+    mexPrintf("(mglBltTexture) Dest rect must be either 2 or 4 columns long\n");
     free(tex);
     return;
   }
@@ -403,9 +403,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   for (texnum = 0; texnum < numTextures; texnum++) {
 
     // calculate the amount of shift we need to
-    // move the axis
-    double xshift = tex[texnum].displayRect[0]+xPixelsToDevice*tex[texnum].imageWidth/2;
-    double yshift = tex[texnum].displayRect[1]+yPixelsToDevice*tex[texnum].imageHeight/2;
+    // move the axis (to center tex)
+    double xshift = tex[texnum].displayRect[0]+(tex[texnum].displayRect[2]-tex[texnum].displayRect[0])/2;
+  double yshift = tex[texnum].displayRect[1]+(tex[texnum].displayRect[3]-tex[texnum].displayRect[1])/2;
     tex[texnum].displayRect[3] -= yshift;
     tex[texnum].displayRect[2] -= xshift;
     tex[texnum].displayRect[1] -= yshift;
