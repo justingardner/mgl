@@ -101,6 +101,11 @@ if ~isfield(calib,'bittest') | ~isfield(calib,'uncorrected') | ...
   mglOpen(calib.screenNumber);
 end
 
+if ~isempty(portnum)
+  disp(sprintf('Starting in 20 seconds'));
+  mglWaitSecs(20);
+end
+
 % choose the range of values over which to do the gamma testing
 testRange = 0:calib.stepsize:1;
 % choose the range of values over which to test for the number
