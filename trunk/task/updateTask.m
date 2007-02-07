@@ -22,6 +22,8 @@ if (task{tnum}.blocknum == 0) || (task{tnum}.trialnum > task{tnum}.block(task{tn
   % then we need to go on to the next task
   if (task{tnum}.blocknum == task{tnum}.numBlocks)
     tnum = tnum+1;
+    % write out the phase
+    myscreen = writeTrace(tnum,task{1}.phaseTrace,myscreen);
     [task myscreen tnum] = updateTask(task, myscreen, tnum);
     return
   end
@@ -32,6 +34,8 @@ end
 % if we have finished how many trials were called for go to next task
 if (task{tnum}.trialnumTotal >= task{tnum}.numTrials)
   tnum = tnum+1;
+  % write out the phase
+  myscreen = writeTrace(tnum,task{1}.phaseTrace,myscreen);
   [task myscreen tnum] = updateTask(task,myscreen,tnum);
   return
 end
@@ -65,10 +69,8 @@ if task{tnum}.thistrial.segstart == -inf
     end
   end
   % write out appropriate trace
+  myscreen = writeTrace(1,task{tnum}.segmentTrace,myscreen,1);
   myscreen = taskWriteTrace(task{tnum},myscreen);
-  if task{tnum}.writeSegmentsTrace
-    myscreen = writeTrace(1,task{tnum}.writeSegmentsTrace,myscreen,1);
-  end
   % restart segment clock and continue on
   % as if the segment just started
   if task{tnum}.timeInTicks
@@ -84,6 +86,17 @@ if task{tnum}.thistrial.segstart == -inf
   task{tnum} = resetSegmentClock(task{tnum},myscreen);
   % call segment start callback
   [task{tnum} myscreen] = feval(task{tnum}.callback.startSegment,task{tnum},myscreen);
+  % if this segment is set to getResponse(2), then it means that we 
+  % are getting response and shutting down flipping of the screen
+  % so that we can get better response time for reaction time tasks
+  if (task{tnum}.getResponse(task{tnum}.thistrial.thisseg)==2)
+    % call the display function now, and flush screen
+    [task{tnum} myscreen] = feval(task{tnum}.callback.screenUpdate,task{tnum},myscreen);
+    mglFlush;
+    % now set not to update the screen while we wait for response
+    myscreen.oldFlushMode = myscreen.flushMode;
+    myscreen.flushMode = -1;
+  end
 end
 
 % check to see if we have gone over segment time
@@ -123,6 +136,11 @@ end
 
 % update the segment if necessary
 if (segover)
+  % reset flush mode if we just finished a reactionTime response interval
+  if (task{tnum}.getResponse(task{tnum}.thistrial.thisseg)==2)
+    myscreen.flushMode = myscreen.oldFlushMode;
+  end
+  % now update segment counter
   task{tnum}.thistrial.thisseg = task{tnum}.thistrial.thisseg + 1;
   % if we have completed all segments then we are done
   if (task{tnum}.thistrial.thisseg > length(task{tnum}.thistrial.seglen))
@@ -143,12 +161,21 @@ if (segover)
   % restart segment clock
   task{tnum} = resetSegmentClock(task{tnum},myscreen);
   % write out appropriate trace
+  myscreen = writeTrace(task{tnum}.thistrial.thisseg,task{tnum}.segmentTrace,myscreen,1);
   myscreen = taskWriteTrace(task{tnum},myscreen);
-  if task{tnum}.writeSegmentsTrace
-    myscreen = writeTrace(task{tnum}.thistrial.thisseg,task{tnum}.writeSegmentsTrace,myscreen,1);
-  end
   % call segment start callback
   [task{tnum} myscreen] = feval(task{tnum}.callback.startSegment,task{tnum},myscreen);
+  % if this segment is set to getResponse(2), then it means that we 
+  % are getting response and shutting down flipping of the screen
+  % so that we can get better response time for reaction time tasks
+  if (task{tnum}.getResponse(task{tnum}.thistrial.thisseg)==2)
+    % call the display funciton now, and flush screen
+    [task{tnum} myscreen] = feval(task{tnum}.callback.screenUpdate,task{tnum},myscreen);
+    mglFlush;
+    % now set not update the screen while we wait for response
+    myscreen.oldFlushMode = myscreen.flushMode;
+    myscreen.flushMode = -1;
+  end
 end
 
 % if we have to collect observer response, then look for that
@@ -157,17 +184,34 @@ if (task{tnum}.getResponse(task{tnum}.thistrial.thisseg))
   buttons = mglGetKeys(myscreen.keyboard.nums);
   % if a button was pressed, then record response
   if (any(buttons) && (~isequal(buttons,task{tnum}.thistrial.buttonState)))
+    % get the time of the button press
+    responseTime = mglGetSecs;
+    % set the button state to pass
     task{tnum}.thistrial.buttonState = buttons;
+    task{tnum}.thistrial.whichButton = find(buttons);
+    task{tnum}.thistrial.whichButton = task{tnum}.thistrial.whichButton(1);
+    % write out an event
+    myscreen = writeTrace(task{tnum}.thistrial.whichButton,task{tnum}.responseTrace,myscreen,1,responseTime);
+    % get reaction time
+    task{tnum}.thistrial.reactionTime = responseTime-task{tnum}.thistrial.segStartSeconds;
     if isfield(task{tnum}.callback,'trialResponse')
       [task{tnum} myscreen] = feval(task{tnum}.callback.trialResponse,task{tnum},myscreen);
     end
+    % set flush mode back
+    if (task{tnum}.getResponse(task{tnum}.thistrial.thisseg)==2)
+      myscreen.flushMode = myscreen.oldFlushMode;
+    end
+    % and set that we have got a response
+    task{tnum}.thistrial.gotResponse = 1;
   end
   % remember the current button state
   task{tnum}.thistrial.buttonState = buttons;
 end
 
-% update the stimuli
-[task{tnum} myscreen] = feval(task{tnum}.callback.drawStimulus,task{tnum},myscreen);
+% update the stimuli, but only if we are actually updating the screen
+if myscreen.flushMode >= 0
+  [task{tnum} myscreen] = feval(task{tnum}.callback.screenUpdate,task{tnum},myscreen);
+end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % init block
@@ -182,9 +226,9 @@ task.blocknum = task.blocknum+1;
 % using the randomization callback, if this
 % pass previous block if it is available
 if task.blocknum > 1
-  task.block(task.blocknum) = feval(task.callback.rand,task.parameter,[],task.block(task.blocknum-1),task);
+  task.block(task.blocknum) = feval(task.callback.rand,task.parameter,task.block(task.blocknum-1));
 else
-  task.block(task.blocknum) = feval(task.callback.rand,task.parameter,[],[],task);
+  task.block(task.blocknum) = feval(task.callback.rand,task.parameter,[]);
 end
 
 % set the initial trial
@@ -257,11 +301,15 @@ if isfield(task.callback,'startTrial')
 end
 
 % get trial parameters
-for i = 1:task.parameter.n
-  eval(sprintf('task.thistrial.%s = task.block(task.blocknum).parameter.%s(:,task.trialnum);',task.parameter.names{i},task.parameter.names{i}));
+for i = 1:task.parameter.n_
+  eval(sprintf('task.thistrial.%s = task.block(task.blocknum).parameter.%s(:,task.trialnum);',task.parameter.names_{i},task.parameter.names_{i}));
 end
 
-  % set stimulus parameters
+% get randomization parameters
+for i = 1:task.randVars.n_
+  eval(sprintf('task.thistrial.%s = task.randVars.%s(mod(task.trialnum-1,task.randVars.varlen_(%i))+1);',task.randVars.names_{i},task.randVars.names_{i},i));
+end
+
 % the trial is no longer waiting to start
 task.thistrial.waitingToInit = 0;
 
@@ -294,10 +342,10 @@ if (isfield(task.writeTrace{task.thistrial.thisseg},'tracenum'))
   for i = 1:length(thisWriteTrace.tracenum)
     tracenum = thisWriteTrace.tracenum(i)-1+myscreen.stimtrace;
     % get the value of the called for parameter
-    paramval = eval(sprintf('task.block(task.blocknum).parameter.%s(%i,task.trialnum)',thisWriteTrace.tracevar{i},thisWriteTrace.tracerow(i)));
+    paramval = eval(sprintf('task.thistrial.%s(%i)',thisWriteTrace.tracevar{i},thisWriteTrace.tracerow(i)));
     if (thisWriteTrace.usenum(i))
       % find parameter number
-      paramval = eval(sprintf('find(paramval == task.parameter.%s(%i,:))',thisWriteTrace.tracevar{i},thisWriteTrace.tracerow(i)));
+      paramval = eval(sprintf('find(paramval == %s(%i,:))',thisWriteTrace.original{i},thisWriteTrace.tracerow(i)));
     end
     eval(sprintf('myscreen = writeTrace(paramval,thisWriteTrace.tracenum(i)-1+myscreen.stimtrace,myscreen,1);',thisWriteTrace.tracevar{i},thisWriteTrace.tracerow(i)));
   end

@@ -1,7 +1,7 @@
 % initTask - initializes task for stimuli programs
 %
 %      usage: [ task ] = initTask( task, myscreen, startSegmentCallback, ...
-%			 drawStimulusCallback, trialResponseCallback, ...
+%			 screenUpdateCallback, trialResponseCallback, ...
 %			 startTrialCallback, endTrialCallback, startBlockCallback )
 %        $Id$
 %         by: justin gardner
@@ -17,9 +17,10 @@
 %    variable settings for the trial are available in
 %    task.thistrial (Mandatory)
 %
-%    [task myscreen] = drawStimulusCallback(task,myscreen)
+%    [task myscreen] = screenUpdateCallback(task,myscreen)
 %    Gets called on every display tick. Responsible for drawing the
-%    stimulus to the screen  (Mandatory)
+%    stimulus to the screen for stimuli that are update every frame
+%    (Mandatory)
 %
 %    [task myscreen] = trialResponseCallback(task,myscreen)
 %    Gets called if getResponse is set in the trial segment 
@@ -41,7 +42,7 @@
 %
 % 
 function task = initTask(task, myscreen, startSegmentCallback, ...
-			 drawStimulusCallback, trialResponseCallback,...
+			 screenUpdateCallback, trialResponseCallback,...
 			 startTrialCallback, endTrialCallback, startBlockCallback,...
 			 randCallback);
 
@@ -55,7 +56,7 @@ if ~isfield(task,'verbose')
 end
 
 % check for capitalization errors
-knownFieldnames = {'verbose','parameter','seglen','segmin','segmax','segquant','synchToVol','writeTrace','getResponse','numBlocks','numTrials','waitForBacktick','random','timeInTicks','timeInVols','writeSegmentsTrace','parameterCode','private'};
+knownFieldnames = {'verbose','parameter','seglen','segmin','segmax','segquant','synchToVol','writeTrace','getResponse','numBlocks','numTrials','waitForBacktick','random','timeInTicks','timeInVols','segmentTrace','responseTrace','phaseTrace','parameterCode','private','randVars'};
 taskFieldnames = fieldnames(task);
 for i = 1:length(taskFieldnames)
   matches = find(strcmp(upper(taskFieldnames{i}),upper(knownFieldnames)));
@@ -73,21 +74,6 @@ end
 if ~isfield(task,'parameter')
   task.parameter.default = 1;
 end
-
-% find out how many parameters we have
-task.parameter.names = fieldnames(task.parameter);
-task.parameter.n = length(task.parameter.names);
-for i = 1:task.parameter.n
-  paramsize = eval(sprintf('size(task.parameter.%s)',task.parameter.names{i}));
-  % check for column vectors
-  if (paramsize(1) > 1) && (paramsize(2) == 1)
-    if task.verbose
-      disp(sprintf('Parameter %s is a column vector',task.parameter.names{i}));
-    end
-  end
-  task.parameter.size(i,:) = eval(sprintf('size(task.parameter.%s)',task.parameter.names{i}));
-end
-task.parameter.totalN = prod(task.parameter.size(:,2));
 
 % set up trial and block numbers
 task.blocknum = 0;
@@ -134,8 +120,116 @@ if any((task.segmax - task.segmin) < 0)
   return
 end
 
-% check task.writeTrace to see if it conforms to expectations
-% make it extend to all segments
+randTypes = {'block','uniform'};
+% compute stuff fo random variables
+task.randVars.n_ = 0;
+% default to computing a length of 250
+if ~isfield(task.randVars,'len_'),task.randVars.len_ = 250;end
+% check the variable names for known randomization types
+randVarNames = fieldnames(task.randVars);
+originalNames = {};shortNames = {};
+for i = 1:length(randVarNames)
+  % if we got one, then first initialize the randomization procedure
+  if any(strcmp(randVarNames{i},randTypes))
+    vars = [];
+    disp(sprintf('Computing randVars with %sRandomization.m',randVarNames{i}));
+    % we first loop over the length of the array, this is so
+    % that, in the case of block, for example, we can have
+    % randVars.block{1...n} so that we can have groups of blocked params
+    % if the variable is not already a cell array then make a
+    % cell array
+    thisRandVar = {};
+    if ~iscell(eval(sprintf('task.randVars.%s',randVarNames{i})))
+      thisRandVar{1} = eval(sprintf('task.randVars.%s',randVarNames{i}));
+      thisIsCell = 0;
+    else
+      thisRandVar = eval(sprintf('task.randVars.%s',randVarNames{i}));
+      thisIsCell = 1;
+    end
+    for varNum = 1:length(thisRandVar)
+      
+      eval(sprintf('vars = %sRandomization(thisRandVar{varNum});',randVarNames{i}));
+      % compute blocks of trials until we have enough
+      varBlock = [];totalTrials = 0;
+      % init variables
+      for vnum = 1:vars.n_
+	eval(sprintf('task.randVars.%s = [];',vars.names_{vnum}));
+        % now get original names
+	if thisIsCell
+	  shortNames{end+1} = vars.names_{vnum};
+	  originalNames{end+1} = sprintf('task.randVars.%s{%i}.%s',randVarNames{i},varNum,vars.names_{vnum});
+	else
+	  shortNames{end+1} = vars.names_{vnum};
+	  originalNames{end+1} = sprintf('task.randVars.%s.%s',randVarNames{i},vars.names_{vnum});
+	end
+      end
+      % now keep calculating blocks of the randvars until we have enough
+      while totalTrials < task.randVars.len_
+	eval(sprintf('varBlock = %sRandomization(vars,varBlock);',randVarNames{i}));
+	totalTrials = totalTrials+varBlock.trialn;
+	for vnum = 1:vars.n_
+	  eval(sprintf('task.randVars.%s = [task.randVars.%s varBlock.parameter.%s];',vars.names_{vnum},vars.names_{vnum},vars.names_{vnum}));
+	end
+      end
+    end
+  end
+end
+
+% now go through all of our variables and make a list of names
+% and store how long they are
+randVarNames = fieldnames(task.randVars);
+for i = 1:length(randVarNames)
+  % check if it is a random variable
+  if ~any(strcmp(randVarNames{i},{'block','uniform'})) && isempty(regexp(randVarNames{i},'_$'))
+    task.randVars.n_ = task.randVars.n_+1;
+    task.randVars.names_{task.randVars.n_} = randVarNames{i};
+    task.randVars.varlen_(task.randVars.n_) = eval(sprintf('length(task.randVars.%s)',randVarNames{i}));
+    if any(strcmp(randVarNames{i},shortNames))
+      task.randVars.originalName_{task.randVars.n_} = originalNames{find(strcmp(randVarNames{i},shortNames))};
+    else
+      task.randVars.originalName_{task.randVars.n_} = sprintf('task.randVars.%s',randVarNames{i});
+    end      
+  end
+end
+
+% new way of setting up write trace
+if isfield(task,'writeTrace') && isstruct(task.writeTrace)
+  writeTrace = task.writeTrace;
+  task = rmfield(task,'writeTrace');
+  for i = 1:task.numsegs
+    task.writeTrace{i} = {};
+  end
+  % go through all variables to be written
+  for i = 1:length(writeTrace.tracenum)
+    % get the segment num or default to 1
+    if isfield(writeTrace,'segnum') && (length(writeTrace.segnum)>=i)
+      segnum = writeTrace.segnum(i);
+    else
+      segnum = 1;
+    end
+    % write the trace variable
+    thisTracevarNum = 1;
+    if isfield(task.writeTrace{segnum},'tracevar')
+      thisTracevarNum = length(task.writeTrace{segnum}.tracevar)+1;
+    end
+    task.writeTrace{segnum}.tracevar{thisTracevarNum} = writeTrace.tracevar{i};
+    % the row
+    if isfield(writeTrace,'tracerow') && (length(writeTrace.tracerow)>=i)
+      task.writeTrace{segnum}.tracerow(thisTracevarNum) = writeTrace.tracerow(i);
+    end
+    % the tracenum
+    if isfield(writeTrace,'tracenum') && (length(writeTrace.tracenum)>=i)
+      task.writeTrace{segnum}.tracenum(thisTracevarNum) = writeTrace.tracenum(i);
+    end
+    % and usenum
+    if isfield(writeTrace,'usenum') && (length(writeTrace.usenum)>=i)
+      task.writeTrace{segnum}.usenum(thisTracevarNum) = writeTrace.usenum(i);
+    end
+  end
+end
+
+% this is the old way of setting up. first check to see if we have
+% enough segments
 if ~isfield(task,'writeTrace'),task.writeTrace = {};,end
 for i = (length(task.writeTrace)+1):task.numsegs
   task.writeTrace{i} = {};
@@ -167,14 +261,18 @@ for i = 1:length(task.writeTrace)
       end
       % see if variable called for exists
       thistracevar = task.writeTrace{i}.tracevar{j};
-      if ~isfield(task.parameter,thistracevar)
-	error(sprintf('UHOH: WriteTrace can not save variable %s (Does not exist)',thistracevar));
+      if isfield(task.parameter,thistracevar)
+	task.writeTrace{i}.original{j} = sprintf('task.parameter.%s',thistracevar);
+      elseif isfield(task.randVars,thistracevar)
+	task.writeTrace{i}.original{j} = task.randVars.originalName_{find(strcmp(thistracevar,task.randVars.names_))};
+      else
+	error(sprintf('(initTask): WriteTrace can not save variable %s (Does not exist)',thistracevar));
       end
       % see if tracerow is long enough
       thistracerow = task.writeTrace{i}.tracerow(j);
-      thissize = eval(sprintf('size(task.parameter.%s,1);',thistracevar));
+      thissize = eval(sprintf('size(%s,1);',task.writeTrace{i}.original{j}));
       if (thissize(1) < thistracerow)
-	error(sprintf('UHOH: WriteTrace can not write row %i of variable %s',thistracerow,thistracevar));
+	error(sprintf('(initTask): WriteTrace can not write row %i of variable %s',thistracerow,thistracevar));
       end
     end
   end
@@ -208,6 +306,7 @@ end
 if ~isfield(task,'random')
   task.random =  0;
 end
+task.parameter.doRandom_ = task.random;
 
 % check for time in ticks
 if ~isfield(task,'timeInTicks')
@@ -227,8 +326,14 @@ end
 % set how many total trials we have run
 task.trialnumTotal = 0;
 
-if ~isfield(task,'writeSegmentsTrace')
-  task.writeSegmentsTrace = 2;
+if ~isfield(task,'segmentTrace')
+  task.segmentTrace = 2;
+end
+if ~isfield(task,'responseTrace')
+  task.responseTrace = 3;
+end
+if ~isfield(task,'phaseTrace')
+  task.phaseTrace = 4;
 end
 
 % set function handles
@@ -238,8 +343,8 @@ end
 if exist('trialResponseCallback','var') && ~isempty(trialResponseCallback)
   task.callback.trialResponse = trialResponseCallback;
 end
-if exist('drawStimulusCallback','var') && ~isempty(drawStimulusCallback)
-  task.callback.drawStimulus = drawStimulusCallback;
+if exist('screenUpdateCallback','var') && ~isempty(screenUpdateCallback)
+  task.callback.screenUpdate = screenUpdateCallback;
 end
 if exist('endTrialCallback','var') && ~isempty(endTrialCallback)
   task.callback.endTrial = endTrialCallback;
@@ -256,13 +361,14 @@ else
   task.callback.rand = @blockRandomization;
 end
 
+% initialize the parameters
+task.parameter = feval(task.callback.rand,task.parameter);
+
 % get calling name
 [st,i] = dbstack;
 task.taskfilename = st(max(i+1,length(st))).file;
 
 % set the debug mode to stop on error
-dbstop if error
-
-
+%dbstop if error
 
 
