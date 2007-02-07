@@ -43,7 +43,7 @@ task{2}{2}.writeTrace{1}.usenum = 1;
 
 % initialize our task
 for phaseNum = 1:length(task{2})
-  task{2}{phaseNum} = initTask(task{2}{phaseNum},myscreen,@stimStartSegmentCallback,@stimDrawStimulusCallback);
+  task{2}{phaseNum} = initTask(task{2}{phaseNum},myscreen,@startSegmentCallback,@updateScreenCallback);
 end
 
 % init the stimulus
@@ -75,7 +75,7 @@ myscreen = endTask(myscreen,task);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % function that gets called at the start of each segment
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function [task myscreen] = stimStartSegmentCallback(task, myscreen)
+function [task myscreen] = startSegmentCallback(task, myscreen)
 
 global stimulus;
 if (task.thistrial.thisseg == 1)
@@ -88,7 +88,7 @@ stimulus.dots.dir = task.thistrial.dir;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % function that gets called to draw the stimulus each frame
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function [task myscreen] = stimDrawStimulusCallback(task, myscreen)
+function [task myscreen] = updateScreenCallback(task, myscreen)
 
 global stimulus
 mglClearScreen;
