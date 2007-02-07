@@ -19,11 +19,16 @@
 %             previous values. The default is to only save
 %             the event if it causes a change in the trace
 %
-function myscreen = writeTrace(data,tracenum,myscreen,force)
+function myscreen = writeTrace(data,tracenum,myscreen,force,eventTime)
 
 % decide whether to force
-if nargin == 3
+if any(nargin==[3])
   force = 0;
+  eventTime = mglGetSecs;
+end
+% event time
+if any(nargin==[3 4])
+  eventTime = mglGetSecs;
 end
 
 % find last occurrence of data on this trace
@@ -33,13 +38,13 @@ if ~isempty(getlast)
 end
 
 % if there is no last time point or the data is the same at that timepoint
-if force || isempty(getlast) || ~isequal(myscreen.events.data(getlast),data)
+if (tracenum>0) && (force || isempty(getlast) || ~isequal(myscreen.events.data(getlast),data))
   % then save the datapoint
   myscreen.events.n = myscreen.events.n+1;
   myscreen.events.tracenum(myscreen.events.n) = tracenum;
   myscreen.events.data(myscreen.events.n) = data;
   myscreen.events.ticknum(myscreen.events.n) = myscreen.tick;
   myscreen.events.volnum(myscreen.events.n) = myscreen.volnum;
-  myscreen.events.time(myscreen.events.n) = mglGetSecs;
+  myscreen.events.time(myscreen.events.n) = eventTime;
   myscreen.events.force(myscreen.events.n) = force;
 end
