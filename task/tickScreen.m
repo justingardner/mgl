@@ -41,33 +41,27 @@ end
 % flip screen
 %%%%%%%%%%%%%%%%%%%%%%%%%%%
 % normally we flush every screen update
-if ~myscreen.flushOnce
+if myscreen.flushMode==0
   mglFlush();
-% but if flushOnce is set then we flush the screen once
-elseif myscreen.flushOnce == 1
+% but if flushMode is set to one then we flush the screen once
+elseif myscreen.flushMode == 1
   mglFlush();
-  myscreen.flushOnce = 2;
-  myscreen.startOfFlush = mglGetSecs;
-% and then on subsequent calls we just wait 1/framesPerSecond
-elseif myscreen.flushOnce > 1
-  mglWaitSecs(myscreen.frametime-mglGetSecs(myscreen.startOfFlush));
-  myscreen.startOfFlush = mglGetSecs;
+  myscreen.flushMode = -1;
+else
+  myscreen.fliptime = inf;
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%
 % check for dropped frames
 %%%%%%%%%%%%%%%%%%%%%%%%%%%
-if myscreen.checkForDroppedFrames
+if myscreen.checkForDroppedFrames && (myscreen.flushMode>=0)
   fliptime = mglGetSecs;
   if ((fliptime-myscreen.fliptime) > myscreen.dropThreshold*myscreen.frametime)
-    %disp(sprintf('Dropped frame (%0.5f)',fliptime-myscreen.fliptime));
     myscreen.dropcount = myscreen.dropcount+1;
   end
   if (myscreen.fliptime ~= inf)
     myscreen.totalflip = myscreen.totalflip+(fliptime-myscreen.fliptime);
-  else
-    myscreen.totalflip = 0;
-    myscreen.dropcount = 0;
+    myscreen.totaltick = myscreen.totaltick+1;
   end
   myscreen.fliptime = fliptime;
 end

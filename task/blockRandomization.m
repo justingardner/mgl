@@ -19,53 +19,78 @@
 %             remember this function can only affect the
 %             block, it cannot change task or myscreen
 % 
-function block = blockRandomization(parameter,block,previousBlock,task)
+function retval = blockRandomization(parameter,previousParamIndexes)
 
-% check arguments
-if ~any(nargin == [4])
-  help blockRandomization
+% check for init case
+if nargin == 1
+  % temporarily remove do Random
+  if isfield(parameter,'doRandom_')
+    doRandom = parameter.doRandom_;
+    parameter = rmfield(parameter,'doRandom_');
+  else
+    doRandom = 1;
+  end
+  % get parameter names now
+  parameter.names_ = fieldnames(parameter);
+  parameter.n_ = length(parameter.names_);
+  for i = 1:parameter.n_
+    paramsize = eval(sprintf('size(parameter.%s)',parameter.names_{i}));
+    % check for column vectors
+    if (paramsize(1) > 1) && (paramsize(2) == 1)
+      disp(sprintf('Parameter %s is a column vector',parameter.names_{i}));
+    end
+    parameter.size_(i,:) = eval(sprintf('size(parameter.%s)',parameter.names_{i}));
+  end
+  parameter.totalN_ = prod(parameter.size_(:,2));
+  % put doRandom back
+  parameter.doRandom_ = doRandom;
+  retval = parameter;
   return
 end
 
 % get a randomperm for use for total randomization
-completeRandperm = randperm(parameter.totalN);
+completeRandperm = randperm(parameter.totalN_);
 % create a randomization of the parameters
 innersize = 1;
-for paramnum = 1:parameter.n
-  paramnums = [];
-  for rownum = 1:parameter.size(paramnum,1)
+for paramnum = 1:parameter.n_
+  paramIndexes{paramnum} = [];
+  for rownum = 1:parameter.size_(paramnum,1)
     lastcol = 0;
-    for paramreps = 1:(parameter.totalN/parameter.size(paramnum,2))/innersize
+    for paramreps = 1:(parameter.totalN_/parameter.size_(paramnum,2))/innersize
       % if we need to randomize, then do it here so that
       % arrays with multiple rows have different randomizations
-      if task.random > 0
-	thisparamnums = randperm(parameter.size(paramnum,2));
+      if parameter.doRandom_ > 0
+	thisparamIndexes = randperm(parameter.size_(paramnum,2));
       else
-	thisparamnums = 1:parameter.size(paramnum,2);
+	thisparamIndexes = 1:parameter.size_(paramnum,2);
       end
       % spread it out over inner dimensions
-      thisparamnums = thisparamnums*repmat(eye(length(thisparamnums)),1,innersize);
-      thisparamnums = reshape(reshape(thisparamnums,length(thisparamnums)/innersize,innersize)',1,length(thisparamnums));
+      thisparamIndexes = thisparamIndexes*repmat(eye(length(thisparamIndexes)),1,innersize);
+      thisparamIndexes = reshape(reshape(thisparamIndexes,length(thisparamIndexes)/innersize,innersize)',1,length(thisparamIndexes));
       % stick into array appropriately
-      paramnums(rownum,lastcol+1:lastcol+length(thisparamnums)) = thisparamnums;
-      lastcol = lastcol+length(thisparamnums);
+      paramIndexes{paramnum}(rownum,lastcol+1:lastcol+length(thisparamIndexes)) = thisparamIndexes;
+      lastcol = lastcol+length(thisparamIndexes);
     end
   end
   % need to convert it
-  for rownum = 1:parameter.size(paramnum,1)
+  for rownum = 1:parameter.size_(paramnum,1)
     % and then convert the numbers into proper subscripts to
     % actually get the proper stimulus values
-    paramnums(rownum,:) = (paramnums(rownum,:)-1)*parameter.size(paramnum,1)+rownum;
+    paramIndexes{paramnum}(rownum,:) = (paramIndexes{paramnum}(rownum,:)-1)*parameter.size_(paramnum,1)+rownum;
     % if we complete randomization then do it here
-    if task.random == 1
-      paramnums(rownum,:) = paramnums(rownum,completeRandperm);
+    if parameter.doRandom_ == 1
+      paramIndexes{paramnum}(rownum,:) = paramIndexes{paramnum}(rownum,completeRandperm);
     end
   end
-  % now go and set this blocks parameters appropriately
-  eval(sprintf('block.parameter.%s = parameter.%s(paramnums);',parameter.names{paramnum},parameter.names{paramnum}));
-  
   % update the size of the inner dimensions
-  innersize = innersize*parameter.size(paramnum,2);
+  innersize = innersize*parameter.size_(paramnum,2);
 end
 
-block.trialn = parameter.totalN;
+% now go and set this blocks parameters appropriately
+for paramnum = 1:parameter.n_
+  eval(sprintf('block.parameter.%s = parameter.%s(paramIndexes{paramnum});',parameter.names_{paramnum},parameter.names_{paramnum}));
+end  
+
+block.trialn = parameter.totalN_;
+
+retval = block;
