@@ -246,7 +246,9 @@ myscreen.keyboard.esc = 54;
 myscreen.keyboard.return = 37;
 myscreen.keyboard.space = mglCharToKeycode({' '});
 myscreen.keyboard.backtick = mglCharToKeycode({'`'});
-myscreen.keyboard.nums = mglCharToKeycode({'1' '2' '3' '4' '5' '6' '7' '8' '9' '0'});
+if ~isfield(myscreen.keyboard,'nums')
+  myscreen.keyboard.nums = mglCharToKeycode({'1' '2' '3' '4' '5' '6' '7' '8' '9' '0'});
+end
 
 %init traces
 numinit = 3000;
