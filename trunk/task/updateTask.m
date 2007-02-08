@@ -307,8 +307,9 @@ end
 
 % get randomization parameters
 for i = 1:task.randVars.n_
-  eval(sprintf('task.thistrial.%s = task.randVars.%s(mod(task.trialnum-1,task.randVars.varlen_(%i))+1);',task.randVars.names_{i},task.randVars.names_{i},i));
+  eval(sprintf('task.thistrial.%s = task.randVars.%s(mod(task.trialnumTotal-1,task.randVars.varlen_(%i))+1);',task.randVars.names_{i},task.randVars.names_{i},i));
 end
+
 
 % the trial is no longer waiting to start
 task.thistrial.waitingToInit = 0;
