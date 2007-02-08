@@ -86,14 +86,15 @@ function [task myscreen] = drawStimulusCallback(task, myscreen)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function [task myscreen] = responseCallback(task, myscreen)
 
-
-% display what the reaction time was
-if task.thistrial.whichButton == 1
-  mglTextDraw(sprintf('Your reaction time was: %0.0f ms',round(task.thistrial.reactionTime*1000)),[0 0]);
-else
-  mglTextDraw(sprintf('You hit %i instead of 1',task.thistrial.whichButton),[0 0]);
-end  
-
+if task.thistrial.gotResponse == 0
+  mglClearScreen;
+  % display what the reaction time was
+  if task.thistrial.whichButton == 1
+    mglTextDraw(sprintf('Your reaction time was: %0.0f ms',round(task.thistrial.reactionTime*1000)),[0 0]);
+  else
+    mglTextDraw(sprintf('You hit %i instead of 1',task.thistrial.whichButton),[0 0]);
+  end  
+end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % function to init the dot stimulus
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

@@ -62,7 +62,7 @@ myscreen = eyeCalibDisp(myscreen);
 phaseNum = 1;
 while (phaseNum <= length(task)) && ~myscreen.userHitEsc
   % update the task
-  [task myscreen tnum] = updateTask(task,myscreen,phaseNum);
+  [task myscreen phaseNum] = updateTask(task,myscreen,phaseNum);
   % flip screen
   myscreen = tickScreen(myscreen,task);
 end
