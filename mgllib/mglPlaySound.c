@@ -31,14 +31,16 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   else {
     // get the number
     int soundNum = (int)mxGetScalar(prhs[0]);
-    // get the global sounds vector
-    mxArray *sounds = mglGetGlobalField("sounds");
-    int *soundsPtr = (int*)mxGetPr(sounds);
-    // if we have the called for sound, then play it
-    if ((mxGetN(sounds) >= soundNum) && (soundNum > 0))
-      SystemSoundPlay(soundsPtr[soundNum-1]);
-    else
-      AlertSoundPlay();
+    if (mglIsGlobal("sounds") > 0) {
+      // get the global sounds vector
+      mxArray *sounds = mglGetGlobalField("sounds");
+      int *soundsPtr = (int*)mxGetPr(sounds);
+      // if we have the called for sound, then play it
+      if ((mxGetN(sounds) >= soundNum) && (soundNum > 0))
+	SystemSoundPlay(soundsPtr[soundNum-1]);
+      else
+	AlertSoundPlay();
+     }
   }
 #endif
 }
