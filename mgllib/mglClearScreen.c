@@ -1,16 +1,12 @@
 #ifdef documentation
 =========================================================================
 
-     program: mglPoints.c
+     program: mglClearScreen.c
           by: justin gardner
         date: 04/03/06
    copyright: (c) 2006 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
-     purpose: mex function to plot points on an OpenGL screen opened with glopen
-       usage: glpoints(x,y,size,color,bgcolor)
-        e.g.: glpoints(0.5,0.5);
-              glpoints(0.5,0.5,2);
-              glpoints(0.5,0.5,2,[1 0.6 1]);
-              glpoints(-1+2*rand(1,10000),-1+2*rand(1,10000));
+     purpose: mex function to clear the screen
+       usage: mglClearScreen(<color>)
 
 $Id$
 =========================================================================
