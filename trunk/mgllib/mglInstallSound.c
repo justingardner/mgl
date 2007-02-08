@@ -54,15 +54,12 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     if (noErr == err) {
       // system call to install the sound
       err = SystemSoundGetActionID(&soundFileRef, &gSoundID);
-
       // now keep the sound id in the MGL global
       mxArray *sounds = mglGetGlobalField("sounds");
       // check for null pointer, this means we have no sounds installed yet
       if (sounds == NULL) {
 	// so create an array of 1 for installed sounds
-	mwSize ndim, dims[2];
-	ndim = 2;dims[0] = 1;dims[1] = 1;
-	sounds = mxCreateNumericArray(ndim,dims,mxINT32_CLASS,mxREAL);
+	sounds = mxCreateDoubleMatrix(1,1,mxREAL);
 	// and set the first elemet to the newly created sound
 	int *soundsPtr = (int*)mxGetPr(sounds);
 	soundsPtr[0] = gSoundID;
@@ -76,9 +73,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       else {
 	int *soundsPtr = (int*)mxGetPr(sounds);
 	// so create a new array of length+1 for installed sounds
-	mwSize ndim, dims[2];
-	ndim = 2;dims[0] = 1;dims[1] = mxGetN(sounds)+1;
-	mxArray *newSounds = mxCreateNumericArray(ndim,dims,mxINT32_CLASS,mxREAL);
+	mxArray *newSounds = mxCreateDoubleMatrix(1,mxGetN(sounds)+1,mxREAL);
 	int *newSoundsPtr = (int*)mxGetPr(newSounds);
 	// set the new array to the old values
 	for (i = 0; i < mxGetN(sounds); i++)
