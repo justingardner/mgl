@@ -13,9 +13,9 @@ function retval = uniformRandomization(parameter,previousParamIndexes)
 if nargin == 1
   % get parameter names now
   names = fieldnames(parameter);
+  n = 0;
   for i = 1:length(names)
     % if it ends in underscore it is a reserved variable
-    n = 0;
     if isempty(regexp(names{i},'_$'))
       n = n+1;
       parameter.names_{n} = names{i};
