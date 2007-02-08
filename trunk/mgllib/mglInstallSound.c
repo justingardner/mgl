@@ -29,7 +29,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   if (nrhs == 0) {
     // get already installed sounds
     mxArray *sounds = mglGetGlobalField("sounds");
-    if (sounds != NULL) {
+    if ((sounds != NULL) && (mxGetN(sounds)>0)){
       int *soundsPtr = (int*)mxGetPr(sounds);
       // remove all the sounds
       for (i = 0; i < mxGetN(sounds); i++) {
@@ -57,7 +57,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       // now keep the sound id in the MGL global
       mxArray *sounds = mglGetGlobalField("sounds");
       // check for null pointer, this means we have no sounds installed yet
-      if (sounds == NULL) {
+      if ((sounds == NULL) || (mxGetN(sounds) <= 0)){
 	// so create an array of 1 for installed sounds
 	sounds = mxCreateDoubleMatrix(1,1,mxREAL);
 	// and set the first elemet to the newly created sound
