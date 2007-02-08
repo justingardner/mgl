@@ -18,33 +18,33 @@ myscreen.tickcode = hex2dec('35');
 
 % default gamma function uses min=0,max=0,exp=1.8 for all 3 colors
 defaultMonitorGamma = 1.8;
-defaultGammaFunction = [0 1 1/defaultMonitorGamma 0 1 1/defaultMonitorGamma 0 1 1/defaultMonitorGamma];
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % database parameters
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 screenParamsList = {'computerName','displayName','screenNumber',...
 		    'screenWidth','screenHeight','displayDistance',...
-		    'displaySize','imageWidth','imageHeight',...
-		    'framesPerSecond','autoCloseScreen',...
-		    'saveData','gammaFunction','calibFilename'};
-screenParams{1} = {'yoyodyne.cns.nyu.edu','projector',2,1280,1024,57,[31 23],[],[],60,1,0,defaultGammaFunction,'yoyodyne'};
-screenParams{end+1} = {'yoyodyne.cns.nyu.edu','lcd',2,1280,1024,157.5,[43.2 32.5],[],[],60,1,0,defaultGammaFunction,'yoyodyne'};
-screenParams{1} = {'yoyodyne.cns.nyu.edu','',2,1280,1024,57,[31 23],[],[],60,1,0,defaultGammaFunction,'yoyodyne'};
-screenParams{end+1} = {'Stimulus.local','projector',2,1024,768,57,[31 23],[],[],60,0,50,defaultGammaFunction,''};
-screenParams{end+1} = {'Stimulus.local','lcd',2,800,600,157.5,[43.2 32.5],[],[],60,0,50,[0 1 0.4790 0 1 0.4790 0 1 0.4790],''};
-screenParams{end+1} = {'stimulus-g5.local','projector',2,1024,768,57,[31 23],[],[],60,0,50,defaultGammaFunction,'stimulus-g5_projector'};
-screenParams{end+1} = {'stimulus-g5.local','lcd',2,800,600,157.5,[43.2 32.5],[],[],60,0,50,[0 1 0.4790 0 1 0.4790 0 1 0.4790],''};
-%screenParams{end+1} = {'eigenstate','',0,1440,900,57,[31 23],[],[],60,1,0,defaultGammaFunction,''};
-screenParams{end+1} = {'eigenstate','',0,800,600,57,[31 23],[],[],60,1,0,defaultGammaFunction,''};
-screenParams{end+1} = {'dhcp.bnf.brain.riken.jp','',0,1024,768,57,[31 23],[],[],60,1,0,defaultGammaFunction,''};
-screenParams{end+1} = {'kirkwood','',1,1152,870,[],[],18,24,75,1,0,defaultGammaFunction,''};
-screenParams{end+1} = {'alta','',[],1024,768,57,[31 23],[],[],60,1,0,defaultGammaFunction,''};
-screenParams{end+1} = {'dsltop','',0,400,300,[],[],18,24,60,1,0,defaultGammaFunction,''};
-screenParams{end+1} = {'whistler.cns.nyu.edu','',2,1280,1024,57,[31 23],[],[],60,1,0,defaultGammaFunction,''};
-screenParams{end+1} = {'froh.cns.nyu.edu','',[],1280,1024,57,[31 23],[],[],100,1,0,defaultGammaFunction,''};
-screenParams{end+1} = {'cronos.psychology.nottingham.ac.uk','',2,1280,1024,57,[31 23],[],[],100,1,0,defaultGammaFunction,''};
-screenParams{end+1} = {'hyperion.local','',0,800,600,57,[31 23],[],[],100,1,0,defaultGammaFunction,''};
+		    'displaySize','framesPerSecond','autoCloseScreen',...
+		    'saveData','monitorGamma','calibFilename'};
+screenParams{1} = {'yoyodyne.cns.nyu.edu','projector',2,1280,1024,57,[31 23],60,1,0,defaultMonitorGamma,'yoyodyne'};
+screenParams{end+1} = {'yoyodyne.cns.nyu.edu','lcd',2,1280,1024,157.5,[43.2 32.5],60,1,0,defaultMonitorGamma,'yoyodyne'};
+screenParams{end+1} = {'yoyodyne.cns.nyu.edu','',2,1280,1024,157.5,[43.2 32.5],60,1,0,defaultMonitorGamma,'yoyodyne'};
+screenParams{end+1} = {'Stimulus.local','projector',2,1024,768,57,[31 23],60,0,50,defaultMonitorGamma,''};
+screenParams{end+1} = {'Stimulus.local','lcd',2,800,600,157.5,[43.2 32.5],60,0,50,[0 1 0.4790 0 1 0.4790 0 1 0.4790],''};
+screenParams{end+1} = {'stimulus-g5.local','projector',2,1024,768,57,[31 23],60,0,50,defaultMonitorGamma,'stimulus-g5_projector'};
+screenParams{end+1} = {'stimulus-g5.local','lcd',2,800,600,157.5,[43.2 32.5],60,0,50,[0 1 0.4790 0 1 0.4790 0 1 0.4790],''};
+%screenParams{end+1} = {'eigenstate','',0,1440,900,57,[31 23],60,1,0,defaultMonitorGamma,''};
+screenParams{end+1} = {'eigenstate','',0,800,600,57,[31 23],60,1,0,defaultMonitorGamma,''};
+screenParams{end+1} = {'dhcp.bnf.brain.riken.jp','',0,1024,768,57,[31 23],60,1,0,defaultMonitorGamma,''};
+screenParams{end+1} = {'alta','',[],1024,768,57,[31 23],60,1,0,defaultMonitorGamma,''};
+screenParams{end+1} = {'dsltop','',0,400,300,57,[18 24],60,1,0,defaultMonitorGamma,''};
+screenParams{end+1} = {'whistler.cns.nyu.edu','',2,1280,1024,57,[31 23],60,1,0,defaultMonitorGamma,''};
+screenParams{end+1} = {'froh.cns.nyu.edu','',[],1280,1024,57,[31 23],100,1,0,defaultMonitorGamma,''};
+screenParams{end+1} = {'cronos.psychology.nottingham.ac.uk','',2,1280,1024,57,[31 23],100,1,0,defaultMonitorGamma,''};
+screenParams{end+1} = {'hyperion.local','',0,800,600,57,[31 23],100,1,0,defaultMonitorGamma,''};
+if isfield(myscreen,'screenParams')
+  screenParams = cat(2,myscreen.screenParams,screenParams);
+end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % find matching database parameters
@@ -65,8 +65,6 @@ for pnum = 1:length(screenParams)
       end
       if ~isempty(myscreen.displayDistance) & ~isempty(myscreen.displaySize)
 	disp(sprintf('%i: %ix%i(pix) dist:%0.1f (cm) size:%0.1fx%0.1f (cm) %iHz save:%i autoclose:%i',myscreen.screenNumber,myscreen.screenWidth,myscreen.screenHeight,myscreen.displayDistance,myscreen.displaySize(1),myscreen.displaySize(2),myscreen.framesPerSecond,myscreen.saveData,myscreen.autoCloseScreen));
-      else
-	disp(sprintf('%i: %ix%i(pix) %0.1fx%0.1f(deg) %iHz save:%i autoclose:%i',myscreen.screenNumber,myscreen.screenWidth,myscreen.screenHeight,myscreen.imageWidth,myscreen.imageHeight,myscreen.framesPerSecond,myscreen.saveData,myscreen.autoCloseScreen));
       end
     end
   end
@@ -88,8 +86,6 @@ if ~isfield(myscreen,'framesPerSecond'),myscreen.framesPerSecond = 60;end
 if ~isfield(myscreen,'saveData'),myscreen.saveData = -1;end
 if ~isfield(myscreen,'displayDistance'),myscreen.displayDistance = 57;end
 if ~isfield(myscreen,'displaySize'),myscreen.displaySize = [31 23];end
-if ~isfield(myscreen,'imageWidth'),myscreen.imageWidth = [];end
-if ~isfield(myscreen,'imageHeight'),myscreen.imageHeight = [];end
 
 % switch to data directory if we are saving data
 if isdir('~/data') && (myscreen.saveData>0)
@@ -129,16 +125,8 @@ end
 % if monitor size is set, then this is a value
 % in inches along the diagonal of the screen
 if isempty(myscreen.displayDistance) | isempty(myscreen.displaySize)
-  if ~isempty(myscreen.imageWidth) & ~isempty(myscreen.imageHeight)
-    myscreen.displayDistance = 57;
-    myscreen.displaySize(1) = tan(myscreen.imageWidth*pi/180)*myscreen.displayDistance;
-    myscreen.displaySize(2) = tan(myscreen.imageHeight*pi/180)*myscreen.displayDistance;
-  else
-    disp('(initScreen) Could not find display parameters');
-    return
-  end
-elseif ~isempty(myscreen.imageWidth) | ~isempty(myscreen.imageHeight)
-  disp('(initScreen) over-riding imageWidth and imageHeight with displayDistance and Size');
+  disp('(initScreen) Could not find display parameters');
+  return
 end
 
 mglVisualAngleCoordinates(myscreen.displayDistance,myscreen.displaySize);
@@ -185,13 +173,22 @@ end
 
 % use the table if we do not have a valid filename
 if gammaNotSet
-  if ~isfield(myscreen,'gammaFunction')
-    myscreen.gammaFunction = defaultGammaFunction;
+  if ~isfield(myscreen,'monitorGamma')
+    myscreen.monitorGamma = defaultMonitorGamma;
   end
-% display what the settings are
-  disp(sprintf('Gamma: red [%0.2f %0.2f %0.2f] green [%0.2f %0.2f %0.2f] blue [%0.2f %0.2f %0.2f] (min max exp)',myscreen.gammaFunction(1),myscreen.gammaFunction(2),myscreen.gammaFunction(3),myscreen.gammaFunction(4),myscreen.gammaFunction(5),myscreen.gammaFunction(6),myscreen.gammaFunction(7),myscreen.gammaFunction(8),myscreen.gammaFunction(9)));
-  % and then set it
-  mglSetGammaTable(myscreen.gammaFunction);
+  % display what the settings are
+  disp(sprintf('Correcting for monitor gamma of %0.2f',myscreen.monitorGamma));
+  
+  % now get current gamma table
+  gammaTable = mglGetGammaTable;
+  % and use linear interpolation to correct the current table to
+  % make it 1/monitor gamma.
+  correctedValues = ((0:1/255:1).^(1/myscreen.monitorGamma));
+  gammaTable.redTable = interp1(0:1/255:1,gammaTable.redTable,correctedValues);
+  gammaTable.greenTable = interp1(0:1/255:1,gammaTable.greenTable,correctedValues);
+  gammaTable.blueTable = interp1(0:1/255:1,gammaTable.blueTable,correctedValues);
+  % and set the table
+  mglSetGammaTable(gammaTable);
 end
 
 % choose color for background
