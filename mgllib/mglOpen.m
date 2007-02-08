@@ -84,7 +84,7 @@ if exist('mglInstallSound') == 3
   sounddir = '/System/Library/Sounds/';
   sounds = dir(fullfile(sounddir,'*.aiff'));
   for i = 1:length(sounds)
-    mglInstallSound(fullfile(sounddir,sounds(i).name));
-    [soundPath MGL.soundNames{i}] = fileparts(sounds(i).name);
+    soundNum = mglInstallSound(fullfile(sounddir,sounds(i).name));
+    [soundPath MGL.soundNames{soundNum}] = fileparts(sounds(i).name);
   end
 end
