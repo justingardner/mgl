@@ -68,6 +68,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 	soundsPtr[0] = gSoundID;
 	// and save it in the global
 	mglSetGlobalField("sounds",sounds);
+	// return sound number
+	plhs[0] = mxCreateDoubleMatrix(1,1,mxREAL);
+	double *outptr = (double*)mxGetPr(plhs[0]);
+	outptr[0] = 1;
       }
       else {
 	int *soundsPtr = (int*)mxGetPr(sounds);
@@ -83,6 +87,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 	newSoundsPtr[i] = gSoundID;
 	// and save it in the global
 	mglSetGlobalField("sounds",newSounds);
+	// return sound number
+	plhs[0] = mxCreateDoubleMatrix(1,1,mxREAL);
+	double *outptr = (double*)mxGetPr(plhs[0]);
+	outptr[0] = (double)i+1;
       }
     }
   }
