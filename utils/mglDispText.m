@@ -22,8 +22,8 @@ mglVisualAngleCoordinates(57,[16 12]);
 mglTextSet('Helvetica',64,[1 1 1],0,0,0,0,0,0,0);
 
 % set flipping
-if (exist('hFlip','var')==1) && (hFlip == 1),mglHFlip;,end
-if (exist('vFlip','var')==1) && (vFlip == 1),mglVFlip;,end
+if (exist('hFlip','var')==1) & (hFlip == 1),mglHFlip;,end
+if (exist('vFlip','var')==1) & (vFlip == 1),mglVFlip;,end
 
 global MGL;
 
