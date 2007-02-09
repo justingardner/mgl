@@ -284,7 +284,7 @@ filename = sprintf('%s_stim%02i',thedate,tracknum);
 % make sure we don't have an existing file in the directory
 % that would get overwritten
 while(isfile(sprintf('%s.mat',filename)))
-  fprintf(0,'UHOH: There is already a file %s...',filename);
+  disp(sprintf('UHOH: There is already a file %s...',filename));
   gNumSaves = gNumSaves+1;  tracknum = tracknum+1;
   thedate = [datestr(now,'yy') datestr(now,'mm') datestr(now,'dd')];
   filename = sprintf('%s_stim%02i',thedate,tracknum);
