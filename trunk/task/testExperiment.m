@@ -59,10 +59,10 @@ myscreen = eyeCalibDisp(myscreen);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Main display loop
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-tnum = 1;
-while (tnum <= length(task{2})) && ~myscreen.userHitEsc
+phaseNum = 1;
+while (phaseNum <= length(task{2})) && ~myscreen.userHitEsc
   % update the dots
-  [task{2} myscreen tnum] = updateTask(task{2},myscreen,tnum);
+  [task{2} myscreen phaseNum] = updateTask(task{2},myscreen,phaseNum);
   % update the fixation task
   [task{1} myscreen] = updateTask(task{1},myscreen,1);
   % flip screen

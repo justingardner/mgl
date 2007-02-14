@@ -1,12 +1,12 @@
 % getTaskParameters.m
 %
-%      usage: myscreen = getTaskParameters(myscreen,task)
+%      usage: myscreen = getTaskParameters(myscreen,tasknum)
 %         by: justin gardner
 %       date: 01/27/07
 %    purpose: get the task parameters, reaction times etc,
 %             out of the screen and task variables
 %
-function experiment = getTaskParameters(myscreen,task)
+function experiment = getTaskParameters(myscreen,tasknum)
 
 % check arguments
 if ~any(nargin == [1 2])
@@ -21,9 +21,10 @@ end
 
 % if there is only one task
 if ~iscell(task{1})
-  allTasks{1} = task;
+  thisTask{1} = task;
   multiTask = 0;
 else
+  % otherwise cycle through tasks
   allTasks = task;
   multiTask = 1;
 end
@@ -108,7 +109,7 @@ for taskNum = 1:length(allTasks)
 	blockTrialNum = 0;
 	experiment = initPhase(experiment,phaseNum,numTraces);
 	experiment(phaseNum).nTrials = 1;
-	tnum = 1;
+	tnum = 0;
 	% deal with response
       elseif myscreen.events.tracenum(enum) == task{phaseNum}.responseTrace
 	whichButton = myscreen.events.data(enum);

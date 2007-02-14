@@ -72,7 +72,7 @@ mglClearScreen;
 if (task.thistrial.thisseg == 1)
   mglTextDraw('Hit 1 when this text disappears',[0 0]);
 end  
-myscreen.flushStatus = 1;
+myscreen.flushMode = 1;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % function that gets called to draw the stimulus each frame

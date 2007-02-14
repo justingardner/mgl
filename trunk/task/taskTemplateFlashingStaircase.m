@@ -117,7 +117,7 @@ end
 function [task myscreen] = responseCallback(task, myscreen)
 
 global stimulus;
-
+global MGL;
 % make sure we have not already received a response
 if ~task.thistrial.gotResponse
   % get which staircase we are working on
@@ -130,11 +130,15 @@ if ~task.thistrial.gotResponse
     task.thistrial.responseText = stimulus.correctTextTex;
     % update staircase
     stimulus.stair{staircaseNum} = upDownStaircase(stimulus.stair{staircaseNum},1);
+    % play the correct sound
+    mglPlaySound(find(strcmp(MGL.soundNames,'Tink')));
   else
     % set the incorrect text to draw
     task.thistrial.responseText = stimulus.incorrectTextTex;
     % update staircase
     stimulus.stair{staircaseNum} = upDownStaircase(stimulus.stair{staircaseNum},0);
+    % play the incorrect sound
+    mglPlaySound(find(strcmp(MGL.soundNames,'Pop')));
   end  
 end
 
