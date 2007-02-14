@@ -6,7 +6,7 @@
 %    purpose: get the task parameters, reaction times etc,
 %             out of the screen and task variables
 %
-function experiment = getTaskParameters(myscreen,tasknum)
+function experiment = getTaskParameters(myscreen,task)
 
 % check arguments
 if ~any(nargin == [1 2])
@@ -19,9 +19,15 @@ if ~exist('task','var') && isfield(myscreen,'task')
   task = myscreen.task;
 end
 
+if ~exist('task','var') || isempty(task)
+  disp(sprintf('(getTaskParameters) No task variable'));
+  help getTaskParameters;
+  return
+end
+
 % if there is only one task
 if ~iscell(task{1})
-  thisTask{1} = task;
+  allTasks{1} = task;
   multiTask = 0;
 else
   % otherwise cycle through tasks
