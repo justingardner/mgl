@@ -40,6 +40,7 @@ screenParams{end+1} = {'alta','',[],1024,768,57,[31 23],60,1,0,defaultMonitorGam
 screenParams{end+1} = {'dsltop','',0,400,300,57,[18 24],60,1,0,defaultMonitorGamma,''};
 screenParams{end+1} = {'whistler.cns.nyu.edu','',2,1280,1024,57,[31 23],60,1,0,defaultMonitorGamma,''};
 screenParams{end+1} = {'froh.cns.nyu.edu','',[],1280,1024,57,[31 23],100,1,0,defaultMonitorGamma,''};
+screenParams{end+1} = {'jackson','',2,1152,870,57,[43.2 32.5],75,1,0,defaultMonitorGamma,''};
 screenParams{end+1} = {'cronos.psychology.nottingham.ac.uk','',2,1280,1024,57,[31 23],100,1,0,defaultMonitorGamma,''};
 screenParams{end+1} = {'hyperion.local','',0,800,600,57,[31 23],100,1,0,defaultMonitorGamma,''};
 if isfield(myscreen,'screenParams')
@@ -180,7 +181,8 @@ if gammaNotSet
   disp(sprintf('Correcting for monitor gamma of %0.2f',myscreen.monitorGamma));
   
   % now get current gamma table
-  gammaTable = mglGetGammaTable;
+  global MGL;
+  gammaTable = MGL.initialGammaTable;
   % and use linear interpolation to correct the current table to
   % make it 1/monitor gamma.
   correctedValues = ((0:1/255:1).^(1/myscreen.monitorGamma));
