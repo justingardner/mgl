@@ -30,4 +30,8 @@ for stimulusNum = 1:length(myscreen.stimulusNames)
   eval(sprintf('myscreen.stimuli{end+1} = %s;',myscreen.stimulusNames{stimulusNum}));
 end
 
+% switch back to current directory
+if isfield(myscreen,'pwd') && isdir(myscreen.pwd)
+  cd(myscreen.pwd);
+end
 
