@@ -36,9 +36,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 	SystemSoundRemoveActionID(soundsPtr[i]);      
       }
       // and set sounds to empty
-      mwSize ndim, dims[2];
-      ndim = 2;dims[0] = 0;dims[1] = 0;
-      sounds = mxCreateNumericArray(ndim,dims,mxINT32_CLASS,mxREAL);
+      sounds = mxCreateDoubleMatrix(1,1,mxREAL);
       mglSetGlobalField("sounds",sounds);
     }
   } 
