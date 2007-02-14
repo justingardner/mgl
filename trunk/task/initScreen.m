@@ -16,7 +16,7 @@ global MGL;
 myscreen.computer = getHostName;
 myscreen.tickcode = hex2dec('35');
 
-% default gamma function uses min=0,max=0,exp=1.8 for all 3 colors
+% default monitor gamma (used when there is no calibration file)
 defaultMonitorGamma = 1.8;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -28,7 +28,6 @@ screenParamsList = {'computerName','displayName','screenNumber',...
 		    'saveData','monitorGamma','calibFilename'};
 screenParams{1} = {'yoyodyne.cns.nyu.edu','projector',2,1280,1024,57,[31 23],60,1,0,defaultMonitorGamma,'yoyodyne'};
 screenParams{end+1} = {'yoyodyne.cns.nyu.edu','lcd',2,1280,1024,157.5,[43.2 32.5],60,1,0,defaultMonitorGamma,'yoyodyne'};
-screenParams{end+1} = {'yoyodyne.cns.nyu.edu','',2,1280,1024,157.5,[43.2 32.5],60,1,0,defaultMonitorGamma,'yoyodyne'};
 screenParams{end+1} = {'Stimulus.local','projector',2,1024,768,57,[31 23],60,0,50,defaultMonitorGamma,''};
 screenParams{end+1} = {'Stimulus.local','lcd',2,800,600,157.5,[43.2 32.5],60,0,50,[0 1 0.4790 0 1 0.4790 0 1 0.4790],''};
 screenParams{end+1} = {'stimulus-g5.local','projector',2,1024,768,57,[31 23],60,0,50,defaultMonitorGamma,'stimulus-g5_projector'};
@@ -39,6 +38,7 @@ screenParams{end+1} = {'dhcp.bnf.brain.riken.jp','',0,1024,768,57,[31 23],60,1,0
 screenParams{end+1} = {'alta','',[],1024,768,57,[31 23],60,1,0,defaultMonitorGamma,''};
 screenParams{end+1} = {'dsltop','',0,400,300,57,[18 24],60,1,0,defaultMonitorGamma,''};
 screenParams{end+1} = {'whistler.cns.nyu.edu','',2,1280,1024,57,[31 23],60,1,0,defaultMonitorGamma,''};
+screenParams{end+1} = {'jackson','',2,1280,1024,57,[31 23],60,1,0,defaultMonitorGamma,''};
 screenParams{end+1} = {'froh.cns.nyu.edu','',[],1280,1024,57,[31 23],100,1,0,defaultMonitorGamma,''};
 screenParams{end+1} = {'jackson','',2,1152,870,57,[43.2 32.5],75,1,0,defaultMonitorGamma,''};
 screenParams{end+1} = {'cronos.psychology.nottingham.ac.uk','',2,1280,1024,57,[31 23],100,1,0,defaultMonitorGamma,''};
@@ -52,11 +52,15 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 foundComputer = 0;
 for pnum = 1:length(screenParams)
-  if ~isempty(strfind(myscreen.computer,screenParams{pnum}{1}))
-    if isempty(screenParams{pnum}{2}) || (isfield(myscreen,'displayname') && strcmp(myscreen.displayname,screenParams{pnum}{2}))
+  if ~foundComputer && ~isempty(strfind(myscreen.computer,screenParams{pnum}{1}))
+    if isempty(screenParams{pnum}{2}) || ~isfield(myscreen,'displayname') || (isfield(myscreen,'displayname') && strcmp(myscreen.displayname,screenParams{pnum}{2}))
       foundComputer = 1;
       % if we find a match then set the parameters accordingly
-      disp(sprintf('Monitor parameters for: %s',screenParams{pnum}{1}));
+      if ~isempty(screenParams{pnum}{2})
+	disp(sprintf('Monitor parameters for: %s displayName: %s',screenParams{pnum}{1},screenParams{pnum}{2}));
+      else
+	disp(sprintf('Monitor parameters for: %s',screenParams{pnum}{1}));
+      end
       % setup all parameters for the monitor (if the settings are
       % already set then do nothing
       for j = 3:length(screenParams{pnum})
@@ -88,9 +92,16 @@ if ~isfield(myscreen,'saveData'),myscreen.saveData = -1;end
 if ~isfield(myscreen,'displayDistance'),myscreen.displayDistance = 57;end
 if ~isfield(myscreen,'displaySize'),myscreen.displaySize = [31 23];end
 
-% switch to data directory if we are saving data
-if isdir('~/data') && (myscreen.saveData>0)
-  cd('~/data');
+% remember curent path
+myscreen.pwd = pwd;
+
+% decided where to store data
+if ~isfield(myscreen,'datadir')
+  myscreen.datadir = '~/data';
+end
+
+if isdir(myscreen.datadir) && (myscreen.saveData>0)
+  cd(myscreen.datadir);
 end
 
 % compute the time per frame
@@ -151,10 +162,10 @@ if isfield(myscreen,'calibFilename') && ~isempty(myscreen.calibFilename)
   % set i.e. 0001_yoyodyne_LCD2_061013, so we check for those types
   % if we can't find the exact match
   if ~isfile(sprintf('%s.mat',calibFilename))
-    calibFilename = getCalibFilename(calibFilename);
+    calibFilename = getCalibFilename(myscreen,calibFilename);
   end
 else
-  calibFilename = getCalibFilename(myscreen.computer);
+  calibFilename = getCalibFilename(myscreen,myscreen.computer);
 end
 
 if ~isempty(calibFilename)
@@ -313,8 +324,11 @@ if ~isfield(myscreen,'stimulusNames')
   myscreen.stimulusNames = {};
 end
 
+% default values
 myscreen.userHitEsc = 0;
 myscreen.flushMode = 0;
+myscreen.numTasks = 0;
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % support function that gets host name using system command
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -384,17 +398,32 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % gets the name of the gamma calibration
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function filename = getCalibFilename(hostname)
+function filename = getCalibFilename(myscreen,hostname)
 
-% get the ouptut filename
-hostname = strread(hostname,'%s','delimiter','.');
-hostname = hostname{1};
-defaultdir = sprintf('%s/displays/*%s*',fileparts(which('initScreen')),hostname);
-filenames = dir(defaultdir);
+% get the ouptut filename, first if there are dots in
+% the name get the beginning, that way we don't
+% have to deal with differences between
+% computername.nework.edu and computername...
+if ~isempty(strfind(hostname,'.'))
+  hostname = strread(hostname,'%s','delimiter','.');
+  hostname = hostname{1};
+end
+
+% now look in the current directory for displays
+filenames = dir(fullfile(myscreen.pwd,sprintf('displays/*%s*',hostname)));
+
+% if we haven't found any files in current directory then look in task directory
+if length(filenames) == 0
+  defaultdir = sprintf('%s/displays/*%s*',fileparts(which('initScreen')),hostname);
+  filenames = dir(defaultdir);
+end
+
+% init variables
 maxnum = 0;
 filename = '';
 
-% look for highest number match
+% now look at the files we have and choose the one with the highest
+% sequence number
 for i = 1:length(filenames)
   filenum = strread(filenames(i).name,'%s','delimiter','_');
   filenum = str2num(filenum{1});
@@ -402,7 +431,6 @@ for i = 1:length(filenames)
     maxnum = filenum;
     [path name] = fileparts(filenames(i).name);
     filename = sprintf('%s/task/displays/%s',fileparts(fileparts(which('initScreen'))),name);
-
   end
 end
 
