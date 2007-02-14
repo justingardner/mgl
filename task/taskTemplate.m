@@ -16,7 +16,8 @@ if ~any(nargin == [0])
 end
 
 % initalize the screen
-myscreen = initScreen;
+myscreen.screenParams{1} = {'yoyodyne.cns.nyu.edu',[],2,1280,1024,57,[31 23],60,1,0,1.8,''};
+myscreen = initScreen(myscreen);
 
 task{1}.waitForBacktick = 1;
 % fix: the task defined here has two segments, one that

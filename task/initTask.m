@@ -41,10 +41,10 @@
 %    handle new tasks that you want to implement.
 %
 % 
-function task = initTask(task, myscreen, startSegmentCallback, ...
-			 screenUpdateCallback, trialResponseCallback,...
-			 startTrialCallback, endTrialCallback, startBlockCallback,...
-			 randCallback);
+function [task myscreen] = initTask(task, myscreen, startSegmentCallback, ...
+				    screenUpdateCallback, trialResponseCallback,...
+				    startTrialCallback, endTrialCallback, startBlockCallback,...
+				    randCallback);
 
 if ~any(nargin == [4:8])
   help initTask;
@@ -194,16 +194,16 @@ end
 
 % new way of setting up write trace
 if isfield(task,'writeTrace') && isstruct(task.writeTrace)
-  writeTrace = task.writeTrace;
+  thiswriteTrace = task.writeTrace;
   task = rmfield(task,'writeTrace');
   for i = 1:task.numsegs
     task.writeTrace{i} = {};
   end
   % go through all variables to be written
-  for i = 1:length(writeTrace.tracenum)
+  for i = 1:length(thisWriteTrace.tracenum)
     % get the segment num or default to 1
-    if isfield(writeTrace,'segnum') && (length(writeTrace.segnum)>=i)
-      segnum = writeTrace.segnum(i);
+    if isfield(thisWriteTrace,'segnum') && (length(thisWriteTrace.segnum)>=i)
+      segnum = thisWriteTrace.segnum(i);
     else
       segnum = 1;
     end
@@ -212,18 +212,18 @@ if isfield(task,'writeTrace') && isstruct(task.writeTrace)
     if isfield(task.writeTrace{segnum},'tracevar')
       thisTracevarNum = length(task.writeTrace{segnum}.tracevar)+1;
     end
-    task.writeTrace{segnum}.tracevar{thisTracevarNum} = writeTrace.tracevar{i};
+    task.writeTrace{segnum}.tracevar{thisTracevarNum} = thisWriteTrace.tracevar{i};
     % the row
-    if isfield(writeTrace,'tracerow') && (length(writeTrace.tracerow)>=i)
-      task.writeTrace{segnum}.tracerow(thisTracevarNum) = writeTrace.tracerow(i);
+    if isfield(thisWriteTrace,'tracerow') && (length(thisWriteTrace.tracerow)>=i)
+      task.writeTrace{segnum}.tracerow(thisTracevarNum) = thisWriteTrace.tracerow(i);
     end
     % the tracenum
-    if isfield(writeTrace,'tracenum') && (length(writeTrace.tracenum)>=i)
-      task.writeTrace{segnum}.tracenum(thisTracevarNum) = writeTrace.tracenum(i);
+    if isfield(thisWriteTrace,'tracenum') && (length(thisWriteTrace.tracenum)>=i)
+      task.writeTrace{segnum}.tracenum(thisTracevarNum) = thisWriteTrace.tracenum(i);
     end
     % and usenum
-    if isfield(writeTrace,'usenum') && (length(writeTrace.usenum)>=i)
-      task.writeTrace{segnum}.usenum(thisTracevarNum) = writeTrace.usenum(i);
+    if isfield(thisWriteTrace,'usenum') && (length(thisWriteTrace.usenum)>=i)
+      task.writeTrace{segnum}.usenum(thisTracevarNum) = thisWriteTrace.usenum(i);
     end
   end
 end
@@ -326,15 +326,37 @@ end
 % set how many total trials we have run
 task.trialnumTotal = 0;
 
+% update, how many tasks we have seen
+myscreen.numTasks = myscreen.numTasks+1;
+
+% now set the segment trace
 if ~isfield(task,'segmentTrace')
-  task.segmentTrace = 2;
+  if myscreen.numTasks == 1
+    task.segmentTrace = 2;
+  else
+    task.segmentTrace = myscreen.stimtrace;
+    myscreen.stimtrace = myscreen.stimtrace+1;
+  end
 end
 if ~isfield(task,'responseTrace')
-  task.responseTrace = 3;
+  if myscreen.numTasks == 1
+    task.responseTrace = 3;
+  else
+    task.responseTrace = myscreen.stimtrace;
+    myscreen.stimtrace = myscreen.stimtrace+1;
+  end
 end
 if ~isfield(task,'phaseTrace')
-  task.phaseTrace = 4;
+  if myscreen.numTasks == 1
+    task.phaseTrace = 4;
+  else
+    task.phaseTrace = myscreen.stimtrace;
+    myscreen.stimtrace = myscreen.stimtrace+1;
+  end
 end
+
+% write out starting phase
+myscreen = writeTrace(1,task.phaseTrace,myscreen);
 
 % set function handles
 if exist('startSegmentCallback','var') && ~isempty(startSegmentCallback)

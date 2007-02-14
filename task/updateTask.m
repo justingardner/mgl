@@ -23,7 +23,7 @@ if (task{tnum}.blocknum == 0) || (task{tnum}.trialnum > task{tnum}.block(task{tn
   if (task{tnum}.blocknum == task{tnum}.numBlocks)
     tnum = tnum+1;
     % write out the phase
-    myscreen = writeTrace(tnum,task{1}.phaseTrace,myscreen);
+    myscreen = writeTrace(tnum,task{tnum-1}.phaseTrace,myscreen);
     [task myscreen tnum] = updateTask(task, myscreen, tnum);
     return
   end
@@ -35,7 +35,7 @@ end
 if (task{tnum}.trialnumTotal >= task{tnum}.numTrials)
   tnum = tnum+1;
   % write out the phase
-  myscreen = writeTrace(tnum,task{1}.phaseTrace,myscreen);
+  myscreen = writeTrace(tnum,task{tnum-1}.phaseTrace,myscreen);
   [task myscreen tnum] = updateTask(task,myscreen,tnum);
   return
 end
