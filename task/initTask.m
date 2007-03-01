@@ -323,8 +323,10 @@ if task.timeInTicks && task.timeInVols
   task.timeInTicks = 0;
 end
 
-% set how many total trials we have run
+% set how many total trials we have run (trialnumTotal is there for
+% compatibility, but doesn't get set anymore)
 task.trialnum = 1;
+task.trialnumTotal = 0;
 
 % update, how many tasks we have seen
 myscreen.numTasks = myscreen.numTasks+1;
@@ -390,10 +392,14 @@ task.parameter = feval(task.callback.rand,task.parameter);
 [st,i] = dbstack;
 task.taskfilename = st(max(i+1,length(st))).file;
 
+% init thistrial
+task.thistrial = [];
+
 % init the time discrepancy to 0
 task.timeDiscrepancy = 0;
 
 % set the debug mode to stop on error
 dbstop if error
+
 
 

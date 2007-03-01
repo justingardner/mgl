@@ -25,6 +25,9 @@ if ~exist('task','var') || isempty(task)
   return
 end
 
+% get traces
+myscreen = makeTraces(myscreen);
+
 % if there is only one task
 if ~iscell(task{1})
   allTasks{1} = task;
@@ -43,7 +46,8 @@ for taskNum = 1:length(allTasks)
   phaseNum = 1;
   blockNum = 1;
   blockTrialNum = 0;
-  experiment = initPhase([],phaseNum);
+  numTraces = size(myscreen.traces,1) - myscreen.stimtrace + 1;
+  experiment = initPhase([],phaseNum,numTraces);
   tnum = 0;
   
   if (task{phaseNum}.segmentTrace)
@@ -54,6 +58,7 @@ for taskNum = 1:length(allTasks)
 	% get the segment and the segment time
 	thisseg = myscreen.events.data(enum);
 	segtime = myscreen.events.time(enum);
+	ticknum = myscreen.events.ticknum(enum);
 	% check for new trial
 	if thisseg == 1
 	  tnum = tnum+1;
@@ -102,6 +107,7 @@ for taskNum = 1:length(allTasks)
 	segtime = segtime-exptStartTime;
 	experiment(phaseNum).trials(tnum).segtime(thisseg) = segtime;
 	experiment(phaseNum).trials(tnum).volnum(thisseg) = volnum;
+	experiment(phaseNum).trials(tnum).ticknum(thisseg) = ticknum;
 	% deal with volnum event
       elseif myscreen.events.tracenum(enum) == 1
 	if myscreen.events.data(enum)
@@ -112,7 +118,7 @@ for taskNum = 1:length(allTasks)
 	phaseNum = myscreen.events.data(enum);
 	blockNum = 1;
 	blockTrialNum = 0;
-	experiment = initPhase(experiment,phaseNum);
+	experiment = initPhase(experiment,phaseNum,numTraces);
 	experiment(phaseNum).nTrials = 1;
 	tnum = 0;
 	% deal with response
@@ -133,14 +139,23 @@ for taskNum = 1:length(allTasks)
 	tracenum = myscreen.events.tracenum(enum)-myscreen.stimtrace+1;
 	userval = myscreen.events.data(enum);
 	usertime = myscreen.events.time(enum)-exptStartTime;
-	% store it if it is the first setting
-	if isnan(experiment(phaseNum).traces(tracenum,tnum))
-	  experiment(phaseNum).traces(tracenum,tnum) = userval;
+	% there is some chance that a user trace can be written
+        % before the first trial is started for this task. This
+	% happens if there are multiple tasks and this user
+	% trace belongs to another task. In that case, storing
+	% this variable with this task is not really necessary,
+	% but we do not know that here so we just either save
+	% it if we have a valid trial number or ignore it if not.
+	if (tnum)
+	  % store it if it is the first setting
+	  if isnan(experiment(phaseNum).traces(tracenum,tnum))
+	    experiment(phaseNum).traces(tracenum,tnum) = userval;
+	  end
+	  % put it in trial
+	  experiment(phaseNum).trials(tnum).traces.tracenum(end+1) = tracenum;
+	  experiment(phaseNum).trials(tnum).traces.val(end+1) = userval;
+	  experiment(phaseNum).trials(tnum).traces.time(end+1) = usertime;
 	end
-	% put it in trial
-	experiment(phaseNum).trials(tnum).traces.tracenum(end+1) = tracenum;
-	experiment(phaseNum).trials(tnum).traces.val(end+1) = userval;
-	experiment(phaseNum).trials(tnum).traces.time(end+1) = usertime;
       end
     end      
   end
@@ -152,8 +167,9 @@ for taskNum = 1:length(allTasks)
 end
 
 experiment = retval;
+experiment.tracesAll = myscreen.traces;
 
-function experiment = initPhase(experiment,phaseNum)
+function experiment = initPhase(experiment,phaseNum,numTraces)
 
 experiment(phaseNum).nTrials = 0;
 experiment(phaseNum).trialVolume = [];
@@ -164,5 +180,6 @@ experiment(phaseNum).blockNum = [];
 experiment(phaseNum).blockTrialNum = [];
 experiment(phaseNum).response = [];
 experiment(phaseNum).reactionTime = [];
-experiment(phaseNum).traces = [];
+experiment(phaseNum).traces(1:numTraces,:) = nan;
+
 

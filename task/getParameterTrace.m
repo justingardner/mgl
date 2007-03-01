@@ -1,42 +1,48 @@
 % getParameterTrace.m
 %
-%      usage: getParameterTrace(myscreen,varname,[usenum])
+%      usage: getParameterTrace(myscreen,task,varname,[usenum],[segnum])
 %         by: justin gardner
 %       date: 02/05/07
 %    purpose: creates a parameter trace from a saved
 %             myscreen variable
-%       e.g.: myscreen.traces(myscreen.stimtrace,:) = getParameterTrace(myscreen,'myParameter1');
+%       e.g.: myscreen.traces(myscreen.stimtrace,:) = getParameterTrace(myscreen,task,'myParameter1');
 %
-function trace = getParameterTrace(myscreen,varname,usenum)
+function trace = getParameterTrace(myscreen,task,varname,usenum,segnum)
 
 % check arguments
-if ~any(nargin == [2 3])
+if ~any(nargin == [3 4 5])
   help getParameterTrace
   return
 end
 
 % if the varname is a number, it means to return a trace number
-if isnumeric(varname) && all(varname < myscreen.stimtrace)
+if isnumeric(varname)
   myscreen = makeTraces(myscreen);
-  trace = myscreen.traces(varname,:);
+  if all(varname <= size(myscreen.traces,1))
+    trace = myscreen.traces(varname,:);
+  else
+    trace = [];
+    disp(sprintf('(getParameterTrace) Only found %i traces',size(myscreen.traces,1)));
+  end
   return
 end
 
 % default value
 if ~exist('usenum','var'),usenum = 1;,end
+if ~exist('segnum','var'),segnum = 1;,end
 
 % get the experimental parameters
-experiment = getTaskParameters(myscreen);
+experiment = getTaskParameters(myscreen,task);
 
 % init trace
 trace = zeros(1,myscreen.tick);
 
 % if there is only one task
-if ~iscell(myscreen.task{1})
-  allTasks{1} = myscreen.task;
+if ~iscell(task{1})
+  allTasks{1} = task;
 else
   % otherwise cycle through tasks
-  allTasks = myscreen.task;
+  allTasks = task;
 end
 
 for tnum = 1:length(allTasks)
@@ -57,13 +63,16 @@ for tnum = 1:length(allTasks)
     % if we found the variable then go ahead and create the trace
     if ~isempty(original)
       for i = 1:experiment{tnum}(pnum).nTrials
-	ticknum = experiment{tnum}(pnum).trialTicknum(i);
-	varValue = eval(sprintf('%s(%i)',exptVarname,i));
-	varIndex = eval(sprintf('find(%s == varValue)',original));
-	if (usenum)
-	  trace(ticknum) = varIndex;
-	else
-	  trace(ticknum) = varValue;
+	% make sure we have enough segments
+	if (task{pnum}.numsegs >= segnum) && (length(experiment{tnum}(pnum).trials(i).segtime)>=segnum)
+	  ticknum = experiment{tnum}(pnum).trials(i).ticknum(segnum);
+	  varValue = eval(sprintf('%s(%i)',exptVarname,i));
+	  varIndex = eval(sprintf('find(%s == varValue)',original));
+	  if (usenum)
+	    trace(ticknum) = varIndex;
+	  else
+	    trace(ticknum) = varValue;
+	  end
 	end
       end
     end
