@@ -42,9 +42,8 @@ for taskNum = 1:length(allTasks)
   volnum = 0;
   phaseNum = 1;
   blockNum = 1;
-  numTraces = size(myscreen.traces,1) - myscreen.stimtrace + 1;
   blockTrialNum = 0;
-  experiment = initPhase([],phaseNum,numTraces);
+  experiment = initPhase([],phaseNum);
   tnum = 0;
   
   if (task{phaseNum}.segmentTrace)
@@ -113,7 +112,7 @@ for taskNum = 1:length(allTasks)
 	phaseNum = myscreen.events.data(enum);
 	blockNum = 1;
 	blockTrialNum = 0;
-	experiment = initPhase(experiment,phaseNum,numTraces);
+	experiment = initPhase(experiment,phaseNum);
 	experiment(phaseNum).nTrials = 1;
 	tnum = 0;
 	% deal with response
@@ -154,7 +153,7 @@ end
 
 experiment = retval;
 
-function experiment = initPhase(experiment,phaseNum,numTraces)
+function experiment = initPhase(experiment,phaseNum)
 
 experiment(phaseNum).nTrials = 0;
 experiment(phaseNum).trialVolume = [];
@@ -165,5 +164,5 @@ experiment(phaseNum).blockNum = [];
 experiment(phaseNum).blockTrialNum = [];
 experiment(phaseNum).response = [];
 experiment(phaseNum).reactionTime = [];
-experiment(phaseNum).traces(1:numTraces,:) = nan;
+experiment(phaseNum).traces = [];
 

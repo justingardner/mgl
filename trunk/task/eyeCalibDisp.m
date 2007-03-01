@@ -18,6 +18,7 @@ myscreen = tickScreen(myscreen);
 
 if (myscreen.eyecalib.prompt)
   % check for space key
+  mydisp(sprintf('-----------------------------\n'));
   mydisp(sprintf('Hit SPACE to do eye calibration\n'));
   mydisp(sprintf('ENTER to skip eye calibration\n'));
   mydisp(sprintf('Esc aborts at any time\n'));

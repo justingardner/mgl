@@ -21,6 +21,9 @@
 %             to update the staricase, where response is 1 or 0
 %             >> s = upDownStaircase(s,response)
 %             
+%             you can set min and max values for the threshold by
+%             setting:
+%             s.minThreshold = 0; s.maxThreshold = 1000;
 %
 function s = upDownStaircase(varargin)
 
@@ -90,6 +93,9 @@ elseif ((nargin == 4) || (nargin == 5))
     % cant reduce stepsize
     s.reduceStepsizeOnReversals = 0;
   end
+  % set minmax
+  s.minThreshold = -inf;
+  s.maxThreshold = inf;
 else
   help upDownStaircase;
   return
@@ -158,6 +164,16 @@ end
 
 % keep track of direction we are in
 s.direction = stepdir;
+
+% check for min
+if s.threshold < s.minThreshold
+  s.threshold = s.minThreshold;
+end
+
+% check for max
+if s.threshold > s.maxThreshold
+  s.threshold = s.maxThreshold;
+end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % returns first element of input array
