@@ -17,7 +17,7 @@ function [task, myscreen, tnum] = updateTask(task,myscreen,tnum)
 if tnum > length(task),return,end
 
 % check for a new block
-if (task{tnum}.blocknum == 0) || (task{tnum}.trialnum > task{tnum}.block(task{tnum}.blocknum).trialn) 
+if (task{tnum}.blocknum == 0) || (task{tnum}.blockTrialnum > task{tnum}.block(task{tnum}.blocknum).trialn) 
   % if we have finished how many blocks were called for
   % then we need to go on to the next task
   if (task{tnum}.blocknum == task{tnum}.numBlocks)
@@ -32,7 +32,7 @@ if (task{tnum}.blocknum == 0) || (task{tnum}.trialnum > task{tnum}.block(task{tn
 end
 
 % if we have finished how many trials were called for go to next task
-if (task{tnum}.trialnumTotal >= task{tnum}.numTrials)
+if (task{tnum}.trialnum >= task{tnum}.numTrials)
   tnum = tnum+1;
   % write out the phase
   myscreen = writeTrace(tnum,task{tnum-1}.phaseTrace,myscreen);
@@ -75,13 +75,23 @@ if task{tnum}.thistrial.segstart == -inf
   % as if the segment just started
   if task{tnum}.timeInTicks
     task{tnum}.thistrial.trialstart = myscreen.tick;
-    task{tnum}.thistrial.segstart = myscreen.tick;
   elseif task{tnum}.timeInVols
     task{tnum}.thistrial.trialstart = myscreen.volnum;
-    task{tnum}.thistrial.segstart = myscreen.volnum;
   else
-    task{tnum}.thistrial.trialstart = mglGetSecs;
-    task{tnum}.thistrial.segstart = mglGetSecs;
+    thistime = mglGetSecs;
+    % calculate trial time discrepancy
+    if task{tnum}.trialnum > 1
+      if ~isfield(task{tnum},'start')
+	task{tnum}.start = thistime;
+      end
+      % info for the last trial is already there, so find the
+      % difference between the time the trial actually took
+      % and how long it was expected to take-how much time
+      % we had to make up 
+      task{tnum}.timeDiscrepancy = (thistime-task{tnum}.thistrial.trialstart)-(sum(task{tnum}.thistrial.seglen)-task{tnum}.timeDiscrepancy);
+      disp(sprintf('Actual: %f Expected: %f Discrepancy of %f (%f)',thistime-task{tnum}.thistrial.trialstart,sum(task{tnum}.thistrial.seglen),task{tnum}.timeDiscrepancy,thistime-task{tnum}.start));
+    end
+    task{tnum}.thistrial.trialstart = thistime;
   end
   task{tnum} = resetSegmentClock(task{tnum},myscreen);
   % call segment start callback
@@ -149,8 +159,8 @@ if (segover)
       [task{tnum} myscreen]= feval(task{tnum}.callback.endTrial,task{tnum},myscreen);
     end
     % update the trial number
-    task{tnum}.trialnum = task{tnum}.trialnum + 1;
-    task{tnum}.trialnumTotal = task{tnum}.trialnumTotal+1;
+    task{tnum}.blockTrialnum = task{tnum}.blockTrialnum + 1;
+    task{tnum}.trialnum = task{tnum}.trialnum+1;
     % set the trial to init when it hits updateTrial again 
     % (this will happen from the updateTask called below)
     task{tnum}.thistrial.waitingToInit = 1;
@@ -232,7 +242,7 @@ else
 end
 
 % set the initial trial
-task.trialnum = 1;
+task.blockTrialnum = 1;
 
 % call the init block callback
 if isfield(task.callback,'startBlock')
@@ -255,13 +265,12 @@ task.thistrial.gotResponse = 0;
 task.thistrial.segstart = -inf;
 
 % start trial time
-if (task.timeInTicks)
-  task.thistrial.trialstart = myscreen.tick;
-elseif (task.timeInVols)
-  task.thistrial.trialstart = myscreen.volnum;
-else
-  task.thistrial.trialstart = mglGetSecs;
-end
+%if (task.timeInTicks)
+%  task.thistrial.trialstart = myscreen.tick;
+%elseif (task.timeInVols)
+%  task.thistrial.trialstart = myscreen.volnum;
+%else
+%end
 
 % set up start volume for checking for backticks
 task.thistrial.startvolnum = myscreen.volnum;
@@ -284,7 +293,7 @@ else
 end
 
 % see if we need to wait for backtick
-if task.waitForBacktick && (task.blocknum == 1) && (task.trialnum == 1)
+if task.waitForBacktick && (task.blocknum == 1) && (task.blockTrialnum == 1)
   task.thistrial.waitForBacktick = 1;
   disp(sprintf('Waiting for backtick (`)'));
 else
@@ -302,14 +311,13 @@ end
 
 % get trial parameters
 for i = 1:task.parameter.n_
-  eval(sprintf('task.thistrial.%s = task.block(task.blocknum).parameter.%s(:,task.trialnum);',task.parameter.names_{i},task.parameter.names_{i}));
+  eval(sprintf('task.thistrial.%s = task.block(task.blocknum).parameter.%s(:,task.blockTrialnum);',task.parameter.names_{i},task.parameter.names_{i}));
 end
 
 % get randomization parameters
 for i = 1:task.randVars.n_
-  eval(sprintf('task.thistrial.%s = task.randVars.%s(mod(task.trialnumTotal,task.randVars.varlen_(%i))+1);',task.randVars.names_{i},task.randVars.names_{i},i));
+  eval(sprintf('task.thistrial.%s = task.randVars.%s(mod(task.trialnum-1,task.randVars.varlen_(%i))+1);',task.randVars.names_{i},task.randVars.names_{i},i));
 end
-
 
 % the trial is no longer waiting to start
 task.thistrial.waitingToInit = 0;
@@ -322,12 +330,17 @@ function task = resetSegmentClock(task,myscreen)
 % reset the synch volume
 task.thistrial.synchVol = -1;
 
-% get amount of time already used
+% get amount of time already used, including and
+% discrepancy left over from last trial
 usedtime = sum(task.thistrial.seglen(1:(task.thistrial.thisseg-1)));
 
-% restart segment clock
-task.thistrial.segstart = task.thistrial.trialstart+usedtime;
-
+% restart segment clock, if we are using seconds, then fix
+% any time discrepancy
+if ~(task.timeInVols || task.timeInTicks)
+  task.thistrial.segstart = task.thistrial.trialstart-task.timeDiscrepancy+usedtime;
+else
+  task.thistrial.segstart = task.thistrial.trialstart+usedtime;
+end
 % get start of segment in real seconds
 task.thistrial.segStartSeconds = mglGetSecs;
 

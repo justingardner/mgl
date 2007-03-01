@@ -15,6 +15,13 @@ if ~any(nargin == [2 3])
   return
 end
 
+% if the varname is a number, it means to return a trace number
+if isnumeric(varname) && all(varname < myscreen.stimtrace)
+  myscreen = makeTraces(myscreen);
+  trace = myscreen.traces(varname,:);
+  return
+end
+
 % default value
 if ~exist('usenum','var'),usenum = 1;,end
 
@@ -22,7 +29,7 @@ if ~exist('usenum','var'),usenum = 1;,end
 experiment = getTaskParameters(myscreen);
 
 % init trace
-trace = zeros(1,size(myscreen.traces,2));
+trace = zeros(1,myscreen.tick);
 
 % if there is only one task
 if ~iscell(myscreen.task{1})

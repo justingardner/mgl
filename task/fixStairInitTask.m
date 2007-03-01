@@ -30,7 +30,7 @@ if ~isfield(fixStimulus,'responseColor') fixStimulus.responseColor = [1 1 0]; en
 if ~isfield(fixStimulus,'interColor') fixStimulus.interColor = [0 1 1]; end
 if ~isfield(fixStimulus,'correctColor') fixStimulus.correctColor = [0 1 0]; end
 if ~isfield(fixStimulus,'incorrectColor') fixStimulus.incorrectColor = [1 0 0]; end
-if ~isfield(fixStimulus,'traceNum') fixStimulus.traceNum = 3; end
+if ~isfield(fixStimulus,'traceNum') fixStimulus.traceNum = 5; end
 if ~isfield(fixStimulus,'responseTime') fixStimulus.responseTime = 1; end
 if ~isfield(fixStimulus,'stimTime') fixStimulus.stimTime = 0.2; end
 if ~isfield(fixStimulus,'interTime') fixStimulus.interTime = 0.5; end
@@ -44,6 +44,11 @@ task{1}.segmentTrace = myscreen.stimtrace;
 task{1}.phaseTrace = myscreen.stimtrace+1;
 task{1}.responseTrace = myscreen.stimtrace+2;
 myscreen.stimtrace = myscreen.stimtrace+3;
+
+% don't save any info in the traces about the segments
+% of this task
+task{1}.segmentsTrace = 0;
+task{1}.phaseTrace = 0;
 
 % init the staircase
 fixStimulus.staircase = upDownStaircase(fixStimulus.stairUp,fixStimulus.stairDown,fixStimulus.threshold,fixStimulus.stairStepSize,fixStimulus.stairUseLevitt);

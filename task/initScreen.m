@@ -326,6 +326,7 @@ end
 % default values
 myscreen.userHitEsc = 0;
 myscreen.flushMode = 0;
+myscreen.makeTraces = 0;
 myscreen.numTasks = 0;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

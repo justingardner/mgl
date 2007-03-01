@@ -30,14 +30,6 @@ task{1}.segquant = [0 1.5];
 % fix: enter the parameter of your choice
 task{1}.parameter.myParameter = [0 30 90];
 task{1}.random = 1;
-% and set to save the parameter setting in a trace
-% so that you can later decode what trial was presented
-% when.
-% fix: You will need to change this to save out the
-% parameters that you are actually want to keep track of.
-task{1}.writeTrace{1}.tracenum = 1;
-task{1}.writeTrace{1}.tracevar{1} = 'myParameter';
-task{1}.writeTrace{1}.usenum = 1;
 
 % initialize the task
 for phaseNum = 1:length(task)

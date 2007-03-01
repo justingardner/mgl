@@ -324,7 +324,7 @@ if task.timeInTicks && task.timeInVols
 end
 
 % set how many total trials we have run
-task.trialnumTotal = 0;
+task.trialnum = 1;
 
 % update, how many tasks we have seen
 myscreen.numTasks = myscreen.numTasks+1;
@@ -390,7 +390,10 @@ task.parameter = feval(task.callback.rand,task.parameter);
 [st,i] = dbstack;
 task.taskfilename = st(max(i+1,length(st))).file;
 
+% init the time discrepancy to 0
+task.timeDiscrepancy = 0;
+
 % set the debug mode to stop on error
-%dbstop if error
+dbstop if error
 
 
