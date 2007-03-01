@@ -81,15 +81,11 @@ if task{tnum}.thistrial.segstart == -inf
     thistime = mglGetSecs;
     % calculate trial time discrepancy
     if task{tnum}.trialnum > 1
-      if ~isfield(task{tnum},'start')
-	task{tnum}.start = thistime;
-      end
-      % info for the last trial is already there, so find the
+      % info for the last trial is in lasttrial, so find the
       % difference between the time the trial actually took
       % and how long it was expected to take-how much time
       % we had to make up 
-      task{tnum}.timeDiscrepancy = (thistime-task{tnum}.thistrial.trialstart)-(sum(task{tnum}.thistrial.seglen)-task{tnum}.timeDiscrepancy);
-      disp(sprintf('Actual: %f Expected: %f Discrepancy of %f (%f)',thistime-task{tnum}.thistrial.trialstart,sum(task{tnum}.thistrial.seglen),task{tnum}.timeDiscrepancy,thistime-task{tnum}.start));
+      task{tnum}.timeDiscrepancy = (thistime-task{tnum}.lasttrial.trialstart)-(sum(task{tnum}.lasttrial.seglen)-task{tnum}.timeDiscrepancy);
     end
     task{tnum}.thistrial.trialstart = thistime;
   end
@@ -256,6 +252,9 @@ end
 % init trial
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function [task, myscreen] = initTrial(task,myscreen)
+
+% keep lasttrial information
+task.lasttrial = task.thistrial;
 
 % set the segment number
 task.thistrial.thisseg = 1;
