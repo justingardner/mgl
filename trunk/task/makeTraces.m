@@ -13,6 +13,11 @@ if ~any(nargin == [1])
   return
 end
 
+% convert time to seconds
+if ~isfield(myscreen,'endtimeSecs')
+  myscreen.endtimeSecs = datenum(myscreen.endtime);
+end
+
 % generate traces from events (events only tell when a trace
 % changes its value, and we want traces that have a continuous
 % representation of the value). This is all done to keep the

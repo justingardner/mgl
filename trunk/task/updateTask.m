@@ -97,11 +97,11 @@ if task{tnum}.thistrial.segstart == -inf
   % so that we can get better response time for reaction time tasks
   if (task{tnum}.getResponse(task{tnum}.thistrial.thisseg)==2)
     % call the display function now, and flush screen
-    [task{tnum} myscreen] = feval(task{tnum}.callback.screenUpdate,task{tnum},myscreen);
-    mglFlush;
+    %[task{tnum} myscreen] = feval(task{tnum}.callback.screenUpdate,task{tnum},myscreen);
+    %mglFlush;
     % now set not to update the screen while we wait for response
     myscreen.oldFlushMode = myscreen.flushMode;
-    myscreen.flushMode = -1;
+    myscreen.flushMode = 1;
   end
 end
 

@@ -26,7 +26,9 @@ if ~exist('task','var') || isempty(task)
 end
 
 % get traces
-myscreen = makeTraces(myscreen);
+if ~isfield(myscreen,'traces')
+  myscreen = makeTraces(myscreen);
+end
 
 % if there is only one task
 if ~iscell(task{1})
