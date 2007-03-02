@@ -99,8 +99,10 @@ if ~isfield(myscreen,'datadir')
   myscreen.datadir = '~/data';
 end
 
-if isdir(myscreen.datadir) && (myscreen.saveData>0)
-  cd(myscreen.datadir);
+if ~isdir(myscreen.datadir)
+ disp(sprintf('(initScreen) Could not find directory %s. Using current directory',myscreen.datadir));
+ % use current directory instead
+ myscreen.datadir = '';
 end
 
 % compute the time per frame
@@ -292,16 +294,6 @@ end
 % get filename
 thedate = [datestr(now,'yy') datestr(now,'mm') datestr(now,'dd')];
 filename = sprintf('%s_stim%02i',thedate,tracknum);
-
-% make sure we don't have an existing file in the directory
-% that would get overwritten
-while(isfile(sprintf('%s.mat',filename)))
-  disp(sprintf('UHOH: There is already a file %s...',filename));
-  gNumSaves = gNumSaves+1;  tracknum = tracknum+1;
-  thedate = [datestr(now,'yy') datestr(now,'mm') datestr(now,'dd')];
-  filename = sprintf('%s_stim%02i',thedate,tracknum);
-  disp(sprintf('Changing to %s',filename));
-end
 
 % now create an output for the tracker
 % with the tracknum shift up 8 bits

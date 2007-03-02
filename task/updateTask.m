@@ -208,7 +208,7 @@ if (task{tnum}.getResponse(task{tnum}.thistrial.thisseg))
       myscreen.flushMode = myscreen.oldFlushMode;
     end
     % and set that we have got a response
-    task{tnum}.thistrial.gotResponse = 1;
+    task{tnum}.thistrial.gotResponse = task{tnum}.thistrial.gotResponse+1;
   end
   % remember the current button state
   task{tnum}.thistrial.buttonState = buttons;
