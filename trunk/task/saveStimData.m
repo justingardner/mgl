@@ -26,13 +26,20 @@ filename = sprintf('%s_stim%02i',thedate,gNumSaves);
 
 % make sure we don't have an existing file in the directory
 % that would get overwritten
-while(isfile(sprintf('%s.mat',filename)))
-  mydisp(sprintf('UHOH: There is already a file %s...',filename));
+changedName = 0;
+while(isfile(fullfile(myscreen.datadir,sprintf('%s.mat',filename))))
   gNumSaves = gNumSaves+1;
   thedate = [datestr(now,'yy') datestr(now,'mm') datestr(now,'dd')];
   filename = sprintf('%s_stim%02i',thedate,gNumSaves);
-  disp(sprintf('Changing to %s',filename));
+  changedName = 1;
 end
+% display name if it changes
+if changedName
+  disp(sprintf('(saveStimData) Changed output file to %s',filename));
+end
+
+% add path to filename
+filename = fullfile(myscreen.datadir,filename);
 
 % ask user if they want to save
 if (myscreen.saveData == -1)
@@ -85,6 +92,7 @@ elseif (~isempty(str2num(response)) && (sigfig(str2num(response)) == 0))
   gNumSaves = str2num(response);
   % get filename
   filename = sprintf('%s_stim%02i',thedate,gNumSaves);
+  filename = fullfile(myscreen.datadir,filename);
   % and save it
   mydisp(sprintf('Saving %s...',filename));
   if (str2num(first(version)) < 7)
