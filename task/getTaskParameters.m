@@ -25,11 +25,6 @@ if ~exist('task','var') || isempty(task)
   return
 end
 
-% get traces
-if ~isfield(myscreen,'traces')
-  myscreen = makeTraces(myscreen);
-end
-
 % if there is only one task
 if ~iscell(task{1})
   allTasks{1} = task;
@@ -48,7 +43,7 @@ for taskNum = 1:length(allTasks)
   phaseNum = 1;
   blockNum = 1;
   blockTrialNum = 0;
-  numTraces = size(myscreen.traces,1) - myscreen.stimtrace + 1;
+  numTraces = max(0,max(myscreen.events.tracenum) - myscreen.stimtrace + 1);
   experiment = initPhase([],phaseNum,numTraces);
   tnum = 0;
   
@@ -90,7 +85,9 @@ for taskNum = 1:length(allTasks)
 	  experiment(phaseNum).trials(tnum).traces.tracenum = [];
 	  experiment(phaseNum).trials(tnum).traces.val = [];
 	  experiment(phaseNum).trials(tnum).traces.time = [];
-	  experiment(phaseNum).traces(:,tnum) = nan;
+	  if numTraces > 0
+	    experiment(phaseNum).traces(:,tnum) = nan;
+	  end
 	  experiment(phaseNum).response(tnum) = nan;
 	  experiment(phaseNum).reactionTime(tnum) = nan;
 	  % get all the random parameter
@@ -169,7 +166,6 @@ for taskNum = 1:length(allTasks)
 end
 
 experiment = retval;
-experiment.tracesAll = myscreen.traces;
 
 function experiment = initPhase(experiment,phaseNum,numTraces)
 
@@ -182,6 +178,7 @@ experiment(phaseNum).blockNum = [];
 experiment(phaseNum).blockTrialNum = [];
 experiment(phaseNum).response = [];
 experiment(phaseNum).reactionTime = [];
-experiment(phaseNum).traces(1:numTraces,:) = nan;
-
+if numTraces>0
+  experiment(phaseNum).traces(1:numTraces,:) = nan;
+end
 
