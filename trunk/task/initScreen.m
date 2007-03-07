@@ -28,6 +28,7 @@ screenParamsList = {'computerName','displayName','screenNumber',...
 		    'saveData','monitorGamma','calibFilename'};
 screenParams{1} = {'yoyodyne.cns.nyu.edu','projector',2,1280,1024,57,[31 23],60,1,0,defaultMonitorGamma,'yoyodyne'};
 screenParams{end+1} = {'yoyodyne.cns.nyu.edu','lcd',2,1280,1024,157.5,[43.2 32.5],60,1,0,defaultMonitorGamma,'yoyodyne'};
+
 screenParams{end+1} = {'Stimulus.local','projector',2,1024,768,57,[31 23],60,0,50,defaultMonitorGamma,''};
 screenParams{end+1} = {'Stimulus.local','lcd',2,800,600,157.5,[43.2 32.5],60,0,50,[0 1 0.4790 0 1 0.4790 0 1 0.4790],''};
 screenParams{end+1} = {'stimulus-g5.local','projector',2,1024,768,57,[31 23],60,0,50,defaultMonitorGamma,'stimulus-g5_projector'};
@@ -42,9 +43,13 @@ screenParams{end+1} = {'froh.cns.nyu.edu','',[],1280,1024,57,[31 23],100,1,0,def
 screenParams{end+1} = {'jackson','',2,1152,870,57,[43.2 32.5],75,1,0,defaultMonitorGamma,''};
 screenParams{end+1} = {'cronos.psychology.nottingham.ac.uk','',2,1280,1024,57,[31 23],100,1,0,defaultMonitorGamma,''};
 screenParams{end+1} = {'hyperion.local','',0,800,600,57,[31 23],100,1,0,defaultMonitorGamma,''};
+screenParams{end+1} = {'tejas.cns.nyu.edu', '', 2, 1680, 1050, 57, [31 23], 60, 1, 0, defaultMonitorGamma, ''};
+
 if isfield(myscreen,'screenParams')
   screenParams = cat(2,myscreen.screenParams,screenParams);
 end
+
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % find matching database parameters
