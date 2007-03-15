@@ -12,6 +12,9 @@ function myscreen = initScreen(myscreen,randstate)
 % get globals
 global MGL;
 
+% set version number
+myscreen.ver = 1.1;
+
 % get computer name
 myscreen.computer = getHostName;
 myscreen.tickcode = hex2dec('35');
