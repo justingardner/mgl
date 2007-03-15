@@ -123,16 +123,18 @@ for taskNum = 1:length(allTasks)
 	% deal with response
       elseif myscreen.events.tracenum(enum) == task{phaseNum}.responseTrace
 	whichButton = myscreen.events.data(enum);
-	reactionTime = myscreen.events.time(enum)-exptStartTime-segtime;
-	% save the first response in the response array
-	if isnan(experiment(phaseNum).response(tnum))
-	  experiment(phaseNum).response(tnum) = whichButton;
-	  experiment(phaseNum).reactionTime(tnum) = reactionTime;
+	% make sure this is happening after first trial
+	if tnum
+	  reactionTime = myscreen.events.time(enum)-exptStartTime-segtime;
+	  % save the first response in the response array
+	  if isnan(experiment(phaseNum).response(tnum))
+	    experiment(phaseNum).response(tnum) = whichButton;
+	    experiment(phaseNum).reactionTime(tnum) = reactionTime;
+	  end
+	  % save all responses in trial
+	  experiment(phaseNum).trials(tnum).response(end+1) = whichButton;
+	  experiment(phaseNum).trials(tnum).reactionTime(end+1) = reactionTime;
 	end
-	% save all responses in trial
-	experiment(phaseNum).trials(tnum).response(end+1) = whichButton;
-	experiment(phaseNum).trials(tnum).reactionTime(end+1) = reactionTime;
-	
 	% deal with user traces
       elseif myscreen.events.tracenum(enum) >= myscreen.stimtrace
 	tracenum = myscreen.events.tracenum(enum)-myscreen.stimtrace+1;
@@ -158,6 +160,7 @@ for taskNum = 1:length(allTasks)
       end
     end      
   end
+  % for a multi task experiment, then we keep a cell array of values
   if multiTask
     retval{taskNum} = experiment;
   else
@@ -166,6 +169,17 @@ for taskNum = 1:length(allTasks)
 end
 
 experiment = retval;
+
+% set the traces in the return value if they exist
+if isfield(myscreen,'traces')
+  if iscell(experiment)
+    for i = 1:length(experiment)
+      experiment{i}.tracesAll = myscreen.traces;
+    end
+  else
+    experiment.tracesAll = myscreen.traces;
+  end
+end
 
 function experiment = initPhase(experiment,phaseNum,numTraces)
 
