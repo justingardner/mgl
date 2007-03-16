@@ -45,11 +45,6 @@ task{1}.phaseTrace = myscreen.stimtrace+1;
 task{1}.responseTrace = myscreen.stimtrace+2;
 myscreen.stimtrace = myscreen.stimtrace+3;
 
-% don't save any info in the traces about the segments
-% of this task
-task{1}.segmentsTrace = 0;
-task{1}.phaseTrace = 0;
-
 % init the staircase
 fixStimulus.staircase = upDownStaircase(fixStimulus.stairUp,fixStimulus.stairDown,fixStimulus.threshold,fixStimulus.stairStepSize,fixStimulus.stairUseLevitt);
 
