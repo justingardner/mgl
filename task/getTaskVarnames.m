@@ -1,9 +1,12 @@
 % getTaskVarnames.m
 %
-%      usage: varnames = getTaskVarnames(task)
+%        $id:
+%      usage: [varnames varnamesStr] = getTaskVarnames(task)
 %         by: justin gardner
 %       date: 03/14/07
-%    purpose: 
+%    purpose: returns all the names of the variables in the task
+%             as a cell array (second optional output returns
+%             a single string with the name of the variables)
 %
 function [varnames varnamesStr] = getTaskVarnames(task)
 
