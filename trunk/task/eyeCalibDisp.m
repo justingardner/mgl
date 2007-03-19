@@ -40,6 +40,12 @@ if (myscreen.eyecalib.prompt)
   end
 end
 
+% put fixation in center of screen to allow subject to get there in time
+mglClearScreen;
+mglGluDisk(0,0,myscreen.eyecalib.size/2,myscreen.eyecalib.color);
+mglFlush;
+mglWaitSecs(2);
+
 % make sure eye tracker is on and recording that this is an eyecalibration
 %myscreen.fishcamp = bitor(myscreen.fishcamp,bin2dec('101'));
 %fishcamp(1,myscreen.fishcamp);
