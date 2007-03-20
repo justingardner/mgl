@@ -23,13 +23,14 @@
 %
 %       e.g.:
 %
-%mglOpen;
+%mglOpen(0);
 %mglVisualAngleCoordinates(57,[16 12]);
-%x = zeros(10, 1);
-%y = zeros(10, 1);
-%isize = linspace(1, 8, 10);
-%osize = isize+linspace(0.1, 2, 10);
-%mglGluAnnulus(x, y, isize, osize,  [0.1 0.6 1], 60, 2);
+%x = zeros(4, 1);
+%y = zeros(4, 1);
+%isize = linspace(1, 8, 4);
+%osize = isize+linspace(0.1, 2, 4);
+%colors = jet(4)';
+%mglGluAnnulus(x, y, isize, osize,colors , 60, 2);
 %mglFlush();
 
 

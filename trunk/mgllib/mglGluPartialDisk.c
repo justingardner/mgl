@@ -25,9 +25,9 @@ $Id$
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
   //  CGLContextObj contextObj = CGLGetCurrentContext();
-  double *x, *y, *isize, *osize, *startAngles, *sweepAngles, color[4];
+  double *x, *y, *isize, *osize, *startAngles, *sweepAngles, *color;
   int nslices, nloops;
-  int i, n, ni, no, nStartAngles, nSweepAngles;
+  int i, n, ni, no, nStartAngles, nSweepAngles, ncolors;
 
   GLUquadricObj	  *diskQuadric;
   
@@ -72,7 +72,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
 
   // set color of points
-  if (nrhs < 7)
+  /* if (nrhs < 7)
     // set default color
     glColor3f(1.0,1.0,1.0); 
   else {
@@ -81,6 +81,25 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       glColor3f(1.0,1.0,1.0);
     else
       glColor3f(color[0],color[1],color[2]);
+      }*/
+
+  // set color of points
+  if (nrhs < 7) {
+    // set default color
+    glColor3f(1.0,1.0,1.0); 
+  } else {
+    // get color
+    ncolors = mxGetN(prhs[6])*mxGetM(prhs[6]);
+    if ( (ncolors != 3) && ( (ncolors != 3*ni) || (mxGetM(prhs[6]) != 3)) ) {
+      mexPrintf("%i, ni=%i\n", ncolors,ni);
+      mexPrintf("(mglGluAnnulus) UHOH: Vector of colors needs to be 3x1 or 3xn\n\n");
+      usageError("mglGluAnnulus");
+      return;
+    }
+    color = (double*)mxGetPr(prhs[6]);
+    if (ncolors == 3) {
+      glColor3f(color[0],color[1],color[2]);
+    }
   }
   
   // set default loops and slices (or get them)
@@ -105,6 +124,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   for(i=0;i<n;i++){
     glPushMatrix();
     glTranslated(x[i],y[i], 0.0);
+    if (ncolors > 3) {
+      glColor3f(color[3*i+0],color[3*i+1],color[3*i+2]);
+    }
     if (ni == 1 || no == 1)
       gluPartialDisk(diskQuadric, isize[0], osize[0], nslices, nloops, startAngles[0], sweepAngles[0]);
     else

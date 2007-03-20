@@ -23,7 +23,7 @@
 %
 %       e.g.:
 %
-%mglOpen;
+%mglOpen(0);
 %mglVisualAngleCoordinates(57,[16 12]);
 %x = 16*rand(100,1)-8;
 %y = 12*rand(100,1)-6; 
