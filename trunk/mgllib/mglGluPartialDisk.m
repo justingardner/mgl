@@ -30,7 +30,7 @@
 %mglVisualAngleCoordinates(57,[16 12]);
 %x = zeros(10, 1);
 %y = zeros(10, 1);
-%isize = ones(10,1)
+%isize = ones(10,1);
 %osize = 3*ones(10,1);
 %startAngles = linspace(0,180, 10)
 %sweepAngles = ones(1,10).*10;
