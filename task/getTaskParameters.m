@@ -174,10 +174,14 @@ experiment = retval;
 if isfield(myscreen,'traces')
   if iscell(experiment)
     for i = 1:length(experiment)
-      experiment{i}.tracesAll = myscreen.traces;
+      for j = 1:length(experiment{i})
+        experiment{i}(j).tracesAll = myscreen.traces;
+      end
     end
   else
-    experiment.tracesAll = myscreen.traces;
+    for j = 1:length(experiment)
+      experiment(j).tracesAll = myscreen.traces;
+    end
   end
 end
 

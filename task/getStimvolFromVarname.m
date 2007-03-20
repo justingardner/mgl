@@ -5,9 +5,10 @@
 %       date: 03/15/07
 %    purpose: returns the volume numbers for the stimulus variable
 %
-function stimvolOut = getStimvolFromVarname(varnameIn,myscreen,task,taskNum,phaseNum)
+function [stimvolOut stimNamesOut] = getStimvolFromVarname(varnameIn,myscreen,task,taskNum,phaseNum)
 
 stimvolOut = {};
+stimNamesOut = {};
 % check arguments
 if ~any(nargin == [3 4 5])
   help getStimvolFromVarname
@@ -137,8 +138,10 @@ for tnum = 1:length(e)
 	for j = 1:length(stimvol{i})
 	  if length(stimvolOut) >= k
 	    stimvolOut{k} = [stimvolOut{k} e{tnum}(pnum).trialVolume(stimvol{i}{j})];
+	    stimNamesOut{k} = [stimNamesOut{k} stimnames{i}{j}];
 	  else
 	    stimvolOut{k} = e{tnum}(pnum).trialVolume(stimvol{i}{j});
+	    stimNamesOut{k} = stimnames{i}{j};
 	  end
 	  k = k+1;
 	end
