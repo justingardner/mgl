@@ -26,7 +26,7 @@
 %
 %       e.g.:
 %
-%mglOpen;
+%mglOpen(0);
 %mglVisualAngleCoordinates(57,[16 12]);
 %x = zeros(10, 1);
 %y = zeros(10, 1);
@@ -34,7 +34,8 @@
 %osize = 3*ones(10,1);
 %startAngles = linspace(0,180, 10)
 %sweepAngles = ones(1,10).*10;
-%mglGluPartialDisk(x, y, isize, osize, startAngles, sweepAngles, [0.1 0.6 1], 60, 2);
+%colors = jet(10)';
+%mglGluPartialDisk(x, y, isize, osize, startAngles, sweepAngles, colors, 60, 2);
 %mglFlush();
 
 
