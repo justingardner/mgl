@@ -49,6 +49,9 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function [task, myscreen tnum] = updateTrial(task, myscreen, tnum)
 
+% set the phase num of the trial
+task{tnum}.thistrial.thisphase = tnum;
+
 if task{tnum}.thistrial.waitingToInit
   % init the trial
   [task{tnum} myscreen] = initTrial(task{tnum},myscreen);
