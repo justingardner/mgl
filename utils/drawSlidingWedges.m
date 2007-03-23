@@ -51,7 +51,7 @@ function t_elapsed=drawSlidingWedges( stimDuration, ...
 % (c) Jonas Larsson 20060621
 
 
-t_zero=GetSecs;
+t_zero=mglGetSecs;
 if (length(stimDuration)==3)
   dutyCycle=stimDuration(2);
   nCycles=stimDuration(3); 
@@ -191,12 +191,12 @@ for nW=1:nWedges
   
 end
 
-t_elapsed=GetSecs-t_zero;
+t_elapsed=mglGetSecs-t_zero;
 
 moveSign=(rand>0.5)*2-1;
 for nCyc=1:nCycles  
   t_cycle=0;
-  t_cyclezero=GetSecs;
+  t_cyclezero=mglGetSecs;
   moveSignPerCycle=moveSign*((mod(nCyc,2)>0)*2-1);
   % while time is less than onTimePerCycle, draw
   while (t_cycle<onTimePerCycle) 
@@ -302,7 +302,7 @@ for nCyc=1:nCycles
     mglFlush;
     
     % measure elapsed time
-    t_cycle=GetSecs-t_cyclezero;
+    t_cycle=mglGetSecs-t_cyclezero;
     % add: subtract
     % repeat
   end
@@ -314,9 +314,9 @@ for nCyc=1:nCycles
     end
     mglFlush;
     while (t_cycle<timePerCycle) 
-      t_cycle=GetSecs-t_cyclezero;      
+      t_cycle=mglGetSecs-t_cyclezero;      
     end
   end  
 end  
-t_elapsed=GetSecs-t_zero;
+t_elapsed=mglGetSecs-t_zero;
 

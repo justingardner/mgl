@@ -53,6 +53,10 @@
 %  mglGetSecs                : Get time in seconds
 %  mglWaitSecs               : Wait for a time in seconds
 %
+%Sound functions
+%  mglInstallSound             : Install an .aiff file for playing with mglPlaySound
+%  mglPlaySound                : Play a system sound
+%
 %Test/Demo programs
 %  mglTestAlignment          : Alignment of textures
 %  mglTestDots               : Draws dots
