@@ -101,7 +101,7 @@ if ~isfield(calib,'bittest') | ~isfield(calib,'uncorrected') | ...
   mglOpen(calib.screenNumber);
 end
 
-if ~isempty(portnum)
+if ~justdisplay && ~isempty(portnum)
   disp(sprintf('Starting in 20 seconds'));
   mglWaitSecs(20);
 end
@@ -214,12 +214,14 @@ end
 if doBittest
   % test to see how many bits we have in the gamma table
   disp(sprintf('Testing how many bits the gamma table is'));
-  if ~isfield(calib.bittest,'data')
+  if ~isfield(calib.bittest,'data') && ~justdisplay
     calib.bittest.data = measureOutput(portnum,bitTestRange,calib.bittest.numRepeats);
   end
-  subplot(1,2,2);
-  dispLuminanceFigure(calib.bittest.data);
-  title(sprintf('Output starting at %0.2f\nin steps of 1/%i',calib.bittest.base,calib.bittest.stepsize));
+  if isfield(calib.bittest,'data')
+    subplot(1,2,2);
+    dispLuminanceFigure(calib.bittest.data);
+    title(sprintf('Output starting at %0.2f\nin steps of 1/%i',calib.bittest.base,calib.bittest.stepsize));
+  end
 end
 
 if ~justdisplay

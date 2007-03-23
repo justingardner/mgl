@@ -53,7 +53,7 @@ end
 
 openDisplay = 0;
 % check to see if a display is already open
-if isfield(MGL,'displayNumber') && ~isempty(MGL.displayNumber)
+if isfield(MGL,'displayNumber') && ~isempty(MGL.displayNumber) && (MGL.displayNumber ~= -1)
   openDisplay = 1;
 end
 

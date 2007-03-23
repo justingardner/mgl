@@ -156,3 +156,6 @@ if length(cell2mat(stimvolOut)) ~= length(unique(cell2mat(stimvolOut)))
   disp(sprintf('(getstimvol) Same trial in multiple conditions.'));
 end
 
+if isempty(stimvolOut) 
+  disp(sprintf('(getStimvolFromVarname) No stimvols found in task %i phase %i',taskNum,phaseNum));
+end

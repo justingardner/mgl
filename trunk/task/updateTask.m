@@ -32,7 +32,7 @@ if (task{tnum}.blocknum == 0) || (task{tnum}.blockTrialnum > task{tnum}.block(ta
 end
 
 % if we have finished how many trials were called for go to next task
-if (task{tnum}.trialnum >= task{tnum}.numTrials)
+if (task{tnum}.trialnum > task{tnum}.numTrials)
   tnum = tnum+1;
   % write out the phase
   myscreen = writeTrace(tnum,task{tnum-1}.phaseTrace,myscreen);
