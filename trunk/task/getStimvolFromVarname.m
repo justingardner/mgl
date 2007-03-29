@@ -1,23 +1,25 @@
 % getStimvolFromVarname.m
 %
-%      usage: getStimvolFromVarname(varnameIn,myscreen,task,[taskNum],[phaseNum])
+%      usage: getStimvolFromVarname(varnameIn,myscreen,task,[taskNum],[phaseNum],[segmentNum])
 %         by: justin gardner
 %       date: 03/15/07
 %    purpose: returns the volume numbers for the stimulus variable
 %
-function [stimvolOut stimNamesOut] = getStimvolFromVarname(varnameIn,myscreen,task,taskNum,phaseNum)
+function [stimvolOut stimNamesOut] = getStimvolFromVarname(varnameIn,myscreen,task,taskNum,phaseNum,segmentNum)
 
 stimvolOut = {};
 stimNamesOut = {};
 % check arguments
-if ~any(nargin == [3 4 5])
+if ~any(nargin == [3 4 5 6])
   help getStimvolFromVarname
   return
 end
 
-
 % structure passed in, can have fields for taskNum,phaseNum and varname
 if isstruct(varnameIn) 
+  if isfield(varnameIn,'segmentNum')
+    segmentNum = varnameIn.segmentNum;
+  end
   if isfield(varnameIn,'taskNum')
     taskNum = varnameIn.taskNum;
   end
@@ -34,6 +36,7 @@ end
 
 % get default task numbers and phase numbers
 if ~exist('taskNum','var'),taskNum = 1:length(task);end
+if ~exist('segmentNum','var'),segmentNum = 1;end
 if ~exist('phaseNum','var')
   phaseNum = 1;
   for tnum = 1:length(task)
@@ -131,16 +134,33 @@ for tnum = 1:length(e)
 	end
       end
     end
+    % select which volume to use, this will normally be the volume at which the
+    % trial started, but if the user passes in a segmentNum than we have to return
+    % the volume at which that segment occurred
+    if segmentNum == 1
+      trialVolume = e{tnum}(pnum).trialVolume;
+    else
+      for trialNum = 1: e{tnum}(pnum).nTrials
+        % make sure we have enough segments
+        if segmentNum <= length(e{tnum}(pnum).trials(trialNum).volnum)
+          trialVolume(trialNum) = e{tnum}(pnum).trials(trialNum).volnum(segmentNum);
+        else
+          disp(sprintf('(getStimvolFromVarname) Asked for segment %i but trials only have %i segments',segmentNum,length(e{tnum}(pnum).trials(trialNum).volnum)));
+          return
+        end	
+      end
+    end	
+
     % now we convert the trial numbers into volumes
     if exist('stimvol','var')
       k = 1;
       for i = 1:length(stimvol)
 	for j = 1:length(stimvol{i})
 	  if length(stimvolOut) >= k
-	    stimvolOut{k} = [stimvolOut{k} e{tnum}(pnum).trialVolume(stimvol{i}{j})];
+	    stimvolOut{k} = [stimvolOut{k} trialVolume(stimvol{i}{j})];
 	    stimNamesOut{k} = [stimNamesOut{k} stimnames{i}{j}];
 	  else
-	    stimvolOut{k} = e{tnum}(pnum).trialVolume(stimvol{i}{j});
+	    stimvolOut{k} = trialVolume(stimvol{i}{j});
 	    stimNamesOut{k} = stimnames{i}{j};
 	  end
 	  k = k+1;
@@ -159,3 +179,4 @@ end
 if isempty(stimvolOut) 
   disp(sprintf('(getStimvolFromVarname) No stimvols found in task %i phase %i',taskNum,phaseNum));
 end
+
