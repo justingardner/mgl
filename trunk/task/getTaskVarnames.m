@@ -23,7 +23,7 @@ if ~iscell(task{1})
 end
 
 varnames = {};
-for taskNum = 1:size(task,1)
+for taskNum = 1:length(task)
   for phaseNum = 1:length(task{taskNum})
     % look in parameter for parameter names
     fields = fieldnames(task{taskNum}{phaseNum}.parameter);
