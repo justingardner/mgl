@@ -94,6 +94,11 @@ for tnum = 1:length(e)
 	  % get the value of the variable in question
 	  % on each trial
 	  varval = getVarFromParameters(strtok(varname{i}{j},'='),e{tnum}(pnum));
+	  % check to make sure it is not empty
+	  if isempty(varval)
+	    disp(sprintf('(getStimvolFromVarname) Could not find variable %s in task %i phase %i',strtok(varname{i}{j},'='),taskNum,phaseNum));
+	    return;
+	  end
 	  % see if it is a strict variable name
 	  if isempty(strfind(varname{i}{j},'='))
 	    % if it is then for each particular setting
