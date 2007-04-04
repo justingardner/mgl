@@ -19,6 +19,7 @@ end
 % make into a cell array of cell arrays
 if ~iscell(task{1})
   oldtask = task;
+  clear task;
   task{1} = oldtask;
 end
 
