@@ -33,7 +33,7 @@ task{1}.random = 1;
 
 % initialize the task
 for phaseNum = 1:length(task)
-  task{phaseNum} = initTask(task{phaseNum},myscreen,@stimStartSegmentCallback,@stimDrawStimulusCallback);
+  [task{phaseNum} myscreen] = initTask(task{phaseNum},myscreen,@stimStartSegmentCallback,@stimDrawStimulusCallback);
 end
 
 % init the stimulus

@@ -43,7 +43,7 @@ task{2}{2}.writeTrace{1}.usenum = 1;
 
 % initialize our task
 for phaseNum = 1:length(task{2})
-  task{2}{phaseNum} = initTask(task{2}{phaseNum},myscreen,@startSegmentCallback,@updateScreenCallback);
+  [task{2}{phaseNum} myscreen] = initTask(task{2}{phaseNum},myscreen,@startSegmentCallback,@updateScreenCallback);
 end
 
 % init the stimulus
