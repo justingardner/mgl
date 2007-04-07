@@ -293,7 +293,7 @@ for nCyc=1:nCycles
 	    currX(:,nC)=[ccwX(nC);ccwX(nC+1); cwX(nC+1); cwX(nC) ];
 	    currY(:,nC)=[ccwY(nC);ccwY(nC+1); cwY(nC+1); cwY(nC) ];
 	  end	    
-	  mglQuad(currX,currY,currcol,1);
+	  mglQuad(currX,currY,currcol,0);
 	end
       end
     end
