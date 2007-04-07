@@ -98,7 +98,7 @@ allAngles = 0:stimulus.angleSize:(360-stimulus.angleSize);
 % all the phases
 allPhases1 = 0:.1:(stimulus.radiusSize*2);
 allPhases2 = fliplr(allPhases1);
-disppercent('(mglRetinotopy) Calculating wedge coordinates');
+disppercent(-inf,'(mglRetinotopy) Calculating wedge coordinates');
 for phaseNum = 1:length(allPhases1)
   stimulus.x{phaseNum} = [];stimulus.y{phaseNum} = [];stimulus.c{phaseNum} = [];
   for angleNum = 1:length(allAngles)
