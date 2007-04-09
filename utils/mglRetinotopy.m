@@ -39,7 +39,7 @@ myscreen = initStimulus('stimulus',myscreen);
 
 % set the parameters of the stimulus
 % whether to display wedges or rings
-stimulus.wedgesOrRings = 0;
+stimulus.wedgesOrRings = 1;
 % size of wedges
 stimulus.wedgeAngle = 30;
 % how much to step the wedge angle by
