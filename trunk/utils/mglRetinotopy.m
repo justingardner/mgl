@@ -28,15 +28,37 @@ myscreen = initScreen(myscreen);
 
 % set our task to have trials for each location
 task{2}{1}.waitForBacktick = 1;
-task{2}{1}.seglen = [1];
-task{2}{1}.numBlocks = 10;
-task{2}{1}.parameter.maskNum = 1:12;
+task{2}{1}.seglen = 1;
+task{2}{1}.numTrials = 24;
 
 task{2}{1} = initTask(task{2}{1},myscreen,@startSegmentCallback,@updateScreenCallback);
 
 % init the stimulus
 global stimulus;
 myscreen = initStimulus('stimulus',myscreen);
+
+% set the parameters of the stimulus
+% whether to display wedges or rings
+stimulus.wedgesOrRings = 0;
+% size of wedges
+stimulus.wedgeAngle = 30;
+% how much to step the wedge angle by
+stimulus.wedgeStepSize = 15;
+% ring min/max size
+stimulus.ringRadiusMin = [1 2 3 4 5 6 7 8 9 10 11 12];
+stimulus.ringRadiusMax = stimulus.ringRadiusMin+4;
+% min/max radius is the size of the stimulus
+stimulus.minRadius = 1;
+stimulus.maxRadius = min(myscreen.imageWidth/2,myscreen.imageHeight/2);
+% angle size is the size in degrees of the
+% elements of the wedge that slide against each other
+stimulus.angleSize = 5;
+% radius is the radial length of these elements
+stimulus.radiusSize = 2;
+% radial speed of elements moving each other
+stimulus.radialVelocity = 5;
+
+% init the stimulus
 stimulus = initWedges(stimulus,myscreen);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -66,9 +88,8 @@ myscreen = endTask(myscreen,task);
 function [task myscreen] = startSegmentCallback(task, myscreen)
 
 global stimulus;
-if (task.thistrial.thisseg == 1)
-  stimulus.currentMask = task.thistrial.maskNum;
-end
+
+stimulus.currentMask= 1+mod(stimulus.currentMask,stimulus.wedgeN);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % function that gets called to draw the stimulus each frame
@@ -83,20 +104,14 @@ stimulus = updateWedges(stimulus,myscreen);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function stimulus = initWedges(stimulus,myscreen)
 
-% sizes
-stimulus.minRadius = 1;
-stimulus.maxRadius = 12;
-stimulus.angleSize = 5;
-stimulus.radiusSize = 2;
-stimulus.wedges = 1;
-stimulus.wedgeAngle = 30;
-stimulus.ringRadiusMin = [1 2 3 4 5 6 7 8 9 10 11 12];
-stimulus.ringRadiusMax = stimulus.ringRadiusMin+4;
-
 % all the angles that the wedges will be made
-allAngles = 0:stimulus.angleSize:(360-stimulus.angleSize);
-% all the phases
-allPhases1 = 0:.1:(stimulus.radiusSize*2);
+allAngles = (0:stimulus.angleSize:(360-stimulus.angleSize));
+% all the phases. The phase refers to the radial position of the
+% black and white pattern (the pattern that is seen as moving
+% in the stimulus). There are two sets here since the wedges slide
+% against each other. That is every other sector will go in a 
+% different direction. 
+allPhases1 = 0:(stimulus.radialVelocity/myscreen.framesPerSecond):(stimulus.radiusSize*2);
 allPhases2 = fliplr(allPhases1);
 disppercent(-inf,'(mglRetinotopy) Calculating wedge coordinates');
 for phaseNum = 1:length(allPhases1)
@@ -121,7 +136,6 @@ for phaseNum = 1:length(allPhases1)
 	% calculate in polar angle coordinates the corners of this quad
 	r = [radius1 radius1 radius2 radius2];
 	a = [angle angle+stimulus.angleSize angle+stimulus.angleSize angle];
-      
 	% convert into rectilinear coordinates and save in array
 	stimulus.x{phaseNum}(:,end+1) = r.*cos(d2r(a));
 	stimulus.y{phaseNum}(:,end+1) = r.*sin(d2r(a));
@@ -136,70 +150,73 @@ disppercent(inf);
 stimulus.n = length(allPhases1);
 stimulus.phaseNum = 1;
 
-
-if stimulus.wedges
-  angles = 0:stimulus.wedgeAngle:360;
-  % create masks
-  for angleNum = 1:length(angles)
-    angle = angles(angleNum);
-    stimulus.maskX{angleNum} = [];
-    stimulus.maskY{angleNum} = [];
-    % create a polygon that spares the wedge that we want
-    % start in the center
-    r = [0];a = [0];
-    % and go around the angles except for the wedge we want
-    for vertexAngle = angle:(angle+360-stimulus.wedgeAngle);
-      r(end+1) = stimulus.maxRadius+1;
-      a(end+1) = vertexAngle;
-    end
-    % and end up in the center
-    r(end+1) = 0;
-    a(end+1) = 0;
-    % now convert to rectilinear
-    stimulus.maskX{angleNum}(:,end+1) = r.*cos(d2r(a));
-    stimulus.maskY{angleNum}(:,end+1) = r.*sin(d2r(a));
+% new we calculate the masks that cover the stimulus so that we can
+% have either rings or wedges, we start by making a set of wedge masks
+angles = (0:stimulus.wedgeStepSize:(360-stimulus.wedgeStepSize))+90+stimulus.wedgeAngle/2;
+% create masks
+for angleNum = 1:length(angles)
+  angle = angles(angleNum);
+  stimulus.maskX{angleNum} = [];
+  stimulus.maskY{angleNum} = [];
+  % create a polygon that spares the wedge that we want
+  % start in the center
+  r = 0;a = 0;
+  % and go around the angles except for the wedge we want
+  for vertexAngle = angle:(angle+360-stimulus.wedgeAngle);
+    r(end+1) = stimulus.maxRadius+1;
+    a(end+1) = vertexAngle;
   end
-  stimulus.maskN = length(angles);
-else
-  % create ring masks
-  for radiusNum = 1:length(stimulus.ringRadiusMin)
-    % create the inner mask
-    stimulus.maskInnerX{radiusNum} = [];
-    stimulus.maskInnerY{radiusNum} = [];
-    r = [0];a = [0];
-    for angle = 0:stimulus.angleSize:360
-      r(end+1) = stimulus.ringRadiusMin(radiusNum);
-      a(end+1) = angle;
-    end
-    r(end+1) = 0;a(end+1) = 0;
-    % now convert to rectilinear
-    stimulus.maskInnerX{radiusNum}(:,end+1) = r.*cos(d2r(a));
-    stimulus.maskInnerY{radiusNum}(:,end+1) = r.*sin(d2r(a));
-    % create the outer mask
-    stimulus.maskOuterX{radiusNum} = [];
-    stimulus.maskOuterY{radiusNum} = [];
-    allAngles = 0:stimulus.angleSize:360;
-    for angleNum = 1:length(allAngles)
-      angle = allAngles(angleNum);
-      r = stimulus.ringRadiusMax(radiusNum);
-      a = angle;
-      r(end+1) = stimulus.maxRadius+1;
-      a(end+1) = angle;
-      r(end+1) = stimulus.maxRadius+1;
-      a(end+1) = angle+stimulus.angleSize;
-      r(end+1) = stimulus.ringRadiusMax(radiusNum);
-      a(end+1) = angle+stimulus.angleSize;
-      % convert to rectilinear
-      stimulus.maskOuterX{radiusNum}(:,angleNum) = r.*cos(d2r(a));
-      stimulus.maskOuterY{radiusNum}(:,angleNum) = r.*sin(d2r(a));
-      stimulus.maskOuterC{radiusNum}(:,angleNum) = [0.5 0.5 0.5];
-    end
-  end
-  stimulus.maskN = length(stimulus.ringRadiusMin);
+  % and end up in the center
+  r(end+1) = 0;
+  a(end+1) = 0;
+  % now convert to rectilinear
+  stimulus.maskX{angleNum}(:,end+1) = r.*cos(d2r(a));
+  stimulus.maskY{angleNum}(:,end+1) = r.*sin(d2r(a));
 end
+stimulus.wedgeN = length(angles);
+
+
+% now we will make the masks for the rings. We will
+% make an inner and outer set of ring masks so that we
+% can isolate a single ring of the stimulus
+% create ring masks
+for radiusNum = 1:length(stimulus.ringRadiusMin)
+  % create the inner mask
+  stimulus.maskInnerX{radiusNum} = [];
+  stimulus.maskInnerY{radiusNum} = [];
+  r = [0];a = [0];
+  for angle = 0:stimulus.angleSize:360
+    r(end+1) = stimulus.ringRadiusMin(radiusNum);
+    a(end+1) = angle;
+  end
+  r(end+1) = 0;a(end+1) = 0;
+  % now convert to rectilinear
+  stimulus.maskInnerX{radiusNum}(:,end+1) = r.*cos(d2r(a));
+  stimulus.maskInnerY{radiusNum}(:,end+1) = r.*sin(d2r(a));
+  % create the outer mask
+  stimulus.maskOuterX{radiusNum} = [];
+  stimulus.maskOuterY{radiusNum} = [];
+  allAngles = 0:stimulus.angleSize:360;
+  for angleNum = 1:length(allAngles)
+    angle = allAngles(angleNum);
+    r = stimulus.ringRadiusMax(radiusNum);
+    a = angle;
+    r(end+1) = stimulus.maxRadius+1;
+    a(end+1) = angle;
+    r(end+1) = stimulus.maxRadius+1;
+    a(end+1) = angle+stimulus.angleSize;
+    r(end+1) = stimulus.ringRadiusMax(radiusNum);
+    a(end+1) = angle+stimulus.angleSize;
+    % convert to rectilinear
+    stimulus.maskOuterX{radiusNum}(:,angleNum) = r.*cos(d2r(a));
+    stimulus.maskOuterY{radiusNum}(:,angleNum) = r.*sin(d2r(a));
+    stimulus.maskOuterC{radiusNum}(:,angleNum) = [0.5 0.5 0.5];
+  end
+end
+stimulus.ringN = length(stimulus.ringRadiusMin);
   
 % set the mask to start with
-stimulus.currentMask = 1;
+stimulus.currentMask = 0;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % function to update wedges
@@ -212,7 +229,7 @@ stimulus.phaseNum = 1+mod(stimulus.phaseNum,stimulus.n);
 mglQuad(stimulus.x{stimulus.phaseNum},stimulus.y{stimulus.phaseNum},stimulus.c{stimulus.phaseNum},1);
 
 % mask out to get a wedge
-if stimulus.wedges
+if stimulus.wedgesOrRings
   mglPolygon(stimulus.maskX{stimulus.currentMask},stimulus.maskY{stimulus.currentMask},[0.5 0.5 0.5]);
 % or mask out to get a ring
 else
