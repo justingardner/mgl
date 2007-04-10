@@ -119,14 +119,17 @@ task{2}{1}.waitForBacktick = 1;
 % make every segment very short and let the synchToVol capture 
 % the volumes to move on to the next segment 
 if ~ieNotDefined('volumesPerCycle')
-  task{2}{1}.seglen = 0.01*ones(1,stimulus.volumesPerCycle);
-  task{2}{1}.synchToVol = ones(1,stimulus.volumesPerCycle);
+  task{2}{1}.seglen = 1;
+  task{2}{1}.timeInVols = 1;
+  % this is set so that we can end
+  task{2}{1}.fudgeLastVolume = 1;
 % otherwise, we are given the stimulusPeriod and stepsPerCycle and
 % we compute stuff in seconds
 else
-  task{2}{1}.seglen = (stimulus.stimulusPeriod/stimulus.stepsPerCycle)*ones(1,stimulus.stepsPerCycle);
+  task{2}{1}.seglen = (stimulus.stimulusPeriod/stimulus.stepsPerCycle);
 end
 
+task{2}{1}.numTrials = stimulus.numCycles*stimulus.stepsPerCycle + stimulus.initialHalfCycle*round(stimulus.stepsPerCycle/2);
 task{2}{1} = initTask(task{2}{1},myscreen,@startSegmentCallback,@updateScreenCallback);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -188,24 +191,32 @@ stimulus = updateWedges(stimulus,myscreen);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function stimulus = initWedges(stimulus,myscreen)
 
+% round to nearest quarter of a degree, this reduces
+% some edge effects
+stimulus.maxRadius = floor(stimulus.maxRadius/.25)*.25;
+disp(sprintf('Stimulus radius = [%0.2f %0.2f] degrees',stimulus.minRadius,stimulus.maxRadius));
 % calculate some parameters
 % size of wedges
 stimulus.wedgeAngle = 360*stimulus.dutyCycle;
 % how much to step the wedge angle by
 stimulus.wedgeStepSize = 360/stimulus.stepsPerCycle;
-% Based on the duty cycle calculate the ring cycle.
+% Based on the duty cycle calculate the ringSize.
 % Note that this is not just maxRadius-minRadius * dutyCycle
 % because we start the rings off the inner edge and end
 % them off the outer edge (that is the screen will be blank for
-% a time, rathter than showing a rawp.
-stimulus.ringSize = (stimulus.dutyCycle*(stimulus.maxRadius-stimulus.minRadius))/(1-2*stimulus.dutyCycle);
+% a time, rathter than showing a ring). We also have to
+% compensate in our dutyCycle for this, since the effective
+% duty cycle is reduced by the time that we are offscreen
+% that is for two periods
+dutyCycle = stimulus.dutyCycle*stimulus.stepsPerCycle/(stimulus.stepsPerCycle-2);
+stimulus.ringSize = (dutyCycle*(stimulus.maxRadius-stimulus.minRadius))/(1-dutyCycle);
 % get the radii for the rings
 minRadius = stimulus.minRadius-stimulus.ringSize;
 maxRadius = stimulus.maxRadius+stimulus.ringSize;
 % now we have the inner and outer ring radius that will be used
 % add a little fudge factor so that we don't get any rings
 % with only a small bit showing
-epsilon = .1;
+epsilon = 0.1;
 stimulus.ringRadiusMin = max(0,minRadius:(epsilon+stimulus.maxRadius-minRadius)/(stimulus.stepsPerCycle-1):stimulus.maxRadius+epsilon);
 stimulus.ringRadiusMax = stimulus.minRadius:(maxRadius-stimulus.minRadius)/(stimulus.stepsPerCycle-1):maxRadius;
 
