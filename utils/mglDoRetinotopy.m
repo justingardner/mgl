@@ -19,15 +19,22 @@ if ~exist('mrParamsDialog')
   return
 end
 
+% here we decide the order of the stimuli, stimulusType controls whether it 
+% will be a wedge or ring and stimulusDir is the direction. The scanNames
+% gives the name that the user will see. If you make changes to stimulusType
+% or stimulusDir make sure that you make the corresponding change in scanNames
+stimulusType = {'wedges' 'wedges' 'rings' 'rings'};
+stimulusDir =  [-1 1 1 -1];
 scanNames = {'CW wedges','CCW wedges','Expanding rings','Contracting rings'};
+
 % Parameters that can be set when running retinotopy
 paramsInfo = {...
     {'numCycles',10,'Number of cycles of the stimulus per scan (usually 10)','incdec=[-1 1]','minmax=[1 inf]',},...
-    {'initialHalfCycle',1,'Run an initial half cycle of stimulus to stabilize response (in the analysis you will junk these frames)','type=checkbox'},...
-    {'volumesPerCycle',24,'minmax=[0 inf]','incdec=[-1 1]','Number of volumes per stimulus cycle'},...
-    {'dutyCycle',0.25,'minmax=[0 1]','The duty cycle is the percent of time that any given area of the visual field will have the stimulus on for--for wedges it controls the size of the wedge and for rings the width of the rings'},...
+    {'initialHalfCycle',1,'Run an initial half cycle of stimulus to stabilize response. This will start the scan at midcycle. In the analysis you will need to junk one-half cycle worth of volumes.','type=checkbox'},...
+    {'volumesPerCycle',24,'minmax=[0 inf]','incdec=[-1 1]','Number of volumes per stimulus cycle. For a 1.5 second TR we usually choose 24 so that the cycle length will be 36 seconds. You may want to adjust this appropriately if you are using a different TR (e.g. you may want to alway have the same length cycle in seconds)'},...
+    {'dutyCycle',0.25,'minmax=[0 1]','The duty cycle is the percent of time that any given area of the visual field will have the stimulus on for. For wedges this controls the size of the wedge (e.g. a duty cycle of 0.25 creates a wedge of 90 degrees in size). For rings it controls the width of the ring.'},...
     {'eyeCalibAtEnd',1,'Runs a quick eye calibration at end of scan (should be set if you are running with eyetracker)','type=checkbox'},...
-    {'numScans',10,'incdec=[-1 1]','minmax=[1 inf]','The scans will progress in the order CW wedges, CCW wedges, expanding then contracting and cycle back. Usually run 10 scans so that you get 3 repeats of wedges and 2 of rings'},...
+    {'numScans',10,'incdec=[-1 1]','minmax=[1 inf]','The scans will progress in the order CW wedges, CCW wedges, expanding rings then contracting rings and then repeat this cycle. Usually run 10 scans so that you get 3 repeats of wedges and 2 repeats of rings'},...
     {'startType',scanNames,'Which stimulus type to start with. Usually CW wedges. Change if you need to start from a different scan'},...
 	     };
 
@@ -40,8 +47,6 @@ if isempty(params)
 end
 
 % order of stimulus
-stimulusType = {'wedges' 'wedges' 'rings' 'rings'};
-stimulusDir =  [-1 1 1 -1];
 params.startType = find(strcmp(params.startType,scanNames));
 
 scanNum = params.startType;
@@ -60,19 +65,30 @@ while scanNum <= (params.startType+params.numScans-1)
 
   % if user is holding down escape then we need to ask them what to do.
   if (mglGetKeys(myscreen.keyboard.esc))
-    nextOptions = {sprintf('Rescan %s',scanNames{scanTypeNum}),sprintf('Start scanning %s',scanNames{mod(scanTypeNum,4)+1}),'Quit'};
-    whatNext=mrParamsDialog({{'whatNext',nextOptions}},'Scan paused. What do you want to do?');
-    if isempty(whatNext),return,end
-    nextOptions = find(strcmp(whatNext.whatNext,nextOptions));
-    if nextOptions == 1
-      continue
-    elseif nextOptions == 3
-      mglClose;
-      return
+    mglDisplayCursor(1);
+    nextOptions = {};nextOptionScanNum = [];
+    % get all the options on where to start
+    nextOptions{1} = sprintf('Rescan %i:%s',scanNum-params.startType+1,scanNames{scanTypeNum});
+    nextOptionScanNum(1) = scanNum;
+    for i = params.startType:(params.startType+params.numScans-1)
+      thisScanTypeNum = mod(i-1,4)+1;
+      if (i < (scanNum-params.startType+1))
+	nextOptionScanNum(end+1) = i;
+	nextOptions{end+1} = sprintf('Go back to %i:%s',i-params.startType+1,scanNames{thisScanTypeNum});
+      elseif (i > (scanNum-params.startType+1))
+	nextOptionScanNum(end+1) = i;
+	nextOptions{end+1} = sprintf('Start scanning %i:%s',i-params.startType+1,scanNames{thisScanTypeNum});
+      end
     end
+    % put up dialog asking user what to do
+    whatNext=mrParamsDialog({{'whatNext',nextOptions}},'Select an option or cancel to quit');
+    if isempty(whatNext),mglClose;return,end
+    % set the scan number to what the user called for
+    % actually to 1 minus that so that it will get updated properly
+    scanNum = nextOptionScanNum(find(strcmp(whatNext.whatNext,nextOptions)))-1;
+    mglDisplayCursor(0);
   end
   scanNum = scanNum+1;
 end
-
 
 mglClose;
