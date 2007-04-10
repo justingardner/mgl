@@ -96,7 +96,8 @@ for tnum = 1:length(e)
 	  varval = getVarFromParameters(strtok(varname{i}{j},'='),e{tnum}(pnum));
 	  % check to make sure it is not empty
 	  if isempty(varval)
-	    disp(sprintf('(getStimvolFromVarname) Could not find variable %s in task %i phase %i',strtok(varname{i}{j},'='),taskNum,phaseNum));
+	    disp(sprintf('(getStimvolFromVarname) Could not find variable %s in task %i phase %i',strtok(varname{i}{j},'='),tnum,pnum));
+	    keyboard
 	    return;
 	  end
 	  % see if it is a strict variable name
@@ -138,37 +139,45 @@ for tnum = 1:length(e)
 	  end
 	end
       end
-    end
-    % select which volume to use, this will normally be the volume at which the
-    % trial started, but if the user passes in a segmentNum than we have to return
-    % the volume at which that segment occurred
-    if segmentNum == 1
-      trialVolume = e{tnum}(pnum).trialVolume;
-    else
-      for trialNum = 1: e{tnum}(pnum).nTrials
-        % make sure we have enough segments
-        if segmentNum <= length(e{tnum}(pnum).trials(trialNum).volnum)
-          trialVolume(trialNum) = e{tnum}(pnum).trials(trialNum).volnum(segmentNum);
-        else
-          disp(sprintf('(getStimvolFromVarname) Asked for segment %i but trials only have %i segments',segmentNum,length(e{tnum}(pnum).trials(trialNum).volnum)));
-          return
-        end	
-      end
-    end	
-
-    % now we convert the trial numbers into volumes
-    if exist('stimvol','var')
-      k = 1;
-      for i = 1:length(stimvol)
-	for j = 1:length(stimvol{i})
-	  if length(stimvolOut) >= k
-	    stimvolOut{k} = [stimvolOut{k} trialVolume(stimvol{i}{j})];
-	    stimNamesOut{k} = [stimNamesOut{k} stimnames{i}{j}];
+      % select which volume to use, this will normally be the volume at which the
+      % trial started, but if the user passes in a segmentNum than we have to return
+      % the volume at which that segment occurred
+      if segmentNum == 1
+	trialVolume = e{tnum}(pnum).trialVolume;
+      else
+	for trialNum = 1: e{tnum}(pnum).nTrials
+	  % make sure we have enough segments
+	  if segmentNum <= length(e{tnum}(pnum).trials(trialNum).volnum)
+	    trialVolume(trialNum) = e{tnum}(pnum).trials(trialNum).volnum(segmentNum);
+	  elseif trialNum == e{tnum}(pnum).nTrials
+	    % this is last trial, probably just ended in middle
+            % without having that segment. Get rid of volume
+	    trialVolume(trialNum) = nan;
+	    for sdim1 = 1:length(stimvol)
+	      for sdim2 = 1:length(stimvol{sdim1})
+		stimvol{sdim1}{sdim2}(trialNum) = 0;
+	      end
+	    end
 	  else
-	    stimvolOut{k} = trialVolume(stimvol{i}{j});
-	    stimNamesOut{k} = stimnames{i}{j};
+	    disp(sprintf('(getStimvolFromVarname) Asked for segment %i but trials only have %i segments',segmentNum,length(e{tnum}(pnum).trials(trialNum).volnum)));
+	  end	
+	end
+      end	
+
+      % now we convert the trial numbers into volumes
+      if exist('stimvol','var')
+	k = 1;
+	for i = 1:length(stimvol)
+	  for j = 1:length(stimvol{i})
+	    if length(stimvolOut) >= k
+	      stimvolOut{k} = [stimvolOut{k} trialVolume(stimvol{i}{j})];
+	      stimNamesOut{k} = [stimNamesOut{k} stimnames{i}{j}];
+	    else
+	      stimvolOut{k} = trialVolume(stimvol{i}{j});
+	      stimNamesOut{k} = stimnames{i}{j};
+	    end
+	    k = k+1;
 	  end
-	  k = k+1;
 	end
       end
     end

@@ -56,7 +56,7 @@ if ~isfield(task,'verbose')
 end
 
 % check for capitalization errors
-knownFieldnames = {'verbose','parameter','seglen','segmin','segmax','segquant','synchToVol','writeTrace','getResponse','numBlocks','numTrials','waitForBacktick','random','timeInTicks','timeInVols','segmentTrace','responseTrace','phaseTrace','parameterCode','private','randVars'};
+knownFieldnames = {'verbose','parameter','seglen','segmin','segmax','segquant','synchToVol','writeTrace','getResponse','numBlocks','numTrials','waitForBacktick','random','timeInTicks','timeInVols','segmentTrace','responseTrace','phaseTrace','parameterCode','private','randVars','fudgeLastVolume'};
 taskFieldnames = fieldnames(task);
 for i = 1:length(taskFieldnames)
   matches = find(strcmp(upper(taskFieldnames{i}),upper(knownFieldnames)));
@@ -389,8 +389,19 @@ end
 task.parameter = feval(task.callback.rand,task.parameter);
 
 % get calling name
-[st,i] = dbstack;
-task.taskfilename = st(max(i+1,length(st))).file;
+if ~isfield(task,'taskFilename')
+  [st,i] = dbstack;
+  task.taskFilename = st(min(i+1,length(st))).file;
+end
+% if we can find the file (we should be able to)
+% load the task listing into the task variables
+% so that we have a record of what *exactly*
+% was run
+ftask = fopen(which(task.taskFilename),'r');
+if (ftask ~= -1)
+  task.taskFileListing = fread(ftask,inf,'*char')';
+  fclose(ftask);
+end
 
 % init thistrial
 task.thistrial = [];
@@ -398,8 +409,16 @@ task.thistrial = [];
 % init the time discrepancy to 0
 task.timeDiscrepancy = 0;
 
+% there are situations in which for the trial in the sequence
+% we are waiting for a volume to end the trial, but will never
+% get one since the scan is over. Yet, we still want to end the
+% trial to end the experiment, so we are going to have fudge
+% on the last volume. Default is not to, the user can turn this off
+if ~isfield(task,'fudgeLastVolume')
+  task.fudgeLastVolume = 0;
+end
+
 % set the debug mode to stop on error
 dbstop if error
-
 
 

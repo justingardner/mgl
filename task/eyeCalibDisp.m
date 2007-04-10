@@ -44,7 +44,7 @@ end
 mglClearScreen;
 mglGluDisk(0,0,myscreen.eyecalib.size/2,myscreen.eyecalib.color);
 mglFlush;
-mglWaitSecs(2);
+if waitSecsEsc(2,myscreen) == -1,return,end
 
 % make sure eye tracker is on and recording that this is an eyecalibration
 %myscreen.fishcamp = bitor(myscreen.fishcamp,bin2dec('101'));
@@ -84,3 +84,13 @@ myscreen.fliptime = inf;
 
 writeDigPort(16,2);
 
+function retval = waitSecsEsc(waitTime,myscreen)
+
+retval = 1;
+startTime = mglGetSecs;
+while mglGetSecs(startTime) <= waitTime
+  if mglGetKeys(myscreen.keyboard.esc)
+    retval = -1;
+    return
+  end
+end
