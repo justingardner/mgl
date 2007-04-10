@@ -67,6 +67,7 @@ if task{tnum}.thistrial.segstart == -inf
     if myscreen.volnum == task{tnum}.thistrial.startvolnum
       return
     else
+      disp(sprintf('Backtick recorded: Starting trial'));
       % clear waiting status
       task{tnum}.thistrial.waitForBacktick = 0;
     end
@@ -139,6 +140,72 @@ else
     %w/out synch to volume the segment is over
     else
       segover = 1;
+    end
+  end
+end
+
+% there are situations in which for the trial in the sequence
+% we are waiting for a volume to end the trial, but will enver
+% get one since the scan is over. Yet, we still want to end the
+% trial to end the experiment, so we are going to have fudge
+% on the last volume. 
+if task{tnum}.fudgeLastVolume
+  % see if we are in the last trial for numTrials, or the
+  % last trial of the last block for numBlocks
+  if (task{tnum}.trialnum == task{tnum}.numTrials) || ...
+	((task{tnum}.blocknum == task{tnum}.numBlocks) && (task{tnum}.blockTrialnum == task{tnum}.block(task{tnum}.blocknum).trialn))
+    if ~isfield(task{tnum}.thistrial,'fudgeLastVolume')
+      % see if we are in the last segment
+      if task{tnum}.thistrial.thisseg == length(task{tnum}.thistrial.seglen)
+	% make sure we have satisfied all but the last volume
+	% for the trial (this could either be due to a synchToVol
+	% waiting for the volume to end, or with timeInVols we have
+	% gotten all but the last volume
+	segmentExpired = 0;
+	if task{tnum}.synchToVol(task{tnum}.thistrial.thisseg)
+	  if task{tnum}.timeInTicks == 1
+	    if (myscreen.tick - task{tnum}.thistrial.segstart) >= task{tnum}.thistrial.seglen(task{tnum}.thistrial.thisseg)
+	      segmentExpired = 1;
+	    end
+	    % check end of segment in seconds
+	  else
+	    if (mglGetSecs-task{tnum}.thistrial.segstart) >= task{tnum}.thistrial.seglen(task{tnum}.thistrial.thisseg)
+	      segmentExpired = 1;
+	    end
+	  end
+	else
+	  % check number of volumes
+	  if task{tnum}.timeInVols 
+	    if ((myscreen.volnum - task{tnum}.thistrial.segstart)+1) >= task{tnum}.thistrial.seglen(task{tnum}.thistrial.thisseg)
+	      segmentExpired = 1;
+	    end
+	  end
+	end
+	% if segmentExpired gets set then it means that the segment has ended and
+	% is just waiting for the volume (which will never come, so now we
+	% set the fudgeLastVolume field so that it will end at 1 average volume
+	% time away from now.
+	if segmentExpired
+	  % find the average volume time
+	  volumeTimes = myscreen.events.time((myscreen.events.data == 1) & (myscreen.events.tracenum==1));
+	  % we will only do this correction, if we can get
+	  % a valid averageVolume Time
+	  if ~isempty(volumeTimes)
+	    % get time of last volume
+	    task{tnum}.thistrial.averageVolumeTime = mean(diff(volumeTimes));
+	    task{tnum}.thistrial.fudgeLastVolume = volumeTimes(end)+task{tnum}.thistrial.averageVolumeTime;
+	  end
+	end
+      end
+    % if there is a fudgeLastVolume field then it means
+    % we should end the segment, once the proper amount of time has elapsed
+    % this is the actual piece of code in here which causes the
+    % segment to end by setting segover to 1
+    else
+      if mglGetSecs > task{tnum}.thistrial.fudgeLastVolume
+	disp(sprintf('(updateTask) Used fudgeLastVolume to end last trial of task (averageVolumeTime=%0.2f)',task{tnum}.thistrial.averageVolumeTime));
+	segover = 1;
+      end
     end
   end
 end

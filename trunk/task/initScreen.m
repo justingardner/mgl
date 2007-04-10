@@ -28,25 +28,25 @@ defaultMonitorGamma = 1.8;
 screenParamsList = {'computerName','displayName','screenNumber',...
 		    'screenWidth','screenHeight','displayDistance',...
 		    'displaySize','framesPerSecond','autoCloseScreen',...
-		    'saveData','monitorGamma','calibFilename'};
-screenParams{1} = {'yoyodyne.cns.nyu.edu','projector',2,1280,1024,57,[31 23],60,1,0,defaultMonitorGamma,'yoyodyne'};
-screenParams{end+1} = {'yoyodyne.cns.nyu.edu','lcd',2,1280,1024,157.5,[43.2 32.5],60,1,0,defaultMonitorGamma,'yoyodyne'};
+		    'saveData','monitorGamma','calibFilename','flipHV'};
+screenParams{1} = {'yoyodyne.cns.nyu.edu','projector',2,1280,1024,57,[31 23],60,1,0,defaultMonitorGamma,'yoyodyne',[0 0]};
+screenParams{end+1} = {'yoyodyne.cns.nyu.edu','lcd',2,1280,1024,157.5,[43.2 32.5],60,1,0,defaultMonitorGamma,'yoyodyne',[0 0]};
 
-screenParams{end+1} = {'Stimulus.local','projector',2,1024,768,57,[31 23],60,0,50,defaultMonitorGamma,''};
-screenParams{end+1} = {'Stimulus.local','lcd',2,800,600,157.5,[43.2 32.5],60,0,50,[0 1 0.4790 0 1 0.4790 0 1 0.4790],''};
-screenParams{end+1} = {'stimulus-g5.local','projector',2,1024,768,57,[31 23],60,0,50,defaultMonitorGamma,'stimulus-g5_projector'};
-screenParams{end+1} = {'stimulus-g5.local','lcd',2,800,600,157.5,[43.2 32.5],60,0,50,[0 1 0.4790 0 1 0.4790 0 1 0.4790],''};
+screenParams{end+1} = {'Stimulus.local','projector',2,1024,768,57,[31 23],60,0,50,defaultMonitorGamma,'',[0 0]};
+screenParams{end+1} = {'Stimulus.local','lcd',2,800,600,157.5,[43.2 32.5],60,0,50,[0 1 0.4790 0 1 0.4790 0 1 0.4790],'',[1 0]};
+screenParams{end+1} = {'stimulus-g5.local','projector',2,1024,768,57,[31 23],60,0,50,defaultMonitorGamma,'stimulus-g5_projector',[0 0]};
+screenParams{end+1} = {'stimulus-g5.local','lcd',2,800,600,157.5,[43.2 32.5],60,0,50,[0 1 0.4790 0 1 0.4790 0 1 0.4790],'',[0 0]};
 %screenParams{end+1} = {'eigenstate','',0,1440,900,57,[31 23],60,1,0,defaultMonitorGamma,''};
-screenParams{end+1} = {'eigenstate','',0,800,600,57,[31 23],60,1,0,defaultMonitorGamma,''};
-screenParams{end+1} = {'dhcp.bnf.brain.riken.jp','',0,1024,768,57,[31 23],60,1,0,defaultMonitorGamma,''};
-screenParams{end+1} = {'alta','',[],1024,768,57,[31 23],60,1,0,defaultMonitorGamma,''};
-screenParams{end+1} = {'dsltop','',0,400,300,57,[18 24],60,1,0,defaultMonitorGamma,''};
-screenParams{end+1} = {'whistler.cns.nyu.edu','',2,1280,1024,57,[31 23],60,1,0,defaultMonitorGamma,''};
-screenParams{end+1} = {'froh.cns.nyu.edu','',[],1280,1024,57,[31 23],100,1,0,defaultMonitorGamma,''};
-screenParams{end+1} = {'jackson','',2,1152,870,57,[43.2 32.5],75,1,0,defaultMonitorGamma,''};
-screenParams{end+1} = {'cronos.psychology.nottingham.ac.uk','',2,1280,1024,57,[31 23],100,1,0,defaultMonitorGamma,''};
-screenParams{end+1} = {'hyperion.local','',0,800,600,57,[31 23],100,1,0,defaultMonitorGamma,''};
-screenParams{end+1} = {'tejas.cns.nyu.edu', '', 2, 1680, 1050, 57, [31 23], 60, 1, 0, defaultMonitorGamma, ''};
+screenParams{end+1} = {'eigenstate','',0,800,600,57,[31 23],60,1,0,defaultMonitorGamma,'',[0 0]};
+screenParams{end+1} = {'dhcp.bnf.brain.riken.jp','',0,1024,768,57,[31 23],60,1,0,defaultMonitorGamma,'',[0 0]};
+screenParams{end+1} = {'alta','',[],1024,768,57,[31 23],60,1,0,defaultMonitorGamma,'',[0 0]};
+screenParams{end+1} = {'dsltop','',0,400,300,57,[18 24],60,1,0,defaultMonitorGamma,'',[0 0]};
+screenParams{end+1} = {'whistler.cns.nyu.edu','',2,1280,1024,57,[31 23],60,1,0,defaultMonitorGamma,'',[0 0]};
+screenParams{end+1} = {'froh.cns.nyu.edu','',[],1280,1024,57,[31 23],100,1,0,defaultMonitorGamma,'',[0 0]};
+screenParams{end+1} = {'jackson','',2,1152,870,57,[43.2 32.5],75,1,0,defaultMonitorGamma,'',[0 0]};
+screenParams{end+1} = {'cronos.psychology.nottingham.ac.uk','',2,1280,1024,57,[31 23],100,1,0,defaultMonitorGamma,'',[0 0]};
+screenParams{end+1} = {'hyperion.local','',0,800,600,57,[31 23],100,1,0,defaultMonitorGamma,'',[0 0]};
+screenParams{end+1} = {'tejas.cns.nyu.edu', '', 2, 1680, 1050, 57, [31 23], 60, 1, 0, defaultMonitorGamma, '',[0 0]};
 
 if isfield(myscreen,'screenParams')
   screenParams = cat(2,myscreen.screenParams,screenParams);
@@ -76,7 +76,7 @@ for pnum = 1:length(screenParams)
 	end
       end
       if ~isempty(myscreen.displayDistance) & ~isempty(myscreen.displaySize)
-	disp(sprintf('%i: %ix%i(pix) dist:%0.1f (cm) size:%0.1fx%0.1f (cm) %iHz save:%i autoclose:%i',myscreen.screenNumber,myscreen.screenWidth,myscreen.screenHeight,myscreen.displayDistance,myscreen.displaySize(1),myscreen.displaySize(2),myscreen.framesPerSecond,myscreen.saveData,myscreen.autoCloseScreen));
+	disp(sprintf('%i: %ix%i(pix) dist:%0.1f (cm) size:%0.1fx%0.1f (cm) %iHz save:%i autoclose:%i flipHV:[%i %i]',myscreen.screenNumber,myscreen.screenWidth,myscreen.screenHeight,myscreen.displayDistance,myscreen.displaySize(1),myscreen.displaySize(2),myscreen.framesPerSecond,myscreen.saveData,myscreen.autoCloseScreen,myscreen.flipHV(1),myscreen.flipHV(2)));
       end
     end
   end
@@ -98,6 +98,7 @@ if ~isfield(myscreen,'framesPerSecond'),myscreen.framesPerSecond = 60;end
 if ~isfield(myscreen,'saveData'),myscreen.saveData = -1;end
 if ~isfield(myscreen,'displayDistance'),myscreen.displayDistance = 57;end
 if ~isfield(myscreen,'displaySize'),myscreen.displaySize = [31 23];end
+if ~isfield(myscreen,'flipHV'),myscreen.flipHV = [0 0];end
 
 % remember curent path
 myscreen.pwd = pwd;
@@ -137,7 +138,6 @@ if ~isempty(myscreen.screenNumber)
 else
   % otherwise open a default window
   mglOpen;
-  global MGL;
   myscreen.screenWidth = MGL.screenWidth;
   myscreen.screenHeight = MGL.screenHeight;
 end
@@ -154,6 +154,16 @@ mglVisualAngleCoordinates(myscreen.displayDistance,myscreen.displaySize);
 myscreen.imageWidth = MGL.deviceWidth;
 myscreen.imageHeight = MGL.deviceHeight;
 
+% flip the screen appropriately
+if myscreen.flipHV(1)
+  disp('(initScreen) Flipping coordinates horizontally');
+  mglHFlip;
+end
+if myscreen.flipHV(2)
+  disp('(initScreen) Flipping coordinates vertically');
+  mglVFlip;
+end
+  
 % set up indexes appropriately
 myscreen.black = 0;myscreen.white = 1;myscreen.gray = 0.5;
 myscreen.blackIndex = 0;
