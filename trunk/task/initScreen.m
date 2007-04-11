@@ -38,6 +38,7 @@ screenParams{end+1} = {'stimulus-g5.local','projector',2,1024,768,57,[31 23],60,
 screenParams{end+1} = {'stimulus-g5.local','lcd',2,800,600,157.5,[43.2 32.5],60,0,50,[0 1 0.4790 0 1 0.4790 0 1 0.4790],'',[0 0]};
 %screenParams{end+1} = {'eigenstate','',0,1440,900,57,[31 23],60,1,0,defaultMonitorGamma,''};
 screenParams{end+1} = {'eigenstate','',0,800,600,57,[31 23],60,1,0,defaultMonitorGamma,'',[0 0]};
+screenParams{end+1} = {'eigenworld','',2,1440,900,57,[31 23],60,1,0,defaultMonitorGamma,'',[0 0]};
 screenParams{end+1} = {'dhcp.bnf.brain.riken.jp','',0,1024,768,57,[31 23],60,1,0,defaultMonitorGamma,'',[0 0]};
 screenParams{end+1} = {'alta','',[],1024,768,57,[31 23],60,1,0,defaultMonitorGamma,'',[0 0]};
 screenParams{end+1} = {'dsltop','',0,400,300,57,[18 24],60,1,0,defaultMonitorGamma,'',[0 0]};

@@ -139,7 +139,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 	glPolygonMode(GL_FRONT_AND_BACK,GL_FILL); 
 	glDisable(GL_LINE_SMOOTH); 
       } else {
-	mexPrintf("Error: antialiasing not supported on this GL platform!\n");
+	mexPrintf("(mglQuad): antialiasing not supported on this GL platform!\n");
       }
     }
     
