@@ -17,11 +17,7 @@ if ~any(nargin == [1])
 end
 
 % make into a cell array of cell arrays
-if ~iscell(task{1})
-  oldtask = task;
-  clear task;
-  task{1} = oldtask;
-end
+task = cellArray(task,2);
 
 varnames = {};
 for taskNum = 1:length(task)
