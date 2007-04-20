@@ -47,6 +47,7 @@ if ~exist('phaseNum','var')
   phaseNum = 1:phaseNum;
 end
 
+disp(sprintf('(getStimvolFromVarname) taskNum=%i, phaseNum=%i, segmentNum=%i',taskNum,phaseNum,segmentNum));
 % first make varname into a cell array of cell arrays.
 if isstr(varnameIn)
   varname{1}{1} = varnameIn;

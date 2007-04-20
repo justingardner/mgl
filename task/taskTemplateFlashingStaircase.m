@@ -5,7 +5,7 @@
 %         by: justin gardner
 %       date: 01/27/07
 %  copyright: (c) 2007 Justin Gardner (GPL see mgl/COPYING)
-%    purpose: example program to show how to use the task structure
+%    purpose: oriented grating stimulus
 %
 function myscreen = taskTemplateFlashingStaircase
 
