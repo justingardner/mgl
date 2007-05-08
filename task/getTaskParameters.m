@@ -98,7 +98,16 @@ for taskNum = 1:length(allTasks)
 	  parameterNames = fieldnames(task{phaseNum}.block(blockNum).parameter);
 	  % and set the values
 	  for pnum = 1:length(parameterNames)
-	    eval(sprintf('experiment(phaseNum).parameter.%s(tnum) = task{phaseNum}.block(blockNum).parameter.%s(blockTrialNum);',parameterNames{pnum},parameterNames{pnum}));
+	    thisParam = task{phaseNum}.block(blockNum).parameter.(parameterNames{pnum});
+	    % if it is an array then it is just a regular parameter
+	    if size(thisParam,1) == 1
+	      eval(sprintf('experiment(phaseNum).parameter.%s(tnum) = thisParam(blockTrialNum);',parameterNames{pnum}));
+	    % otherwise there are multiple values per each trial
+	    else
+	      for paramRowNum = 1:size(thisParam,1)
+		eval(sprintf('experiment(phaseNum).parameter.%s%i(tnum) = thisParam(paramRowNum,blockTrialNum);',parameterNames{pnum},paramRowNum));
+	      end
+	    end
 	  end
 	end
 	
