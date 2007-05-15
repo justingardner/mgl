@@ -22,8 +22,12 @@
 %             >> s = upDownStaircase(s,response)
 %             
 %             you can set min and max values for the threshold by
-%             setting:
+%             setting (after you initialize the staircase):
 %             s.minThreshold = 0; s.maxThreshold = 1000;
+%             
+%             you can also set a minimum stepsize (useful when
+%             you are using the Levitt rule) by doing e.g.:
+%             s.minStepsize = 0.1;
 %
 function s = upDownStaircase(varargin)
 
@@ -96,6 +100,8 @@ elseif ((nargin == 4) || (nargin == 5))
   % set minmax
   s.minThreshold = -inf;
   s.maxThreshold = inf;
+  % set minimum stepsize
+  s.minStepsize = 0;
 else
   help upDownStaircase;
   return
@@ -154,8 +160,9 @@ if (isfield(s,'direction'))
       % or a reversal that is 1,3,7,15 etc.
       % if so we will cut step size by two
       if (sum(dec2bin(s.reversaln+1)=='1')==1)
-	s.stepsize = s.stepsize/2;
+	s.stepsize = max(s.minStepsize,s.stepsize/2);
 %	disp(sprintf('Reversal %i: stepsize = %0.8f',s.reversaln,s.stepsize));
+      
       end
     end
     s.reversals(s.reversaln) = s.n;
