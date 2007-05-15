@@ -9,8 +9,6 @@
 %    outputs: stimulus task myscreen tnum
 %    purpose: runs experimental tasks
 %
-%   to do: figure out how the globals should work
-%          initScreen,tickScreen, and endScreen should be ready
 function [task, myscreen, tnum] = updateTask(task,myscreen,tnum)
 
 % make sure we have a valid active task
