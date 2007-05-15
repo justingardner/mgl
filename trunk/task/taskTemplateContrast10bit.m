@@ -180,11 +180,6 @@ gammaTable(1:size(stimulus.reservedColors,1),1:size(stimulus.reservedColors,2))=
 cmax = 0.5+maxContrast/2;cmin = 0.5-maxContrast/2;
 luminanceVals = cmin:((cmax-cmin)/(stimulus.nGratingColors-1)):cmax;
 
-% need to fix the jackson calibration
-stimulus.linearizedGammaTable.redTable(1) = 0;
-stimulus.linearizedGammaTable.greenTable(1) = 0;
-stimulus.linearizedGammaTable.blueTable(1) = 0;
-
 % now get the linearized range
 redLinearized = interp1(0:1/255:1,stimulus.linearizedGammaTable.redTable,luminanceVals,'linear');
 greenLinearized = interp1(0:1/255:1,stimulus.linearizedGammaTable.greenTable,luminanceVals,'linear');
