@@ -33,7 +33,7 @@ if ~exist('bitDepth','var'), bitDepth = 32; end
 % get the MGL global
 global MGL;
 
-if isempty(javachk('desktop')) & (whichScreen == 0)
+if usejava('desktop') & (whichScreen == 0)
   if ~isfield(MGL,'desktopWarning')
     warningStr = '(mglOpen) Using a windowed openGl context with the matlab desktop can be unstable due to some interactions with multiple threads. If you encounter crashing consider either using a full window context, (ie not mglOpen(0)) or run matlab using -nojvm or -nodesktop. Note that to improve stability mglClose will not close the window. If you are done using mgl and want to force the window closed, use mglPrivateClose';
     uiwait(warndlg(warningStr,'mglOpen','modal'));
