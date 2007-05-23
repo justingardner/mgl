@@ -160,7 +160,7 @@ if doGamma
    calib.uncorrected.luminance = calib.uncorrected.luminance + rand(size(calib.uncorrected.luminance))/1000000;
  end
  % interpolate table
- calib.table = interp1(calib.uncorrected.luminance,calib.uncorrected.outputValues,desiredOutput,'linear')';
+ calib.table = interp1(calib.uncorrected.luminance,calib.uncorrected.outputValues,desiredOutput,'linear',0)';
  if ~justdisplay
    if isfield(calib,'filename')
      eval(sprintf('save %s calib',calib.filename));
