@@ -416,7 +416,8 @@ global verbose
 if ((verbose>1) || thisMessageNum),disp(sprintf('%s Luminance=%f cd/m^-2 (1931 CIE x)=%f (1931 CIE y)=%f',thisMessage,Y(i),x(i),y(i)));end
 
 if quality(i) ~= 0
-  luminance = nan;
+  disp(sprintf('(moncalib) Quality of luminance measurement is bad, setting luminance to 0'));
+  luminance = 0;
 else
   luminance = Y(i);
   x = x(i);
