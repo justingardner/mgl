@@ -362,7 +362,8 @@ end
 % see if we need to wait for backtick
 if task.waitForBacktick && (task.blocknum == 1) && (task.blockTrialnum == 1)
   task.thistrial.waitForBacktick = 1;
-  disp(sprintf('Waiting for backtick (`)'));
+  backtick = mglKeycodeToChar(myscreen.keyboard.backtick);
+  disp(sprintf('Waiting for backtick (%s)',backtick{1}));
 else
   % trial will start right awway
   task.thistrial.waitForBacktick = 0;
