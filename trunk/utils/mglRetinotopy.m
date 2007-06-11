@@ -46,8 +46,8 @@ function myscreen = mglRetinotopy(varargin)
 eval(evalargs(varargin));
 
 % setup default arguments
-if exist('wedges') && wedges,wedgesOrRings = 1;,end
-if exist('rings') && rings,wedgesOrRings = 0;,end
+if exist('wedges','var') && ~isempty(wedges),wedgesOrRings = 1;,end
+if exist('rings','var') && ~isempty(rings),wedgesOrRings = 0;,end
 if ieNotDefined('wedgesOrRings'),wedgesOrRings = 1;end
 if ieNotDefined('direction'),direction = 1;end
 if ieNotDefined('dutyCycle'),dutyCycle = 0.25;end
@@ -63,6 +63,7 @@ myscreen.allowpause = 1;
 myscreen.displayname = 'projector';
 myscreen.background = 'gray';
 myscreen = initScreen(myscreen);
+
 
 % set the first task to be the fixation staircase task
 global fixStimulus;
