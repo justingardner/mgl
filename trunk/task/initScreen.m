@@ -250,16 +250,6 @@ mglFlush();
 
 disp(sprintf('imageWidth: %0.2f imageHeight: %0.2f',myscreen.imageWidth,myscreen.imageHeight));
 
-% default paramaters for eye calibration
-myscreen.eyecalib.n = 1;
-myscreen.eyecalib.fixtime = 1.5;
-myscreen.eyecalib.shape = 'spot';
-myscreen.eyecalib.loc = {[5 0],[0 -5],[-5 0],[0 5]};
-myscreen.eyecalib.size = [1 1]; % deg visual angle
-myscreen.eyecalib.color = [255 255 0];
-myscreen.eyecalib.refix = 1;
-myscreen.eyecalib.prompt = 1;
-
 % init number of ticks
 myscreen.tick = 1;
 myscreen.totaltick = 1;
@@ -322,8 +312,11 @@ myscreen.fishcamp = bitshift(tracknum,1);
 mglTextSet('Helvetica',24,[1 1 1],0,0,0,0,0,0,0);
 
 % set up eye calibration stuff
-myscreen.eyecalib.x = [0 0 -5 0  0 0 5 0 0 0];
-myscreen.eyecalib.y = [0 0 0 0 -5 0 0 0 5 0];
+myscreen.eyecalib.prompt = 1;
+%myscreen.eyecalib.x = [0 0 -5 0  0 0 5 0 0 0];
+%myscreen.eyecalib.y = [0 0  0 0 -5 0 0 0 5 0];
+myscreen.eyecalib.x = [0 0 -5 0  0 0 5 0 0 0 3.5 0 -3.5 0  3.5 0 -3.5 0];
+myscreen.eyecalib.y = [0 0  0 0 -5 0 0 0 5 0 3.5 0 -3.5 0 -3.5 0  3.5 0];
 myscreen.eyecalib.n = length(myscreen.eyecalib.x);
 myscreen.eyecalib.size = [0.2 0.2];
 myscreen.eyecalib.color = [1 1 0];
