@@ -15,30 +15,34 @@
 %             To display rings
 %             mglRetinotopy('rings')
 % 
-%             The direction can be set to 1 or -1
+%             The direction can be set to 1 or -1 (default=1)
 %             mglRetinotopy('direction=-1')
 %
-%             The duty cycle
+%             The duty cycle (default = 0.25)
 %             mglRetinotopy('dutyCycle=.15');
 %             
-%             THe number of cycles to run for
+%             THe number of cycles to run for (default = 10)
 %             mglRetinotopy('numCycles=10');
 %
-%             The length in secs of a stimulus period
+%             The length in secs of a stimulus period 
 %             mglRetinotopy('stimulusPeriod=36');
 % 
 %             The number of steps that the stimulus will move in
-%             one period
+%             one period 
 %             mglRetinotopy('stepsPerCycle',24');
 %
 %             Or instead of stimulusPeriod/stepsPerCycle one can
 %             set the number of volumes per cycle and the
-%             program will synch to backticks
+%             program will synch to backticks (default = 24)
 %             mglRetinotopy('volumesPerCycle=24');
 %
 %             Eye calibration can be absent=0, at the beginning=-1
-%             or at the end =1
+%             or at the end =1 (default = -1)
 %             mglRetinotopy('doEyeCalib=1');
+%
+%             Start with an initial half cycle that will be thrown
+%             out later (default = 1)
+%             mglRetinotopy('initialHalfCycle=1');
 
 function myscreen = mglRetinotopy(varargin)
 
