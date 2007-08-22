@@ -359,7 +359,7 @@ stimulus.ringN = length(stimulus.ringRadiusMin);
 if stimulus.direction == 1
   stimulus.currentMask = 0;
 else
-  stimulus.currentMask = 2;
+  stimulus.currentMask = 1;
 end
 
 % if we are supposed to start halfway through
