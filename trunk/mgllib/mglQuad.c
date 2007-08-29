@@ -33,13 +33,14 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     double *vX, *vY, *color, rgb[3];
     int i, m, n, c1, c2, antiAliasFlag;
     double v0[2],v1[2],v2[2],v3[2];
-    
+
     // read in the X and Y data
     vX = (double*)mxGetPr(prhs[0]);
     vY = (double*)mxGetPr(prhs[1]);
     
     color = (double*)mxGetPr(prhs[2]);
-    if (nrhs>=3) 
+
+    if (nrhs>3) 
         antiAliasFlag = (int) *mxGetPr(prhs[3]);
     else
         antiAliasFlag = 0;
@@ -71,7 +72,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         return;
     }
 
-    
     // enable and disable some things
     glDisable(GL_DEPTH_TEST);
     glDisable(GL_TEXTURE_2D);

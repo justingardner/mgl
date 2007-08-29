@@ -18,6 +18,7 @@ $Id$
 //   include section   //
 /////////////////////////
 #include "mgl.h"
+#include <sys/param.h>
 
 ////////////////////////
 //   define section   //
