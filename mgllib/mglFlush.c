@@ -31,7 +31,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   
 #ifdef __APPLE__ 
   double displayNumber = mglGetGlobalDouble("displayNumber");
-  
+
   if (displayNumber > 0) {
 
     // get the current context
