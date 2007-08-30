@@ -39,7 +39,7 @@ paramsInfo = {...
 	     };
 
 % get the parameters from the user
-params = mrParamsDialog(paramsInfo);
+params = mrParamsDialog(paramsInfo,'mglDoRetinotopy');
 
 % return if use rr hit cancel
 if isempty(params)
@@ -86,7 +86,7 @@ while scanNum <= (params.startType+params.numScans-1)
       end
     end
     % put up dialog asking user what to do
-    whatNext=mrParamsDialog({{'whatNext',nextOptions}},'Select an option or cancel to quit');
+    whatNext=mrParamsDialog({{'whatNext',nextOptions,'Choose which scan to do next. You can rescan the scan you just aborted, or start a new scan, or go back to a scan you have already done. The scans will continue in order from which every scan you selected. If you want to quit running retinotopy scans then hit cancel. Otherwise hit OK'}},'mglDoRetinotopy');
     if isempty(whatNext),mglClose;return,end
     % set the scan number to what the user called for
     % actually to 1 minus that so that it will get updated properly
