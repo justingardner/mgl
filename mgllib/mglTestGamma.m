@@ -28,6 +28,7 @@ end
 
 % open up screen
 mglOpen(screenNumber);
+mglDisplayCursor(1);
 mglVisualAngleCoordinates(57,[40 30]);
 
 % get MGL global
