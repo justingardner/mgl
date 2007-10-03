@@ -132,7 +132,7 @@ mglBltTexture(text,[0 400+text.imageHeight*3],-1,0);
 
 % draw some japanese text
 mglTextSet('Osaka',45,[1 1 0],0,0,-30,0,0,0,0);
-fid = fopen('mglTestResources/japanese.txt');
+fid = fopen('mglTestResources/japanese.txt','r','b');
 jText = fread(fid,'*uint16')';
 fclose(fid);
 mglBltTexture(mglText(jText),[0 50],-1);

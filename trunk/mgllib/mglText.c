@@ -120,6 +120,16 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   if (gFontColor != NULL) 
     mglGetColor(gFontColor,fontColor);
 
+  // on intel mac it looks like we have to swap the bytes
+#ifdef __LITTLE_ENDIAN__
+  double temp;
+  temp = fontColor[0];
+  fontColor[0] = fontColor[3];
+  fontColor[3] = temp;
+  temp = fontColor[1];
+  fontColor[1] = fontColor[2];
+  fontColor[2] = temp;
+#endif
 
   // display font color if verbose
   if (verbose)
@@ -405,7 +415,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       }
     }
   }
-
 
   ///////////////////////////
   // create a texture
