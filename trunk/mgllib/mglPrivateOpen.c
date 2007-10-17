@@ -31,6 +31,11 @@ $Id$
    }
 #endif
 
+///////////////////////////////
+//   function declarations   //
+///////////////////////////////
+void mglPrivateOpenOnExit(void);
+
 //////////////
 //   main   //
 //////////////
@@ -482,11 +487,17 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
    glClearColor(0,0,0,0);
    glClear(GL_COLOR_BUFFER_BIT); 
 
+   // init context pointer (other than CGL contexts
+   // the pointer will be set to 0 which will
+   // be as sign for mglSwitchDisplay that the context
+   // cannot be switched
+   unsigned int contextPointer = 0;
 #ifdef __APPLE__
    
    if (displayNumber) {
      // get the current context
      CGLContextObj contextObj = CGLGetCurrentContext();
+     contextPointer = (unsigned int)CGLGetCurrentContext();
      // and flip the double buffered screen
      // this call waits for vertical blanking
      CGLFlushDrawable(contextObj); 
@@ -533,7 +544,21 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   deviceRectPtr[0] = -1;deviceRectPtr[1] = -1;
   deviceRectPtr[2] = 1;deviceRectPtr[3] = 1;
   mglSetGlobalField("deviceRect",deviceRect);
+  mglSetGlobalDouble("context",(double)contextPointer);
   
+  // tell matlab to call mglPrivateOpenOnExit when this
+  // function is cleared (e.g. clear all is used) so 
+  // that we can close open displays
+  mexAtExit(mglPrivateOpenOnExit);
 }
 
-
+//////////////////////////////
+//   mglPrivateOpenOnExit   //
+//////////////////////////////
+void mglPrivateOpenOnExit()
+{
+  // call mglSwitchDisplay with -1 to close all open screens
+  mxArray *callInput =  mxCreateDoubleMatrix(1,1,mxREAL);
+  *(double*)mxGetPr(callInput) = -1;
+  mexCallMATLAB(0,NULL,1,&callInput,"mglSwitchDisplay");
+}

@@ -52,6 +52,16 @@ if isfield(MGL,'displayNumber') && ~isempty(MGL.displayNumber) && (MGL.displayNu
   openDisplay = 1;
 end
 
+% check mglSwitchDisplay to make sure it is not already open
+if ~openDisplay
+  switchNumber = mglSwitchDisplay(-3,whichScreen);
+  if ~isempty(switchNumber)
+    disp(sprintf('(mglOpen) Display %i (displayID=%i) is already open, switching to that display',whichScreen,switchNumber));
+    mglSwitchDisplay(switchNumber);
+    return
+  end
+end
+
 % call the private mex function
 if nargin <= 1
   % if passed in with zero or one argument then use default settings
@@ -82,4 +92,9 @@ if exist('mglInstallSound') == 3
     soundNum = mglInstallSound(fullfile(sounddir,sounds(i).name));
     [soundPath MGL.soundNames{soundNum}] = fileparts(sounds(i).name);
   end
+end
+
+% the displayID (used by mglSwitchDisplay defaults to the display number)
+if ~isfield(MGL,'displayID') || isempty(MGL.displayID)
+  MGL.displayID = MGL.displayNumber;
 end
