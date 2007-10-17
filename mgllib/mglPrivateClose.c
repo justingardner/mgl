@@ -17,6 +17,11 @@ $Id$
 /////////////////////////
 #include "mgl.h"
 
+////////////////////////
+//   define section   //
+////////////////////////
+#define kMaxDisplays 8
+
 //////////////
 //   main   //
 //////////////
@@ -71,6 +76,16 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     // get the current drawing context
     CGLContextObj contextObj = CGLGetCurrentContext();
     
+    // Release the captured display.  We recapture the display before releasing it
+    // so that if it's already released the screen won't go black from
+    // releasing it twice.  This bug may be unique to my machine, have yet to
+    // test it on other boxes.
+    CGDirectDisplayID displays[kMaxDisplays];
+    CGDisplayCount numDisplays;
+    CGGetActiveDisplayList(kMaxDisplays, displays, &numDisplays);
+    CGDisplayCapture(displays[displayNumber-1]);
+    CGDisplayRelease(displays[displayNumber-1]);
+
     // close the context and clean up
     CGLSetCurrentContext( NULL ) ;
     CGLClearDrawable( contextObj ) ;
