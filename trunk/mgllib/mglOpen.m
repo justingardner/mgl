@@ -74,6 +74,11 @@ else
   mglPrivateOpen(whichScreen,screenWidth,screenHeight,frameRate,bitDepth);
 end
 
+% if this is an AGL screen then move it to 0,0
+if whichScreen == 0
+  mglMoveWindow(0,0);
+end
+
 % get gamma table
 if ~openDisplay
   MGL.initialGammaTable = mglGetGammaTable;
