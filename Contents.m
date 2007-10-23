@@ -4,6 +4,7 @@
 %  mglOpen                   : Opens the screen
 %  mglFlush                  : Flips front and back buffer
 %  mglClose                  : Closes the screen
+%  mglSwitchDisplay          : Switches between multiple monitors
 %
 %Functions to adjust the coordinate frame
 %  mglVisualAngleCoordinates : Visual angle coordinates
