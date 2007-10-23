@@ -54,12 +54,15 @@ end
 
 % check mglSwitchDisplay to make sure it is not already open
 if ~openDisplay
-  switchNumber = mglSwitchDisplay(-3,whichScreen);
-  if ~isempty(switchNumber)
-    disp(sprintf('(mglOpen) Display %i (displayID=%i) is already open, switching to that display',whichScreen,switchNumber));
-    mglSwitchDisplay(switchNumber);
-    return
-  end
+	% Only do this check for fullscreen windows.
+	if isempty(whichScreen) || whichScreen ~= 0
+		switchNumber = mglSwitchDisplay(-3,whichScreen);
+		if ~isempty(switchNumber)
+			disp(sprintf('(mglOpen) Display %i (displayID=%i) is already open, switching to that display',whichScreen,switchNumber));
+			mglSwitchDisplay(switchNumber);
+			return
+		end
+	end
 end
 
 % call the private mex function

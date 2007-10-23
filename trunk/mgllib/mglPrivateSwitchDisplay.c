@@ -22,22 +22,35 @@ $Id$
 //////////////
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
-  int displayNumber;
-  
-  if (nrhs != 0) {
-    usageError("mglSwitchDisplay");
-    return;
-  }
+	int displayNumber;
+	WindowRef wr;
 	
-  displayNumber = (int)mglGetGlobalDouble("displayNumber");
+	if (nrhs != 0) {
+		usageError("mglSwitchDisplay");
+		return;
+	}
 	
-  if (displayNumber > 0) {
-    CGLContextObj contextObj;
-    unsigned int c;
-    
-    c = (unsigned int)mglGetGlobalDouble("context");
-    contextObj = (CGLContextObj)c;
-    
-    CGLSetCurrentContext(contextObj);
-  }
+	displayNumber = (int)mglGetGlobalDouble("displayNumber");
+	
+	// If displayNumber > 0, then it's a CGL window.
+	if (displayNumber > 0) {
+		CGLContextObj contextObj;
+		unsigned int c;
+		
+		c = (unsigned int)mglGetGlobalDouble("context");
+		contextObj = (CGLContextObj)c;
+		
+		CGLSetCurrentContext(contextObj);
+	}
+	else {
+		AGLContext contextObj;
+//		WindowRef winRef;
+		unsigned int c;
+		
+ 		c = (unsigned int)mglGetGlobalDouble("context");
+// 		mexPrintf("c: %d\n", c);
+		
+		contextObj = (AGLContext)c;
+		aglSetCurrentContext(contextObj);
+	}
 }
