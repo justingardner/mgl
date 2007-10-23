@@ -192,8 +192,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
      CGLSetCurrentContext( contextObj ) ;
      CGLSetFullScreen( contextObj ) ;
 
-    // Hide cursor
-    CGDisplayHideCursor( kCGDirectMainDisplay ) ; 
+     // Hide cursor
+     CGDisplayHideCursor( kCGDirectMainDisplay ) ; 
    } 
    else {
 
