@@ -35,7 +35,7 @@ global MGL;
 
 if usejava('desktop') & (whichScreen == 0)
   if ~isfield(MGL,'desktopWarning')
-    warningStr = '(mglOpen) Using a windowed openGl context with the matlab desktop can be unstable due to some interactions with multiple threads. If you encounter crashing consider either using a full window context, (ie not mglOpen(0)) or run matlab using -nojvm or -nodesktop. Note that to improve stability mglClose will not close the window. If you are done using mgl and want to force the window closed, use mglPrivateClose';
+    warningStr = '(mglOpen) Using a windowed openGl context with the matlab desktop can be unstable due to some interactions with multiple threads. If you encounter crashing consider either using a full window context, (ie not mglOpen(0)) or run matlab using -nojvm or -nodesktop. Note that to improve stability mglClose will hide the window rather than destroy it.';
     uiwait(warndlg(warningStr,'mglOpen','modal'));
     % next time this is run it will allow the user to open the window
     MGL.desktopWarning = 1;
@@ -54,15 +54,15 @@ end
 
 % check mglSwitchDisplay to make sure it is not already open
 if ~openDisplay
-	% Only do this check for fullscreen windows.
-	if isempty(whichScreen) || whichScreen ~= 0
-		switchNumber = mglSwitchDisplay(-3,whichScreen);
-		if ~isempty(switchNumber)
-			disp(sprintf('(mglOpen) Display %i (displayID=%i) is already open, switching to that display',whichScreen,switchNumber));
-			mglSwitchDisplay(switchNumber);
-			return
-		end
-	end
+  % Only do this check for fullscreen windows.
+  if isempty(whichScreen) || whichScreen ~= 0
+    switchNumber = mglSwitchDisplay(-3,whichScreen);
+    if ~isempty(switchNumber)
+      disp(sprintf('(mglOpen) Display %i (displayID=%i) is already open, switching to that display',whichScreen,switchNumber));
+      mglSwitchDisplay(switchNumber);
+      return
+    end
+  end
 end
 
 % call the private mex function
@@ -76,7 +76,7 @@ end
 
 % if this is an AGL screen then move it to 0,0
 if whichScreen == 0
-  mglMoveWindow(0,0);
+  mglMoveWindow(10,30);
 end
 
 % get gamma table

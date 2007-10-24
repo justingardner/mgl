@@ -67,22 +67,23 @@ end
 % Save the current context in the MGLALL structure
 if isfield(MGL,'displayNumber')
   if isempty(MGLALL)
-    MGLALL = MGL;
+    MGLALL{1} = MGL;
   else
     % look to see if it is already in MGLALL
-    currentIndex = find([MGLALL.displayID] == MGL.displayID);
+    currentIndex = FindMGLALLData('displayID', 'equal', MGL.displayID);
+    
     % If the current MGL is found, then store it.
     if ~isempty(currentIndex)
-      MGLALL(currentIndex) = MGL;
+      MGLALL{currentIndex} = MGL;
     else
-      MGLALL(end+1) = MGL;
+      MGLALL{end+1} = MGL;
     end
   end
 end
 
 % if the list has any displays that are closed, remove them
 if ~isempty(MGLALL)
-  openDisplays = find([MGLALL.displayNumber]~=-1);
+  openDisplays = FindMGLALLData('displayNumber', 'nequal', -1);
   MGLALL = MGLALL(openDisplays);
 end
 
@@ -90,11 +91,11 @@ end
 if displayID == -1
   % then close all the other contexts that are open
   for i = 1:length(MGLALL)
-    MGL = MGLALL(i);
+    MGL = MGLALL{i};
     mglPrivateSwitchDisplay;
     mglClose;
   end
-  MGLALL = [];
+  clear global MGLALL;
   return
 end
 
@@ -104,10 +105,11 @@ if displayID == -2
     disp(sprintf('(mglSwitchDisplay) No open contexts'));
   else
     for i = 1:length(MGLALL)
-      if isequal(MGLALL(i),MGL)
-	disp(sprintf('*displayID=%i displayNumber=%i: %ix%i %iHz (%i bits)',MGLALL(i).displayID,MGLALL(i).displayNumber,MGLALL(i).screenWidth,MGLALL(i).screenHeight,MGLALL(i).frameRate,MGLALL(i).bitDepth));
+      mgla = MGLALL{i};
+      if isequal(mgla, MGL)
+	disp(sprintf('*displayID=%i displayNumber=%i: %ix%i %iHz (%i bits)',mgla.displayID,mgla.displayNumber,mgla.screenWidth,mgla.screenHeight,mgla.frameRate,mgla.bitDepth));
       else
-	disp(sprintf('displayID=%i displayNumber=%i: %ix%i %iHz (%i bits)',MGLALL(i).displayID,MGLALL(i).displayNumber,MGLALL(i).screenWidth,MGLALL(i).screenHeight,MGLALL(i).frameRate,MGLALL(i).bitDepth));
+	disp(sprintf('displayID=%i displayNumber=%i: %ix%i %iHz (%i bits)',mgla.displayID,mgla.displayNumber,mgla.screenWidth,mgla.screenHeight,mgla.frameRate,mgla.bitDepth));
       end
     end
   end
@@ -120,9 +122,10 @@ if displayID == -3
     retval = [];
   else
     if ~exist('displayNumber','var'),displayNumber = [];end
-    retval = find([MGLALL.displayNumber]==displayNumber);
+    retval = FindMGLALLData('displayNumber', 'equal', displayNumber);
     if ~isempty(retval)
-      retval = MGLALL(retval).displayID;
+      m = MGLALL{retval};
+      retval = m.displayID;
     end
   end
   return
@@ -132,7 +135,7 @@ end
 % Attempt to load the requested display.  If it doesn't exist, then just
 % set the current trackerID value.
 if ~isempty(displayID)
-  newIndex = find([MGLALL.displayID] == displayID);
+  newIndex = FindMGLALLData('displayID', 'equal', displayID);
 else
   newIndex = [];
   displayID = [];
@@ -142,8 +145,31 @@ end
 if isempty(newIndex)
   MGL.displayNumber = -1;
   MGL.displayID = displayID;
-% otherwise switch to the correct display
+  % otherwise switch to the correct display
 else
-  MGL = MGLALL(newIndex);
+  MGL = MGLALL{newIndex};
   mglPrivateSwitchDisplay;
+end
+
+
+% Looks through the cell array of MGLALL to find matches of an arbitary
+% value to a specified field.
+function indices = FindMGLALLData(fieldName, operator, value)
+global MGLALL;
+
+indices = [];
+for i = 1:length(MGLALL)
+  s = MGLALL{i};
+
+  switch lower(operator)
+   case 'equal'
+    if s.(fieldName) == value
+      indices(end+1) = i;
+    end
+
+   case 'nequal'
+    if s.(fieldName) ~= value
+      indices(end+1) = i;
+    end
+  end
 end
