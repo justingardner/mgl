@@ -210,9 +210,24 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     windowAttrs = kWindowNoUpdatesAttribute | kWindowAsyncDragAttribute;
     SetRect (&contentRect, 0, 0, screenWidth, screenHeight );
 	   
+    //check to see if we are running within the matlab desktop
+    mxArray *thislhs[1];
+    mxArray *thisrhs = mxCreateString("desktop");
+    mexCallMATLAB(1, thislhs, 1, &thisrhs, "usejava");
+
     // create a new window
     if (verbose>1) mexPrintf("(mglPrivateOpen) Creating new window\n");
-    result = CreateNewWindow(kOverlayWindowClass, windowAttrs, &contentRect, &theWindow);
+    if (*(int*)mxGetPr(thislhs[0])==1) {
+      if (verbose>1) mexPrintf("desktop\n");
+      // desktop. Use kOVerlayWindowClass
+     result = CreateNewWindow(kOverlayWindowClass, windowAttrs, &contentRect, &theWindow);
+    }
+    else {
+      if (verbose>1) mexPrintf("No desktop\n");
+      // nojvm, nodesktop
+      result = CreateNewWindow(kDocumentWindowClass, windowAttrs, &contentRect, &theWindow);
+    }
+
     if (result != noErr) {
       mexPrintf("(mglPrivateOpen) Could not CreateNewWindow\n");
       return;
