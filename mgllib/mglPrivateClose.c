@@ -99,6 +99,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   }
   // if displayNumber is 0, then it is a window AGL contex 
   else if (displayNumber==0) {
+    WindowRef winRef;
     if (verbose) mexPrintf("(mglPrivateClose) Closing AGL context\n");
     
     // run in a window: get agl context
@@ -125,8 +126,27 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     //else 
     //  mexPrintf("(mglPrivateClose) Quick draw is blocking close. Try again\n");
 
-    // hide window
-    HideWindow(GetWindowFromPort(drawableObj));
+    //check to see if we are running within the matlab desktop
+    mxArray *thislhs[1];
+    mxArray *thisrhs = mxCreateString("desktop");
+    mexCallMATLAB(1, thislhs, 1, &thisrhs, "usejava");
+
+    if (*(int*)mxGetPr(thislhs[0])==1) {
+      if (verbose>1) mexPrintf("(mglPrivateClose) Desktop. Hiding window\n");
+      // desktop. just hide window
+      HideWindow(GetWindowFromPort(drawableObj));
+    }
+    else {
+      if (verbose>1) mexPrintf("(mglPrivateClose) No desktop. Destroying window\n");
+      // otherwise destroy the context
+      winRef = GetWindowFromPort(drawableObj);
+      if (IsValidWindowPtr(winRef)) {
+	DisposeWindow(winRef);
+      }
+      else {
+	mexPrintf("(mglPrivateClose) error: invalid window pointer\n");
+      }
+    }
   }
 #endif // ifdef __APPLE__
 

@@ -218,12 +218,12 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     // create a new window
     if (verbose>1) mexPrintf("(mglPrivateOpen) Creating new window\n");
     if (*(int*)mxGetPr(thislhs[0])==1) {
-      if (verbose>1) mexPrintf("desktop\n");
+      if (verbose>1) mexPrintf("(mglPrivateOpen) Desktop. Using kOverlayWindowClass\n");
       // desktop. Use kOVerlayWindowClass
      result = CreateNewWindow(kOverlayWindowClass, windowAttrs, &contentRect, &theWindow);
     }
     else {
-      if (verbose>1) mexPrintf("No desktop\n");
+      if (verbose>1) mexPrintf("(mglPrivateOpen) No desktop. Using kDocumentWindowClass\n");
       // nojvm, nodesktop
       result = CreateNewWindow(kDocumentWindowClass, windowAttrs, &contentRect, &theWindow);
     }
