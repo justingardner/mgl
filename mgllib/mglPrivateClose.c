@@ -131,7 +131,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mxArray *thisrhs = mxCreateString("desktop");
     mexCallMATLAB(1, thislhs, 1, &thisrhs, "usejava");
 
-    if (*(int*)mxGetPr(thislhs[0])==1) {
+    if ((int)mxGetScalar(thislhs[0]) == 1) {
       if (verbose>1) mexPrintf("(mglPrivateClose) Desktop. Hiding window\n");
       // desktop. just hide window
       HideWindow(GetWindowFromPort(drawableObj));
