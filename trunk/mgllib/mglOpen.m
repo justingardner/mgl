@@ -76,7 +76,9 @@ end
 
 % if this is an AGL screen then move it to 0,0
 if whichScreen == 0
-  mglMoveWindow(10,30);
+  if ~openDisplay
+    mglMoveWindow(10,30);
+  end
 end
 
 % get gamma table
