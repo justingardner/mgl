@@ -217,7 +217,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
     // create a new window
     if (verbose>1) mexPrintf("(mglPrivateOpen) Creating new window\n");
-    if (*(int*)mxGetPr(thislhs[0])==1) {
+    if ((int)mxGetScalar(thislhs[0]) == 1) {
       if (verbose>1) mexPrintf("(mglPrivateOpen) Desktop. Using kOverlayWindowClass\n");
       // desktop. Use kOVerlayWindowClass
      result = CreateNewWindow(kOverlayWindowClass, windowAttrs, &contentRect, &theWindow);
