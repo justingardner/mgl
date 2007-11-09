@@ -52,7 +52,7 @@ params.startType = find(strcmp(params.startType,scanNames));
 scanNum = params.startType;
 while scanNum <= (params.startType+params.numScans-1)
   % get which scan we are doing
-  scanTypeNum = mod(scanNum-1,4)+1;
+  scanTypeNum = getScanTypeNum(scanNum);
   
   % display what we are doing
   disp(sprintf('================================================'));
@@ -76,7 +76,7 @@ while scanNum <= (params.startType+params.numScans-1)
     nextOptions{1} = sprintf('Rescan %i:%s',scanNum-params.startType+1,scanNames{scanTypeNum});
     nextOptionScanNum(1) = scanNum;
     for i = params.startType:(params.startType+params.numScans-1)
-      thisScanTypeNum = mod(i-1,4)+1;
+      thisScanTypeNum = getScanTypeNum(i);
       if (i < (scanNum-params.startType+1))
 	nextOptionScanNum(end+1) = i;
 	nextOptions{end+1} = sprintf('Go back to %i:%s',i-params.startType+1,scanNames{thisScanTypeNum});
@@ -98,5 +98,15 @@ end
 
 mglClose;
 
+%%%%%%%%%%%%%%%%%%%%%%%%
+%%   getScanTypeNum   %%
+%%%%%%%%%%%%%%%%%%%%%%%%
+function scanType = getScanTypeNum(scanNum)
 
-
+% first 8 scans we do all four types of scans
+% but after that we just do polar angle wedges
+if scanNum <= 8
+  scanType = mod(scanNum-1,4)+1;
+else
+  scanType = mod(scanNum-1,2)+1;
+end  
