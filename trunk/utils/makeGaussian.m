@@ -3,8 +3,22 @@
 %      usage: makeGaussian(width,height,sdx,sdy)
 %         by: justin gardner
 %       date: 09/14/06
-%    purpose: make a 2D gaussian
+%    purpose: make a 2D gaussian, useful for making gabors for
+%             instance. Set mglVisualAngleCoordinates before
+%             using.
 %
+%             width, height, sdx and sdy are in degrees of visual angle
+%       e.g.:
+%
+% mglOpen;
+% mglVisualAngleCoordinates(57,[16 12]);
+% mglClearScreen(0.5);
+% grating = makeGrating(10,10,1.5,45,0);
+% gaussian = makeGaussian(10,10,1,1); 
+% gabor = 255*(grating.*gaussian+1)/2;
+% tex = mglCreateTexture(gabor);
+% mglBltTexture(tex,[0 0]);
+% mglFlush;
 function m = makeGaussian(width,height,sdx,sdy)
 
 % check arguments
