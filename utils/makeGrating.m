@@ -4,12 +4,25 @@
 %         by: justin gardner
 %       date: 09/14/06
 %    purpose: create a 2D grating. You should start MGL
-%             and set to visual angle coordinates frist.
-%             angle and phase are in degrees
+%             and use mglVisualAngleCoordinates before using.
 %
+%             width and height are in degrees of visual angle
+%             sf is in cycles/degrees
+%             angle and phase are in degrees
+%       e.g.:
+%
+% mglOpen;
+% mglVisualAngleCoordinates(57,[16 12]);
+% g = makeGrating(16,12,1.5,45,0);
+% g = 255*(g+1)/2;
+% tex = mglCreateTexture(g);
+% mglBltTexture(tex,[0 0]);
+% mglFlush;
+
 function m = makeGrating(width,height,sf,angle,phase)
 
 % check arguments
+m = [];
 if ~any(nargin == [3 4 5])
   help makeGrating
   return
