@@ -22,6 +22,7 @@
 function m = makeGaussian(width,height,sdx,sdy)
 
 % check arguments
+m = [];
 if ~any(nargin == [4])
   help makeGrating
   return
