@@ -101,22 +101,30 @@ if ~isfield(calib,'bittest') || ~isfield(calib,'uncorrected') || ...
     % these parameters will be then saved in the calibration structure
     % for future reference:
 
-    setmonitorparams = askuser('Do you want to change monitor''s settings or use the current values (resx, resy, refresh, depth) ');
-    if setmonitorparams
-        r = 0;
-        while r==0
-            mp = setmonitor(calib.screenNumber);
-            r = askuser(sprintf('Monitor %s will be set to: [%i %i %i %i %i] ',mp.ID, mp.settings));
+     if ~askuser('Do you want to use current monitor settings? ');
+        response = 0;
+        while response==0
+            monitorParameters = setMonitorParameters(calib.screenNumber);
+            response = askuser(sprintf('Monitor "%s" will be set to: [%ix%i] frameRate: %i bitDepth: %i', monitorParameters.ID,monitorParameters.screenWidth, monitorParameters.screenHeight, monitorParameters.frameRate, monitorParameters.bitDepth));
         end
-        calib.monitor = mp;
+        calib.monitor = monitorParameters;
 
+        % close screen, just in case it is open so we can open at new resolution
+        mglClose;
         % now open the screen
-        mglOpen(mp.settings(1),mp.settings(2),mp.settings(3),mp.settings(4));
-        clear mp r;
+        mglOpen(calib.screenNumber,monitorParameters.screenWidth, monitorParameters.screenHeight, monitorParameters.frameRate, monitorParameters.bitDepth);
     else
-        calib.monitor.ID = 'Not set';
-        calib.monitor.settings = 'Used current';
+        calib.monitor.ID = 'Default monitor';
+        mglOpen(calib.screenNumber);
     end
+
+    % save monitor settings that MGL actually opened the monitor to
+    global MGL;
+    calib.screenNumber = MGL.displayNumber;
+    calib.monitor.screenWidth = MGL.screenWidth;
+    calib.monitor.screenHeight = MGL.screenHeight;
+    calib.monitor.frameRate = MGL.frameRate;
+    calib.monitor.bitDepth = MGL.bitDepth;
 end
 
 if ~justdisplay && ~isempty(portnum)
@@ -576,17 +584,16 @@ end
 % get monitor's settings for calibration
 % from user
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function mp = setmonitor(screenNumber)
-
-% check arguments
-if ~(nargin == 1)
-    return
-end
+function monitorParameters = setMonitorParameters(screenNumber)
 
 p = [];
 while isempty(p)
     % ask the question
-    disp(sprintf('\nPlease insert display settings for monitor %i',screenNumber));
+    if isempty(screenNumber)
+      disp(sprintf('\nPlease insert display settings for monitor []'));
+    else
+      disp(sprintf('\nPlease insert display settings for monitor %i',screenNumber));
+    end	
     disp(sprintf('as a vector of the form: \n'));
     p = input('[screenWidth,screenHeight,frameRate,bitDepth]: ');
 
@@ -595,14 +602,13 @@ while isempty(p)
         p = [];
     end
 end
-ID = input('\n Insert monitor ID: \n','s');
+ID = input('\n Insert monitor ID (i.e. The name of the monitor you calibrated): \n','s');
 
-mp.ID = ID;
-if isempty(screenNumber)
-    mp.settings = [2 p];
-else
-    mp.settings = [screenNumber p];
-end
+monitorParameters.ID = ID;
+monitorParameters.screenWidth = p(1);
+monitorParameters.screenHeight = p(2);
+monitorParameters.frameRate = p(3);
+monitorParameters.bitDepth = p(4);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % function to fit with an exponent
