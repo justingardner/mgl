@@ -43,6 +43,7 @@
 /////////////////////////
 #include <mex.h>
 #define mwIndex int
+#define mwSize int
 
 /////////////////////////
 // OS-specific includes
