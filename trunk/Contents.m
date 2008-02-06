@@ -8,6 +8,7 @@
 %Other screen functions
 %  mglSwitchDisplay          : Switches between multiple monitors
 %  mglMoveWindow             : Moves windows created by mglOpen(0);
+%  mglDescribeDisplays       : Gets info about displays
 %
 %Functions to adjust the coordinate frame
 %  mglVisualAngleCoordinates : Visual angle coordinates
