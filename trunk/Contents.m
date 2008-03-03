@@ -9,6 +9,7 @@
 %  mglSwitchDisplay          : Switches between multiple monitors
 %  mglMoveWindow             : Moves windows created by mglOpen(0);
 %  mglDescribeDisplays       : Gets info about displays
+%  mglFrameGrab              : Frame grab to a matlab matrix
 %
 %Functions to adjust the coordinate frame
 %  mglVisualAngleCoordinates : Visual angle coordinates
@@ -20,6 +21,7 @@
 %Texture functions used for displaing images
 %  mglCreateTexture          : Create a texture from a matrix
 %  mglBltTexture             : Draw the texture to the screen
+%  mglDeleteTexture          : Delete the texture
 %
 %Drawing text
 %  mglTextSet                : Set parameters for drawing text
