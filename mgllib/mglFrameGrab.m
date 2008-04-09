@@ -23,9 +23,9 @@
 %mglPolygon([0 0 MGL.screenWidth MGL.screenWidth],[MGL.screenHeight/3 MGL.screenHeight*2/3 MGL.screenHeight*2/3 MGL.screenHeight/3],0);
 % mglTextSet('Helvetica',32,[1 1 1]);
 %mglTextDraw('Frame Grab',[MGL.screenWidth/2 MGL.screenHeight/2]);
-%mglFlush
 %frame = mglFrameGrab;
 %imagesc(mean(frame,3)');colormap('gray')
+%mglFlush
 
 
 
