@@ -108,3 +108,8 @@ end
 if ~isfield(MGL,'displayID') || isempty(MGL.displayID)
   MGL.displayID = MGL.displayNumber;
 end
+
+if usejava('desktop')
+  % always show the cursor from the desktop.
+  mglDisplayCursor(1);
+end
