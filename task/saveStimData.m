@@ -1,10 +1,11 @@
 % savestimdata.m
 %
 %        $Id$
-%      usage: savestimdata.m()
+%      usage: savestimdata.m(myscreen,task)
 %         by: justin gardner
 %       date: 12/22/04
 %  copyright: (c) 2006 Justin Gardner (GPL see mgl/COPYING)
+%    purpose: saves the myscreen/task/stimulus
 %
 function retval = saveStimData(myscreen,task)
 
