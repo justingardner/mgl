@@ -35,11 +35,15 @@ else
   multiTask = 1;
 end
 
+volumeTR = [];
 for taskNum = 1:length(allTasks)
   task = allTasks{taskNum};
   % init some variables
   exptStartTime = inf;
   volnum = 0;
+  nextVolNum = 1;
+  volTime = 0;
+  nextVolTime = inf;
   phaseNum = 1;
   blockNum = 1;
   blockTrialNum = 0;
@@ -50,6 +54,15 @@ for taskNum = 1:length(allTasks)
   if (task{phaseNum}.segmentTrace)
     % go through the events, looking for the segment  
     for enum = 1:myscreen.events.n
+      % get the volume number of the event
+      volnum = myscreen.events.volnum(enum);
+      eventTime = myscreen.events.time(enum);
+      % if we are closer to the next volume than the current
+      % volume (i.e. the one last recorded by a backtick, then
+      % we want to use the following volume as our volume number
+      if (eventTime-volTime) > (nextVolTime-eventTime)
+	volnum = nextVolNum;
+      end
       % deal with segment trace
       if myscreen.events.tracenum(enum) == task{phaseNum}.segmentTrace
 	% get the segment and the segment time
@@ -66,15 +79,7 @@ for taskNum = 1:length(allTasks)
 	  % now keep the trial time
 	  experiment(phaseNum).trialTime(tnum) = segtime-exptStartTime;
 	  experiment(phaseNum).trialTicknum(tnum) = myscreen.events.ticknum(enum);
-	  % see whether we are closer to this volume time
-	  % or the next volume time
-	  if (segtime-volTime) > (nextVolTime-segtime)
-	    % if we are closer to the next volume, then adjust
-	    % the volume by 1
-	    experiment(phaseNum).trialVolume(tnum) = volnum+1;
-	  else
-	    experiment(phaseNum).trialVolume(tnum) = volnum;
-	  end
+	  experiment(phaseNum).trialVolume(tnum) = volnum;
 	  % get block trial numbers
 	  blockTrialNum = blockTrialNum+1;
 	  % see if we have to go over to the next block
@@ -131,9 +136,7 @@ for taskNum = 1:length(allTasks)
 	% if data is set to one then it means that we got a backtick
 	% if it is set to zero it means we are coming out of a backtick
 	if myscreen.events.data(enum)
-	  % so update the volume counter when we get the backtick
-	  volnum = volnum+1;
-	  % and remember the time of the volume
+	  % remember the time of the volume
 	  volTime = myscreen.events.time(enum);
 	  % get the next volume time, by looking for the next volume event
 	  volEvents = find((myscreen.events.tracenum(enum+1:end) == 1) & (myscreen.events.data(enum+1:end) == 1));
@@ -141,9 +144,21 @@ for taskNum = 1:length(allTasks)
 	  if ~isempty(volEvents)
 	    nextVolEvent = volEvents(1)+enum;
 	    nextVolTime = myscreen.events.time(nextVolEvent);
+	    nextVolNum = myscreen.events.volnum(nextVolEvent)+1;
 	  else
-	    nextVolTime = inf;
+	    % if we have collected some information about volumeTR
+	    % then we set the final+1 volume to happen one volume
+	    % later. This way events that happen after the last volume
+	    % can be set to have a volume number of nan
+	    if ~isempty(volumeTR(~isnan(volumeTR)))
+	      nextVolTime = volTime+median(volumeTR(~isnan(volumeTR)));
+	    else
+	      nextVolTime = inf;
+	    end
+	    nextVolNum = nan;
 	  end
+	  % keep the amount of time each volume takes
+	  volumeTR(end+1) = nextVolTime-volTime;
 	end
 	% deal with phasenum event
       elseif myscreen.events.tracenum(enum) == task{phaseNum}.phaseTrace
@@ -166,14 +181,7 @@ for taskNum = 1:length(allTasks)
 	    % now see if the response happened closer to this volume 
 	    % or closer to the next volume
 	    responseTime = myscreen.events.time(enum);
-	    % if the response happened closer to the next volume then
-	    % we should adjust the volume number so that it is associated
-	    % with the next volume
-	    if (responseTime-volTime) > (nextVolTime-responseTime)
-	      experiment(phaseNum).responseVolume(tnum) = myscreen.events.volnum(enum)+1;
-	    else
-	      experiment(phaseNum).responseVolume(tnum) = myscreen.events.volnum(enum);
-	    end
+	    experiment(phaseNum).responseVolume(tnum) = volnum;
 	  end
 	  % save all responses in trial
 	  experiment(phaseNum).trials(tnum).response(end+1) = whichButton;
