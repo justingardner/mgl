@@ -185,6 +185,11 @@ for tnum = 1:length(e)
   end
 end
 
+% remove any nan stimvols (this happens if a trial occurs
+% after the end of the experiment)
+for i = 1:length(stimvolOut)
+  stimvolOut{i} = stimvolOut{i}(~isnan(stimvolOut{i}));
+end
 
 % check for non-unique conditions
 if length(cell2mat(stimvolOut)) ~= length(unique(cell2mat(stimvolOut)))
