@@ -28,47 +28,73 @@
 #include <ApplicationServices/ApplicationServices.h>
 #include <pthread.h>
 
-
 ////////////////
 //   globals  //
 ////////////////
 CFMachPortRef gEventTap;
 
-#include <pthread.h>
+///////////////////////////////
+//   function declarations   //
+///////////////////////////////
+void* setupEventTap(void *data);
+void launchSetupEventTapAsThread();
+CGEventRef myCGEventCallback(CGEventTapProxy proxy, CGEventType type, CGEventRef event, void *refcon);
  
-// The thread entry point routine.
-void* PosixThreadMainRoutine(void *data)
+//////////////
+//   main   //
+//////////////
+void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
-    // Do some work here.
-  mexPrintf("In thread\n"); 
-  mglSetGlobalDouble("huh",34);
+  // start the thread that will have a callback that gets called every
+  // time there is a keyboard or mouse event of interest
+  launchSetupEventTapAsThread();
+}
+
+///////////////////////
+//   setupEventTap   //
+///////////////////////
+void* setupEventTap(void *data)
+{
+  CGEventMask        eventMask;
+  CFRunLoopSourceRef runLoopSource;
+
+  // Create an event tap. We are interested in key presses and mouse presses
+  eventMask = ((1 << kCGEventKeyDown) | (1 << kCGEventLeftMouseDown) | (1 << kCGEventRightMouseDown));
+  gEventTap = CGEventTapCreate(kCGSessionEventTap, kCGHeadInsertEventTap, 0, eventMask, myCGEventCallback, NULL);
+
+  // see if it was created properly
+  if (!gEventTap) {
+    mexPrintf("(mglGetKeyEventNew) Failed to create event tap\n");
     return NULL;
+  }
+
+  // Create a run loop source.
+  runLoopSource = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, gEventTap, 0);
+
+  // Add to the current run loop.
+  CFRunLoopAddSource(CFRunLoopGetCurrent(), runLoopSource, kCFRunLoopCommonModes);
+
+  // Enable the event tap.
+  CGEventTapEnable(gEventTap, true);
+
+  unsigned long ref = (unsigned long)gEventTap;
+  mglSetGlobalDouble("eventTapPointer", (double)ref);
+
+  // tell user what is going on
+  mexPrintf("Hit Esc to quit\n");
+
+  // set up run loop
+  CFRunLoopRun();
+
+  return NULL;
 }
  
-void LaunchThread()
-{
-    // Create the thread using POSIX routines.
-    pthread_attr_t  attr;
-    pthread_t       posixThreadID;
- 
-    assert(!pthread_attr_init(&attr));
-    assert(!pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED));
- 
-    int threadError = pthread_create(&posixThreadID, &attr, &PosixThreadMainRoutine, NULL);
- 
-    assert(!pthread_attr_destroy(&attr));
-    if (threadError != 0)
-    {
-      mexPrintf("(LaunchThread) Error %i\n",threadError);
-    }
-  mexPrintf("Launch Thread\n"); 
-}
 ////////////////////////
 //   event callback   //
 ////////////////////////
 CGEventRef myCGEventCallback(CGEventTapProxy proxy, CGEventType type, CGEventRef event, void *refcon)
 {
-   // Get the time that the event happened
+  // Get the time that the event happened
   CGEventTimestamp timeStamp = CGEventGetTimestamp(event);
 
   // check for keyboard event
@@ -81,6 +107,7 @@ CGEventRef myCGEventCallback(CGEventTapProxy proxy, CGEventType type, CGEventRef
       //      CGEventSetIntegerValueField(event, kCGKeyboardEventKeycode, (int64_t)keycode);
       CGEventSetType(event,kCGEventNull);
       mglSetGlobalDouble("backtick",(double)timeStamp);
+      //      mexCallMATLAB(0,NULL,0,NULL,"huh");
     }
     // esc
     else if (keycode == 53) {
@@ -88,12 +115,15 @@ CGEventRef myCGEventCallback(CGEventTapProxy proxy, CGEventType type, CGEventRef
       CGEventTapEnable(gEventTap, false);
       // shut down event loop
       CFRunLoopStop(CFRunLoopGetCurrent());
+      mexPrintf("(mglGetKeyEvent) Stopping keyboard event tap\n");
     }
-    else
-      mexPrintf("Key: %i was hit %0.0f nanoseconds after system start\n",(unsigned int)keycode,(double)timeStamp);
+    else {
+      mglSetGlobalDouble("lastKeypressKeycode",(double)keycode);
+      mglSetGlobalDouble("lastKeypressTimestamp",(double)timeStamp);
+    }
   }
   else if (type == kCGEventLeftMouseDown) {
-    mexPrintf("Left mouse down: %0.0f nanoseconds after system start\n",(double)timeStamp);
+    mglSetGlobalDouble("lastLeftMouseDownTimestamp",(double)timeStamp);
   }
   else if (type == kCGEventRightMouseDown) {
     mexPrintf("Right mouse down at %0.0f nanoseconds after system start\n",(double)timeStamp);
@@ -103,40 +133,22 @@ CGEventRef myCGEventCallback(CGEventTapProxy proxy, CGEventType type, CGEventRef
   return event;
 }
 
-//////////////
-//   main   //
-//////////////
-void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
+/////////////////////////////////////
+//   launchSetupEventTapAsThread   //
+/////////////////////////////////////
+void launchSetupEventTapAsThread()
 {
-  CGEventMask        eventMask;
-  CFRunLoopSourceRef runLoopSource;
-
-  // This doesn't work 
-  LaunchThread();
-
-  // Create an event tap. We are interested in key presses and mouse presses
-  eventMask = ((1 << kCGEventKeyDown) | (1 << kCGEventLeftMouseDown) | (1 << kCGEventRightMouseDown));
-  gEventTap = CGEventTapCreate(kCGSessionEventTap, kCGHeadInsertEventTap, 0, eventMask, myCGEventCallback, NULL);
-
-  // see if it was created properly
-  if (!gEventTap) {
-    mexPrintf("(mglGetKeyEventNew) Failed to create event tap\n");
-    return;
-  }
-
-  // Create a run loop source.
-  runLoopSource = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, gEventTap, 0);
-
-  // Add to the current run loop.
-  CFRunLoopAddSource(CFRunLoopGetCurrent(), runLoopSource, kCFRunLoopCommonModes);
-
-  // Enable the event tap.
-  CGEventTapEnable(gEventTap, true);
-
-  // tell user what is going on
-  mexPrintf("Hit Esc to quit\n");
-
-  // set up run loop
-  CFRunLoopRun();
-
+  // Create the thread using POSIX routines.
+  pthread_attr_t  attr;
+  pthread_t       posixThreadID;
+ 
+  pthread_attr_init(&attr);
+  pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+ 
+  int threadError = pthread_create(&posixThreadID, &attr, &setupEventTap, NULL);
+ 
+  pthread_attr_destroy(&attr);
+  if (threadError != 0)
+      mexPrintf("(MglGetKeyEventNew) Error could not setup event tap thread: error %i\n",threadError);
 }
+
