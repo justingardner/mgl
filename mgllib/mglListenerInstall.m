@@ -8,9 +8,17 @@
 %    purpose: Installs a listener function to handle keyboard and mouse events
 %             That is, you pass it a name of a function and it sets up that
 %             function gets called every time there is a keyboard or mouse event
-%
+% e.g.:
+% mglListenerInstall('mglListener');
+% 
+% NOTE!!!! This function is still unstable! There seems to be some interaction
+% that happens when other functions are running at the same time as this. Essentially
+% this works if you don't do anything else, but if you are running your task it
+% crashes sometimes when the listener is called. I have some ideas of how to fix
+% it, but have not yet implemented them....
 function retval = mglListenerInstall(listenerName,eventTypes,keyNames)
 
+disp(sprintf('(mglListenerInstall) Warning this function is in development. It is still unstable'));
 % check arguments
 if ~any(nargin == [1 2 3])
   help mglListenerInstall

@@ -97,7 +97,7 @@ void* setupEventTap(void *data)
 
   mglSetGlobalDouble("test1",(double)(unsigned long)gEventTap);
   // tell user what is going on
-  mexPrintf("Hit Esc to quit\n");
+  mexPrintf("(mglPrivateListenerInstall) Hit <ESC> to stop keyboard/mouse listener\n");
 
   // set up run loop
   CFRunLoopRun();
