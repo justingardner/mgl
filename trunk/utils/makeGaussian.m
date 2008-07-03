@@ -1,6 +1,6 @@
 % makeGaussian.m
 %
-%      usage: makeGaussian(width,height,sdx,sdy)
+%      usage: makeGaussian(width,height,sdx,sdy,<xCenter>,<yCenter>,<xDeg2pix>,<yDeg2pix>)
 %         by: justin gardner
 %       date: 09/14/06
 %    purpose: make a 2D gaussian, useful for making gabors for
@@ -8,6 +8,14 @@
 %             using.
 %
 %             width, height, sdx and sdy are in degrees of visual angle
+%
+%             xcenter and ycenter are optional arguments in degrees of visual angle
+%             and default to 0,0
+%
+%             xDeg2pix and yDeg2pix are optional arguments that specify the
+%             number of pixels per visual angle in the x and y dimension, respectively.
+%             If not specified, these values are derived from the open MGL screen (make
+%             sure you set mglVisualAngleCoordinates).
 %       e.g.:
 %
 % mglOpen;
@@ -19,25 +27,41 @@
 % tex = mglCreateTexture(gabor);
 % mglBltTexture(tex,[0 0]);
 % mglFlush;
-function m = makeGaussian(width,height,sdx,sdy)
+function m = makeGaussian(width,height,sdx,sdy,xCenter,yCenter,xDeg2pix,yDeg2pix)
 
 % check arguments
 m = [];
-if ~any(nargin == [4])
-  help makeGrating
+if ~any(nargin == [4 5 6 7 8])
+  help makeGaussian
   return
 end
 
-global MGL;
+if ieNotDefined('xCenter'),xCenter = 0;end
+if ieNotDefined('yCenter'),yCenter = 0;end
 
-if ~isfield(MGL,'xDeviceToPixels') || ~isfield(MGL,'yDeviceToPixels')
-  disp(sprintf('(makeGaussian) MGL is not initialized'));
-  return
+% defaults for xDeg2pix
+if ieNotDefined('xDeg2pix')
+  global MGL;
+  if ~isfield(MGL,'xDeviceToPixels')
+    disp(sprintf('(makeGrating) MGL is not initialized'));
+    return
+  end
+  xDeg2pix = MGL.xDeviceToPixels;
+end
+
+% defaults for yDeg2pix
+if ieNotDefined('yDeg2pix')
+  global MGL;
+  if ~isfield(MGL,'yDeviceToPixels')
+    disp(sprintf('(makeGrating) MGL is not initialized'));
+    return
+  end
+  yDeg2pix = MGL.yDeviceToPixels;
 end
 
 % get size in pixels
-widthPixels = round(width*MGL.xDeviceToPixels);
-heightPixels = round(height*MGL.yDeviceToPixels);
+widthPixels = round(width*xDeg2pix);
+heightPixels = round(height*yDeg2pix);
 widthPixels = widthPixels + mod(widthPixels+1,2);
 heightPixels = heightPixels + mod(heightPixels+1,2);
 
@@ -48,6 +72,6 @@ y = -height/2:height/(heightPixels-1):height/2;
 [xMesh,yMesh] = meshgrid(x,y);
 
 % compute gaussian window
-m = exp(-((xMesh.^2)/(2*(sdx^2))+(yMesh.^2)/(2*(sdy^2))));
+m = exp(-(((xMesh-xCenter).^2)/(2*(sdx^2))+((yMesh-yCenter).^2)/(2*(sdy^2))));
 % clamp small values to 0 so that we fade completely to gray.
 m(m(:)<0.01) = 0;
