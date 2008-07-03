@@ -1,6 +1,6 @@
 % makeGrating.m
 %
-%      usage: makeGrating(width,height,sf,angle,phase)
+%      usage: makeGrating(width,height,sf,angle,phase,<xDeg2pix>,<yDeg2pix>)
 %         by: justin gardner
 %       date: 09/14/06
 %    purpose: create a 2D grating. You should start MGL
@@ -9,6 +9,11 @@
 %             width and height are in degrees of visual angle
 %             sf is in cycles/degrees
 %             angle and phase are in degrees
+%
+%             xDeg2pix and yDeg2pix are optional arguments that specify the
+%             number of pixels per visual angle in the x and y dimension, respectively.
+%             If not specified, these values are derived from the open MGL screen (make
+%             sure you set mglVisualAngleCoordinates).
 %       e.g.:
 %
 % mglOpen;
@@ -19,11 +24,11 @@
 % mglBltTexture(tex,[0 0]);
 % mglFlush;
 
-function m = makeGrating(width,height,sf,angle,phase)
+function m = makeGrating(width,height,sf,angle,phase,xDeg2pix,yDeg2pix)
 
 % check arguments
 m = [];
-if ~any(nargin == [3 4 5])
+if ~any(nargin == [3 4 5 6 7])
   help makeGrating
   return
 end
@@ -35,16 +40,31 @@ if ~exist('phase','var'),phase = 0;end
 % make it so that angle of 0 is horizontal
 angle = angle-90;
 
-global MGL;
 
-if ~isfield(MGL,'xDeviceToPixels') || ~isfield(MGL,'yDeviceToPixels')
-  disp(sprintf('(makeGrating) MGL is not initialized'));
-  return
+% defaults for xDeg2pix
+if ieNotDefined('xDeg2pix')
+  global MGL;
+  if ~isfield(MGL,'xDeviceToPixels')
+    disp(sprintf('(makeGrating) MGL is not initialized'));
+    return
+  end
+  xDeg2pix = MGL.xDeviceToPixels;
 end
 
+% defaults for yDeg2pix
+if ieNotDefined('yDeg2pix')
+  global MGL;
+  if ~isfield(MGL,'yDeviceToPixels')
+    disp(sprintf('(makeGrating) MGL is not initialized'));
+    return
+  end
+  yDeg2pix = MGL.yDeviceToPixels;
+end
+
+
 % get size in pixels
-widthPixels = round(width*MGL.xDeviceToPixels);
-heightPixels = round(height*MGL.yDeviceToPixels);
+widthPixels = round(width*xDeg2pix);
+heightPixels = round(height*yDeg2pix);
 widthPixels = widthPixels + mod(widthPixels+1,2);
 heightPixels = heightPixels + mod(heightPixels+1,2);
 
