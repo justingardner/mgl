@@ -163,11 +163,15 @@ for taskNum = 1:length(allTasks)
 	% deal with phasenum event
       elseif myscreen.events.tracenum(enum) == task{phaseNum}.phaseTrace
 	phaseNum = myscreen.events.data(enum);
-	blockNum = 1;
-	blockTrialNum = 0;
-	experiment = initPhase(experiment,phaseNum,numTraces);
-	experiment(phaseNum).nTrials = 1;
-	tnum = 0;
+	if phaseNum <= length(task)
+	  blockNum = 1;
+	  blockTrialNum = 0;
+	  experiment = initPhase(experiment,phaseNum,numTraces);
+	  experiment(phaseNum).nTrials = 1;
+	  tnum = 0;
+	else
+	  break;
+	end
 	% deal with response
       elseif myscreen.events.tracenum(enum) == task{phaseNum}.responseTrace
 	whichButton = myscreen.events.data(enum);
