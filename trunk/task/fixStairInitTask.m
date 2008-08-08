@@ -5,7 +5,23 @@
 %         by: justin gardner
 %       date: 09/07/06
 %  copyright: (c) 2006 Justin Gardner (GPL see mgl/COPYING)
-%    purpose: 
+%    purpose: Implements a fixation task. In this task, the fixation cross
+%             starts out cyan and then darkens twice. The fixation cross then
+%             turns yellow to indicate the response interval, and the subject
+%             is required to press 1 or 2 to indicate in which interval the cross
+%             appeared darker. The cross will then turn green or red to indicate
+%             correct or incorrect responses. The dimness of the target is 
+%             controlled by a 2 down 1 up staircase to keep task difficulty
+%             the same. 
+%
+%             See testExperiment.m for how this is used in a task. If you want
+%             to change parameters, before you call fixStairInitTask, set 
+%             appropriate fields of the global variable fixStimulus. e.g.:
+%
+%             global fixStimulus
+%             fixStimulus.interTime = 1;
+%
+%             See the code, for a list of all parameters that can be changed.
 %
 function [task myscreen] = fixStairInitTask(myscreen)
 
