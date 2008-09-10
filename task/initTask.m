@@ -1,8 +1,9 @@
 % initTask - initializes task for stimuli programs
 %
 %      usage: [ task ] = initTask( task, myscreen, startSegmentCallback, ...
-%			 screenUpdateCallback, trialResponseCallback, ...
-%			 startTrialCallback, endTrialCallback, startBlockCallback )
+%			 screenUpdateCallback, <trialResponseCallback>, ...
+%			 <startTrialCallback>, <endTrialCallback>, <startBlockCallback>,...
+%                        <randCallback>);
 %        $Id$
 %         by: justin gardner
 %       date: 2006-04-27
@@ -46,7 +47,7 @@ function [task myscreen] = initTask(task, myscreen, startSegmentCallback, ...
 				    startTrialCallback, endTrialCallback, startBlockCallback,...
 				    randCallback);
 
-if ~any(nargin == [4:8])
+if ~any(nargin == [4:10])
   help initTask;
   return
 end
@@ -83,14 +84,14 @@ task.thistrial.thisseg = inf;
 % check to see if they are specified correctly
 if isfield(task,'seglen')
   if isfield(task,'segmin') || isfield(task,'segmax')
-    disp(sprintf('UHOH: Found both seglen field and segmin/segmax. Using seglen'));
+    disp(sprintf('(initTask) Found both seglen field and segmin/segmax. Using seglen'));
   end
   task.segmin = task.seglen;
   task.segmax = task.seglen;
 end
 
 if ~isfield(task,'segmin') || ~isfield(task,'segmax')
-  error(sprintf('UHOH: Must specify task.segmin and task.segmax'));
+  error(sprintf('(initTask) Must specify task.segmin and task.segmax'));
   return
 end
 
@@ -112,16 +113,30 @@ end
 
 task.numsegs = length(task.segmin);
 if length(task.segmin) ~= length(task.segmax)
-  error(sprintf('UHOH: task.segmin and task.segmax not of same length\n'));
+  error(sprintf('(initTask) task.segmin and task.segmax not of same length\n'));
   return
 end
 if any((task.segmax - task.segmin) < 0)
-  error(sprintf('UHOH: task.segmin not smaller than task.segmax\n'));
+  error(sprintf('(initTask) task.segmin not smaller than task.segmax\n'));
   return
 end
 
+% keep the task randstate. Note that initScreen initializes the
+% state of the random generator to a random value (set by clock)
+% each time, guaranteeing a different random sequence
+% set the randstate type
+task.randstate.type = myscreen.randstate.type;
+% init the random sequence for this task
+task.randstate.state = floor((2^32-1)*rand);
+% initialize the block randomization sequence. This is used so that
+% you can always guarantee the same parameter sequence
+task.randstate.blockState = floor((2^32-1)*rand);
+% set the random state
+randstate = rand(myscreen.randstate.type);
+rand(task.randstate.type,task.randstate.state);
+
 randTypes = {'block','uniform'};
-% compute stuff fo random variables
+% compute stuff for random variables
 task.randVars.n_ = 0;
 % default to computing a length of 250
 if ~isfield(task.randVars,'len_'),task.randVars.len_ = 250;end
@@ -319,7 +334,7 @@ end
 
 % check for both
 if task.timeInTicks && task.timeInVols
-  disp(sprintf('UHOH: Time is both ticks and vols, setting to vols'));
+  disp(sprintf('(initTask) Time is both ticks and vols, setting to vols'));
   task.timeInTicks = 0;
 end
 
@@ -417,6 +432,11 @@ task.timeDiscrepancy = 0;
 if ~isfield(task,'fudgeLastVolume')
   task.fudgeLastVolume = 0;
 end
+
+% remember the status of the random number generator
+% and reset it to what it was before this call
+task.randstate.state = rand(task.randstate.type);
+rand(myscreen.randstate.type,randstate);
 
 % set the debug mode to stop on error
 dbstop if error
