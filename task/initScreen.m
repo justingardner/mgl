@@ -1,7 +1,7 @@
 % initScreen.m
 %
 %        $Id$
-%      usage: initScreen(randstate)
+%      usage: myscreen = initScreen(myscreen, randstate)
 %         by: justin gardner
 %       date: 12/10/04
 %  copyright: (c) 2006 Justin Gardner (GPL see mgl/COPYING)
@@ -65,9 +65,9 @@ for pnum = 1:length(screenParams)
       foundComputer = 1;
       % if we find a match then set the parameters accordingly
       if ~isempty(screenParams{pnum}{2})
-	disp(sprintf('Monitor parameters for: %s displayName: %s',screenParams{pnum}{1},screenParams{pnum}{2}));
+	disp(sprintf('(initScreen) Monitor parameters for: %s displayName: %s',screenParams{pnum}{1},screenParams{pnum}{2}));
       else
-	disp(sprintf('Monitor parameters for: %s',screenParams{pnum}{1}));
+	disp(sprintf('(initScreen) Monitor parameters for: %s',screenParams{pnum}{1}));
       end
       % setup all parameters for the monitor (if the settings are
       % already set then do nothing
@@ -77,7 +77,7 @@ for pnum = 1:length(screenParams)
 	end
       end
       if ~isempty(myscreen.displayDistance) & ~isempty(myscreen.displaySize)
-	disp(sprintf('%i: %ix%i(pix) dist:%0.1f (cm) size:%0.1fx%0.1f (cm) %iHz save:%i autoclose:%i flipHV:[%i %i]',myscreen.screenNumber,myscreen.screenWidth,myscreen.screenHeight,myscreen.displayDistance,myscreen.displaySize(1),myscreen.displaySize(2),myscreen.framesPerSecond,myscreen.saveData,myscreen.autoCloseScreen,myscreen.flipHV(1),myscreen.flipHV(2)));
+	disp(sprintf('(initScreen) %i: %ix%i(pix) dist:%0.1f (cm) size:%0.1fx%0.1f (cm) %iHz save:%i autoclose:%i flipHV:[%i %i]',myscreen.screenNumber,myscreen.screenWidth,myscreen.screenHeight,myscreen.displayDistance,myscreen.displaySize(1),myscreen.displaySize(2),myscreen.framesPerSecond,myscreen.saveData,myscreen.autoCloseScreen,myscreen.flipHV(1),myscreen.flipHV(2)));
       end
     end
   end
@@ -85,7 +85,7 @@ end
 
 % check to make sure that we have found the computer in the table
 if ~foundComputer
-  disp(sprintf('UHOH: Could not find computer %s in initScreen',myscreen.computer));
+  disp(sprintf('(initScreen) Could not find computer %s in initScreen',myscreen.computer));
 end
 
 %%%%%%%%%%%%%%%%%
@@ -118,13 +118,40 @@ end
 % compute the time per frame
 myscreen.frametime = 1/myscreen.framesPerSecond;
 
-% save rand number generator state
-if ~exist('randstate','var')
-  myscreen.randstate = rand('state');
+% get matlab version
+matlabVersion = version;
+myscreen.matlab.version = matlabVersion;
+[matlabMajorVersion matlabVersion] = strtok(matlabVersion,'.');
+myscreen.matlab.majorVersion = str2num(matlabMajorVersion);
+myscreen.matlab.minorVersion = str2num(strtok(matlabVersion,'.'));
+
+% decide which rand algorithim to use
+if (myscreen.matlab.majorVersion>=7) && (myscreen.matlab.minorVersion>=4)
+    myscreen.randstate.type = 'twister';
 else
-  myscreen.randstate = randstate;
-  rand('state',randstate);
+    myscreen.randstate.type = 'state';
 end
+
+% save rand number generator state
+if ~exist('randstate','var') || isempty(randstate)
+  % no passed in value, set to a random state
+  myscreen.randstate.state = sum(100*clock);
+else
+  % use passed in randstate
+  if ~isstruct(randstate)
+    % set the state
+    myscreen.randstate.state = randstate;
+    % old way, in which the 'state' value was returned
+    if ~isscalar(randstate)
+      myscreen.randstate.type = 'state';
+    end
+    %new way in which a structure is saved
+  else
+    myscreen.randstate = randstate;
+  end
+end
+% now set the state of the random number generator
+rand(myscreen.randstate.type,myscreen.randstate.state);
 
 % don't allow pause unless explicitly passed in
 if ~isfield(myscreen,'allowpause')
@@ -196,10 +223,10 @@ if ~isempty(calibFilename)
       mglSetGammaTable(myscreen.gammaTable);
       gammaNotSet = 0;
       [calibPath calibFilename] = fileparts(calibFilename);
-      disp(sprintf('Gamma: Set to table from calibration file %s created on %s',calibFilename,calib.date));
+      disp(sprintf('(initScreen) Gamma: Set to table from calibration file %s created on %s',calibFilename,calib.date));
     end
   else
-    disp(sprintf('UHOH: Could not find montior calibration file %s',calibFilename));
+    disp(sprintf('(initScreen) Could not find montior calibration file %s',calibFilename));
   end
 end
 
@@ -209,7 +236,7 @@ if gammaNotSet
     myscreen.monitorGamma = defaultMonitorGamma;
   end
   % display what the settings are
-  disp(sprintf('Correcting for monitor gamma of %0.2f',myscreen.monitorGamma));
+  disp(sprintf('(initScreen) Correcting for monitor gamma of %0.2f',myscreen.monitorGamma));
   
   % now get current gamma table
   global MGL;
@@ -234,7 +261,7 @@ if isfield(myscreen,'background')
     elseif strcmp(myscreen.background,'gray')
       myscreen.background = myscreen.gray;
     else
-      disp(sprintf('UHOH: Background color %s does not exist',myscreen.background));
+      disp(sprintf('(initScreen) Background color %s does not exist',myscreen.background));
       myscreen.background = myscreen.black;
     end
   end
@@ -248,7 +275,7 @@ mglFlush();
 mglClearScreen(myscreen.background);
 mglFlush();
 
-disp(sprintf('imageWidth: %0.2f imageHeight: %0.2f',myscreen.imageWidth,myscreen.imageHeight));
+disp(sprintf('(initScreen) imageWidth: %0.2f imageHeight: %0.2f',myscreen.imageWidth,myscreen.imageHeight));
 
 % init number of ticks
 myscreen.tick = 1;
