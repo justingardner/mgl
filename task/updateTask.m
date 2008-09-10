@@ -38,9 +38,17 @@ if (task{tnum}.trialnum > task{tnum}.numTrials)
   return
 end
 
+% set the random state
+randstate = rand(myscreen.randstate.type);
+rand(task{tnum}.randstate.type,task{tnum}.randstate.state);
+
 % update trial
 [task myscreen tnum] = updateTrial(task, myscreen, tnum);
 
+% remember the status of the random number generator
+% and reset it to what it was before this call
+task{tnum}.randstate.state = rand(task{tnum}.randstate.type);
+rand(myscreen.randstate.type,randstate);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % update trial
@@ -65,7 +73,7 @@ if task{tnum}.thistrial.segstart == -inf
     if myscreen.volnum == task{tnum}.thistrial.startvolnum
       return
     else
-      disp(sprintf('Backtick recorded: Starting trial'));
+      disp(sprintf('(updateTask) Backtick recorded: Starting trial'));
       % clear waiting status
       task{tnum}.thistrial.waitForBacktick = 0;
     end
@@ -296,6 +304,13 @@ function [task myscreen] = initBlock(task,myscreen)
 % select a randomization of trial parameters
 task.blocknum = task.blocknum+1;
 
+% set the randstate here. This is so that the randomization that
+% happens here is independent of other uses of the rand variable
+% that way if you want to recreate the order of trials, you
+% can reset the rand state in initTask from the one that is saved
+randstate = rand(myscreen.randstate.type);
+rand(task.randstate.type,task.randstate.blockState);
+
 % update the parameter order for this block
 % using the randomization callback, if this
 % pass previous block if it is available
@@ -304,6 +319,11 @@ if task.blocknum > 1
 else
   task.block(task.blocknum) = feval(task.callback.rand,task.parameter,[]);
 end
+
+% now keep the randstate
+task.randstate.blockState = rand(task.randstate.type);
+% and reset it back to what it was
+rand(myscreen.randstate.type,randstate);
 
 % set the initial trial
 task.blockTrialnum = 1;
@@ -315,6 +335,7 @@ end
 
 % set up start time to tell routines to init trial properly
 [task myscreen] = initTrial(task,myscreen);
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % init trial
@@ -363,7 +384,7 @@ end
 if task.waitForBacktick && (task.blocknum == 1) && (task.blockTrialnum == 1)
   task.thistrial.waitForBacktick = 1;
   backtick = mglKeycodeToChar(myscreen.keyboard.backtick);
-  disp(sprintf('Waiting for backtick (%s)',backtick{1}));
+  disp(sprintf('(updateTask) Waiting for backtick (%s)',backtick{1}));
 else
   % trial will start right awway
   task.thistrial.waitForBacktick = 0;
