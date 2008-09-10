@@ -14,6 +14,10 @@ function [task, myscreen, tnum] = updateTask(task,myscreen,tnum)
 % make sure we have a valid active task
 if tnum > length(task),return,end
 
+% set the random state
+randstate = rand(myscreen.randstate.type);
+rand(task{tnum}.randstate.type,task{tnum}.randstate.state);
+
 % check for a new block
 if (task{tnum}.blocknum == 0) || (task{tnum}.blockTrialnum > task{tnum}.block(task{tnum}.blocknum).trialn) 
   % if we have finished how many blocks were called for
@@ -23,6 +27,8 @@ if (task{tnum}.blocknum == 0) || (task{tnum}.blockTrialnum > task{tnum}.block(ta
     % write out the phase
     myscreen = writeTrace(tnum,task{tnum-1}.phaseTrace,myscreen);
     [task myscreen tnum] = updateTask(task, myscreen, tnum);
+    % reset it to what it was before this call
+    rand(myscreen.randstate.type,randstate);
     return
   end
   % otherwise init a new block and continue on
@@ -35,19 +41,17 @@ if (task{tnum}.trialnum > task{tnum}.numTrials)
   % write out the phase
   myscreen = writeTrace(tnum,task{tnum-1}.phaseTrace,myscreen);
   [task myscreen tnum] = updateTask(task,myscreen,tnum);
+  % reset it to what it was before this call
+  rand(myscreen.randstate.type,randstate);
   return
 end
-
-% set the random state
-randstate = rand(myscreen.randstate.type);
-rand(task{tnum}.randstate.type,task{tnum}.randstate.state);
 
 % update trial
 [task myscreen tnum] = updateTrial(task, myscreen, tnum);
 
 % remember the status of the random number generator
-% and reset it to what it was before this call
 task{tnum}.randstate.state = rand(task{tnum}.randstate.type);
+% and reset it to what it was before this call
 rand(myscreen.randstate.type,randstate);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -238,6 +242,8 @@ if (segover)
     task{tnum}.thistrial.waitingToInit = 1;
     % now we have to update the task
     [task myscreen tnum] = updateTask(task,myscreen,tnum);
+    % make sure that random number generator is in correct state
+    rand(task{tnum}.randstate.type,task{tnum}.randstate.state);
     return
   end
   % restart segment clock
@@ -308,7 +314,7 @@ task.blocknum = task.blocknum+1;
 % happens here is independent of other uses of the rand variable
 % that way if you want to recreate the order of trials, you
 % can reset the rand state in initTask from the one that is saved
-randstate = rand(myscreen.randstate.type);
+randstate = rand(task.randstate.type);
 rand(task.randstate.type,task.randstate.blockState);
 
 % update the parameter order for this block
@@ -322,8 +328,7 @@ end
 
 % now keep the randstate
 task.randstate.blockState = rand(task.randstate.type);
-% and reset it back to what it was
-rand(myscreen.randstate.type,randstate);
+rand(task.randstate.type,randstate);
 
 % set the initial trial
 task.blockTrialnum = 1;
@@ -335,7 +340,6 @@ end
 
 % set up start time to tell routines to init trial properly
 [task myscreen] = initTrial(task,myscreen);
-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % init trial
