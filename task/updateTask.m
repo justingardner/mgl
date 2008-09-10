@@ -371,6 +371,10 @@ task.thistrial.startvolnum = myscreen.volnum;
 segminlen = task.segmin;
 segmaxlen = task.segmax;
 
+% set the random state
+randstate = rand(task.randstate.type);
+rand(task.randstate.type,task.randstate.trialState);
+
 % for time in ticks and vols, we want an integer value
 if (task.timeInTicks || task.timeInVols)
   task.thistrial.seglen = segminlen + floor(rand*(segmaxlen-segminlen+1));
@@ -383,6 +387,11 @@ else
   task.thistrial.seglen(task.segquant~=0) = round((task.thistrial.seglen(task.segquant~=0)-task.segmin(task.segquant~=0))/task.segquant(task.segquant~=0))*task.segquant(task.segquant~=0)+task.segmin(task.segquant~=0);
 
 end
+
+% remember the status of the random number generator
+task.randstate.trialState = rand(task.randstate.type);
+% and reset it to what it was before this call
+rand(task.randstate.type,randstate);
 
 % see if we need to wait for backtick
 if task.waitForBacktick && (task.blocknum == 1) && (task.blockTrialnum == 1)

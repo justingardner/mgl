@@ -131,6 +131,10 @@ task.randstate.state = floor((2^32-1)*rand);
 % initialize the block randomization sequence. This is used so that
 % you can always guarantee the same parameter sequence
 task.randstate.blockState = floor((2^32-1)*rand);
+% initialize the trial randomization sequence. This is used so that
+% you can always guarantee the same segment lengths
+task.randstate.trialState = floor((2^32-1)*rand);
+
 % set the random state
 randstate = rand(myscreen.randstate.type);
 rand(task.randstate.type,task.randstate.state);
