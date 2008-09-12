@@ -25,10 +25,10 @@ task{1}{1}.randVars.uniform.or1 = 1:180;
 task{1}{1}.randVars.uniform.deltaOR = [-5 5]; % second orientation is + or - 5 degrees
 
 % initialize the task
-task{1}{1} = initTask(task{1}{1},myscreen,@startSegmentCallback,@screenUpdateCallback,@responseCallback);
+[task{1}{1} myscreen] = initTask(task{1}{1},myscreen,@startSegmentCallback,@screenUpdateCallback,@responseCallback);
 
 % set the subsidiary task
-task{2} = taskTemplateDualSubsidiary(myscreen);
+[task{2} myscreen] = taskTemplateDualSubsidiary(myscreen);
 
 %%%%%%%%%%%%%%%%%%%%%
 % Main display loop %

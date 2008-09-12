@@ -21,7 +21,7 @@ task{1}.numTrials = length(stimulus.contrasts);
 
 % initialize the task
 for phaseNum = 1:length(task{1})
-  task{1} = initTask(task{1},myscreen,@startSegmentCallback,@screenUpdateCallback,@responseCallback);
+  [task{1} myscreen] = initTask(task{1},myscreen,@startSegmentCallback,@screenUpdateCallback,@responseCallback);
 end
 
 
