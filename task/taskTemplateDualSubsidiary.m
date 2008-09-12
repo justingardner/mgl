@@ -1,4 +1,4 @@
-function task = taskTemplateDualSubsidiary(myscreen)
+function [task myscreen] = taskTemplateDualSubsidiary(myscreen)
 % This is an example of an RSVP task at fixation
 % I've taken out the parts where I keep track of 
 % correct and incorrect responses, for the sake of 
@@ -19,7 +19,7 @@ task{1}.getResponse = [0 ones(size(segments))];
 
 
 % initialize the task
-task{1} = initTask(task{1},myscreen,@startSegmentCallback,@screenUpdateCallback,@responseCallback);
+[task{1} myscreen] = initTask(task{1},myscreen,@startSegmentCallback,@screenUpdateCallback,@responseCallback);
 
 
 % But don't have a main loop, since this is just a subsidiary task
