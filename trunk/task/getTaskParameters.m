@@ -14,6 +14,12 @@ if ~any(nargin == [1 2])
   return
 end
 
+% so you can pass in stimfile strucuture from MLR
+if isfield(myscreen,'myscreen') && isfield(myscreen,'task')
+  task = myscreen.task;
+  myscreen = myscreen.myscreen;
+end
+
 % get task from myscreen
 if ~exist('task','var') && isfield(myscreen,'task')
   task = myscreen.task;
