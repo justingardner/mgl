@@ -35,6 +35,10 @@ if regexp(varname,'.*[(].*[)]$')
   indexvar = strtok(varname,'()');
   % get the index values
   [indexval taskNum phaseNum] = getVarFromParameters(indexvar,e);
+  if isempty(indexval)
+    disp(sprintf('(getVarFromParameters) Could not find index variable %s',indexvar));
+    keyboard
+  end
   % make sure there is a valid parameterCode named refvar
   if ~isfield(e{taskNum}(phaseNum),'parameterCode') || ~isfield(e{taskNum}(phaseNum).parameterCode,refvar)
     disp(sprintf('(getVarFromParameters) Could not find parameterCode %s',refvar));
