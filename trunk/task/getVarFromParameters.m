@@ -28,6 +28,33 @@ varval = '';
 taskNum = [];
 phaseNum = [];
 
+% now handle varnames that look like refvar(indexvar)
+if regexp(varname,'.*[(].*[)]$') 
+  % then split into two variables
+  [refvar varname] = strtok(varname,'(');
+  indexvar = strtok(varname,'()');
+  % get the index values
+  [indexval taskNum phaseNum] = getVarFromParameters(indexvar,e);
+  % make sure there is a valid parameterCode named refvar
+  if ~isfield(e{taskNum}(phaseNum),'parameterCode') || ~isfield(e{taskNum}(phaseNum).parameterCode,refvar)
+    disp(sprintf('(getVarFromParameters) Could not find parameterCode %s',refvar));
+    varval = [];
+    return
+  end
+  % get refvar
+  refvar = e{taskNum}(phaseNum).parameterCode.(refvar);
+  % check lengths
+  if (min(indexval) < 1) || (max(indexval) > length(refvar))
+    disp(sprintf('(getVarFromParameters) Index variable %s has invalid index for parameterCode %s',indexvar,refvar));
+    disp(sprintf('                       Index variables has values %s',num2str(unique(indexval))));
+    disp(sprintf('                       ParameterCode has length %i',length(refvar)));
+    varval = [];
+    return
+  end
+  varval = refvar(indexval);
+  return
+end
+
 % go search for the parameter
 for i = 1:length(e)
   for j = 1:length(e{i})
