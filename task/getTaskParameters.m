@@ -115,6 +115,9 @@ for taskNum = 1:length(allTasks)
 	  for rnum = 1:task{phaseNum}.randVars.n_
 	    eval(sprintf('experiment(phaseNum).randVars.%s(tnum) = task{phaseNum}.randVars.%s(mod(tnum-1,task{phaseNum}.randVars.varlen_(%i))+1);',task{phaseNum}.randVars.names_{rnum},task{phaseNum}.randVars.names_{rnum},rnum));
 	  end
+	  if isfield(task{phaseNum},'parameterCode')
+	    experiment(phaseNum).parameterCode = task{phaseNum}.parameterCode;
+	  end
 	  % and get all parameters
 	  parameterNames = fieldnames(task{phaseNum}.block(blockNum).parameter);
 	  % and set the values
