@@ -54,7 +54,7 @@ for i = 1:nsteps;
   end
   mglFlush;
   % calculate grating and gaussian window
-  m = makeGrating(texWidth,texHeight,0.8,0,i*360/nsteps);
+  m = makeSquareGrating(texWidth,texHeight,0.8,0,i*360/nsteps);
   win = makeGaussian(texWidth,texHeight,texWidth/7,texHeight/7);
   % now create and RGB + alpha image with the gaussian window
   % as the alpha channel

@@ -46,6 +46,7 @@ for i = 1:MGL.frameRate*numsec
   mglClearScreen([0.2 0.2 0.2]);
   % draw points with size 2 and color white
   mglPoints2(dots.x,dots.y,2,[1 1 1]);
+%   mglGluDisk(dots.x,dots.y,2*MGL.xPixelsToDevice,[1 1 1]);
   % flush the buffer to display the dots and
   % wait for a screen update
   mglFlush;
