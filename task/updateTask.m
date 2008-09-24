@@ -50,7 +50,9 @@ end
 [task myscreen tnum] = updateTrial(task, myscreen, tnum);
 
 % remember the status of the random number generator
-task{tnum}.randstate.state = rand(task{tnum}.randstate.type);
+if tnum<=length(task) & isfield(task{tnum},'randstate') 
+  task{tnum}.randstate.state = rand(task{tnum}.randstate.type);
+end
 % and reset it to what it was before this call
 rand(myscreen.randstate.type,randstate);
 
@@ -243,7 +245,9 @@ if (segover)
     % now we have to update the task
     [task myscreen tnum] = updateTask(task,myscreen,tnum);
     % make sure that random number generator is in correct state
-    rand(task{tnum}.randstate.type,task{tnum}.randstate.state);
+    if tnum<=length(task) & isfield(task{tnum},'randstate') 
+      rand(task{tnum}.randstate.type,task{tnum}.randstate.state);
+    end
     return
   end
   % restart segment clock
