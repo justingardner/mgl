@@ -1,6 +1,6 @@
 % initTask - initializes task for stimuli programs
 %
-%      usage: [ task ] = initTask( task, myscreen, startSegmentCallback, ...
+%      usage: [ task myscreen ] = initTask( task, myscreen, startSegmentCallback, ...
 %			 screenUpdateCallback, <trialResponseCallback>, ...
 %			 <startTrialCallback>, <endTrialCallback>, <startBlockCallback>,...
 %                        <randCallback>);
@@ -52,6 +52,11 @@ if ~any(nargin == [4:10])
   return
 end
 
+if nargout ~= 2
+  disp(sprintf('(initTask) You must accept the return variables task & myscreen from initTask'));
+  help initTask;
+end
+  
 if ~isfield(task,'verbose')
   task.verbose = 1;
 end
