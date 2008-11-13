@@ -85,12 +85,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   for(i=0;i<n;i++){
     glPushMatrix();
     glTranslated(x[i],y[i], 0.0);
-    if (mxGetN(prhs[2]) != mxGetN(prhs[0])) {
+    if ( (mxGetN(prhs[2])*mxGetM(prhs[2]) ) != (mxGetN(prhs[0])*mxGetM(prhs[0]))) {
       // then need to use 1 size
       gluDisk(diskQuadric, 0.0, size[0], nslices, nloops);
     } else {
       // else have many sizes... so can use information
       gluDisk(diskQuadric, 0.0, size[i], nslices, nloops);
+      // mexPrintf("%.2f\n",size[i]); // debug
     }
     glPopMatrix();
   }
