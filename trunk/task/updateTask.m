@@ -381,14 +381,14 @@ rand(task.randstate.type,task.randstate.trialState);
 
 % for time in ticks and vols, we want an integer value
 if (task.timeInTicks || task.timeInVols)
-  task.thistrial.seglen = segminlen + floor(rand*(segmaxlen-segminlen+1));
+  task.thistrial.seglen = segminlen + floor(rand(1,numel(segmaxlen)).*(segmaxlen-segminlen+1));
 else
-  task.thistrial.seglen = segminlen + rand*(segmaxlen-segminlen);
-
+  task.thistrial.seglen = segminlen + rand(1,numel(segmaxlen)).*(segmaxlen-segminlen);
+  
   % deal with the segment quantization, if segquant is set to
   % zero there is no effect, otherwise we will round segment
   % lengths to something evenly divisible by segquant
-  task.thistrial.seglen(task.segquant~=0) = round((task.thistrial.seglen(task.segquant~=0)-task.segmin(task.segquant~=0))/task.segquant(task.segquant~=0))*task.segquant(task.segquant~=0)+task.segmin(task.segquant~=0);
+  task.thistrial.seglen(task.segquant~=0) = round((task.thistrial.seglen(task.segquant~=0)-task.segmin(task.segquant~=0))./task.segquant(task.segquant~=0)).*task.segquant(task.segquant~=0)+task.segmin(task.segquant~=0);
 
 end
 
