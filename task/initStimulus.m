@@ -31,7 +31,7 @@ else
   notfound = 1;
   for i = 1:length(myscreen.stimulusNames)
     if (strcmp(myscreen.stimulusNames{i},stimulusName))
-      disp(sprintf('(fixStairInitTask) Threre is already a stimulus called fixStimulus registered in myscreen'));
+      disp(sprintf('There is already a stimulus called %s registered in myscreen',stimulusName));
       notfound = 0;
     end
   end
