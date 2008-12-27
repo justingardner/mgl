@@ -186,3 +186,4 @@ mglOpen(0) is likely to crash.
 
 mglOpen(0) works fine if running matlab -nojvm or -nodesktop. 
 
+test
