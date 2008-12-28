@@ -49,6 +49,12 @@
 // OS-specific includes
 /////////////////////////
 #ifdef __APPLE__
+#ifndef __carbon__
+// Setting this define makes all the cocoa (rather than the old carbon)
+// code compile
+#define __cocoa__
+#endif
+#define __eventtap__
 #include <OpenGL/OpenGL.h>
 #include <OpenGL/gl.h>
 #include <OpenGL/glext.h>
@@ -57,6 +63,9 @@
 #include <Carbon/Carbon.h>
 #include <CoreServices/CoreServices.h>
 #include <AGL/agl.h>
+#import <Foundation/Foundation.h>
+#import <Appkit/Appkit.h>
+#import <QTKit/QTKit.h>
 #endif
 
 #ifdef __linux__
@@ -69,6 +78,7 @@
 #include <GL/glu.h>
 #include <X11/extensions/sync.h>
 #include <X11/extensions/xf86vmode.h>
+#include <sys/time.h>
 #endif
 
 
@@ -76,7 +86,7 @@
 //   define section   //
 ////////////////////////
 #define MGL_GLOBAL_NAME "MGL"
-#define MGL_VERSION 1.0
+#define MGL_VERSION 2.0
 
 #ifndef mwIndex
 #define mwIndex int
@@ -89,7 +99,6 @@
 #define kCGColorSpaceGenericRGB kCGColorSpaceUserRGB
 #endif
 #endif
-
 
 ///////////////////////////////
 //   function declatations   //
@@ -143,7 +152,7 @@ int mglIsWindowOpen()
 {
   // check global variable for whether display number exisits
   // or if it is set to -1
-  if (!mglIsGlobal("displayNumber") || (mglGetGlobalDouble("displayNumber") == -1)) 
+  if ((mglIsGlobal("displayNumber")==-1) || (mglGetGlobalDouble("displayNumber") == -1)) 
     return 0;
   else
     return 1;
@@ -232,14 +241,18 @@ int mglIsGlobal(char *field)
 double mglGetGlobalDouble(char *varname)
 {
   mxArray *MGL = mexGetVariable("global",MGL_GLOBAL_NAME);
-  
+
+  // default value for when variable has not been set
+  double defaultValue = 0.0;
+  if (strcmp(varname,"displayNumber")==0) defaultValue = -1.0;
+
   // global has not been created
   if ( (mexGetVariablePtr("global", MGL_GLOBAL_NAME) == NULL) || ( mxGetClassID(MGL) != mxSTRUCT_CLASS)) {
     // create the global
     mglCreateGlobal();
     // now create the asked for variable
-    mglSetGlobalDouble(varname,0.0);
-    return -1.0; // initialize new fields with -1
+    mglSetGlobalDouble(varname,defaultValue);
+    return defaultValue; // initialize new fields with -1
   }
 
   // check to see if field exists
@@ -253,8 +266,8 @@ double mglGetGlobalDouble(char *varname)
   }
   else {
     // does not exist, set asked for variable
-    mglSetGlobalDouble(varname,0.0);
-    return 0.0;
+    mglSetGlobalDouble(varname,defaultValue);
+    return defaultValue;
   }
 }
 

@@ -20,86 +20,108 @@ $Id$
 ////////////////////////
 #define kMaxDisplays 8
 #define TABLESIZE 256
+#ifdef __linux__
+#define GAMMAVALUE unsigned short
+#define GAMMAVALUESIZE sizeof(unsigned short)
+#define GAMMARANGE 65536
+#endif
 #ifdef __APPLE__
-#define SETFIELD(fieldname)\
-    mxSetField(plhs[0],0,#fieldname,mxCreateDoubleMatrix(1,1,mxREAL));\
-    fieldPtr = (double*)mxGetPr(mxGetField(plhs[0],0,#fieldname));\
-    *fieldPtr = (double)fieldname
+#define GAMMAVALUE CGGammaValue
+#define GAMMARANGE 1
+#define GAMMAVALUESIZE sizeof(CGGammaValue)
+#define Bool int
 #endif
 
+/////////////////////////
+//   OS Specific calls //
+/////////////////////////
+// Gets the gamma tbale
+Bool getGammaTable(int *gammaTableSize, GAMMAVALUE **redTable,GAMMAVALUE **greenTable,GAMMAVALUE **blueTable);
+// Gets the gamma function values
+Bool getGammaFormula(GAMMAVALUE *redMin,GAMMAVALUE *redMax,GAMMAVALUE *redGamma,GAMMAVALUE *greenMin,GAMMAVALUE *greenMax,GAMMAVALUE *greenGamma,GAMMAVALUE *blueMin,GAMMAVALUE *blueMax,GAMMAVALUE *blueGamma);
 
 //////////////
 //   main   //
 //////////////
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
-  
-#ifdef __linux__
-  unsigned short *redGammaRamp;
-  unsigned short *greenGammaRamp;
-  unsigned short *blueGammaRamp;
-  int gammaRampSize;
-  
-  int dpyptr=(int)mglGetGlobalDouble("XDisplayPointer");
-  if (dpyptr<=0) return;
-  Display * dpy=(Display *)dpyptr;
-  int screen =XDefaultScreen(dpy);
+  GAMMAVALUE *redTable, *greenTable, *blueTable;
+  int gammaTableSize;
+  Bool result,formulaResults;
+  int i;
+  GAMMAVALUE redMin,redMax,redGamma,greenMin,greenMax,greenGamma,blueMin,blueMax,blueGamma;
 
-  XF86VidModeGamma gamma;
-  if (!XF86VidModeGetGamma(dpy,screen,&gamma)) {
-    mexPrintf("Error getting gamma correction values!");
-    return;
+  // get the gamma tbale
+  result = getGammaTable(&gammaTableSize, &redTable,&greenTable,&blueTable);
+  formulaResults = getGammaFormula(&redMin,&redMax,&redGamma,&greenMin,&greenMax,&greenGamma,&blueMin,&blueMax,&blueGamma);
+
+  if (result) {    
+    int ndims[] = {1};int nFormulaFields = 9;int nTableFields = 3;
+    const char *formulaFieldNames[] = {"redMin","redMax","redGamma","greenMin","greenMax","greenGamma","blueMin","blueMax","blueGamma","redTable","greenTable","blueTable"};
+    const char *tableFieldNames[] = {"redTable","greenTable","blueTable"};
+    if (formulaResults)
+      plhs[0] = mxCreateStructArray(1,ndims,nFormulaFields+nTableFields,formulaFieldNames);
+    else
+      plhs[0] = mxCreateStructArray(1,ndims,nTableFields,tableFieldNames);
+      
+    // set the formula fields if there are any
+    double *fieldPtr;
+    if (formulaResults) {
+      for (i=0;i<nFormulaFields; i++) {
+	mxSetField(plhs[0],0,formulaFieldNames[i],mxCreateDoubleMatrix(1,1,mxREAL));
+      }
+      *(mxGetPr(mxGetField(plhs[0],0,"redMin")))=redMin;
+      *(mxGetPr(mxGetField(plhs[0],0,"greenMin")))=greenMin;
+      *(mxGetPr(mxGetField(plhs[0],0,"blueMin")))=blueMin;
+      *(mxGetPr(mxGetField(plhs[0],0,"redMax")))=redMax;
+      *(mxGetPr(mxGetField(plhs[0],0,"greenMax")))=greenMax;
+      *(mxGetPr(mxGetField(plhs[0],0,"blueMax")))=blueMax;
+      *(mxGetPr(mxGetField(plhs[0],0,"redGamma")))=redGamma;
+      *(mxGetPr(mxGetField(plhs[0],0,"greenGamma")))=greenGamma;
+      *(mxGetPr(mxGetField(plhs[0],0,"blueGamma")))=blueGamma;
+    }
+    // set the table fields
+    for (i=0;i<nTableFields; i++)
+      mxSetField(plhs[0],0,tableFieldNames[i],mxCreateDoubleMatrix(1,1,mxREAL));
+    // set the table values
+    mxSetField(plhs[0],0,"redTable",mxCreateDoubleMatrix(1,gammaTableSize,mxREAL));
+    fieldPtr = (double*)mxGetPr(mxGetField(plhs[0],0,"redTable"));
+    for (i=0;i<gammaTableSize;i++) fieldPtr[i] = (double)redTable[i] / GAMMARANGE;
+    mxSetField(plhs[0],0,"greenTable",mxCreateDoubleMatrix(1,gammaTableSize,mxREAL));
+    fieldPtr = (double*)mxGetPr(mxGetField(plhs[0],0,"greenTable"));
+    for (i=0;i<gammaTableSize;i++) fieldPtr[i] = (double)greenTable[i] / GAMMARANGE;
+    mxSetField(plhs[0],0,"blueTable",mxCreateDoubleMatrix(1,gammaTableSize,mxREAL));
+    fieldPtr = (double*)mxGetPr(mxGetField(plhs[0],0,"blueTable"));
+    for (i=0;i<gammaTableSize;i++) fieldPtr[i] = (double)blueTable[i] / GAMMARANGE;
+
+    // free the table
+    free(redTable);
+    free(greenTable);
+    free(blueTable);
+  } 
+  else {
+    mexPrintf("(mglGetGammaTable) Could not get gamma table values.\n");
+  
   }
+  return;
+}
 
-  XF86VidModeGetGammaRampSize(dpy,screen,&gammaRampSize);
+//-----------------------------------------------------------------------------------///
+// ******************************* mac specific code  ******************************* //
+//-----------------------------------------------------------------------------------///
+#ifdef __APPLE__
+///////////////////////
+//   getGammaTable   //
+///////////////////////
+Bool getGammaTable(int *gammaTableSize, GAMMAVALUE **redTable,GAMMAVALUE **greenTable,GAMMAVALUE **blueTable)
+{
+  // just assume table size
+  *gammaTableSize = TABLESIZE;
 
   // allocate gamma ramps
-  redGammaRamp=(unsigned short *) malloc(sizeof(unsigned short)*gammaRampSize);
-  greenGammaRamp=(unsigned short *)malloc(sizeof(unsigned short)*gammaRampSize);
-  blueGammaRamp=(unsigned short *)malloc(sizeof(unsigned short)*gammaRampSize);
-
-  Bool result=XF86VidModeGetGammaRamp(dpy,screen,gammaRampSize,redGammaRamp,greenGammaRamp,blueGammaRamp);
-      
-  if (result) {    
-    int ndims[] = {1};int nfields = 12;
-    const char *field_names[] = {"redMin","redMax","redGamma","greenMin","greenMax","greenGamma","blueMin","blueMax","blueGamma","redTable","greenTable","blueTable"};
-    plhs[0] = mxCreateStructArray(1,ndims,nfields,field_names);
-    // set all the fields. Note: rewritten to avoid DANGEROUS AND ERROR-PRONE macro.
-    double *fieldPtr;
-    for (int i=0;i<nfields; i++)
-      mxSetField(plhs[0],0,field_names[i],mxCreateDoubleMatrix(1,1,mxREAL));
-    *(mxGetPr(mxGetField(plhs[0],0,"redMin")))=0.0;
-    *(mxGetPr(mxGetField(plhs[0],0,"greenMin")))=0.0;
-    *(mxGetPr(mxGetField(plhs[0],0,"blueMin")))=0.0;
-    *(mxGetPr(mxGetField(plhs[0],0,"redMax")))=1.0;
-    *(mxGetPr(mxGetField(plhs[0],0,"greenMax")))=1.0;
-    *(mxGetPr(mxGetField(plhs[0],0,"blueMax")))=1.0;
-    *(mxGetPr(mxGetField(plhs[0],0,"redGamma")))=gamma.red;
-    *(mxGetPr(mxGetField(plhs[0],0,"greenGamma")))=gamma.green;
-    *(mxGetPr(mxGetField(plhs[0],0,"blueGamma")))=gamma.blue;
-
-    // set the table values
-    mxSetField(plhs[0],0,"redTable",mxCreateDoubleMatrix(1,gammaRampSize,mxREAL));
-    fieldPtr = (double*)mxGetPr(mxGetField(plhs[0],0,"redTable"));
-    for (int i=0;i<gammaRampSize;i++) fieldPtr[i] = (double)redGammaRamp[i] / 65536;
-    mxSetField(plhs[0],0,"greenTable",mxCreateDoubleMatrix(1,gammaRampSize,mxREAL));
-    fieldPtr = (double*)mxGetPr(mxGetField(plhs[0],0,"greenTable"));
-    for (int i=0;i<gammaRampSize;i++) fieldPtr[i] = (double)greenGammaRamp[i] / 65536;
-    mxSetField(plhs[0],0,"blueTable",mxCreateDoubleMatrix(1,gammaRampSize,mxREAL));
-    fieldPtr = (double*)mxGetPr(mxGetField(plhs[0],0,"blueTable"));
-    for (int i=0;i<gammaRampSize;i++) fieldPtr[i] = (double)blueGammaRamp[i] / 65536;
-
-  } else {
-    mexPrintf("Could not get gamma table values.\n");
-  }
-  
-  free(redGammaRamp);
-  free(greenGammaRamp);
-  free(blueGammaRamp);
-  return;
-#endif
-
-#ifdef __APPLE__
+  *redTable=(GAMMAVALUE *) malloc(sizeof(GAMMAVALUE)*(*gammaTableSize));
+  *greenTable=(GAMMAVALUE *)malloc(sizeof(GAMMAVALUE)*(*gammaTableSize));
+  *blueTable=(GAMMAVALUE *)malloc(sizeof(GAMMAVALUE)*(*gammaTableSize));
 
   // get globals
   int verbose = (int)mglGetGlobalDouble("verbose");
@@ -110,21 +132,17 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   }
   else {
     mexPrintf("(mglGetGammaTable) No display is open (exist: %i)\n", existDisplayNumber);
-    return;
+    return(0);
   }
   
-
-#ifdef __APPLE__
-  
-
   // check to see if we have an open display
   if (displayNumber < 0) {
     mexPrintf("(mglGetGammaTable) No display is open ** \n");
-    return;
+    return(0);
   }
   else {
     // declare variables
-    CGLError errorNum;CGDisplayErr displayErrorNum;
+    CGDisplayErr displayErrorNum;
     CGDirectDisplayID displays[kMaxDisplays];
     CGDirectDisplayID whichDisplay;
     CGDisplayCount numDisplays;
@@ -135,13 +153,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     // see if there was an error getting displays
     if (displayErrorNum) {
       mexPrintf("(mglGetGammaTable) Cannot get displays (%d)\n", displayErrorNum);
-      return;
+      return(0);
     }
 
     // get the correct display, making sure that it is in the list
     if (displayNumber > numDisplays) {
-      mexPrintf("UHOH (mglGetGammaTable): Display %i out of range (0:%i)\n",displayNumber,numDisplays);
-      return;
+      mexPrintf("(mglGetGammaTable): Display %i out of range (0:%i)\n",displayNumber,numDisplays);
+      return(0);
     }
     // if we are in window mode, use main display
     else if (displayNumber == 0)
@@ -149,56 +167,123 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     else
       whichDisplay = displays[displayNumber-1];
 
-    // ok, now we know the displya, get the gamma values
-    CGGammaValue redMin,redMax,redGamma,greenMin,greenMax,greenGamma,blueMin,blueMax,blueGamma;
+    // and get the gamma table
+    CGTableCount capacity=*gammaTableSize, sampleCount;
+
+    displayErrorNum = CGGetDisplayTransferByTable(whichDisplay,*gammaTableSize,*redTable,*greenTable,*blueTable,&sampleCount);
+    if (displayErrorNum) {
+      mexPrintf("(mglGetGammaTable) Error getting gamma table (error=%d)\n",displayErrorNum);
+    }
+  }
+  return(1);
+}
+
+/////////////////////////
+//   getGammaFormula   //
+/////////////////////////
+Bool getGammaFormula(GAMMAVALUE *redMin,GAMMAVALUE *redMax,GAMMAVALUE *redGamma,GAMMAVALUE *greenMin,GAMMAVALUE *greenMax,GAMMAVALUE *greenGamma,GAMMAVALUE *blueMin,GAMMAVALUE *blueMax,GAMMAVALUE *blueGamma)
+{
+  // get globals
+  int verbose = (int)mglGetGlobalDouble("verbose");
+  int displayNumber;
+  int existDisplayNumber  = mglIsGlobal("displayNumber");
+  if (existDisplayNumber){
+    displayNumber = (int)mglGetGlobalDouble("displayNumber");
+  }
+  else {
+    return(0);
+  }
+  
+  // check to see if we have an open display
+  if (displayNumber < 0) {
+    return(0);
+  }
+  else {
+    // declare variables
+    CGDisplayErr displayErrorNum;
+    CGDirectDisplayID displays[kMaxDisplays];
+    CGDirectDisplayID whichDisplay;
+    CGDisplayCount numDisplays;
+    int gammaFormula=1;
+
+    // check number of displays
+    displayErrorNum = CGGetActiveDisplayList(kMaxDisplays,displays,&numDisplays);
+    // see if there was an error getting displays
+    if (displayErrorNum) {
+      return(0);
+    }
+
+    // get the correct display, making sure that it is in the list
+    if (displayNumber > numDisplays) {
+      return(0);
+    }
+    // if we are in window mode, use main display
+    else if (displayNumber == 0)
+      whichDisplay = kCGDirectMainDisplay;
+    else
+      whichDisplay = displays[displayNumber-1];
 
     // get the formula values
-    errorNum = CGGetDisplayTransferByFormula(whichDisplay,&redMin,&redMax,&redGamma,&greenMin,&greenMax,&greenGamma,&blueMin,&blueMax,&blueGamma);
+    displayErrorNum = CGGetDisplayTransferByFormula(whichDisplay,redMin,redMax,redGamma,greenMin,greenMax,greenGamma,blueMin,blueMax,blueGamma);
 
     // if we get an error, assume that the reason is because
     // the gamma table is not set by formula
-    if (errorNum) {
-      gammaFormula = 0;
+    if (displayErrorNum) {
+      return(0);
     }
 
-    // and get the gamma table
-    CGTableCount capacity=TABLESIZE, sampleCount;
-    CGGammaValue redTable[TABLESIZE],greenTable[TABLESIZE],blueTable[TABLESIZE];
-    errorNum = CGGetDisplayTransferByTable(whichDisplay,TABLESIZE,redTable,greenTable,blueTable,&sampleCount);
-    if (errorNum) {
-      mexPrintf("(mglGetGammaTable) UHOH: Error getting gamma table (error=%d)\n",errorNum);
-    }
-
-#endif
-
-    // make the output structure, if we gamma formula values then
-    // make the structure with those fields and set them, otherwise
-    // only output the gamma tables
-    double *fieldPtr;int i;
-    if (gammaFormula) {
-      int ndims[] = {1};int nfields = 12;
-      const char *field_names[] = {"redMin","redMax","redGamma","greenMin","greenMax","greenGamma","blueMin","blueMax","blueGamma","redTable","greenTable","blueTable"};
-      plhs[0] = mxCreateStructArray(1,ndims,nfields,field_names);
-      // set all the fields, using a macro
-      SETFIELD(redMin);SETFIELD(redMax);SETFIELD(redGamma);
-      SETFIELD(greenMin);SETFIELD(greenMax);SETFIELD(greenGamma);
-      SETFIELD(blueMin);SETFIELD(blueMax);SETFIELD(blueGamma);
-    }
-    else {
-      int ndims[] = {1};int nfields = 3;
-      const char *field_names[] = {"redTable","greenTable","blueTable"};
-      plhs[0] = mxCreateStructArray(1,ndims,nfields,field_names);
-    }
-    // set the table values
-    mxSetField(plhs[0],0,"redTable",mxCreateDoubleMatrix(1,sampleCount,mxREAL));
-    fieldPtr = (double*)mxGetPr(mxGetField(plhs[0],0,"redTable"));
-    for (i=0;i<sampleCount;i++) fieldPtr[i] = (double)redTable[i];
-    mxSetField(plhs[0],0,"greenTable",mxCreateDoubleMatrix(1,sampleCount,mxREAL));
-    fieldPtr = (double*)mxGetPr(mxGetField(plhs[0],0,"greenTable"));
-    for (i=0;i<sampleCount;i++) fieldPtr[i] = (double)greenTable[i];
-    mxSetField(plhs[0],0,"blueTable",mxCreateDoubleMatrix(1,sampleCount,mxREAL));
-    fieldPtr = (double*)mxGetPr(mxGetField(plhs[0],0,"blueTable"));
-    for (i=0;i<sampleCount;i++) fieldPtr[i] = (double)blueTable[i];
   }
-#endif
+  return(1);
 }
+#endif//__APPLE__
+
+//-----------------------------------------------------------------------------------///
+// ****************************** linux specific code  ****************************** //
+//-----------------------------------------------------------------------------------///
+#ifdef __linux__
+///////////////////////
+//   getGammaTable   //
+///////////////////////
+Bool getGammaTable(int *gammaTableSize, GAMMAVALUE **redTable,GAMMAVALUE **greenTable,GAMMAVALUE *mgl*blueTable)
+{
+  int gammaTableSize;
+  
+  int dpyptr=(int)mglGetGlobalDouble("XDisplayPointer");
+  if (dpyptr<=0) return;
+  Display * dpy=(Display *)dpyptr;
+  int screen =XDefaultScreen(dpy);
+
+  XF86VidModeGetGammaRampSize(dpy,screen,&gammaTableSize);
+
+  // allocate gamma ramps
+  *redTable=(GAMMAVALUE *) malloc(sizeof(GAMMAVALUE)*(*gammaTableSize));
+  *greenTable=(GAMMAVALUE *)malloc(sizeof(GAMMAVALUE)*(*gammaTableSize));
+  *blueTable=(GAMMAVALUE *)malloc(sizeof(GAMMAVALUE)*(*gammaTableSize));
+
+  Bool result=XF86VidModeGetGammaRamp(dpy,screen,*gammaTableSize,*redTable,*greenTable,*blueTable);
+
+  return(result);
+}      
+/////////////////////////
+//   getGammaFormula   //
+/////////////////////////
+Bool getGammaFormula(GAMMAVALUE *redMin,GAMMAVALUE *redMax,GAMMAVALUE *redGamma,GAMMAVALUE *greenMin,GAMMAVALUE *greenMax,GAMMAVALUE *greenGamma,GAMMAVALUE *blueMin,GAMMAVALUE *blueMax,GAMMAVALUE *blueGamma)
+{
+  int dpyptr=(int)mglGetGlobalDouble("XDisplayPointer");
+  if (dpyptr<=0) return;
+  Display * dpy=(Display *)dpyptr;
+  int screen =XDefaultScreen(dpy);
+
+  XF86VidModeGamma gamma;
+  if (!XF86VidModeGetGamma(dpy,screen,&gamma)) {
+    mexPrintf("Error getting gamma correction values!");
+    return(0);
+  }
+
+  // set function values
+  *redMin = 0;*redMax = 1.0;*redGamma = gamma.red;
+  *greenMin = 0;*greenMax = 1.0;*greenGamma = gamma.green;
+  *blueMin = 0;*blueMax = 1.0;*blueGamma = gamma.blue.;
+  return(1);
+}
+#endif//__linux__

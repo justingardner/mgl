@@ -56,3 +56,4 @@ function [displayInfo, computerInfo] = mglDescribeDisplays
 
 % Get the OpenGL information from Matlab.
 computerInfo.openGL = opengl('data');
+[computerInfo.platform computerInfo.maxMatrixSize computerInfo.endian] = computer;

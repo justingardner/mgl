@@ -183,7 +183,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   // now place the data into the texture
   glTexImage2D(GL_TEXTURE_2D,0,4,po2Width,po2Height,0,GL_RGBA,TEXTURE_DATATYPE,imageFormatted);
 
-#else
+#else// GL_TEXTURE_RECTANGLE_EXT
   // Support for non-power of two textures
   glBindTexture(GL_TEXTURE_RECTANGLE_EXT, textureNumber);
 
@@ -205,7 +205,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   // now place the data into the texture
   glTexImage2D(GL_TEXTURE_RECTANGLE_EXT,0,GL_RGBA,imageWidth,imageHeight,0,GL_RGBA,TEXTURE_DATATYPE,imageFormatted);
   
-#endif 
+#endif// GL_TEXTURE_RECTANGLE_EXT
   
   // error status checking commented out, since it just returns
   // a number that doesn't mean anything to the user.

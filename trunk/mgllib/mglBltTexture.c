@@ -50,6 +50,7 @@ typedef struct textype {
 //////////////////////////////
 //   function declartions   //
 //////////////////////////////
+// getmsec is used for profiling
 double getmsec()
 { 
 #ifdef __linux__
@@ -109,7 +110,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   int texnum;
 
   // allocate space for texture info
-  tex = malloc(numTextures*sizeof(textype));
+  tex = (textype*)malloc(numTextures*sizeof(textype));
 
   // now get destination rectangle
   double *inputRect;
@@ -461,7 +462,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
     glEnd();
     glDisable(GL_TEXTURE_RECTANGLE_EXT);
-#else
+#else//GL_TEXTURE_RECTANGLE_EXT
     // bind the texture we want to draw
     glEnable(GL_TEXTURE_2D);
     glBindTexture(GL_TEXTURE_2D, tex[texnum].textureNumber);
@@ -497,7 +498,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     
     }
     glEnd();
-#endif
+#endif//GL_TEXTURE_RECTANGLE_EXT
     glPopMatrix();
   }
   if (profile) {
