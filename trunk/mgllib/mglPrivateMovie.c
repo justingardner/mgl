@@ -109,7 +109,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 // **************************** mac cocoa specific code  **************************** //
 //-----------------------------------------------------------------------------------///
 #ifdef __APPLE__
-#ifdef __cocoa__
+#ifdef __x86_64__ // We make these only for 64bit because on 32bit we are getting 
 ///////////////////
 //   openMovie   //
 ///////////////////
@@ -118,11 +118,27 @@ unsigned long openMovie(char *filename, int xpos, int ypos, int width, int heigh
   // start auto release pool
   NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
 
+  // These two lines have been commented out:
+  //
+  //EnterMoviesOnThread(0);
+  //CSSetComponentsThreadMode(kCSAcceptAllComponentsMode);
+  //
+  // Don't think these are necessary; there is some issue on 32 bit versionds
+  // about QTKit and threads. This code is recommended but does not fix the 
+  // problem. Essentially, it seems that QTKit is not thread safe and has
+  // to be initialized on the "main thread". I am not sure why this isn't the
+  // main thread, but the line below where we allocate QTMovie alloc causes:
+  // 2008-12-28 14:38:39.558 MATLAB[24504:3307] AppKitJava: uncaught exception QTMovieInitializedOnWrongThread (QTMovie class must be initialized on the main thread.)
+  // 2008-12-28 14:38:39.559 MATLAB[24504:3307] AppKitJava: exception = QTMovie class must be initialized on the main thread.
+  // 2008-12-28 14:38:39.559 MATLAB[24504:3307] AppKitJava: terminating.
+  // But this code does appear to work on 64bit, so maybe QT has become more
+  // thread safe in 64bit mode?
+
   // see if there is an existing window controller
   NSWindowController *myWindowController = (NSWindowController*)(unsigned long)mglGetGlobalDouble("windowController");
 
   // init a QTMovie
-  NSError *myError = NULL;
+  NSError *myError = [NSError alloc];//NULL;
   NSString *NSFilename = [[NSString alloc] initWithCString:filename];
   QTMovie *movie = [[QTMovie alloc] initWithFile:NSFilename error:&myError];
 
@@ -130,7 +146,8 @@ unsigned long openMovie(char *filename, int xpos, int ypos, int width, int heigh
   [NSFilename release];
 
   // see if there was an error
-  if (myError != NULL) {
+  //  if (myError != NULL) {
+  if ([myError code] != 0) {
     mexPrintf("(mglPrivateMovie) Error opening movie %s: %s\n",filename,[[myError localizedDescription] cStringUsingEncoding:NSASCIIStringEncoding]);
     // release memory
     [movie release];
@@ -266,7 +283,7 @@ mxArray *doMovieCommand(int command, unsigned long moviePointer, const mxArray *
 ///////////////////
 unsigned long openMovie(char *filename, int xpos, int ypos, int width, int height)
 {
-  mexPrintf("(mglMovie) Not implemented\n");
+  mexPrintf("(mglMovie) Not implemented for 32 bit Mac.\n");
   return 0;
 }
 ////////////////////////
