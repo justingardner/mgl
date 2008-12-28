@@ -218,7 +218,7 @@ void setResolution(int *displayNumber, int *screenWidth, int *screenHeight, int 
   whichDisplay = displays[*displayNumber-1];
 
   // capture the appropriate display
-  CGDisplayCapture(whichDisplay);
+  //  CGDisplayCapture(whichDisplay);
 
   // Switch the display mode
   boolean_t success=false;
