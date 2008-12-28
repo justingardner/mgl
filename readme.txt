@@ -116,5 +116,3 @@ allow you to use the full functionality of the OpenGL library. To do this,
 you could start by modifying one of our mex functions (e.g. mglClearScreen.c)
 and add your own GL code to do what you want and compile. 
 
-touch3
-
