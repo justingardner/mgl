@@ -44,13 +44,14 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     // get already installed sounds
     mxArray *sounds = mglGetGlobalField("sounds");
     if ((sounds != NULL) && (mxGetN(sounds)>0)){
-      int *soundsPtr = (int*)mxGetPr(sounds);
+      unsigned long *soundsPtr = (unsigned long*)mxGetPr(sounds);
       // remove all the sounds
       for (i = 0; i < mxGetN(sounds); i++) {
-	removeSound(soundsPtr[i]);
+	if (soundsPtr[i] != 0)
+	  removeSound(soundsPtr[i]);
       }
       // and set sounds to empty
-      sounds = mxCreateDoubleMatrix(1,1,mxREAL);
+      sounds = mxCreateDoubleMatrix(0,0,mxREAL);
       mglSetGlobalField("sounds",sounds);
     }
     plhs[0] = mxCreateDoubleMatrix(0,0,mxREAL);
@@ -111,9 +112,16 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 ///////////////////////////
 unsigned long installSound(char *filename)
 {
+  // start auto release pool
+  NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+
   NSString *filenameString = [[NSString alloc] initWithUTF8String:filename];
   NSSound *mySound;
   mySound = [[NSSound alloc] initWithContentsOfFile:filenameString byReference:NO];
+
+  // drain pool
+  [pool drain];
+
   return((unsigned long)mySound);
 }
 
@@ -122,6 +130,8 @@ unsigned long installSound(char *filename)
 //////////////////////////
 void removeSound(unsigned long soundID)
 {
+  NSSound *mySound = (NSSound*)soundID;
+  [mySound release];
 }
 #else//__cocoa__
 //-----------------------------------------------------------------------------------///

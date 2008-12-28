@@ -9,11 +9,6 @@ function mglPlaySound(soundNum)
 %    purpose: Plays a system sound. After calling mglOpen, all of
 %             the system sounds will be installed and you can play
 %             a specific one as follows
-%      usage: Play alert sound
-%
-%mglPlaySound;
-%
-%      usage: Playing a specific sound
 %mglOpen;
 %mglPlaySound('Submarine');
 %
