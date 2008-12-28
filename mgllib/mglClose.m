@@ -19,7 +19,8 @@ end
 global MGL;
 
 % if no display open, then nothing to do
-if MGL.displayNumber == -1
+if isempty(MGL) || ~isfield(MGL,'displayNumber') || (MGL.displayNumber == -1)
+  disp(sprintf('(mglClose) No display is open'));
   return
 end
 
@@ -36,6 +37,21 @@ if isfield(MGL,'sounds')
   mglInstallSound;
   MGL.soundNames = {};
 end
+  
+% free any existing movies
+if isfield(MGL,'movieStructs')
+  for i = 1:length(MGL.movieStructs)
+    if ~isempty(MGL.movieStructs{i})
+      m = MGL.movieStructs{i};
+      m.id = i;
+      mglMovie(m,'close');
+    end
+  end
+end
 
 mglPrivateClose;
 
+% reset resolution if necessary
+if (isfield(MGL,'originalResolution') && ~isempty(MGL.originalResolution))
+  mglResolution(MGL.originalResolution);
+end

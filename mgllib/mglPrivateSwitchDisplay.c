@@ -31,23 +31,36 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   }
 	
   displayNumber = (int)mglGetGlobalDouble("displayNumber");
+
+//-----------------------------------------------------------------------------------///
+// **************************** mac cocoa specific code  **************************** //
+//-----------------------------------------------------------------------------------///
+#ifdef __APPLE__
+#ifdef __cocoa__
+    NSOpenGLContext *myOpenGLContext = (NSOpenGLContext*)(unsigned long)mglGetGlobalDouble("context");
+    [myOpenGLContext makeCurrentContext];
+//-----------------------------------------------------------------------------------///
+// **************************** mac carbon specific code  *************************** //
+//-----------------------------------------------------------------------------------///
+#else //__cocoa__
 	
   // If displayNumber > 0, then it's a CGL window.
   if (displayNumber > 0) {
     CGLContextObj contextObj;
-    unsigned int c;
-		
-    c = (unsigned int)mglGetGlobalDouble("context");
-    contextObj = (CGLContextObj)c;
-		
+    contextObj = (CGLContextObj)(unsigned long)mglGetGlobalDouble("context");
     CGLSetCurrentContext(contextObj);
   }
   else {
     AGLContext contextObj;
-    unsigned int c;
-		
-    c = (unsigned int)mglGetGlobalDouble("context");
-    contextObj = (AGLContext)c;
+    contextObj = (AGLContext)(unsigned int)mglGetGlobalDouble("context");
     aglSetCurrentContext(contextObj);
   }
+#endif//__cocoa__
+#endif//__APPLE__
+//-----------------------------------------------------------------------------------///
+// ****************************** linux specific code  ****************************** //
+//-----------------------------------------------------------------------------------///
+#ifdef __linux__
+  mexPrintf("(mglPrivateSwitchDisplay) Not implemented\n");
+#endif //__linux__
 }

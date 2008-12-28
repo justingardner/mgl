@@ -18,6 +18,12 @@ $Id$
 /////////////////////////
 #include "mgl.h"
 
+/////////////////////////
+//   OS Specific calls //
+/////////////////////////
+void showCursor();
+void hideCursor();
+
 /////////////
 //   main   //
 //////////////
@@ -29,10 +35,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   if (displayNumber > 0) {
     // if called with no arguments
     if (nrhs == 0) {
-#ifdef __APPLE__
       // Restore cursor
-      CGDisplayShowCursor( kCGDirectMainDisplay ) ; 
-#endif
+      showCursor();
     }
     // if called with one argument
     else if (nrhs == 1) {
@@ -40,14 +44,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       if (mxGetPr(prhs[0]) != NULL)
 	// get whether to display the cursor or not
 	display = (int) *mxGetPr( prhs[0] );
-#ifdef __APPLE__
       if (display)
-	// Restore cursor
-	CGDisplayShowCursor( kCGDirectMainDisplay ) ; 
+	showCursor();
       else
-	// Hide cursor
-	CGDisplayHideCursor( kCGDirectMainDisplay ) ; 
-#endif
+	hideCursor();
     }
     else {
       usageError("mglDisplayCursor");
@@ -56,3 +56,41 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   }
 }
 
+//-----------------------------------------------------------------------------------///
+// ******************************* mac specific code  ******************************* //
+//-----------------------------------------------------------------------------------///
+#ifdef __APPLE__
+////////////////////
+//   showCursor   //
+////////////////////
+void showCursor()
+{
+  // display cursor
+  CGDisplayShowCursor( kCGDirectMainDisplay ) ; 
+}
+////////////////////
+//   hideCursor   //
+////////////////////
+void hideCursor()
+{
+  // Hide cursor
+  CGDisplayHideCursor( kCGDirectMainDisplay ) ; 
+}
+#endif//__APPLE__
+//-----------------------------------------------------------------------------------///
+// ****************************** linux specific code  ****************************** //
+//-----------------------------------------------------------------------------------///
+#ifdef __linux__
+////////////////////
+//   showCursor   //
+////////////////////
+void showCursor()
+{
+}
+////////////////////
+//   hideCursor   //
+////////////////////
+void hideCursor()
+{
+}
+#endif

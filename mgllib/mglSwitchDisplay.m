@@ -17,17 +17,23 @@
 %
 %mglOpen(1);
 %mglClearScreen(0.5);
+%mglVisualAngleCoordinates(57,[16 12]);
+%mglTextDraw('Screen 1',[0 0]);
 %mglFlush;
 %mglSwitchDisplay;
 %mglOpen(2);
 %mglClearScreen(1);
+%mglVisualAngleCoordinates(57,[16 12]);
+%mglTextDraw('Screen 2',[0 0]);
 %mglFlush;
 %mglWaitSecs(2);
 %mglSwitchDisplay(1);
 %mglClearScreen(1);
+%mglTextDraw('Screen 1 update',[0 0]);
 %mglFlush;
 %mglSwitchDisplay(2);
 %mglClearScreen(0.5);
+%mglTextDraw('Screen 2 update',[0 0]);
 %mglFlush;
 %mglWaitSecs(2);
 %mglClose;
@@ -59,10 +65,10 @@ if isempty(MGL)
 end
 
 % check to make sure this is a switchable context
-if isfield(MGL,'context') && (MGL.context==0) && (MGL.displayNumber ~= -1) && (~isempty(displayID) || (displayID >= 0))
-  disp(sprintf('(mglSwitchDisplay) This is not a full screen CGL context and can not be switched. You must use mglClose before switching'));
-  return
-end
+%if isfield(MGL,'context') && (MGL.context==0) && (MGL.displayNumber ~= -1) && (~isempty(displayID) || (displayID >= 0))
+%  disp(sprintf('(mglSwitchDisplay) This is not a full screen CGL context and can not be switched. You must use mglClose before switching'));
+%  return
+%end
 
 % Save the current context in the MGLALL structure
 if isfield(MGL,'displayNumber')
@@ -70,7 +76,7 @@ if isfield(MGL,'displayNumber')
     MGLALL{1} = MGL;
   else
     % look to see if it is already in MGLALL
-    currentIndex = FindMGLALLData('displayID', 'equal', MGL.displayID);
+    currentIndex = findMGLALLData('displayID', 'equal', MGL.displayID);
     
     % If the current MGL is found, then store it.
     if ~isempty(currentIndex)
@@ -83,7 +89,7 @@ end
 
 % if the list has any displays that are closed, remove them
 if ~isempty(MGLALL)
-  openDisplays = FindMGLALLData('displayNumber', 'nequal', -1);
+  openDisplays = findMGLALLData('displayNumber', 'nequal', -1);
   MGLALL = MGLALL(openDisplays);
 end
 
@@ -122,7 +128,7 @@ if displayID == -3
     retval = [];
   else
     if ~exist('displayNumber','var'),displayNumber = [];end
-    retval = FindMGLALLData('displayNumber', 'equal', displayNumber);
+    retval = findMGLALLData('displayNumber', 'equal', displayNumber);
     if ~isempty(retval)
       m = MGLALL{retval};
       retval = m.displayID;
@@ -135,7 +141,7 @@ end
 % Attempt to load the requested display.  If it doesn't exist, then just
 % set the current trackerID value.
 if ~isempty(displayID)
-  newIndex = FindMGLALLData('displayID', 'equal', displayID);
+  newIndex = findMGLALLData('displayID', 'equal', displayID);
 else
   newIndex = [];
   displayID = [];
@@ -145,6 +151,9 @@ end
 if isempty(newIndex)
   MGL.displayNumber = -1;
   MGL.displayID = displayID;
+  if isfield(MGL,'windowController')
+    MGL = rmfield(MGL,'windowController');
+  end
   % otherwise switch to the correct display
 else
   MGL = MGLALL{newIndex};
@@ -152,9 +161,12 @@ else
 end
 
 
+%%%%%%%%%%%%%%%%%%%%%%%%
+%%   findMGLALLData   %%
+%%%%%%%%%%%%%%%%%%%%%%%%
 % Looks through the cell array of MGLALL to find matches of an arbitary
 % value to a specified field.
-function indices = FindMGLALLData(fieldName, operator, value)
+function indices = findMGLALLData(fieldName, operator, value)
 global MGLALL;
 
 indices = [];

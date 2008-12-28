@@ -28,10 +28,22 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     return;
   }
 
-  
-#ifdef __APPLE__ 
+  // get the display number
   double displayNumber = mglGetGlobalDouble("displayNumber");
-
+  
+//-----------------------------------------------------------------------------------///
+// **************************** mac cocoa specific code  **************************** //
+//-----------------------------------------------------------------------------------///
+#ifdef __APPLE__ 
+#ifdef __cocoa__
+  // cocoa, get openGLContext and flush
+  NSOpenGLContext *myOpenGLContext = (NSOpenGLContext*)(unsigned long)mglGetGlobalDouble("context");
+  if (myOpenGLContext)
+    [myOpenGLContext flushBuffer];
+#else //__cocoa__
+//-----------------------------------------------------------------------------------///
+// **************************** mac carbon specific code  *************************** //
+//-----------------------------------------------------------------------------------///
   if (displayNumber > 0) {
 
     // get the current context
@@ -84,9 +96,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     //    EventMask theMask = everyEvent;
     //    WaitNextEvent(theMask,&theEventRecord,3,nil);
   }
-
-#endif
-
+#endif//__cocoa__
+#endif//__APPLE__
+//-----------------------------------------------------------------------------------///
+// ****************************** linux specific code  ****************************** //
+//-----------------------------------------------------------------------------------///
 #ifdef __linux__
 
   int dpyptr=(int)mglGetGlobalDouble("XDisplayPointer");
@@ -94,6 +108,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   Display * dpy=(Display *)dpyptr;
   glXSwapBuffers( dpy, glXGetCurrentDrawable() );
 
-#endif
+#endif//__linux__
 
 }

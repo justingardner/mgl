@@ -19,12 +19,21 @@ if ~any(nargin == [0 1])
   return
 end
 
-if ~exist('rebuild','var'),rebuild = 0;end
-
-% remove all mex files if called for
-if rebuild
-  delete(sprintf('*.%s',mexext));
+% interpret rebuild argument
+useCarbon = 0;
+if ~exist('rebuild','var')
+  rebuild = 0;
+elseif isequal(rebuild,'carbon')
+  useCarbon = 1;
+  rebuild = 1;
 end
+
+% if we find the mglPrivateListener, then shut it down
+% to avoid crashing
+if exist('mglPrivateListener')==3,mglPrivateListener(0);end
+
+% close all open displays
+mglSwitchDisplay(-1);
 
 % make sure we have the mgl.h file--this will make
 % sure we are in the correct directory
@@ -52,9 +61,16 @@ for i = 1:length(mgldir)
     % mex the file if either there is no mexfile or
     % the date of the mexfile is older than the date of the source file
     if (rebuild || length(mexfile)<1) || (datenum(mgldir(i).date) > datenum(mexfile(1).date)) || (datenum(hfile(1).date) > datenum(mexfile(1).date))
-      disp(sprintf('mex %s',mgldir(i).name));
+      if useCarbon
+	command = sprintf('mex -D__carbon__ %s',mgldir(i).name);
+      else
+	command = sprintf('mex %s',mgldir(i).name);
+      end
+      % display the mex command
+      disp(command);
+      % now run it, catching an errors
       try
-	eval(sprintf('mex %s',mgldir(i).name));
+	eval(command);
       catch
 	disp(['Error compiling ' mgldir(i).name]);
       end

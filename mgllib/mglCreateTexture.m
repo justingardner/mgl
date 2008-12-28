@@ -20,8 +20,11 @@ function texture = mglCreateTexture(image,axes)
 % create the texture
 if nargin == 2
   texture = mglPrivateCreateTexture(image,axes);
-else
+elseif nargin == 1
   texture = mglPrivateCreateTexture(image);
+else
+  help mglCreateTexture;
+  return
 end
 
 % add some fields that are only used by mglText.c

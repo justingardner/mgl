@@ -66,7 +66,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   if (nrhs < 6)
     antiAliasFlag = 0;
   else {
-    if ((int)mxGetPr(prhs[5]) == 1)
+    if ((int)*mxGetPr(prhs[5]) == 1)
       antiAliasFlag = 1;
     else
       antiAliasFlag = 0;

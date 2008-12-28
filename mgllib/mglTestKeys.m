@@ -48,9 +48,9 @@ disp(sprintf('Hit any key to return code using mglGetKeyEvent (ESC to end)'));
 lastkey = 0;thiskey = 0;
 while thiskey ~= ESCKEY
   keyEvent = mglGetKeyEvent;
-  if keyEvent.charCode ~= 0
+  if ~isempty(keyEvent)
     thiskey = keyEvent.charCode;
-    disp(sprintf('%i %i %i %i',keyEvent.charCode,keyEvent.keyCode,keyEvent.keyboard,keyEvent.when));
+    disp(sprintf('%s %i %i %i',keyEvent.charCode,keyEvent.keyCode,keyEvent.keyboard,keyEvent.when));
     lastkey = thiskey;
   end
 end

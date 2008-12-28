@@ -26,7 +26,7 @@ end
 
 % Verify that the current display is an AGL window.
 if MGL.displayNumber ~= 0
-  disp('(mglMoveWindow) Current window is not an AGL window');
+  disp('(mglMoveWindow) Current openGL context is not windowed (i.e. must open with mglOpen(0))');
   return
 end
 

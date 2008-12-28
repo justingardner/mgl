@@ -16,6 +16,12 @@
 % this works if you don't do anything else, but if you are running your task it
 % crashes sometimes when the listener is called. I have some ideas of how to fix
 % it, but have not yet implemented them....
+%
+% Actually, it appears Matlab c-mex files are not thread safe:
+% http://www.mathworks.com/support/solutions/data/1-V3B5T.html
+% Seems like the only solution is to have the listener be a c-function
+% That logs events in some external file for access by MGL - or
+% wait until Mathworks gets its act together with threads. 
 function retval = mglListenerInstall(listenerName,eventTypes,keyNames)
 
 disp(sprintf('(mglListenerInstall) Warning this function is in development. It is still unstable'));

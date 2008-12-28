@@ -15,66 +15,25 @@ $Id$
 /////////////////////////
 #include "mgl.h"
 
-#ifdef __linux__
-#include <string.h>
-#include <math.h>
-
-#include <ft2build.h>
-#include FT_FREETYPE_H
-#endif
-
-
 ////////////////////////
 //   define section   //
 ////////////////////////
 #define DEFAULT_FONT "Times Roman"
 #define DEFAULT_FONTSIZE 36
 
-///////////////////
-//   functions   //
-///////////////////
-int sub2indM( int row, int col, int height, int elsize ) {
-  // return linear index corresponding to (row,col) into row-major array (Matlab-style)
-       return ( row*elsize + col*height*elsize );
-}
-
-int sub2indC( int row, int col, int width, int elsize ) {
-  // return linear index corresponding to (row,col) into column-major array (C-style)
-  return ( col*elsize + row*width*elsize );
-}
-
-#ifdef __linux__
-void
-draw_bitmap( FT_Bitmap*  bitmap,
-             FT_Int      x,
-             FT_Int      y,
-	     unsigned char *image,
-	     int width,
-	     int height )
-{
-  FT_Int  i, j, p, q;
-  FT_Int  x_max = x + bitmap->width;
-  FT_Int  y_max = y + bitmap->rows;
-
-
-  for ( i = x, p = 0; i < x_max; i++, p++ )
-  {
-    for ( j = y, q = 0; j < y_max; j++, q++ )
-    {
-      if ( i >= width || j >= height )
-        continue;
-
-      image[sub2indC(y,x,width,1)] |= bitmap->buffer[q * bitmap->width + p];
-    }
-  }
-}
-#endif
+/////////////////////////
+//   OS Specific calls //
+/////////////////////////
+unsigned char *renderText(const mxArray *inputString, char*fontName, int fontSize, double *fontColor, double fontRotation, Boolean fontBold, Boolean fontItalic, Boolean fontUnderline, Boolean fontStrikethrough, int *pixelsWide, int *pixelsHigh, Rect *textImageRect);
 
 //////////////
 //   main   //
 //////////////
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
+  // get status of global variable verbose
+  int verbose = (int)mglGetGlobalDouble("verbose");
+
   int c,i,j,k;
 
   // check command line arguments
@@ -82,20 +41,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     usageError("mglText");
     return;
   }
-
-  // get text string
-  int buflen = mxGetN(prhs[0])*mxGetM( prhs[0] )+1;
-  char *inputString= (char*)malloc(buflen);
-  if (inputString == NULL) {
-    mexPrintf("(mglText) UHOH: Could not allocate buffer for string array of length %i\n",buflen);
-    return;
-  }
-  // get the string
-  mxGetString( prhs[0], inputString, buflen);
-
-  // get status of global variable that sets whether to display
-  // verbose information
-  int verbose = (int)mglGetGlobalDouble("verbose");
 
   // get the global variable for the font
   mxArray *gFontName = mglGetGlobalField("fontName");
@@ -146,7 +91,126 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   // get fontrotation
   double fontRotation = mglGetGlobalDouble("fontRotation");
 
+  // get font characteristics
+  Boolean fontBold = (Boolean)mglGetGlobalDouble("fontBold");
+  Boolean fontItalic = (Boolean)mglGetGlobalDouble("fontItalic");
+  Boolean fontStrikethrough = (Boolean)mglGetGlobalDouble("fontStrikeThrough");
+  Boolean fontUnderline = (Boolean)mglGetGlobalDouble("fontUnderline");
+
+  // now render the text into a bitmap.
+  int pixelsWide = 0, pixelsHigh = 0;
+  Rect textImageRect;
+  unsigned char *bitmapData = renderText(prhs[0], fontName, fontSize, fontColor, fontRotation, fontBold, fontItalic, fontUnderline, fontStrikethrough, &pixelsWide, &pixelsHigh, &textImageRect);
+
+  ///////////////////////////
+  // create a texture
+  ///////////////////////////
+  GLuint textureNumber;
+
+  // get a unique texture identifier name
+  glGenTextures(1, &textureNumber);
+  
+  // bind the texture to be a 2D texture
+  // should really add check that non-power-of-two textures are supported, but seems to be default on new Macs
+  glBindTexture(GL_TEXTURE_RECTANGLE_EXT, textureNumber);
+
+  // some other stuff
+  glTexParameteri(GL_TEXTURE_RECTANGLE_EXT, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_RECTANGLE_EXT, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_RECTANGLE_EXT, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_RECTANGLE_EXT, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glPixelStorei(GL_UNPACK_ROW_LENGTH,0);
+
+  // now place the data into the texture
+  glTexImage2D(GL_TEXTURE_RECTANGLE_EXT,0,GL_RGBA,pixelsWide,pixelsHigh,0,GL_RGBA,GL_UNSIGNED_INT_8_8_8_8,bitmapData);  
+
+  // create the output structure
+  const char *fieldNames[] =  {"textureNumber","imageWidth","imageHeight","textureAxes","textImageRect","hFlip","vFlip","isText" };
+  int outDims[2] = {1, 1};
+  plhs[0] = mxCreateStructArray(1,outDims,8,fieldNames);
+  
+  // now set the textureNumber field
+  double *outptr;
+  mxSetField(plhs[0],0,"textureNumber",mxCreateDoubleMatrix(1,1,mxREAL));
+  outptr = (double*)mxGetPr(mxGetField(plhs[0],0,"textureNumber"));
+  *outptr = (double)textureNumber;
+
+  // now set the pixelsWide and height
+  // notice that imagewidth and pixelsHigh are intentionally
+  // transposed here, so that the image matches what matlab does
+  mxSetField(plhs[0],0,"imageWidth",mxCreateDoubleMatrix(1,1,mxREAL));
+  outptr = (double*)mxGetPr(mxGetField(plhs[0],0,"imageWidth"));
+  *outptr = (double)pixelsHigh;
+  mxSetField(plhs[0],0,"imageHeight",mxCreateDoubleMatrix(1,1,mxREAL));
+  outptr = (double*)mxGetPr(mxGetField(plhs[0],0,"imageHeight"));
+  *outptr = (double)pixelsWide;
+
+  // information about the axes
+  mxSetField(plhs[0],0,"textureAxes",mxCreateString("xy"));  
+  mxSetField(plhs[0],0,"textImageRect",mxCreateDoubleMatrix(1,4,mxREAL));
+  outptr = (double*)mxGetPr(mxGetField(plhs[0],0,"textImageRect"));
+  outptr[0] = (double)textImageRect.top;
+  outptr[1] = (double)textImageRect.left;
+  outptr[2] = (double)textImageRect.bottom;
+  outptr[3] = (double)textImageRect.right;
+
+  // set information about desired flips
+  mxSetField(plhs[0],0,"hFlip",mxCreateDoubleMatrix(1,1,mxREAL));
+  outptr = (double*)mxGetPr(mxGetField(plhs[0],0,"hFlip"));
+  *outptr = mglGetGlobalDouble("fontHFlip");
+
+  // set information about desired flips
+  mxSetField(plhs[0],0,"vFlip",mxCreateDoubleMatrix(1,1,mxREAL));
+  outptr = (double*)mxGetPr(mxGetField(plhs[0],0,"vFlip"));
+  *outptr = mglGetGlobalDouble("fontVFlip");
+
+  mxSetField(plhs[0],0,"isText",mxCreateDoubleMatrix(1,1,mxREAL));
+  outptr = (double*)mxGetPr(mxGetField(plhs[0],0,"isText"));
+  *outptr = (double)1;
+
+  // if the user has specified more output arguments, then
+  // return a matrix with the image data.
+  c = 0;
+  // for each color component
+  for (k=0;k<4;k++) {
+    // if there is an output argument
+    if (nlhs >= (k+1)) {
+      // create a matrix for output
+      plhs[k+1] = mxCreateDoubleMatrix(pixelsWide,pixelsHigh,mxREAL);
+      double *outputBuffer = (double *)mxGetPr(plhs[k+1]);
+      c=0;
+      // copy the data into the output matrix
+      for (j = 0; j < pixelsHigh; j++) {
+	for (i = 0; i < pixelsWide; i++, c++) {
+	  outputBuffer[c] = (double)((unsigned char *)bitmapData)[c*4+k];
+	}
+      }
+    }
+  }
+
+  // free up the original bitmapData
+  free(bitmapData);
+}
+
 #ifdef __APPLE__
+//-----------------------------------------------------------------------------------///
+// ******************************* mac specific code  ******************************* //
+//-----------------------------------------------------------------------------------///
+unsigned char *renderText(const mxArray *inputString, char*fontName, int fontSize, double *fontColor, double fontRotation, Boolean fontBold, Boolean fontItalic, Boolean fontUnderline, Boolean fontStrikethrough, int *pixelsWide, int *pixelsHigh, Rect *textImageRect)
+{
+  // get text string
+  int buflen = mxGetN(inputString)*mxGetM(inputString)+1;
+  char *cInputString= (char*)malloc(buflen);
+  if (cInputString == NULL) {
+    mexPrintf("(mglText) Could not allocate buffer for string array of length %i\n",buflen);
+    return(NULL);
+  }
+  // get the string
+  mxGetString(inputString, cInputString, buflen);
+
+  // get status of global variable verbose
+  int verbose = (int)mglGetGlobalDouble("verbose");
+
   //////////////////////////
   // This code is modified from ATSUI Basics example Program helloworld.c
   //////////////////////////
@@ -216,31 +280,27 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   verify_noerr( ATSUSetAttributes(style, 1, tags, sizes, values) );
   
   // set bold
-  Boolean bold = (Boolean)mglGetGlobalDouble("fontBold");
   tags[0] = kATSUQDBoldfaceTag;
   sizes[0] = sizeof(Boolean);
-  values[0] = &bold;
+  values[0] = &fontBold;
   verify_noerr( ATSUSetAttributes(style, 1, tags, sizes, values) );
 
   // set italic
-  Boolean italic = (Boolean)mglGetGlobalDouble("fontItalic");
   tags[0] = kATSUQDItalicTag;
   sizes[0] = sizeof(Boolean);
-  values[0] = &italic;
+  values[0] = &fontItalic;
   verify_noerr( ATSUSetAttributes(style, 1, tags, sizes, values) );
 
   // set strike-through
-  Boolean strikeThrough = (Boolean)mglGetGlobalDouble("fontStrikeThrough");
   tags[0] = kATSUStyleStrikeThroughTag;
   sizes[0] = sizeof(Boolean);
-  values[0] = &strikeThrough;
+  values[0] = &fontStrikethrough;
   verify_noerr( ATSUSetAttributes(style, 1, tags, sizes, values) );
 
   // set strike-through
-  Boolean underline = (Boolean)mglGetGlobalDouble("fontUnderline");
   tags[0] = kATSUQDUnderlineTag;
   sizes[0] = sizeof(Boolean);
-  values[0] = &underline;
+  values[0] = &fontUnderline;
   verify_noerr( ATSUSetAttributes(style, 1, tags, sizes, values) );
 
   ////////////////////////////////////
@@ -256,7 +316,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   ////////////////////////////////////
   // Before assigning text to the layout, we must first convert the string we plan to draw
   // from a CFStringRef into an array of UniChar.
-  string = CFStringCreateWithCString(NULL, inputString, kCFStringEncodingASCII);
+  string = CFStringCreateWithCString(NULL, cInputString, kCFStringEncodingASCII);
 
   // Extract the raw Unicode from the CFString, then dispose of the CFString
   length = CFStringGetLength(string);
@@ -274,8 +334,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   // Attach text to layout
   ////////////////////////////////////
   // If input is 16bit Uint then it is a unicode, otherwise Attach the resulting UTF-16 Unicode text to the layout
-  if (mxIsUint16(prhs[0])) 
-    verify_noerr( ATSUSetTextPointerLocation(layout,(UniChar*)mxGetData(prhs[0]),kATSUFromTextBeginning, kATSUToTextEnd, mxGetN(prhs[0])));
+  if (mxIsUint16(inputString)) 
+    verify_noerr( ATSUSetTextPointerLocation(layout,(UniChar*)mxGetData(inputString),kATSUFromTextBeginning, kATSUToTextEnd, mxGetN(inputString)));
   else
     verify_noerr( ATSUSetTextPointerLocation(layout,text,kATSUFromTextBeginning, kATSUToTextEnd, length) );
 
@@ -285,15 +345,14 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   ////////////////////////////////////
   // measure the bounds of the text
   ////////////////////////////////////
-  Rect textImageRect;
-  verify_noerr( ATSUMeasureTextImage(layout,kATSUFromTextBeginning,kATSUToTextEnd,0,0,&textImageRect));
+  verify_noerr( ATSUMeasureTextImage(layout,kATSUFromTextBeginning,kATSUToTextEnd,0,0,textImageRect));
 
   if (verbose)
-    mexPrintf("(mglText) textImageRect: %i %i %i %i\n",textImageRect.top,textImageRect.left,textImageRect.bottom,textImageRect.right);
+    mexPrintf("(mglText) textImageRect: %i %i %i %i\n",textImageRect->top,textImageRect->left,textImageRect->bottom,textImageRect->right);
 
   // get the height and width of the text image
-  int pixelsWide = (abs(textImageRect.right)+abs(textImageRect.left))+5;
-  int pixelsHigh = (abs(textImageRect.bottom)+abs(textImageRect.top))+3;
+  *pixelsWide = (abs(textImageRect->right)+abs(textImageRect->left))+5;
+  *pixelsHigh = (abs(textImageRect->bottom)+abs(textImageRect->top))+3;
   // adding this alignment here helps so that we don't get weird
   // overruns with certain text sizes (i.e. seems like width may
   // need to be a multiple of something?) but then this messes up
@@ -316,11 +375,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   void            *bitmapData = NULL;
  
   // calculate bytes per row and count
-  bitmapBytesPerRow   = (pixelsWide * 4);
-  bitmapByteCount     = (bitmapBytesPerRow * pixelsHigh);
+  bitmapBytesPerRow   = (*pixelsWide * 4);
+  bitmapByteCount     = (bitmapBytesPerRow * (*pixelsHigh));
  
   if (verbose)
-    mexPrintf("(mglText) Buffer size: width: %i height: %i bytesPerRow: %i byteCount: %i\n",pixelsWide,pixelsHigh,bitmapBytesPerRow,bitmapByteCount);
+    mexPrintf("(mglText) Buffer size: width: %i height: %i bytesPerRow: %i byteCount: %i\n",*pixelsWide,*pixelsHigh,bitmapBytesPerRow,bitmapByteCount);
 
   // set colorspace
   colorSpace = CGColorSpaceCreateWithName(kCGColorSpaceGenericRGB);
@@ -335,12 +394,12 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     free(text);
     verify_noerr( ATSUDisposeStyle(style) );
     verify_noerr( ATSUDisposeTextLayout(layout) );
-    free(inputString);
-    return;
+    free(cInputString);
+    return(NULL);
   }
 
   // create the bitmap context
-  bitmapContext = CGBitmapContextCreate(bitmapData,pixelsWide,pixelsHigh,8,bitmapBytesPerRow,colorSpace,kCGImageAlphaPremultipliedFirst);
+  bitmapContext = CGBitmapContextCreate(bitmapData,*pixelsWide,*pixelsHigh,8,bitmapBytesPerRow,colorSpace,kCGImageAlphaPremultipliedFirst);
 
   // check to see if we succeeded
   if (bitmapContext == NULL) {
@@ -349,8 +408,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     free(text);
     verify_noerr( ATSUDisposeStyle(style) );
     verify_noerr( ATSUDisposeTextLayout(layout) );
-    free(inputString);
-    return;
+    free(cInputString);
+    return(NULL);
   }
   // release the color space
   CGColorSpaceRelease( colorSpace );
@@ -387,8 +446,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   //
   
   // window to get the coordinate in CG-aware space.
-  x = 2-textImageRect.left;
-  cgY = pixelsHigh-2+textImageRect.top;
+  x = 2-textImageRect->left;
+  cgY = *pixelsHigh-2+textImageRect->top;
   verify_noerr( ATSUDrawText(layout, kATSUFromTextBeginning, kATSUToTextEnd, X2Fix(x), X2Fix(cgY)) );
 
   ////////////////////////////////////
@@ -396,7 +455,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   ////////////////////////////////////
   // Deallocate string storage
   free(text);
-  free(inputString);
+  free(cInputString);
 
   // Layout and style also need to be disposed
   verify_noerr( ATSUDisposeStyle(style) );
@@ -407,106 +466,75 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   ////////////////////////////////////
 
   // copy the data into the buffer
-  int n=0;
+  int n=0,c,i,j;
   for (c = 0; c < 4; c++) {
-    for (j = 0; j < pixelsHigh; j++) {
-      for (i = 0; i < pixelsWide*4; i+=4) {
-	((unsigned char*)bitmapData)[i+j*pixelsWide*4+c] = (unsigned char)(fontColor[c]*(double)((unsigned char *)bitmapData)[i+j*pixelsWide*4+c]);
+    for (j = 0; j < *pixelsHigh; j++) {
+      for (i = 0; i < (*pixelsWide)*4; i+=4) {
+	((unsigned char*)bitmapData)[i+j*(*pixelsWide)*4+c] = (unsigned char)(fontColor[c]*(double)((unsigned char *)bitmapData)[i+j*(*pixelsWide)*4+c]);
       }
     }
   }
-
-  ///////////////////////////
-  // create a texture
-  ///////////////////////////
-  GLuint textureNumber;
-
-  // get a unique texture identifier name
-  glGenTextures(1, &textureNumber);
-  
-  // bind the texture to be a 2D texture
-  // should really add check that non-power-of-two textures are supported, but seems to be default on new Macs
-  glBindTexture(GL_TEXTURE_RECTANGLE_EXT, textureNumber);
-
-  // some other stuff
-  glTexParameteri(GL_TEXTURE_RECTANGLE_EXT, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-  glTexParameteri(GL_TEXTURE_RECTANGLE_EXT, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-  glTexParameteri(GL_TEXTURE_RECTANGLE_EXT, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-  glTexParameteri(GL_TEXTURE_RECTANGLE_EXT, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-  glPixelStorei(GL_UNPACK_ROW_LENGTH,0);
-
-  // now place the data into the texture
-  glTexImage2D(GL_TEXTURE_RECTANGLE_EXT,0,GL_RGBA,pixelsWide,pixelsHigh,0,GL_RGBA,GL_UNSIGNED_INT_8_8_8_8,bitmapData);  
-
-  // create the output structure
-  const char *fieldNames[] =  {"textureNumber","imageWidth","imageHeight","textureAxes","textImageRect","hFlip","vFlip","isText" };
-  int outDims[2] = {1, 1};
-  plhs[0] = mxCreateStructArray(1,outDims,8,fieldNames);
-  
-  // now set the textureNumber field
-  double *outptr;
-  mxSetField(plhs[0],0,"textureNumber",mxCreateDoubleMatrix(1,1,mxREAL));
-  outptr = (double*)mxGetPr(mxGetField(plhs[0],0,"textureNumber"));
-  *outptr = (double)textureNumber;
-
-  // now set the pixelsWide and height
-  // notice that imagewidth and pixelsHigh are intentionally
-  // transposed here, so that the image matches what matlab does
-  mxSetField(plhs[0],0,"imageWidth",mxCreateDoubleMatrix(1,1,mxREAL));
-  outptr = (double*)mxGetPr(mxGetField(plhs[0],0,"imageWidth"));
-  *outptr = (double)pixelsHigh;
-  mxSetField(plhs[0],0,"imageHeight",mxCreateDoubleMatrix(1,1,mxREAL));
-  outptr = (double*)mxGetPr(mxGetField(plhs[0],0,"imageHeight"));
-  *outptr = (double)pixelsWide;
-
-  // information about the axes
-  mxSetField(plhs[0],0,"textureAxes",mxCreateString("xy"));  
-  mxSetField(plhs[0],0,"textImageRect",mxCreateDoubleMatrix(1,4,mxREAL));
-  outptr = (double*)mxGetPr(mxGetField(plhs[0],0,"textImageRect"));
-  outptr[0] = (double)textImageRect.top;
-  outptr[1] = (double)textImageRect.left;
-  outptr[2] = (double)textImageRect.bottom;
-  outptr[3] = (double)textImageRect.right;
-
-  // set information about desired flips
-  mxSetField(plhs[0],0,"hFlip",mxCreateDoubleMatrix(1,1,mxREAL));
-  outptr = (double*)mxGetPr(mxGetField(plhs[0],0,"hFlip"));
-  *outptr = mglGetGlobalDouble("fontHFlip");
-
-  // set information about desired flips
-  mxSetField(plhs[0],0,"vFlip",mxCreateDoubleMatrix(1,1,mxREAL));
-  outptr = (double*)mxGetPr(mxGetField(plhs[0],0,"vFlip"));
-  *outptr = mglGetGlobalDouble("fontVFlip");
-
-  mxSetField(plhs[0],0,"isText",mxCreateDoubleMatrix(1,1,mxREAL));
-  outptr = (double*)mxGetPr(mxGetField(plhs[0],0,"isText"));
-  *outptr = (double)1;
-
-  // get a buffer for the bitmap data
-  c = 0;
-  for (k=0;k<4;k++) {
-    if (nlhs >= (k+1)){
-            plhs[k+1] = mxCreateDoubleMatrix(pixelsWide,pixelsHigh,mxREAL);
-      //plhs[k+1] = mxCreateDoubleMatrix(pixelsHigh,pixelsWide,mxREAL);
-      double *outputBuffer = (double *)mxGetPr(plhs[k+1]);
-      c=0;
-      // copy the data into the buffer
-      for (j = 0; j < pixelsHigh; j++) {
-	for (i = 0; i < pixelsWide; i++, c++) {
-	  outputBuffer[c] = (double)((unsigned char *)bitmapData)[c*4+k];
-	  //	  outputBuffer[c++] = (double)((unsigned char *)bitmapData)[i+j*pixelsWide*4+k];
-	}
-      }
-    }
-  }
-
-  // free up the original bitmapData
+  // free bitmap context
   CGContextRelease(bitmapContext);
-  free(bitmapData);
 
-#endif
-
+  // return buffer of rendered text
+  return(bitmapData);
+}
+#endif //__APPLE__
+//-----------------------------------------------------------------------------------///
+// ****************************** linux specific code  ****************************** //
+//-----------------------------------------------------------------------------------///
 #ifdef __linux__
+/////////////////////////
+//   include section   //
+/////////////////////////
+#include <string.h>
+#include <math.h>
+#include <ft2build.h>
+#include FT_FREETYPE_H
+
+//////////////////
+//   sub2indM   //
+//////////////////
+int sub2indM( int row, int col, int height, int elsize ) {
+  // return linear index corresponding to (row,col) into row-major array (Matlab-style)
+       return ( row*elsize + col*height*elsize );
+}
+
+//////////////////
+//   sub2indC   //
+//////////////////
+int sub2indC( int row, int col, int width, int elsize ) {
+  // return linear index corresponding to (row,col) into column-major array (C-style)
+  return ( col*elsize + row*width*elsize );
+}
+
+/////////////////////
+//   draw_bitmap   //
+/////////////////////
+void draw_bitmap( FT_Bitmap* bitmap, FT_Int x, FT_Int y, unsigned char *image, int width, int height )
+{
+  FT_Int  i, j, p, q;
+  FT_Int  x_max = x + bitmap->width;
+  FT_Int  y_max = y + bitmap->rows;
+
+  for ( i = x, p = 0; i < x_max; i++, p++ )
+  {
+    for ( j = y, q = 0; j < y_max; j++, q++ )
+    {
+      if ( i >= width || j >= height )
+        continue;
+
+      image[sub2indC(y,x,width,1)] |= bitmap->buffer[q * bitmap->width + p];
+    }
+  }
+}
+
+////////////////////
+//   renderText   //
+////////////////////
+unsigned char *renderText(const mxArray *inputString, char*fontName, int fontSize, double *fontColor, double fontRotation, Boolean fontBold, Boolean fontItalic, Boolean fontUnderline, Boolean fontStrikethrough, int *pixelsWide, int *pixelsHigh, Rect *textImageRect)
+{
 
   FT_Library    library;
   FT_Face       face;
@@ -579,7 +607,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   // Convert text bitmap to RGBA texture map
   GLubyte * textureBitmap = (GLubyte *)malloc(target_height*target_width*sizeof(GLubyte)*4);
 
-  int offs;
+mglM  int offs;
   for (int j=0; j<target_height; j++)
     for (int i=0; i<target_width; i++) {
       offs=sub2indC(j,i,target_width,1);
@@ -598,8 +626,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   free(textureBitmap);
 
   
-#endif 
-
-
 }
 
+#endif //__linux__

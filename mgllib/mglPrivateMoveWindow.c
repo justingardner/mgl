@@ -16,31 +16,52 @@ $Id$
 /////////////////////////
 #include "mgl.h"
 
-
 //////////////
 //   main   //
 //////////////
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
-  Rect bounds;
-  unsigned int r;
-  WindowRef winRef;
-	
   if (nrhs != 2) {
     usageError("mglMoveWindow");
     return;
   }
+  
+  // get where to move to
+  int left = (int)*mxGetPr(prhs[0]);
+  int top =  (int)*mxGetPr(prhs[1]);
+//-----------------------------------------------------------------------------------///
+// **************************** mac cocoa specific code  **************************** //
+//-----------------------------------------------------------------------------------///
+#ifdef __APPLE__
+#ifdef __cocoa__
+  NSWindowController *myWindowController = (NSWindowController*)(unsigned long)mglGetGlobalDouble("windowController");
+  [[myWindowController window] setFrameTopLeftPoint:NSMakePoint((float)left,(float)top)];
+//-----------------------------------------------------------------------------------///
+// **************************** mac carbon specific code  *************************** //
+//-----------------------------------------------------------------------------------///
+#else//__cocoa__
+
+  Rect bounds;
+  unsigned int r;
+  WindowRef winRef;
 	
-  bounds.left = (int)mxGetScalar(prhs[0]);
-  bounds.top = (int)mxGetScalar(prhs[1]);
   r = (unsigned int)mglGetGlobalDouble("windowPointer");
   winRef = (WindowRef)r;
 	
   if (IsValidWindowPtr(winRef)) {
-    MoveWindowStructure(winRef, (short)bounds.left, (short)bounds.top);
+    MoveWindowStructure(winRef, (short)left, (short)top);
     SelectWindow(winRef);
   }
   else {
     mexPrintf("(mglPrivateMoveWindow) error: invalid window pointer");
   }
+#endif//__cocoa__
+#endif//__APPLE__
+//-----------------------------------------------------------------------------------///
+// ****************************** linux specific code  ****************************** //
+//-----------------------------------------------------------------------------------///
+#ifdef __linux__
+  mexPrintf("(mglPrivateMoveWindow) Not implemented\n");
+#endif//__linux__
 }
+

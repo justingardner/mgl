@@ -1,3 +1,4 @@
+function mglPlaySound(soundNum)
 % mglPlaySound: Play a system sound
 %
 %        $Id$
@@ -14,6 +15,37 @@
 %
 %      usage: Playing a specific sound
 %mglOpen;
-%global MGL;
-%mglPlaySound(find(strcmp(MGL.soundNames,'Submarine')));
+%mglPlaySound('Submarine');
 %
+
+% check mglPlaySound
+if nargin ~= 1
+  % display help
+  help mglPlaySound;
+  % list available sounds
+  global MGL;
+  if isfield(MGL,'soundNames')
+    disp(sprintf('Available sounds are:'));
+    for i = 1:length(MGL.soundNames)
+      if ~isempty(MGL.soundNames{i})
+	fprintf(1,'%s ',MGL.soundNames{i});
+      end
+    end
+    fprintf(1,'\n');
+  end
+  
+  return
+end
+
+% scalar, then play
+if isscalar(soundNum)
+  mglPrivatePlaySound(soundNum);
+% string then find the correct string name
+elseif isstr(soundNum)
+  global MGL;
+  soundNum = find(strcmp(soundNum,MGL.soundNames));
+  if ~isempty(soundNum)
+    mglPrivatePlaySound(soundNum(1));
+  end
+end
+  

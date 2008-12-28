@@ -11,7 +11,6 @@ $Id$
 =========================================================================
 #endif
 
-
 /////////////////////////
 //   include section   //
 /////////////////////////
@@ -21,6 +20,12 @@ $Id$
 //   define section   //
 ////////////////////////
 #define kMaxDisplays 8
+
+/////////////////////////
+//   OS Specific calls //
+/////////////////////////
+// This is the main function, it closes the screen
+void closeDisplay(int displayNumber,int verbose);
 
 //////////////
 //   main   //
@@ -48,27 +53,48 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     return;
   }
 
-#ifdef __linux__
-  
+  // close the display
+  closeDisplay(displayNumber,verbose);
+
+  // set display number to -1
+  mglSetGlobalDouble("displayNumber",-1);
+}
+
+//-----------------------------------------------------------------------------------///
+// **************************** mac cocoa specific code  **************************** //
+//-----------------------------------------------------------------------------------///
+#ifdef __APPLE__
+#ifdef __cocoa__
+//////////////////////
+//   closeDisplay   //
+//////////////////////
+void closeDisplay(int displayNumber,int verbose)
+{
   if (displayNumber>=0) {
-    if (verbose) mexPrintf("(mglPrivateClose) Closing GLX context\n");
-    int dpyptr=(int)mglGetGlobalDouble("XDisplayPointer");  
-    Display * dpy=(Display *)dpyptr;
-    int winptr=(int)mglGetGlobalDouble("XWindowPointer");  
-    Window * win=(Window *)winptr;
-    GLXContext ctx=glXGetCurrentContext();
-    glXDestroyContext( dpy, ctx );
-    XUnmapWindow( dpy, *win );
-    XDestroyWindow( dpy, *win );
-    XFlush(dpy);
-    mglSetGlobalDouble("XDisplayPointer",0);
-    mglSetGlobalDouble("XWindowPointer",0);
-    XCloseDisplay(dpy);
+    // start auto release pool
+    NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+    NSWindowController *myWindowController = (NSWindowController*)(unsigned long)mglGetGlobalDouble("windowController");
+    NSOpenGLContext *myOpenGLContext = (NSOpenGLContext*)(unsigned long)mglGetGlobalDouble("context");
+    // exit full screen mode
+    if (displayNumber >= 1)
+      [[[myWindowController window] contentView] exitFullScreenModeWithOptions:nil];
+    // orderOut (i.e. hide the window) -- subsequent mglOpen's will just unhide
+    [[myWindowController window] orderOut:nil];
 
+    if (verbose){
+      mexPrintf("(mglPrivateClose) Retain counts are controller: %i window: %i view: %i openGLContext: %i\n",[myWindowController retainCount],[[myWindowController window] retainCount],[[[myWindowController window] contentView] retainCount],[myOpenGLContext retainCount]);
+    }
+
+    // drain the pool
+    [pool drain];
   }
-#endif // #ifdef __linux__
-
-#ifdef __APPLE__    
+}
+//-----------------------------------------------------------------------------------///
+// **************************** mac carbon specific code  *************************** //
+//-----------------------------------------------------------------------------------///
+#else// __cocoa__
+void closeDisplay(int displayNumber,int verbose)
+{
   // if display number is set to -1, then the display is closed
   if (displayNumber>0) {
     // if it is greater than 0, then it is a full screen CGL context
@@ -97,7 +123,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     // Restore cursor
     CGDisplayShowCursor( kCGDirectMainDisplay ) ; 
   }
-  // if displayNumber is 0, then it is a window AGL contex 
+ // if displayNumber is 0, then it is a window AGL contex 
   else if (displayNumber==0) {
     WindowRef winRef;
     if (verbose) mexPrintf("(mglPrivateClose) Closing AGL context\n");
@@ -121,7 +147,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     //if (QDDone(drawableObj))
       // clear context and close window
     //  if (!aglDestroyContext(contextObj)) {
-    //	mexPrintf("(mglPrivateClose) UHOH: aglDestroyContext returned error\n");
+    //  mexPrintf("(mglPrivateClose) UHOH: aglDestroyContext returned error\n");
     //  }
     //else 
     //  mexPrintf("(mglPrivateClose) Quick draw is blocking close. Try again\n");
@@ -141,15 +167,39 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       // otherwise destroy the context
       winRef = GetWindowFromPort(drawableObj);
       if (IsValidWindowPtr(winRef)) {
-	DisposeWindow(winRef);
+        DisposeWindow(winRef);
       }
       else {
-	mexPrintf("(mglPrivateClose) error: invalid window pointer\n");
+        mexPrintf("(mglPrivateClose) error: invalid window pointer\n");
       }
     }
   }
-#endif // ifdef __APPLE__
-
-  // set display number to -1
-  mglSetGlobalDouble("displayNumber",-1);
 }
+#endif//__cocoa__
+#endif//__APPLE__
+//-----------------------------------------------------------------------------------///
+// ****************************** linux specific code  ****************************** //
+//-----------------------------------------------------------------------------------///
+#ifdef __linux__
+//////////////////////
+//   closeDisplay   //
+//////////////////////
+void closeDisplay(int displayNumber,int verbose)
+{
+  if (displayNumber>=0) {
+    if (verbose) mexPrintf("(mglPrivateClose) Closing GLX context\n");
+    int dpyptr=(int)mglGetGlobalDouble("XDisplayPointer");  
+    Display * dpy=(Display *)dpyptr;
+    int winptr=(int)mglGetGlobalDouble("XWindowPointer");  
+    Window * win=(Window *)winptr;
+    GLXContext ctx=glXGetCurrentContext();
+    glXDestroyContext( dpy, ctx );
+    XUnmapWindow( dpy, *win );
+    XDestroyWindow( dpy, *win );
+    XFlush(dpy);
+    mglSetGlobalDouble("XDisplayPointer",0);
+    mglSetGlobalDouble("XWindowPointer",0);
+    XCloseDisplay(dpy);
+  }
+}
+#endif//__linux__

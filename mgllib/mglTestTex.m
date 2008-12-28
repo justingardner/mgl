@@ -29,7 +29,7 @@ mglVisualAngleCoordinates(57,[40 30]);
 mglClearScreen(0.5);mglFlush;
 mglClearScreen;mglFlush;
 
-if (strcmp(lower(computer),'mac'))
+if ismac
   % display wait text
   mglTextSet('Helvetica',32,[1 1 1],0,0,0,0,0,0,0);
   mglTextDraw('Calculating textures (0% done)',[0 0]);mglFlush;
@@ -46,7 +46,7 @@ nsteps = 30;
 for i = 1:nsteps;
   % display percent done
   mglClearScreen;
-  if (strcmp(lower(computer),'mac'))
+  if ismac
     mglTextDraw(sprintf('Calculating textures (%0.0f%% done)',99*i/nsteps),[0 0]);
   else
     msg=sprintf('Calculating textures (%i percent done)',round(99*i/nsteps));
@@ -58,7 +58,7 @@ for i = 1:nsteps;
   win = makeGaussian(texWidth,texHeight,texWidth/7,texHeight/7);
   % now create and RGB + alpha image with the gaussian window
   % as the alpha channel
-  if (strcmp(lower(computer),'mac'))
+  if ismac
     m = 255*(m+1)/2;
     m4(:,:,1) = m;
     m4(:,:,2) = m;
@@ -98,7 +98,7 @@ for i = 1:MGL.frameRate*numsec
   % and display four gabor patches
   mglBltTexture(tex([thisPhase thisPhase2 thisPhase thisPhase2]),texPos,0,0,[0 45 90 135]);
   % and the rotating one at the center
-  mglBltTexture(tex(1),[0 0],0,0,360*i/(MGL.frameRate*numsec));
+  mglBltTexture(tex(1),[0 0 6 6],0,0,360*i/(MGL.frameRate*numsec));
   %disp(sprintf('mglBltTexture: %f',(mglGetSecs-startBlt)*1000));
   % flush buffers
   mglFlush;
