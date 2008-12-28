@@ -20,11 +20,16 @@ if ~any(nargin == [0 1])
 end
 
 % interpret rebuild argument
-useCarbon = 0;
+useCarbon = 0;useCocoa = 0;
 if ~exist('rebuild','var')
   rebuild = 0;
 elseif isequal(rebuild,'carbon')
   useCarbon = 1;
+  useCocoa = 0;
+  rebuild = 1;
+elseif isequal(rebuild,'cocoa')
+  useCocoa = 1;
+  useCarbon = 0;
   rebuild = 1;
 end
 
@@ -63,6 +68,8 @@ for i = 1:length(mgldir)
     if (rebuild || length(mexfile)<1) || (datenum(mgldir(i).date) > datenum(mexfile(1).date)) || (datenum(hfile(1).date) > datenum(mexfile(1).date))
       if useCarbon
 	command = sprintf('mex -D__carbon__ %s',mgldir(i).name);
+      elseif useCocoa
+	command = sprintf('mex -D__cocoa__ %s',mgldir(i).name);
       else
 	command = sprintf('mex %s',mgldir(i).name);
       end
