@@ -23,14 +23,16 @@
 %             8:'show' Show the movie after it has been hidden
 %             9:'getDuration' Get a string that represents the length of the movie
 %            10:'getCurrentTime' Gets the current time of the movie
-%            11:'setCurrentTIme' Sets the current time of the movie to the string
+%            11:'setCurrentTime' Sets the current time of the movie to the string
 %                      passed in. Make sure the string is one returned from getCurrentTime
+%            12:'getFrame' Returns a nxmx3 matrix containing RGB data for current frame
 %
 %mglOpen(0);
 %m = mglMovie('bosque.mov');
 %mglMovie(m,'play');
 function movieStruct = mglMovie(varargin)
 
+movieStruct = [];
 % check arguments
 if ~any(nargin == [1 2 3 4])
   help mglMovie;
@@ -45,7 +47,7 @@ if ~isfield(MGL,'displayNumber') || (MGL.displayNumber == -1)
 end
 
 % list of commands and descriptions
-validCommands = {'close','play','pause','gotobeginning','gotoend','stepforward','stepbackward','hide','show','getduration','getcurrenttime','setcurrenttime'};
+validCommands = {'close','play','pause','gotobeginning','gotoend','stepforward','stepbackward','hide','show','getduration','getcurrenttime','setcurrenttime','getframe'};
 		 
 % see if it is an init with filename
 if isstr(varargin{1})
