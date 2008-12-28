@@ -176,8 +176,7 @@ unsigned long openDisplay(double *displayNumber, int *screenWidth, int *screenHe
     [myPixelFormat release];
 
     // set initial size and location
-    //    NSRect contentRect = NSMakeRect(100,100+*screenHeight,*screenWidth,*screenHeight);
-    NSRect contentRect = NSMakeRect(0,0,*screenWidth,*screenHeight);
+    NSRect contentRect = NSMakeRect(100,100+*screenHeight,*screenWidth,*screenHeight);
 
     // create the window
     myWindow = [[NSWindow alloc] initWithContentRect:contentRect styleMask:NSTitledWindowMask|NSClosableWindowMask|NSMiniaturizableWindowMask|NSTexturedBackgroundWindowMask backing:NSBackingStoreBuffered defer:false];
@@ -197,8 +196,8 @@ unsigned long openDisplay(double *displayNumber, int *screenWidth, int *screenHe
   [[myWindowController window] setAlphaValue:0];
 
   // set window size
-  [[myWindowController window] setContentSize:NSMakeSize(*screenWidth,*screenHeight)];
   [[[myWindowController window] contentView] setFrame:NSMakeRect(0,0,*screenWidth,*screenHeight)];
+  [[myWindowController window] setContentSize:NSMakeSize(*screenWidth,*screenHeight)];
   [[myWindowController window] display];
 
   // show window
