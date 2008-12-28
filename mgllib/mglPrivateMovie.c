@@ -31,6 +31,7 @@ $Id: mglPrivateOpen.c,v 1.14 2007/10/25 20:31:43 justin Exp $
 #define GET_DURATION 9
 #define GET_CURRENT_TIME 10
 #define SET_CURRENT_TIME 11
+#define GET_FRAME 12
 
 /////////////////////////
 //   OS Specific calls //
@@ -121,15 +122,18 @@ unsigned long openMovie(char *filename, int xpos, int ypos, int width, int heigh
   NSWindowController *myWindowController = (NSWindowController*)(unsigned long)mglGetGlobalDouble("windowController");
 
   // init a QTMovie
-  NSError *myError = [NSError alloc];
+  NSError *myError = NULL;
   NSString *NSFilename = [[NSString alloc] initWithCString:filename];
   QTMovie *movie = [[QTMovie alloc] initWithFile:NSFilename error:&myError];
+
   // release the filename
   [NSFilename release];
 
   // see if there was an error
-  if ([myError code] != 0) {
+  if (myError != NULL) {
     mexPrintf("(mglPrivateMovie) Error opening movie %s: %s\n",filename,[[myError localizedDescription] cStringUsingEncoding:NSASCIIStringEncoding]);
+    // release memory
+    [movie release];
     // drain the pool
     [pool drain];
     return(0);
@@ -145,7 +149,7 @@ unsigned long openMovie(char *filename, int xpos, int ypos, int width, int heigh
   [[[myWindowController window] contentView] display];
 
   // release memory
-  [myError release];
+  [movie release];
 
   // drain the pool
   [pool drain];
@@ -212,6 +216,38 @@ mxArray *doMovieCommand(int command, unsigned long moviePointer, const mxArray *
 	NSString *setTime = [[NSString alloc] initWithCString:mxArrayToString(arg1)];
 	[[movieView movie] setCurrentTime:QTTimeFromString(setTime)];
 	[setTime release];
+      }
+      break;
+    case GET_FRAME:
+      ;
+      // get the frame as a bitmap
+      NSImage *frameImage = [[movieView movie] currentFrameImage];
+      NSData *tiffData = [frameImage TIFFRepresentation];
+      NSBitmapImageRep *bitmap = [NSBitmapImageRep imageRepWithData:tiffData];
+
+      // get the size info
+      NSSize frameSize = [frameImage size];
+      int width = (int)frameSize.width,height = (int)frameSize.height;
+      int bytesPerPlane = (int)[bitmap bytesPerPlane];
+      int bytesPerRow = (int)[bitmap bytesPerRow];
+      int numPlanes = (int)[bitmap numberOfPlanes];
+      int bytesPerPixel = bytesPerRow/width;
+
+      // get the bitmapData
+      unsigned char *bitmapData = [bitmap bitmapData];
+      
+      // create output structure
+      mwSize dims[3] = {height,width,3};
+      retval = mxCreateNumericArray(3,dims,mxDOUBLE_CLASS,mxREAL);
+      double *outputPtr = mxGetPr(retval);
+      // copy data into output structure
+      int i,j;
+      for (i=0;i<width;i++){
+	for (j=0;j<height;j++) {
+	  outputPtr[i*height+j] = (double)bitmapData[(i+j*width)*bytesPerPixel]/256.0;
+	  outputPtr[i*height+j+width*height] = (double)bitmapData[(i+j*width)*bytesPerPixel+1]/256.0;
+	  outputPtr[i*height+j+2*width*height] = (double)bitmapData[(i+j*width)*bytesPerPixel+2]/256.0;
+	}
       }
       break;
     default:
