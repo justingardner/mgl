@@ -480,7 +480,6 @@ CGEventRef myCGEventCallback(CGEventTapProxy proxy, CGEventType type, CGEventRef
     [gMouseEventQueue addObject:qEvent];
     // unlock mutex
     pthread_mutex_unlock(&mut);
-
   }
 
   // return the event for normal OS processing
@@ -563,7 +562,7 @@ void launchSetupEventTapAsThread()
 }
 @end
 
-#else __cocoa__
+#else// __cocoa__
 //-----------------------------------------------------------------------------------///
 // ***************************** other-os specific code  **************************** //
 //-----------------------------------------------------------------------------------///

@@ -200,7 +200,7 @@ unsigned long openDisplay(double *displayNumber, int *screenWidth, int *screenHe
   [[myWindowController window] setContentSize:NSMakeSize(*screenWidth,*screenHeight)];
   [[myWindowController window] display];
 
-  // show window
+  // show window -- this is where the code gets hung up when the matlab desktop is running
   [myWindowController showWindow:nil];
 
   // set the openGL context as current

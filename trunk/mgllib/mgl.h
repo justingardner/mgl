@@ -49,10 +49,15 @@
 // OS-specific includes
 /////////////////////////
 #ifdef __APPLE__
+//  on 64bit, default to compiling cocoa, unless overridden
+#ifdef __x86_64__
 #ifndef __carbon__
-// Setting this define makes all the cocoa (rather than the old carbon)
-// code compile
 #define __cocoa__
+#endif //__carbon__
+#else //__x86_64__
+#ifndef __cocoa__
+#define __carbon__
+#endif
 #endif
 #define __eventtap__
 #include <OpenGL/OpenGL.h>
