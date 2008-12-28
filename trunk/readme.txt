@@ -6,7 +6,7 @@ MGL (Matlab GL): A suite of mex/m files for displaying psychophysics stimuli.
 The text in this file is not necessarily up to date. 
 Please refer to the wiki for up to date information.
 
-http://agni.cns.nyu.edu/mediawiki/index.php/Mgl
+http://justingardner.net/mgl
 
 ****************************************************************************
 How to get started
@@ -18,13 +18,6 @@ How to get started
 1.4 How do I recompile
 1.5 If all else fails, how can I get back control over the display
 1.6 Can I get access to all OpenGL functions?
-
-****************************************************************************
-Known issues that you should be aware of
-****************************************************************************
-2.1 Matlab license manager can cause timing glitches every 30 seconds
-2.2 Some functions not supported yet on Linux
-2.3 Opening in a window (mglOpen(0)) is unstable when using the matlab desktop
 
 ============================================================================
 1.0 A quick overview
@@ -123,67 +116,3 @@ allow you to use the full functionality of the OpenGL library. To do this,
 you could start by modifying one of our mex functions (e.g. mglClearScreen.c)
 and add your own GL code to do what you want and compile. 
 
-============================================================================
-2.1 Matlab license manager causes timing glitches every 30 seconds
-============================================================================
-
-The Matlab license manager checks every 30 seconds for the license. This can
-cause there to be an apparent frame glitch in your stimulus code, especially
-if you are using a network license (on our machines it can take ~200 ms to
-check for the license). The only known workaround to this is to run on a
-machine that has a local copy of the license. You can check this for yourself
-by seeing how long it takes to do screen refreshes:
-
-mglOpen;
-frameRate = 60;
-checkTime = 30*frameRate;
-timeTaken = zeros(1,checkTime);
-for i = 1:checkTime
-  flushStart = mglGetSecs;
-  mglFlush;
-  timeTaken(i) = mglGetSecs(flushStart);
-end
-mglClose;
-plot((1:checkTime)/frameRate,timeTaken);
-zoom on;xlabel('seconds');ylabel('Frame refresh time');
-
-If you have the same problem, you should see one large spike
-in the time course. Note that you may see small deviations in which one frame
-takes longer and then the following frame takes shorter than the mean. These
-are normal flucations persumably due to multi-tasking and other events that
-are intermittently taking up time. As long as these are shorter than a frame
-refresh interval minus the time it takes you to process the stimuli  for
-your display, you will not drop any frames. Note that in the above code,
-if you change mglFlush to any other command, such as WaitSecs(1/frameRate);,
-you will still see the big spike for the license manager check--confirming
-that this has nothing to do with drawing to the screen.
-
-============================================================================
-2.2 Some functions not supported yet on Linux
-============================================================================
-
-Not all functions are currently supported on the Linux platform. The list
-of funcitons not supported yet are:
-
-mglGetGammaTable
-mglSetGammaTable
-mglText
-mglTextDraw
-
-If you want to use text under the linux operating system, you can use
-mglStrokeText.
-
-============================================================================
-2.3 Opening in a window (mglOpen(0)) is unstable when using the matlab desktop
-============================================================================
-
-There seems to be some interaction with having mutliple threads in the workspace
-that causes working within a window (as opposed to fullscreen) to be unstable.
-The workaround for now is not to close the window once it is opened. This seems
-to work fairly well. When one is completely finished working with the window,
-one can call mglPrivateClose to close the window. But after that, calling
-mglOpen(0) is likely to crash. 
-
-mglOpen(0) works fine if running matlab -nojvm or -nodesktop. 
-
-test
