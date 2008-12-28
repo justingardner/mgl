@@ -47,6 +47,7 @@ if isfield(MGL,'movieStructs')
       mglMovie(m,'close');
     end
   end
+  MGL.movieStructs = {};
 end
 
 mglPrivateClose;
