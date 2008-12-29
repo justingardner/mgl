@@ -18,12 +18,12 @@ myscreen = tickScreen(myscreen);
 
 if (myscreen.eyecalib.prompt)
   % check for space key
-  mydisp(sprintf('-----------------------------\n'));
-  mydisp(sprintf('Hit SPACE to do eye calibration\n'));
-  mydisp(sprintf('ENTER to skip eye calibration\n'));
-  mydisp(sprintf('Esc aborts at any time\n'));
-  mydisp(sprintf('-----------------------------\n'));
-
+  disp(sprintf('-----------------------------'));
+  disp(sprintf('Hit SPACE to do eye calibration'));
+  disp(sprintf('ENTER to skip eye calibration'));
+  disp(sprintf('Esc aborts at any time'));
+  disp(sprintf('-----------------------------'));
+  drawnow;
   while ~mglGetKeys(myscreen.keyboard.space)
     if mglGetKeys(myscreen.keyboard.esc)
       return
