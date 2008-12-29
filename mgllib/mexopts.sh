@@ -155,7 +155,7 @@ echo "Error: Did not imbed 'options.sh' code"; exit 1 #imbed options.sh glnxi64 
             ;;
         mac)
 #----------------------------------------------------------------------------
-            CC='gcc-3.3'
+            CC='gcc'
             CFLAGS='-x objective-c -fno-common -no-cpp-precomp -fexceptions'
             CLIBS="$MLIBS -lstdc++"
             COPTIMFLAGS='-O3 -DNDEBUG'
