@@ -54,5 +54,8 @@ mglPrivateClose;
 
 % reset resolution if necessary
 if (isfield(MGL,'originalResolution') && ~isempty(MGL.originalResolution))
+  if MGL.verbose
+    disp(sprintf('(mglClose) Restoring resolution'));
+  end
   mglResolution(MGL.originalResolution);
 end

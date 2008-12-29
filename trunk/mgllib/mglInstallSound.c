@@ -39,12 +39,16 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   unsigned long soundID = 0;
   int i;
 
+  // verbose information
+  int verbose = (int)mglGetGlobalDouble("verbose");
+
   // with no arguments, uninstall all sounds
   if (nrhs == 0) {
     // get already installed sounds
     mxArray *sounds = mglGetGlobalField("sounds");
     if ((sounds != NULL) && (mxGetN(sounds)>0)){
       unsigned long *soundsPtr = (unsigned long*)mxGetPr(sounds);
+      if (verbose) mexPrintf("(mglInstallSound) Uninstalling all sounds\n");
       // remove all the sounds
       for (i = 0; i < mxGetN(sounds); i++) {
 	if (soundsPtr[i] != 0)

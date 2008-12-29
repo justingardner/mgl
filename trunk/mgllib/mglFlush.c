@@ -36,18 +36,20 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 //-----------------------------------------------------------------------------------///
 #ifdef __APPLE__ 
 #ifdef __cocoa__
-  if (displayNumber > 0) {
-    // get the current context
-    CGLContextObj contextObj = CGLGetCurrentContext();
-    // and flip the double buffered screen
-    // this call waits for vertical blanking
-    CGLFlushDrawable(contextObj); 
-  }
-  else if (displayNumber == 0) {
-    // cocoa, get openGLContext and flush
-    NSOpenGLContext *myOpenGLContext = (NSOpenGLContext*)(unsigned long)mglGetGlobalDouble("context");
-    if (myOpenGLContext)
-      [myOpenGLContext flushBuffer];
+  if (displayNumber >= 0) {
+    if (mglGetGlobalDouble("isCocoaWindow")) {
+      // cocoa, get openGLContext and flush
+      NSOpenGLContext *myOpenGLContext = (NSOpenGLContext*)(unsigned long)mglGetGlobalDouble("context");
+      if (myOpenGLContext)
+	[myOpenGLContext flushBuffer];
+    }
+    else {
+      // get the current context
+      CGLContextObj contextObj = CGLGetCurrentContext();
+      // and flip the double buffered screen
+      // this call waits for vertical blanking
+      CGLFlushDrawable(contextObj); 
+    }
   }
 #else //__cocoa__
 //-----------------------------------------------------------------------------------///
@@ -67,7 +69,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     AGLContext contextObj=aglGetCurrentContext ();
 
     if (!contextObj) {
-      printf("warning: no drawable context found\n");
+      printf("(mglFlush) No drawable context found\n");
     }
 
     // there seems to be some interaction with the matlab desktop

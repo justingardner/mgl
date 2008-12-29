@@ -115,6 +115,12 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 ///////////////////
 unsigned long openMovie(char *filename, int xpos, int ypos, int width, int height)
 {
+  // check for cocoa window
+  if (!mglGetGlobalDouble("isCocoaWindow")) {
+    mexPrintf("(mglPrivateMovie) mglMovie is only available for cocoa based windows. On the desktop this means you have to open with mglOpen(0). If you want to use movies with a full screen context, try running matlab -nodesktop on -nojvm\n");
+    return 0;
+  }
+
   // start auto release pool
   NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
 
@@ -274,6 +280,83 @@ mxArray *doMovieCommand(int command, unsigned long moviePointer, const mxArray *
   [pool drain];
   return(retval);
 }
+/////////////////////////////
+//   openMovieWithWindow   //
+////////////////////////////
+unsigned long openMovieWithWindow(char *filename, int xpos, int ypos, int width, int height)
+{
+
+  // This function is an attempt to just open the movie in its own window, but I
+  // can't get it to display at a level above the openGL context...
+  NSWindow *myWindow;
+  NSWindowController *myWindowController;
+
+  // start auto release pool
+  NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+
+  // These two lines have been commented out:
+  //
+  //  EnterMoviesOnThread(0);
+  //  CSSetComponentsThreadMode(kCSAcceptAllComponentsMode);
+  //
+  // Don't think these are necessary; there is some issue on 32 bit versionds
+  // about QTKit and threads. This code is recommended but does not fix the 
+  // problem. Essentially, it seems that QTKit is not thread safe and has
+  // to be initialized on the "main thread". I am not sure why this isn't the
+  // main thread, but the line below where we allocate QTMovie alloc causes:
+  // 2008-12-28 14:38:39.558 MATLAB[24504:3307] AppKitJava: uncaught exception QTMovieInitializedOnWrongThread (QTMovie class must be initialized on the main thread.)
+  // 2008-12-28 14:38:39.559 MATLAB[24504:3307] AppKitJava: exception = QTMovie class must be initialized on the main thread.
+  // 2008-12-28 14:38:39.559 MATLAB[24504:3307] AppKitJava: terminating.
+  // But this code does appear to work on 64bit, so maybe QT has become more
+  // thread safe in 64bit mode?
+
+    // init a QTMovie
+  NSError *myError = NULL;
+  NSString *NSFilename = [[NSString alloc] initWithCString:filename];
+  QTMovie *movie = [[QTMovie alloc] initWithFile:NSFilename error:&myError];
+
+  // release the filename
+  [NSFilename release];
+
+  // see if there was an error
+  if (myError != NULL) {
+    mexPrintf("(mglPrivateMovie) Error opening movie %s: %s\n",filename,[[myError localizedDescription] cStringUsingEncoding:NSASCIIStringEncoding]);
+    // release memory
+    [movie release];
+    // drain the pool
+    [pool drain];
+    return(0);
+  }
+
+  // make a QT movie view
+  QTMovieView *movieView = [[QTMovieView alloc] initWithFrame:NSMakeRect(xpos,ypos,width,height)];
+
+  // set the movie to display
+  [movieView setMovie:movie];
+  [movieView setControllerVisible:NO];
+
+  // start the application -- i.e. connect our code to the window server
+  NSApplicationLoad();
+
+  // set initial size and location
+  NSRect contentRect = NSMakeRect(xpos,ypos,width,height);
+
+  // create the window
+  myWindow = [[NSWindow alloc] initWithContentRect:contentRect styleMask:NSBorderlessWindowMask backing:NSBackingStoreNonretained defer:false];
+  if (myWindow==nil){mexPrintf("(mglPrivateOpen) Could not create window\n");return;}
+
+  // set the movie as the content view
+  [myWindow setContentView:movieView];
+  [myWindow setLevel:kCGMaximumWindowLevel];
+  [myWindow makeKeyAndOrderFront: nil];
+  [myWindow display];
+
+  // release memory
+  [movie release];
+  [pool drain];
+  return((unsigned long)movieView);
+}
+
 //-----------------------------------------------------------------------------------///
 // **************************** mac carbon specific code  *************************** //
 //-----------------------------------------------------------------------------------///

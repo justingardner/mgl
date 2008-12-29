@@ -77,11 +77,12 @@ void aglClose(int displayNumber, int verbose);
 void closeDisplay(int displayNumber,int verbose)
 {
   // if display number is set to -1, then the display is closed
-  if (displayNumber>0)
-    cglClose(displayNumber,verbose);
- // if displayNumber is 0, then it is a cocoa window
-  else if (displayNumber==0)
-    cocoaClose(displayNumber,verbose);
+  if (displayNumber>=0)
+    // otherwise see if it is a cocoa or a cgl window
+    if (mglGetGlobalDouble("isCocoaWindow"))
+      cocoaClose(displayNumber,verbose);
+    else
+      cglClose(displayNumber,verbose);
 }
 
 ////////////////////
@@ -89,6 +90,9 @@ void closeDisplay(int displayNumber,int verbose)
 ////////////////////
 void cocoaClose(displayNumber,verbose)
 {
+  if (verbose)
+    mexPrintf("(mglPrivateClose) Closing cocoa window\n");
+
   // start auto release pool
   NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
   NSWindowController *myWindowController = (NSWindowController*)(unsigned long)mglGetGlobalDouble("windowController");

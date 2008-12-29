@@ -88,7 +88,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   
   // check for open window
   if (!mglIsWindowOpen()) {
-    mexPrintf("(mgl) UHOH: No window is open\n");
+    mexPrintf("(mglBltTexture) No window is open\n");
     return;
   }
 
@@ -169,21 +169,21 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       if (mxGetField(prhs[0],texnum,"textureNumber") != 0)
       tex[texnum].textureNumber = (GLuint)*mxGetPr(mxGetField(prhs[0],texnum,"textureNumber"));
       else {
-	mexPrintf("UHOH (mglBltTexture): TextureNumber field not defined in texture");
+	mexPrintf("(mglBltTexture): TextureNumber field not defined in texture");
 	free(tex);
 	return;
       }
       if (mxGetField(prhs[0],texnum,"imageWidth") != 0)
 	tex[texnum].imageWidth = (double)*mxGetPr(mxGetField(prhs[0],texnum,"imageWidth"));
       else {
-	mexPrintf("UHOH (mglBltTexture): imageWidth field not defined in texture\n");
+	mexPrintf("(mglBltTexture): imageWidth field not defined in texture\n");
 	free(tex);
 	return;
       }
       if (mxGetField(prhs[0],texnum,"imageHeight") != 0)
 	tex[texnum].imageHeight = (double)*mxGetPr(mxGetField(prhs[0],texnum,"imageHeight"));
       else {
-	mexPrintf("UHOH (mglBltTexture): imageHeight field not defined in texture\n");
+	mexPrintf("(mglBltTexture): imageHeight field not defined in texture\n");
 	free(tex);
 	return;
       }
@@ -197,21 +197,21 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 	}
       }
       else {
-	mexPrintf("UHOH (mglBltTexture): textureAxes field not defined in texture\n");
+	mexPrintf("(mglBltTexture): textureAxes field not defined in texture\n");
 	free(tex);
 	return;
       }
       if (mxGetField(prhs[0],texnum,"hFlip") != 0)
 	tex[texnum].hFlip = (double)*mxGetPr(mxGetField(prhs[0],texnum,"hFlip"));
       else {
-	mexPrintf("UHOH (mglBltTexture): hFlip field not defined in texture\n");
+	mexPrintf("(mglBltTexture): hFlip field not defined in texture\n");
 	free(tex);
 	return;
       }
       if (mxGetField(prhs[0],texnum,"vFlip") != 0)
 	tex[texnum].vFlip = (double)*mxGetPr(mxGetField(prhs[0],texnum,"vFlip"));
       else {
-	mexPrintf("UHOH (mglBltTexture): vFlip field not defined in texture\n");
+	mexPrintf("(mglBltTexture): vFlip field not defined in texture\n");
 	free(tex);
 	return;
       }
@@ -262,7 +262,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 	tex[texnum].displayRect[3] = inputRect[inputRectOffset+inputRectRows*3];
 	break;
       default:
-	mexPrintf("UHOH (mglBltTexture): Destination rectangle must be either [xmin ymin] or [xmin ymin xmax ymax]\n");
+	mexPrintf("(mglBltTexture): Destination rectangle must be either [xmin ymin] or [xmin ymin xmax ymax]\n");
 	free(tex);
 	return;
 	break;

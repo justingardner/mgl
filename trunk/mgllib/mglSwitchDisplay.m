@@ -15,27 +15,37 @@
 %
 %       e.g.:
 %
+%% Open display 1 and draw
+%mglSwitchDisplay(1);
 %mglOpen(1);
 %mglClearScreen(0.5);
 %mglVisualAngleCoordinates(57,[16 12]);
 %mglTextDraw('Screen 1',[0 0]);
 %mglFlush;
-%mglSwitchDisplay;
+%
+%% Open display 2 and draw
+%mglSwitchDisplay(2);
 %mglOpen(2);
 %mglClearScreen(1);
 %mglVisualAngleCoordinates(57,[16 12]);
 %mglTextDraw('Screen 2',[0 0]);
 %mglFlush;
 %mglWaitSecs(2);
+%
+%% Switch back to display 1 and draw something else
 %mglSwitchDisplay(1);
 %mglClearScreen(1);
 %mglTextDraw('Screen 1 update',[0 0]);
 %mglFlush;
+%
+%% Switch back to display 2 and draw something else
 %mglSwitchDisplay(2);
 %mglClearScreen(0.5);
 %mglTextDraw('Screen 2 update',[0 0]);
 %mglFlush;
 %mglWaitSecs(2);
+%
+%% Close the displays
 %mglClose;
 %mglSwitchDisplay(1);
 %mglClose;
@@ -149,6 +159,7 @@ end
 
 % could not find the display
 if isempty(newIndex)
+  clear global MGL
   MGL.displayNumber = -1;
   MGL.displayID = displayID;
   if isfield(MGL,'windowController')

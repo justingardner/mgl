@@ -148,7 +148,12 @@ unsigned long openDisplay(double *displayNumber, int *screenWidth, int *screenHe
   unsigned long contextPointer;
 
   if ((*displayNumber >= 1) || (*displayNumber < 0))
-    contextPointer = cglOpen(displayNumber,screenWidth,screenHeight);
+    // for full screen displays, use cocoa only if the desktop is *not* running
+    if (mglGetGlobalDouble("matlabDesktop"))
+      contextPointer = cglOpen(displayNumber,screenWidth,screenHeight);
+    else
+      contextPointer = cocoaOpen(displayNumber,screenWidth,screenHeight);
+  // always use cocoa for windowed contexts
   else 
     contextPointer = cocoaOpen(displayNumber,screenWidth,screenHeight);
 
@@ -160,16 +165,14 @@ unsigned long openDisplay(double *displayNumber, int *screenWidth, int *screenHe
 ////////////////////
 unsigned long cocoaOpen(double *displayNumber, int *screenWidth, int *screenHeight)
 {
+  // NOte that this function can open either a windowed or a full-screen display. It
+  // is currently only being used for a windowed context, because the full-screen
+  // context conflicts somehow with the matlab desktop (works fine with -nodesktop
+  // or -nojvm).
   NSOpenGLView *myOpenGLView;
   NSWindow *myWindow;
   NSWindowController *myWindowController;
   NSOpenGLContext *myOpenGLContext;
-
-  // check if we are running the desktop or not
-  mxArray *thislhs[1];
-  mxArray *thisrhs = mxCreateString("desktop");
-  mexCallMATLAB(1, thislhs, 1, &thisrhs, "usejava");
-  int isRunningDesktop = ((int)mxGetScalar(thislhs[0]) == 1);
 
   // get status of global variable that sets wether to display
   // verbose information
@@ -208,7 +211,7 @@ unsigned long cocoaOpen(double *displayNumber, int *screenWidth, int *screenHeig
 
     // create the window, if we are running desktop, then open a borderless non backing
     // store window because anything else causes problems
-    if (isRunningDesktop)
+    if (mglGetGlobalDouble("matlabDesktop"))
       myWindow = [[NSWindow alloc] initWithContentRect:contentRect styleMask:NSBorderlessWindowMask backing:NSBackingStoreNonretained defer:false];
     else
       myWindow = [[NSWindow alloc] initWithContentRect:contentRect styleMask:NSTitledWindowMask|NSClosableWindowMask|NSMiniaturizableWindowMask|NSTexturedBackgroundWindowMask backing:NSBackingStoreBuffered defer:false];
@@ -274,8 +277,10 @@ unsigned long cocoaOpen(double *displayNumber, int *screenWidth, int *screenHeig
 
   }
 
-  // remember the windowController and the auto release pool
+  // remember the windowController
   mglSetGlobalDouble("windowController",(unsigned long)myWindowController);
+  // and that this is a cocoa window
+  mglSetGlobalDouble("isCocoaWindow",1);
 
   // drain the pool
   [pool drain];
