@@ -4,8 +4,23 @@
 %      usage: movieStruct = mglMovie(filename,position) or mglMovie(movieStruct,command,<argument>);
 %         by: justin gardner
 %       date: 12/23/08
-%    purpose: Used to display quicktime movies. First load the movie by calling with 
-%             a filename, and an optional position array and save the returned structure.
+%    purpose: Used to display quicktime movies. This *only* works on 64 bit mac for now.
+%             (There is some issue with the quicktime library QTKit and threads which
+%             does not seem to be a problem on 64 bit). 
+%
+%             Also, note that the movies will play in front of the openGL buffer. Thus
+%             you can't draw on top of the movie and mglFrameGrab won't grab the movie
+%             frame -- you can grab movie frames with mglMovie(m,'getFrame');
+%
+%             To init the movie, you open with a filename, and an optional position
+%             array and save the returned structure.
+%
+%             m = mglMovie('movie.mov');
+%
+%             Then you can run commands on the movie:
+%
+%             mglMovie(m,'play');
+%
 %             If no position is specified, the movie will be made to fill the display. 
 %             Then pass in the structure with any of the following commands:
 %

@@ -33,15 +33,14 @@ if ~exist('bitDepth','var'), bitDepth = []; end
 % get the MGL global
 global MGL;
 
-if usejava('desktop') & (whichScreen == 0)
-  if ~isfield(MGL,'desktopWarning')
-    warningStr = '(mglOpen) Using a windowed openGl context with the matlab desktop can be unstable due to some interactions with multiple threads. If you encounter crashing consider either using a full window context, (ie not mglOpen(0)) or run matlab using -nojvm or -nodesktop. Note that to improve stability mglClose will hide the window rather than destroy it.';
-    uiwait(warndlg(warningStr,'mglOpen','modal'));
-    % next time this is run it will allow the user to open the window
-    MGL.desktopWarning = 1;
-  end
+% set whether the desktop is running
+if usejava('desktop')
+  MGL.matlabDesktop = 1;
+else
+  MGL.matlabDesktop = 0;
 end
 
+% set verbose off
 if ~isfield(MGL,'verbose')
   MGL.verbose = 0;
 end
@@ -63,6 +62,10 @@ if ~openDisplay && ~isempty(whichScreen) && (whichScreen >= 1)
 end
 
 if ~openDisplay
+  % default to showing that cocoa is not running
+  % mglPrivateOpen will later reset this if a 
+  % cocoa window has been opened
+  MGL.isCocoaWindow = 0;
   % clear the originalResolution
   MGL.originalResolution = [];
   % call the private mex function

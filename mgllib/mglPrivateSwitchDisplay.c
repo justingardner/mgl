@@ -37,8 +37,20 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 //-----------------------------------------------------------------------------------///
 #ifdef __APPLE__
 #ifdef __cocoa__
-    NSOpenGLContext *myOpenGLContext = (NSOpenGLContext*)(unsigned long)mglGetGlobalDouble("context");
-    [myOpenGLContext makeCurrentContext];
+  // If displayNumber > 0, then it's a CGL window.
+  if (displayNumber >= 0) {
+    if (mglGetGlobalDouble("isCocoaWindow")) {
+      // switch the cocoa openGLContext
+      NSOpenGLContext *myOpenGLContext = (NSOpenGLContext*)(unsigned long)mglGetGlobalDouble("context");
+      [myOpenGLContext makeCurrentContext];
+    }
+    else {
+      // switch the CGL context
+      CGLContextObj contextObj;
+      contextObj = (CGLContextObj)(unsigned long)mglGetGlobalDouble("context");
+      CGLSetCurrentContext(contextObj);
+    }
+  }
 //-----------------------------------------------------------------------------------///
 // **************************** mac carbon specific code  *************************** //
 //-----------------------------------------------------------------------------------///
