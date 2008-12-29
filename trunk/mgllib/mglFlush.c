@@ -36,10 +36,19 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 //-----------------------------------------------------------------------------------///
 #ifdef __APPLE__ 
 #ifdef __cocoa__
-  // cocoa, get openGLContext and flush
-  NSOpenGLContext *myOpenGLContext = (NSOpenGLContext*)(unsigned long)mglGetGlobalDouble("context");
-  if (myOpenGLContext)
-    [myOpenGLContext flushBuffer];
+  if (displayNumber > 0) {
+    // get the current context
+    CGLContextObj contextObj = CGLGetCurrentContext();
+    // and flip the double buffered screen
+    // this call waits for vertical blanking
+    CGLFlushDrawable(contextObj); 
+  }
+  else if (displayNumber == 0) {
+    // cocoa, get openGLContext and flush
+    NSOpenGLContext *myOpenGLContext = (NSOpenGLContext*)(unsigned long)mglGetGlobalDouble("context");
+    if (myOpenGLContext)
+      [myOpenGLContext flushBuffer];
+  }
 #else //__cocoa__
 //-----------------------------------------------------------------------------------///
 // **************************** mac carbon specific code  *************************** //
