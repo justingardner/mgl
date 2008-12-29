@@ -132,16 +132,44 @@ void mglPrivateOpenOnExit()
 // **************************** mac cocoa specific code  **************************** //
 //-----------------------------------------------------------------------------------///
 #ifdef __APPLE__
+///////////////////////////////
+//   function declarations   //
+///////////////////////////////
+unsigned long cglOpen(double *displayNumber, int *screenWidth, int *screenHeight);
+unsigned long aglOpen(double *displayNumber, int *screenWidth, int *screenHeight);
+unsigned long cocoaOpen(double *displayNumber, int *screenWidth, int *screenHeight);
+
 #ifdef __cocoa__
+////////////////////
+//   openDisplay  //
+////////////////////
+unsigned long openDisplay(double *displayNumber, int *screenWidth, int *screenHeight)
+{
+  unsigned long contextPointer;
+
+  if ((*displayNumber >= 1) || (*displayNumber < 0))
+    contextPointer = cglOpen(displayNumber,screenWidth,screenHeight);
+  else 
+    contextPointer = cocoaOpen(displayNumber,screenWidth,screenHeight);
+
+  return(contextPointer);
+}
+
 ////////////////////
 //   openWindow   //
 ////////////////////
-unsigned long openDisplay(double *displayNumber, int *screenWidth, int *screenHeight)
+unsigned long cocoaOpen(double *displayNumber, int *screenWidth, int *screenHeight)
 {
   NSOpenGLView *myOpenGLView;
   NSWindow *myWindow;
   NSWindowController *myWindowController;
   NSOpenGLContext *myOpenGLContext;
+
+  // check if we are running the desktop or not
+  mxArray *thislhs[1];
+  mxArray *thisrhs = mxCreateString("desktop");
+  mexCallMATLAB(1, thislhs, 1, &thisrhs, "usejava");
+  int isRunningDesktop = ((int)mxGetScalar(thislhs[0]) == 1);
 
   // get status of global variable that sets wether to display
   // verbose information
@@ -178,8 +206,12 @@ unsigned long openDisplay(double *displayNumber, int *screenWidth, int *screenHe
     // set initial size and location
     NSRect contentRect = NSMakeRect(100,100+*screenHeight,*screenWidth,*screenHeight);
 
-    // create the window
-    myWindow = [[NSWindow alloc] initWithContentRect:contentRect styleMask:NSTitledWindowMask|NSClosableWindowMask|NSMiniaturizableWindowMask|NSTexturedBackgroundWindowMask backing:NSBackingStoreBuffered defer:false];
+    // create the window, if we are running desktop, then open a borderless non backing
+    // store window because anything else causes problems
+    if (isRunningDesktop)
+      myWindow = [[NSWindow alloc] initWithContentRect:contentRect styleMask:NSBorderlessWindowMask backing:NSBackingStoreNonretained defer:false];
+    else
+      myWindow = [[NSWindow alloc] initWithContentRect:contentRect styleMask:NSTitledWindowMask|NSClosableWindowMask|NSMiniaturizableWindowMask|NSTexturedBackgroundWindowMask backing:NSBackingStoreBuffered defer:false];
     if (myWindow==nil){mexPrintf("(mglPrivateOpen) Could not create window\n");return;}
 
     // attach the openGL view
@@ -200,7 +232,7 @@ unsigned long openDisplay(double *displayNumber, int *screenWidth, int *screenHe
   [[myWindowController window] setContentSize:NSMakeSize(*screenWidth,*screenHeight)];
   [[myWindowController window] display];
 
-  // show window -- this is where the code gets hung up when the matlab desktop is running
+  // show window
   [myWindowController showWindow:nil];
 
   // set the openGL context as current
@@ -215,20 +247,17 @@ unsigned long openDisplay(double *displayNumber, int *screenWidth, int *screenHe
   // Set a full screen context
   if ((*displayNumber >= 1) || (*displayNumber < 0)){
     //  Set some options for going full screen
-    NSDictionary *fullScreenOptions = [NSDictionary dictionaryWithObject:
-				       [NSNumber numberWithBool:NO] forKey: NSFullScreenModeAllScreens];
+    NSArray *objects = [NSArray arrayWithObjects:[NSNumber numberWithBool:NO],[NSNumber numberWithInt:0],nil];
+    NSArray *keys = [NSArray arrayWithObjects:NSFullScreenModeAllScreens,NSFullScreenModeWindowLevel,nil];
+
+    NSDictionary *fullScreenOptions = [NSDictionary dictionaryWithObjects:objects forKeys:keys];
 
     // get all the screens
     NSArray *screens = [NSScreen screens];
 
-    // display number of -1 mean to display last screen
-    if (*displayNumber == -1) *displayNumber = [screens count];
-
     // now enter full screen mode
-    if (*displayNumber <= [screens count])
-      [[[myWindowController window] contentView] enterFullScreenMode:[screens objectAtIndex:(*displayNumber-1)] withOptions:fullScreenOptions];
-    else
-      mexPrintf("(mglPrivateOpen) Desired window %i exceeds maximum of %i\n",*displayNumber,(int)[screens count]);
+    [[[myWindowController window] contentView] enterFullScreenMode:[screens objectAtIndex:(*displayNumber-1)] withOptions:fullScreenOptions];
+
 
     // get the size of the relevant screen
     NSRect screenRect = [[screens objectAtIndex:(*displayNumber-1)] frame];
@@ -408,7 +437,7 @@ unsigned long aglOpen(double *displayNumber, int *screenWidth, int *screenHeight
   RepositionWindow (theWindow, NULL, kWindowCascadeOnMainScreen); 
   return((unsigned long)aglContextObj);
 }
-
+#endif //__cocoa__
 /////////////////
 //   cglOpen   //
 /////////////////
@@ -504,7 +533,7 @@ unsigned long cglOpen(double *displayNumber, int *screenWidth, int *screenHeight
 
   return((unsigned long)contextObj);
 }
-#endif //__cocoa__
+
 #endif //__APPLE__
 
 //-----------------------------------------------------------------------------------///

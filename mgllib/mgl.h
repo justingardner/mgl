@@ -52,7 +52,9 @@
 //  on 64bit, default to compiling cocoa, unless overridden
 #ifdef __x86_64__
 #ifndef __carbon__
+#ifndef __cocoa__
 #define __cocoa__
+#endif
 #endif //__carbon__
 #else //__x86_64__
 #ifndef __cocoa__
