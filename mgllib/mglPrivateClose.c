@@ -98,14 +98,23 @@ void cocoaClose(displayNumber,verbose)
   NSWindowController *myWindowController = (NSWindowController*)(unsigned long)mglGetGlobalDouble("windowController");
   NSOpenGLContext *myOpenGLContext = (NSOpenGLContext*)(unsigned long)mglGetGlobalDouble("context");
   // exit full screen mode
-  if (displayNumber >= 1)
+  if (displayNumber >= 1) {
+    if (verbose) mexPrintf("(mglPrivateClose) Closing full screen mode\n");
     [[[myWindowController window] contentView] exitFullScreenModeWithOptions:nil];
-  // orderOut (i.e. hide the window) -- subsequent mglOpen's will just unhide
-  [[myWindowController window] orderOut:nil];
+  }
+
+  // orderOut (i.e. hide the window) -- subsequent mglOpen's will just unhide --
+  // this is not necessary since we now deallocate the window
+  //  [[myWindowController window] orderOut:nil];
 
   if (verbose){
     mexPrintf("(mglPrivateClose) Retain counts are controller: %i window: %i view: %i openGLContext: %i\n",[myWindowController retainCount],[[myWindowController window] retainCount],[[[myWindowController window] contentView] retainCount],[myOpenGLContext retainCount]);
   }
+
+  if (verbose) mexPrintf("(mglPrivateClose) Releasing cocoa window\n");
+  [myWindowController release];
+  mglSetGlobalDouble("windowController",0);
+  mglSetGlobalDouble("context",0);
 
   // drain the pool
   [pool drain];

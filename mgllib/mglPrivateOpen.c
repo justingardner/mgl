@@ -187,6 +187,8 @@ unsigned long cocoaOpen(double *displayNumber, int *screenWidth, int *screenHeig
   // if there isn't we need to set everything up
   if (myWindowController == 0) {
 
+    if (verbose) mexPrintf("(mglPrivateOpen) Initializing cocoa window\n");
+
     // start the application -- i.e. connect our code to the window server
     NSApplicationLoad();
 
