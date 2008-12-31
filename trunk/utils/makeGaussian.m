@@ -14,7 +14,7 @@
 %
 %             xDeg2pix and yDeg2pix are optional arguments that specify the
 %             number of pixels per visual angle in the x and y dimension, respectively.
-%             If not specified, these values are derived from the open MGL screen (make
+%             If not specified, these values are derived from the open mgl screen (make
 %             sure you set mglVisualAngleCoordinates).
 %       e.g.:
 %
@@ -41,22 +41,20 @@ if ieNotDefined('yCenter'),yCenter = 0;end
 
 % defaults for xDeg2pix
 if ieNotDefined('xDeg2pix')
-  global MGL;
-  if ~isfield(MGL,'xDeviceToPixels')
-    disp(sprintf('(makeGrating) MGL is not initialized'));
+  if isempty(mglGetParam('xDeviceToPixels'))
+    disp(sprintf('(makeGrating) mgl is not initialized'));
     return
   end
-  xDeg2pix = MGL.xDeviceToPixels;
+  xDeg2pix = mglGetParam('xDeviceToPixels');
 end
 
 % defaults for yDeg2pix
 if ieNotDefined('yDeg2pix')
-  global MGL;
-  if ~isfield(MGL,'yDeviceToPixels')
-    disp(sprintf('(makeGrating) MGL is not initialized'));
+  if isempty(mglGetParam('yDeviceToPixels'))
+    disp(sprintf('(makeGrating) mgl is not initialized'));
     return
   end
-  yDeg2pix = MGL.yDeviceToPixels;
+  yDeg2pix = mglGetParam('yDeviceToPixels');
 end
 
 % get size in pixels
