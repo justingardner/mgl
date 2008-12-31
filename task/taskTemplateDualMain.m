@@ -111,7 +111,6 @@ end % going through segments
 function [task myscreen] = responseCallback(task, myscreen)
 
 global stimulus;
-global MGL;
 
 % make sure the response is a 1 or a 2
 if(or(task.thistrial.whichButton == 1,task.thistrial.whichButton == 2))
@@ -119,10 +118,10 @@ if(or(task.thistrial.whichButton == 1,task.thistrial.whichButton == 2))
   % see if we got a correct or incorrect answer
   if task.thistrial.whichButton == 0.1*(task.thistrial.deltaOR+15) % 1 for CCW, 2 for CW
     % play the correct sound
-    mglPlaySound(find(strcmp(MGL.soundNames,'Glass')));
+    mglPlaySound('Glass');
   else
     % play the incorrect sound
-    mglPlaySound(find(strcmp(MGL.soundNames,'Basso')));
+    mglPlaySound('Basso');
   end  
 
 % move on to the next segment once you get a response
