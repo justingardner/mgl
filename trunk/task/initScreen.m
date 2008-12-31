@@ -5,12 +5,9 @@
 %         by: justin gardner
 %       date: 12/10/04
 %  copyright: (c) 2006 Justin Gardner (GPL see mgl/COPYING)
-%    purpose: init screen parameters (using MGL)
+%    purpose: init screen parameters (using mgl)
 %
 function myscreen = initScreen(myscreen,randstate)
-
-% get globals
-global MGL;
 
 % set version number
 myscreen.ver = 1.1;
@@ -38,7 +35,7 @@ screenParams{end+1} = {'stimulus-g5.local','projector',2,1024,768,57,[31 23],60,
 screenParams{end+1} = {'stimulus-g5.local','lcd',2,800,600,157.5,[43.2 32.5],60,0,50,[0 1 0.4790 0 1 0.4790 0 1 0.4790],'',[0 0]};
 %screenParams{end+1} = {'eigenstate','',0,1440,900,57,[31 23],60,1,0,defaultMonitorGamma,''};
 screenParams{end+1} = {'eigenstate','',0,800,600,57,[31 23],60,1,0,defaultMonitorGamma,'',[0 0]};
-screenParams{end+1} = {'eigenworld','',0,1440,900,57,[31 23],60,1,0,defaultMonitorGamma,'',[0 0]};
+%screenParams{end+1} = {'eigenworld','',0,1440,900,57,[31 23],60,1,0,defaultMonitorGamma,'',[0 0]};
 screenParams{end+1} = {'dhcp.bnf.brain.riken.jp','',0,1024,768,57,[31 23],60,1,0,defaultMonitorGamma,'',[0 0]};
 screenParams{end+1} = {'alta','',[],1024,768,57,[31 23],60,1,0,defaultMonitorGamma,'',[0 0]};
 screenParams{end+1} = {'dsltop','',0,400,300,57,[18 24],60,1,0,defaultMonitorGamma,'',[0 0]};
@@ -159,15 +156,15 @@ if ~isfield(myscreen,'allowpause')
 end
 myscreen.paused = 0;
 
-% init the MGL screen
+% init the mgl screen
 if ~isempty(myscreen.screenNumber)
   % setting with specified screenNumber
   mglOpen(myscreen.screenNumber, myscreen.screenWidth, myscreen.screenHeight, myscreen.framesPerSecond);
 else
   % otherwise open a default window
   mglOpen;
-  myscreen.screenWidth = MGL.screenWidth;
-  myscreen.screenHeight = MGL.screenHeight;
+  myscreen.screenWidth = mglGetParam('screenWidth');
+  myscreen.screenHeight = mglGetParam('screenHeight');
 end
 
 % use visual angle coordinates
@@ -179,8 +176,8 @@ if isempty(myscreen.displayDistance) | isempty(myscreen.displaySize)
 end
 
 mglVisualAngleCoordinates(myscreen.displayDistance,myscreen.displaySize);
-myscreen.imageWidth = MGL.deviceWidth;
-myscreen.imageHeight = MGL.deviceHeight;
+myscreen.imageWidth = mglGetParam('deviceWidth');
+myscreen.imageHeight = mglGetParam('deviceHeight');
 
 % flip the screen appropriately
 if myscreen.flipHV(1)
@@ -239,8 +236,7 @@ if gammaNotSet
   disp(sprintf('(initScreen) Correcting for monitor gamma of %0.2f',myscreen.monitorGamma));
   
   % now get current gamma table
-  global MGL;
-  gammaTable = MGL.initialGammaTable;
+  gammaTable = mglGetParam('initialGammaTable');
   % and use linear interpolation to correct the current table to
   % make it 1/monitor gamma.
   correctedValues = ((0:1/255:1).^(1/myscreen.monitorGamma));
@@ -269,7 +265,7 @@ else
   myscreen.background = myscreen.black;
 end
 
-% set background color  - MGL
+% set background color  - mgl
 mglClearScreen(myscreen.background);
 mglFlush();
 mglClearScreen(myscreen.background);

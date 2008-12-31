@@ -5,7 +5,7 @@
 %         by: justin gardner
 %       date: 12/10/04
 %  copyright: (c) 2006 Justin Gardner (GPL see mgl/COPYING)
-%    purpose: flip screen and update counter - for MGL
+%    purpose: flip screen and update counter - for mgl
 %
 function [myscreen task] = tickScreen(myscreen,task)
 

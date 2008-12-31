@@ -1,17 +1,17 @@
-% taskTemplateStaticStaircase.m
+% taskTemplateStaircase.m
 %
-%        $Id$
-%      usage: taskTemplateStaticStaircase
+%        $Id: taskTemplateStaircase.m 231 2007-04-20 22:50:46Z justin $
+%      usage: taskTemplateStaircase
 %         by: justin gardner
 %       date: 01/27/07
 %  copyright: (c) 2007 Justin Gardner (GPL see mgl/COPYING)
 %    purpose: oriented grating stimulus
 %
-function myscreen = taskTemplateFlashingStaircase
+function myscreen = taskTemplateStaircase
 
 % check arguments
 if ~any(nargin == [0])
-  help taskTemplateStaticStaircase
+  help taskTemplateStaircase
   return
 end
 
@@ -117,7 +117,6 @@ end
 function [task myscreen] = responseCallback(task, myscreen)
 
 global stimulus;
-global MGL;
 % make sure we have not already received a response
 if ~task.thistrial.gotResponse
   % get which staircase we are working on
@@ -131,14 +130,14 @@ if ~task.thistrial.gotResponse
     % update staircase
     stimulus.stair{staircaseNum} = upDownStaircase(stimulus.stair{staircaseNum},1);
     % play the correct sound
-    mglPlaySound(find(strcmp(MGL.soundNames,'Tink')));
+    mglPlaySound('Tink');
   else
     % set the incorrect text to draw
     task.thistrial.responseText = stimulus.incorrectTextTex;
     % update staircase
     stimulus.stair{staircaseNum} = upDownStaircase(stimulus.stair{staircaseNum},0);
     % play the incorrect sound
-    mglPlaySound(find(strcmp(MGL.soundNames,'Pop')));
+    mglPlaySound('Pop');
   end  
 end
 
