@@ -171,7 +171,6 @@ unsigned long cocoaOpen(double *displayNumber, int *screenWidth, int *screenHeig
   // or -nojvm).
   NSOpenGLView *myOpenGLView;
   NSWindow *myWindow;
-  NSWindowController *myWindowController;
   NSOpenGLContext *myOpenGLContext;
 
   // get status of global variable that sets wether to display
@@ -181,11 +180,11 @@ unsigned long cocoaOpen(double *displayNumber, int *screenWidth, int *screenHeig
   // start auto release pool
   NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
 
-  // see if there is an existing window controller
-  myWindowController = (NSWindowController*)(unsigned long)mglGetGlobalDouble("windowController");
+  // see if there is an existing window
+  myWindow = (NSWindow*)(unsigned long)mglGetGlobalDouble("window");
 
   // if there isn't we need to set everything up
-  if (myWindowController == 0) {
+  if (myWindow == 0) {
 
     if (verbose) mexPrintf("(mglPrivateOpen) Initializing cocoa window\n");
 
@@ -207,6 +206,7 @@ unsigned long cocoaOpen(double *displayNumber, int *screenWidth, int *screenHeig
     myOpenGLView = [[NSOpenGLView alloc] initWithFrame:NSMakeRect(0,0,0,0) pixelFormat:myPixelFormat];
     if (myOpenGLView==nil){mexPrintf("(mglPrivateOpen) Could not create openGLView\n");return;}
     [myPixelFormat release];
+    if (verbose) mexPrintf("(mglPrivateOpen) Created openGLView: %x\n",(unsigned long)myOpenGLView);
 
     // set initial size and location
     NSRect contentRect = NSMakeRect(100,100+*screenHeight,*screenWidth,*screenHeight);
@@ -218,32 +218,28 @@ unsigned long cocoaOpen(double *displayNumber, int *screenWidth, int *screenHeig
     else
       myWindow = [[NSWindow alloc] initWithContentRect:contentRect styleMask:NSTitledWindowMask|NSClosableWindowMask|NSMiniaturizableWindowMask|NSTexturedBackgroundWindowMask backing:NSBackingStoreBuffered defer:false];
     if (myWindow==nil){mexPrintf("(mglPrivateOpen) Could not create window\n");return;}
+    if (verbose) mexPrintf("(mglPrivateOpen) Created window: %x\n",(unsigned long)myWindow);
 
     // attach the openGL view
     [myWindow setContentView:myOpenGLView];
+
+    // release the openGLView
     [myOpenGLView release];
-
-    // open with a window controller
-    myWindowController = [[NSWindowController alloc] initWithWindow:myWindow];
-    if (myWindowController==nil){mexPrintf("(mglPrivateOpen) Could not create window controller\n");return;}
-    [myWindow release];
-  }
-
-  // make sure that the window won't show until we want it to.
-  [[myWindowController window] setAlphaValue:0];
-
-  // set window size
-  [[[myWindowController window] contentView] setFrame:NSMakeRect(0,0,*screenWidth,*screenHeight)];
-  [[myWindowController window] setContentSize:NSMakeSize(*screenWidth,*screenHeight)];
-  [[myWindowController window] display];
-
-  // show window
-  [myWindowController showWindow:nil];
+  } 
 
   // set the openGL context as current
-  myOpenGLContext = [[[myWindowController window] contentView] openGLContext];
+  myOpenGLContext = [[myWindow contentView] openGLContext];
   [myOpenGLContext makeCurrentContext];
-  [[[myWindowController window] contentView] prepareOpenGL];
+  [[myWindow contentView] prepareOpenGL];
+  if (verbose) mexPrintf("(mglPrivateOpen) Setting openGLContext: %x\n",(unsigned long)myOpenGLContext);
+
+  // make sure that the window won't show until we want it to.
+  [myWindow setAlphaValue:0];
+
+  // show window
+  if (verbose) mexPrintf("(mglPrivateOpen) Show window\n");
+  [myWindow makeKeyAndOrderFront: nil];
+  [myWindow display];
 
   // set the swap interval so that flush waits for vertical refresh
   const GLint swapInterval = 1;
@@ -251,6 +247,9 @@ unsigned long cocoaOpen(double *displayNumber, int *screenWidth, int *screenHeig
 
   // Set a full screen context
   if ((*displayNumber >= 1) || (*displayNumber < 0)){
+    // display message
+    if (verbose) mexPrintf("(mglPrivateOpen) Going full screen\n");
+
     //  Set some options for going full screen
     NSArray *objects = [NSArray arrayWithObjects:[NSNumber numberWithBool:NO],[NSNumber numberWithInt:0],nil];
     NSArray *keys = [NSArray arrayWithObjects:NSFullScreenModeAllScreens,NSFullScreenModeWindowLevel,nil];
@@ -261,8 +260,7 @@ unsigned long cocoaOpen(double *displayNumber, int *screenWidth, int *screenHeig
     NSArray *screens = [NSScreen screens];
 
     // now enter full screen mode
-    [[[myWindowController window] contentView] enterFullScreenMode:[screens objectAtIndex:(*displayNumber-1)] withOptions:fullScreenOptions];
-
+    [[myWindow contentView] enterFullScreenMode:[screens objectAtIndex:(*displayNumber-1)] withOptions:fullScreenOptions];
 
     // get the size of the relevant screen
     NSRect screenRect = [[screens objectAtIndex:(*displayNumber-1)] frame];
@@ -270,22 +268,23 @@ unsigned long cocoaOpen(double *displayNumber, int *screenWidth, int *screenHeig
     *screenHeight = screenRect.size.height;
   } 
   else {
+    if (verbose) mexPrintf("(mglPrivateOpen) Setting window alpha\n");
     // for a windowed context, we don't have to go full screen, just set alpha
     if (*displayNumber > 0)
       // set alpha, if displayNumber is not == 0
-      [[myWindowController window] setAlphaValue:*displayNumber];
+      [myWindow setAlphaValue:*displayNumber];
     else
-      [[myWindowController window] setAlphaValue:1];
-
+      [myWindow setAlphaValue:1];
   }
 
-  // remember the windowController
-  mglSetGlobalDouble("windowController",(unsigned long)myWindowController);
+  // remember the window
+  mglSetGlobalDouble("window",(unsigned long)myWindow);
   // and that this is a cocoa window
   mglSetGlobalDouble("isCocoaWindow",1);
 
   // drain the pool
   [pool drain];
+  if (verbose) mexPrintf("(mglPrivateOpen) pool is drained\n");
 
   // return openGL context
   return((unsigned long)myOpenGLContext);

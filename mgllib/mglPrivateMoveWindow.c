@@ -34,8 +34,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 //-----------------------------------------------------------------------------------///
 #ifdef __APPLE__
 #ifdef __cocoa__
-  NSWindowController *myWindowController = (NSWindowController*)(unsigned long)mglGetGlobalDouble("windowController");
-  [[myWindowController window] setFrameTopLeftPoint:NSMakePoint((float)left,(float)top)];
+  NSWindow *myWindow = (NSWindow*)(unsigned long)mglGetGlobalDouble("window");
+  [myWindow setFrameTopLeftPoint:NSMakePoint((float)left,(float)top)];
 //-----------------------------------------------------------------------------------///
 // **************************** mac carbon specific code  *************************** //
 //-----------------------------------------------------------------------------------///

@@ -162,8 +162,8 @@ if isempty(newIndex)
   clear global MGL
   MGL.displayNumber = -1;
   MGL.displayID = displayID;
-  if isfield(MGL,'windowController')
-    MGL = rmfield(MGL,'windowController');
+  if isfield(MGL,'window')
+    MGL = rmfield(MGL,'window');
   end
   % otherwise switch to the correct display
 else

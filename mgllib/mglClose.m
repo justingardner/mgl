@@ -15,11 +15,8 @@ if ~any(nargin == [0])
   return
 end
 
-% we need to access the MGL global
-global MGL;
-
 % if no display open, then nothing to do
-if isempty(MGL) || ~isfield(MGL,'displayNumber') || (MGL.displayNumber == -1)
+if mglGetParam('displayNumber') == -1
   disp(sprintf('(mglClose) No display is open'));
   return
 end
@@ -28,34 +25,38 @@ end
 mglClearScreen(0);mglFlush;mglClearScreen(0);mglFlush;
 
 % restore gamma table, if any
-if isfield(MGL,'initialGammaTable') && ~isempty(MGL.initialGammaTable)
-  mglSetGammaTable(MGL.initialGammaTable);
+if ~isempty(mglGetParam('initialGammaTable'))
+  mglSetGammaTable(mglGetParam('initialGammaTable'));
 end
 
-if isfield(MGL,'sounds')
+if ~isempty(mglGetParam('sounds'))
   % uninstall sounds
   mglInstallSound;
-  MGL.soundNames = {};
+  mglSetParam('sounds',[]);
+  mglSetParam('soundNames',{});
 end
   
 % free any existing movies
-if isfield(MGL,'movieStructs')
-  for i = 1:length(MGL.movieStructs)
-    if ~isempty(MGL.movieStructs{i})
-      m = MGL.movieStructs{i};
+movieStructs = mglGetParam('movieStructs');
+if ~isempty(movieStructs)
+  for i = 1:length(movieStructs)
+    if ~isempty(movieStructs{i})
+      m = movieStructs{i};
       m.id = i;
       mglMovie(m,'close');
     end
   end
-  MGL.movieStructs = {};
+  mglSetParam('movieStructs',{});
 end
 
+% run mex function to actually close display
 mglPrivateClose;
 
 % reset resolution if necessary
-if (isfield(MGL,'originalResolution') && ~isempty(MGL.originalResolution))
-  if MGL.verbose
+originalResolution = mglGetParam('originalResolution');
+if ~isempty(originalResolution)
+  if mglGetParam('verbose')
     disp(sprintf('(mglClose) Restoring resolution'));
   end
-  mglResolution(MGL.originalResolution);
+  mglResolution(originalResolution);
 end
