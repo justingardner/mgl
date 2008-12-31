@@ -25,15 +25,13 @@ mglTextSet('Helvetica',64,[1 1 1],0,0,0,0,0,0,0);
 if (exist('hFlip','var')==1) & (hFlip == 1),mglHFlip;,end
 if (exist('vFlip','var')==1) & (vFlip == 1),mglVFlip;,end
 
-global MGL;
-
 % get the height of text
 abcTexture = mglText(['A':'Z' 'a':'z']);
 textHeight = abcTexture.imageHeight;
-textHeightDevice = textHeight*MGL.yPixelsToDevice;
+textHeightDevice = textHeight*mglGetParam('yPixelsToDevice');
 
 % get the maximum number of lines we can display
-maxlines = floor(MGL.screenHeight/textHeight)-1;
+maxlines = floor(mglGetParam('screenHeight')/textHeight)-1;
 
 % some init values
 str = 'start';textnum = 1;
@@ -48,9 +46,10 @@ while ~isempty(str)
   voffset = textHeightDevice;
   % clear screen
   mglClearScreen;
+  deviceRect = mglGetParam('deviceRect');
   % now go through and draw all text lines in memory
   for i = 1:min(length(textTexture),maxlines)
-    mglBltTexture(textTexture(i),[MGL.deviceRect(1) MGL.deviceRect(4)-voffset],-1,-1);
+    mglBltTexture(textTexture(i),[deviceRect(1) deviceRect(4)-voffset],-1,-1);
     voffset = voffset+textHeightDevice;
   end
   % and flush screen

@@ -118,13 +118,12 @@ if ~isfield(calib,'bittest') || ~isfield(calib,'uncorrected') || ...
         mglOpen(calib.screenNumber);
     end
 
-    % save monitor settings that MGL actually opened the monitor to
-    global MGL;
-    calib.screenNumber = MGL.displayNumber;
-    calib.monitor.screenWidth = MGL.screenWidth;
-    calib.monitor.screenHeight = MGL.screenHeight;
-    calib.monitor.frameRate = MGL.frameRate;
-    calib.monitor.bitDepth = MGL.bitDepth;
+    % save monitor settings that mgl actually opened the monitor to
+    calib.screenNumber = mglGetParam('displayNumber');
+    calib.monitor.screenWidth = mglGetParam('screenWidth');
+    calib.monitor.screenHeight = mglGetParam('screenHeight');
+    calib.monitor.frameRate = mglGetParam('frameRate');
+    calib.monitor.bitDepth = mglGetParam('bitDepth');
 end
 
 if ~justdisplay && ~isempty(portnum)

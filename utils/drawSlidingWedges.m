@@ -18,7 +18,7 @@ function t_elapsed=drawSlidingWedges( stimDuration, ...
 %		                  slidingSpeed, fixationParams] );
 %
 % Draws (optionally truncated) wedges containing radially sliding
-% checkerboards on current MGL drawing context. 
+% checkerboards on current mgl drawing context. 
 % 
 %    INPUT VARIABLE : DESCRIPTION
 %      stimDuration : display duration of wedge (s). Can also be a 3-vector:
@@ -298,7 +298,7 @@ for nCyc=1:nCycles
       end
     end
     
-    % flush MGL buffer
+    % flush mgl buffer
     mglFlush;
     
     % measure elapsed time
