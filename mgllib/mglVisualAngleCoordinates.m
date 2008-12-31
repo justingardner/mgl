@@ -5,7 +5,7 @@ function mglVisualAngleCoordinates(physicalDistance,physicalSize);
 %        $Id$
 % Sets view transformation to correspond to visual angles (in degrees)
 % given size and distance of display. Display must be open and have 
-% valid width and height (defined in MGL variable)
+% valid width and height (retrieved using mglGetParam
 %
 %       physicalDistance': [distance] <in cm>
 %           physicalSize': [xsize ysize] <in cm> 
@@ -20,35 +20,35 @@ if ~any(nargin==[2])
   return
 end
 
-% declare MGL global
-global MGL
-
-if ~isfield(MGL,'displayNumber') || (MGL.displayNumber < 0)
+if mglGetParam('displayNumber') == -1
   disp(sprintf('(mglVisualAngleCoordinates) No open display'));
   return
 end
 
-% get old settings
-oldMGL = MGL;
+% remember old settings
+oldDeviceHDirection = mglGetParam('deviceHDirection');
+oldDeviceVDirection = mglGetParam('deviceVDirection');
+oldXDeviceToPixels = mglGetParam('xDeviceToPixels');
+oldYDeviceToPixels = mglGetParam('yDeviceToPixels');
 
 % get distance and size of screen (either from
 % passed in variables or from global
 if (exist('physicalDistance','var') & length(physicalDistance)==1)
-  MGL.devicePhysicalDistance=physicalDistance;
+  mglSetParam('devicePhysicalDistance',physicalDistance);
 end
 if (exist('physicalSize','var') & length(physicalSize)==2)
-  MGL.devicePhysicalSize=physicalSize;
+  mglSetParam('devicePhysicalSize',physicalSize);
 end
 
 % some defaults if they don't exist
-if (~isfield(MGL,'devicePhysicalDistance') | isempty(MGL.devicePhysicalDistance))
-  MGL.devicePhysicalDistance=1;
+if isempty(mglGetParam('devicePhysicalDistance'))
+  mglSetParam('devicePhysicalDistance',1);
 end
-if (~isfield(MGL,'devicePhysicalSize') | isempty(MGL.devicePhysicalSize))
-  MGL.devicePhysicalSize=[1 1];
+if isempty(mglGetParam('devicePhysicalSize'))
+  mglSetParam('devicePhysicalSize',[1 1]);
 end
-if (~isfield(MGL,'deviceOrigin') | isempty(MGL.deviceOrigin))
-  MGL.deviceOrigin=[0 0 0];
+if isempty(mglGetParam('deviceOrigin'))
+  mglSetParam('deviceOrigin',[0 0 0]);
 end
 
 % set the transforms to identity
@@ -66,46 +66,49 @@ mglTransform('GL_TEXTURE','glLoadIdentity')
 % If we correctly calculated the visual angle subtended separately for each dimension,
 % a rectangle defined by (-1,-1) to (1,1) would not be exactly quadratic.
 
-%MGL.deviceWidth=360*atan(MGL.devicePhysicalSize(1)/MGL.devicePhysicalDistance)/(2*pi);
-%MGL.deviceHeight=360*atan(MGL.devicePhysicalSize(2)/MGL.devicePhysicalDistance)/(2*pi);
-%MGL.deviceWidth=2*atan(0.5*MGL.devicePhysicalSize(1)/MGL.devicePhysicalDistance)/pi*180;
-MGL.deviceHeight=2*atan(0.5*MGL.devicePhysicalSize(2)/MGL.devicePhysicalDistance)/pi*180;
-MGL.deviceWidth=MGL.deviceHeight/MGL.screenHeight*MGL.screenWidth;
+
+devicePhysicalSize = mglGetParam('devicePhysicalSize');
+%mglSetParam('deviceWidth',360*atan(devicePhysicalSize(1)/mglGetParam('devicePhysicalDistance'))/(2*pi));
+%mglSetParam('deviceHeight',360*atan(devicePhysicalSize(2)/mglGetParam('devicePhysicalDistance'))/(2*pi));
+%mglSetParam('deviceWidth',2*atan(0.5*devicePhysicalSize(1)/mglGetParam('devicePhysicalDistance'))/pi*180);
+mglSetParam('deviceHeight',2*atan(0.5*devicePhysicalSize(2)/mglGetParam('devicePhysicalDistance'))/pi*180);
+mglSetParam('deviceWidth',mglGetParam('deviceHeight')/mglGetParam('screenHeight')*mglGetParam('screenWidth'));
 
 % display if verbose
-if (MGL.verbose)
-  disp(sprintf('(mglVisualAngleCoordinates) %0.2f x %0.2f (deg)',MGL.deviceWidth,MGL.deviceHeight));
+if (mglGetParam('verbose'))
+  disp(sprintf('(mglVisualAngleCoordinates) %0.2f x %0.2f (deg)',mglGetParam('deviceWidth'),mglGetParam('deviceHeight')));
 end
 
 %calculate the number of pixels per degree
-MGL.xDeviceToPixels=MGL.screenWidth/MGL.deviceWidth;
-MGL.yDeviceToPixels=MGL.screenHeight/MGL.deviceHeight;
+mglSetParam('xDeviceToPixels',mglGetParam('screenWidth')/mglGetParam('deviceWidth'));
+mglSetParam('yDeviceToPixels',mglGetParam('screenHeight')/mglGetParam('deviceHeight'));
 
 % calculate the opposite
-MGL.xPixelsToDevice=1/MGL.xDeviceToPixels;
-MGL.yPixelsToDevice=1/MGL.yDeviceToPixels;
+mglSetParam('xPixelsToDevice',1/mglGetParam('xDeviceToPixels'));
+mglSetParam('yPixelsToDevice',1/mglGetParam('yDeviceToPixels'));
 
 % Set the device rect, based on the center being 0,0
-maxx=MGL.deviceWidth/2;minx=-maxx;
-maxy=MGL.deviceHeight/2;miny=-maxy;
-MGL.deviceRect=[minx miny maxx maxy];
+maxx=mglGetParam('deviceWidth')/2;minx=-maxx;
+maxy=mglGetParam('deviceHeight')/2;miny=-maxy;
+mglSetParam('deviceRect',[minx miny maxx maxy]);
 
 % set the transforms 
-mglTransform('GL_MODELVIEW','glScale',2/MGL.deviceWidth,2/MGL.deviceHeight,1);
-mglTransform('GL_MODELVIEW','glTranslate',MGL.deviceOrigin(1),MGL.deviceOrigin(2),MGL.deviceOrigin(3));
+deviceOrigin = mglGetParam('deviceOrigin');
+mglTransform('GL_MODELVIEW','glScale',2/mglGetParam('deviceWidth'),2/mglGetParam('deviceHeight'),1);
+mglTransform('GL_MODELVIEW','glTranslate',deviceOrigin(1),deviceOrigin(2),deviceOrigin(3));
 mglTransform('GL_PROJECTION','glLoadIdentity')
 
-MGL.deviceCoords = 'visualAngle';
-MGL.screenCoordinates=0;
-MGL.deviceHDirection = 1;
-MGL.deviceVDirection = 1;
+mglSetParam('deviceCoords','visualAngle');
+mglSetParam('screenCoordinates',0);
+mglSetParam('deviceHDirection',1);
+mglSetParam('deviceVDirection',1);
 
 % check to see if textures need to be recreated
-if (MGL.numTextures > 0) && ...
-      (oldMGL.deviceHDirection ~= MGL.deviceHDirection) && ...
-      (oldMGL.deviceVDirection ~= MGL.deviceVDirection) && ...
-      (oldMGL.xDeviceToPixels ~= MGL.xDeviceToPixels) && ...
-      (oldMGL.yDeviceToPixels ~= MGL.yDeviceToPixels)
+if (mglGetParam('numTextures') > 0) && ...
+      (oldDeviceHDirection ~= mglGetParam('deviceHDirection')) && ...
+      (oldDeviceVDirection ~= mglGetParam('deviceVDirection')) && ...
+      (oldXDeviceToPixels ~= mglGetParam('xDeviceToPixels')) && ...
+      (oldYDeviceToPixels ~= mglGetParam('yDeviceToPixels'))
   disp(sprintf('(mglVisualAngleCoordinates) All previously created textures will need to be reoptimized with mglReoptimizeTexture'));
 end
 

@@ -115,7 +115,7 @@ if ~openDisplay
     end
   end
 
-  % remember the frameRate and bitDepth in the MGL global
+  % remember the frameRate and bitDepth in the global
   mglSetParam('frameRate',frameRate);
   mglSetParam('bitDepth',bitDepth);
 

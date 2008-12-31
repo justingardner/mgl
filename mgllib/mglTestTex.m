@@ -9,9 +9,6 @@
 %
 function retval = mglTestTex(screenNumber)
 
-% get MGL global
-global MGL;
-
 % check arguments
 if ~any(nargin == [0 1])
   help mglTestTex
@@ -88,7 +85,7 @@ texPos(:,2) = texPos(:,2)*(texHeight/2+2);
 % this is the main display loop
 numsec = 5;
 starttime = mglGetSecs;
-for i = 1:MGL.frameRate*numsec
+for i = 1:mglGetParam('frameRate')*numsec
   % calculate next phase step to display
   thisPhase = mod(i,nsteps)+1;
   thisPhase2 = mod(nsteps-i,nsteps)+1;
@@ -98,7 +95,7 @@ for i = 1:MGL.frameRate*numsec
   % and display four gabor patches
   mglBltTexture(tex([thisPhase thisPhase2 thisPhase thisPhase2]),texPos,0,0,[0 45 90 135]);
   % and the rotating one at the center
-  mglBltTexture(tex(1),[0 0 6 6],0,0,360*i/(MGL.frameRate*numsec));
+  mglBltTexture(tex(1),[0 0 6 6],0,0,360*i/(mglGetParam('frameRate')*numsec));
   %disp(sprintf('mglBltTexture: %f',(mglGetSecs-startBlt)*1000));
   % flush buffers
   mglFlush;
@@ -111,7 +108,7 @@ mglClose;
 % check how long it ran for
 disp(sprintf('Ran for: %0.8f sec Intended: %0.8f sec',endtime-starttime,numsec));
 disp(sprintf('Difference from intended: %0.8f ms',1000*((endtime-starttime)-numsec)));
-disp(sprintf('Number of frames lost: %i/%i (%0.2f%%)',round(((endtime-starttime)-numsec)*MGL.frameRate),numsec*MGL.frameRate,100*(((endtime-starttime)-numsec)*MGL.frameRate)/(MGL.frameRate*numsec)));
+disp(sprintf('Number of frames lost: %i/%i (%0.2f%%)',round(((endtime-starttime)-numsec)*mglGetParam('frameRate')),numsec*mglGetParam('frameRate'),100*(((endtime-starttime)-numsec)*mglGetParam('frameRate'))/(mglGetParam('frameRate')*numsec)));
 
 
 

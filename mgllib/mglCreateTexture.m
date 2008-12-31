@@ -40,17 +40,14 @@ else
   textureAxes = 0;
 end
 
-% MGL global
-global MGL;
-
 % set all the params into a single array for quick access
 % note that this also keeps the device to pixel transforms
 % which _could_ change if you change coordinates
 texture.allParams = [texture.textureNumber texture.imageWidth ...
 		    texture.imageHeight textureAxes ...
-		    texture.hFlip texture.vFlip 0 0 MGL.xPixelsToDevice ...
-		    MGL.yPixelsToDevice MGL.deviceHDirection ...
-		    MGL.deviceVDirection MGL.verbose];
+		    texture.hFlip texture.vFlip 0 0 mglGetParam('xPixelsToDevice') ...
+		    mglGetParam('yPixelsToDevice') mglGetParam('deviceHDirection') ...
+		    mglGetParam('deviceVDirection') mglGetParam('verbose')];
 
 % increment the texture count
-MGL.numTextures = MGL.numTextures+1;
+mglSetParam('numTextures',mglGetParam('numTextures')+1);

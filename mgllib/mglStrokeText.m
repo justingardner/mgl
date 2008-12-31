@@ -3,7 +3,7 @@ function mglStrokeText( string, x, y, scalex, scaley, linewidth, ...
 % [x,y]=mglStrokeText( string, x, y, scalex, scaley, linewidth, color, rotation );
 %
 %  copyright: (c) 2006 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
-% Draws a stroked fixed-width character or string on MGL display. Default width
+% Draws a stroked fixed-width character or string on mgl display. Default width
 % is 1, default height 1.8 (in current screen coordinates)
 % INPUT:
 %        $Id$

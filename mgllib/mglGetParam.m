@@ -4,9 +4,9 @@
 %      usage: mglGetParam(paramName);
 %         by: justin gardner
 %       date: 12/30/08
-%    purpose: Set MGL parameters
+%    purpose: Get MGL parameters
 %
-%mglGetParam('verbose',1);
+%verbose = mglGetParam('verbose');
 function retval  = mglGetParam(paramName)
 
 % default to returning empty
@@ -30,7 +30,7 @@ else
     retval = -1;
   end
   % special case for soundNames, default to cell array
-  if strcmp(paramName,'soundNames')
+  if strcmp(paramName,'soundNames') || strcmp(paramName,'movieStructs')
     retval = {};
   end
 end

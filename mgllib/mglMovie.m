@@ -55,8 +55,7 @@ if ~any(nargin == [1 2 3 4])
 end
 
 % check for open display
-global MGL;
-if ~isfield(MGL,'displayNumber') || (MGL.displayNumber == -1)
+if mglGetParam('displayNumber') == -1
   disp(sprintf('(mglMovie) You must use mglOpen to open a display before using this command'));
   return
 end
@@ -70,9 +69,9 @@ if isstr(varargin{1})
   filename = varargin{1};
   % see if we have a position
   if length(varargin) < 2
-    position = [0 0 MGL.screenWidth MGL.screenHeight];
+    position = [0 0 mglGetParam('screenWidth') mglGetParam('screenHeight')];
   elseif isvector(varargin{2})
-    position = [0 0 MGL.screenWidth MGL.screenHeight];
+    position = [0 0 mglGetParam('screenWidth') mglGetParam('screenHeight')];
     if length(varargin{2}) >= 1,position(1) = varargin{2}(1);,end
     if length(varargin{2}) >= 2,position(2) = varargin{2}(2);,end
     if length(varargin{2}) >= 3,position(3) = varargin{2}(3);,end
@@ -82,14 +81,12 @@ if isstr(varargin{1})
   movieStruct = mglPrivateMovie(filename,position);
   % if we got a non-empty
   if ~isempty(movieStruct)
-    % add it to MGL registration
-    if ~isfield(MGL,'movieStructs')
-      MGL.movieStructs{1} = movieStruct;
-      movieStruct.id = 1;
-    else
-      MGL.movieStructs{end+1} = movieStruct;
-      movieStruct.id = length(MGL.movieStructs);
-    end
+    % add it to global registration
+    movieStructs = mglGetParam('movieStructs');
+    movieStructs{end+1} = movieStruct;
+    mglSetParam('movieStructs',movieStructs);
+    % set the id of the movieStruct
+    movieStruct.id = length(movieStructs);
     % tack on filename to structure
     movieStruct.filename = filename;
   end
@@ -125,8 +122,9 @@ if isstruct(varargin{1})
     disp(sprintf('(mglMovie) Unrecogonized command'));
     return
   end
-  % now check to see if object is registered in MGL
-  if ~isfield(MGL,'movieStructs') || (length(MGL.movieStructs) < m.id) || isempty(MGL.movieStructs{m.id}) || (MGL.movieStructs{m.id}.moviePointer ~= m.moviePointer)
+  % now check to see if object is registered in global
+  movieStructs = mglGetParam('movieStructs');
+  if (length(movieStructs) < m.id) || isempty(movieStructs{m.id}) || (movieStructs{m.id}.moviePointer ~= m.moviePointer)
     disp(sprintf('(mglMovie) Movie struct is no longer valid (either it has been closed or it was made for a different display)'));
     return
   end
@@ -144,9 +142,11 @@ if isstruct(varargin{1})
     % commands with no arguments
     retval = mglPrivateMovie(m,command);
   end
-  % if command was a close, then remove struct from MGL
+  % if command was a close, then remove struct from global
   if command == 0
-    MGL.movieStructs{m.id} = [];
+    movieStructs = mglGetParam('movieStructs');
+    movieStructs{m.id} = [];
+    mglSetParam('movieStructs',movieStructs);
   end
   % return any return value
   if ~isempty(retval),movieStruct = retval;end

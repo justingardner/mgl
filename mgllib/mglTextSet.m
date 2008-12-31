@@ -24,38 +24,35 @@ if ~any(nargin == [1:10])
   return
 end
 
-% get mgl global variable
-global MGL;
-
 if exist('fontName') && ~isempty(fontName)
-  MGL.fontName = fontName;
+  mglSetParam('fontName',fontName);
 end
 if exist('fontSize') && ~isempty(fontSize)
-  MGL.fontSize = fontSize;
+  mglSetParam('fontSize',fontSize);
 end
 if exist('fontColor') && ~isempty(fontColor)
-  MGL.fontColor = fontColor;
+  mglSetParam('fontColor',fontColor);
 end
 if exist('fontVFlip') && ~isempty(fontVFlip)  
-  MGL.fontVFlip = fontVFlip;
+  mglSetParam('fontVFlip',fontVFlip);
 end
 if exist('fontHFlip') && ~isempty(fontHFlip)
-  MGL.fontHFlip = fontHFlip;
+  mglSetParam('fontHFlip',fontHFlip);
 end
 if exist('fontRotation') && ~isempty(fontRotation)
-  MGL.fontRotation = fontRotation;
+  mglSetParam('fontRotation',fontRotation);
 end
 if exist('fontBold') && ~isempty(fontBold)
-  MGL.fontBold = fontBold;
+  mglSetParam('fontBold',fontBold);
 end
 if exist('fontItalic') && ~isempty(fontItalic)
-  MGL.fontItalic = fontItalic;
+  mglSetParam('fontItalic',fontItalic);
 end
 if exist('fontUnderline') && ~isempty(fontUnderline)
-  MGL.fontUnderline = fontUnderline;
+  mglSetParam('fontUnderline',fontUnderline);
 end
 if exist('fontStrikeThrough') && ~isempty(fontStrikeThrough)
-  MGL.fontStrikeThrough = fontStrikeThrough;
+  mglSetParam('fontStrikeThrough',fontStrikeThrough);
 end
   
 

@@ -18,12 +18,12 @@ if nargin ~= 1
   % display help
   help mglPlaySound;
   % list available sounds
-  global MGL;
-  if isfield(MGL,'soundNames')
+  soundNames = mglGetParam('soundNames');
+  if ~isempty(soundNames)
     disp(sprintf('Available sounds are:'));
-    for i = 1:length(MGL.soundNames)
-      if ~isempty(MGL.soundNames{i})
-	fprintf(1,'%s ',MGL.soundNames{i});
+    for i = 1:length(soundNames)
+      if ~isempty(soundNames{i})
+	fprintf(1,'%s ',soundNames{i});
       end
     end
     fprintf(1,'\n');
@@ -37,8 +37,8 @@ if isscalar(soundNum)
   mglPrivatePlaySound(soundNum);
 % string then find the correct string name
 elseif isstr(soundNum)
-  global MGL;
-  soundNum = find(strcmp(soundNum,MGL.soundNames));
+  soundNames = mglGetParam('soundNames');
+  soundNum = find(strcmp(soundNum,soundNames));
   if ~isempty(soundNum)
     mglPrivatePlaySound(soundNum(1));
   end
