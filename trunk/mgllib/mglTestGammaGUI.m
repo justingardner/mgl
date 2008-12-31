@@ -1,15 +1,15 @@
 function varargout = mglTestGammaGUI(varargin)
-% MGLTESTGAMMAGUI M-file for mglTestGammaGUI.fig
-%      MGLTESTGAMMAGUI, by itself, creates a new MGLTESTGAMMAGUI or raises the existing
+% mglTestGammaGUI M-file for mglTestGammaGUI.fig
+%      mglTestGammaGUI, by itself, creates a new mglTestGammaGUI or raises the existing
 %      singleton*.
 %
-%      H = MGLTESTGAMMAGUI returns the handle to a new MGLTESTGAMMAGUI or the handle to
+%      H = mglTestGammaGUI returns the handle to a new mglTestGammaGUI or the handle to
 %      the existing singleton*.
 %
-%      MGLTESTGAMMAGUI('CALLBACK',hObject,eventData,handles,...) calls the local
-%      function named CALLBACK in MGLTESTGAMMAGUI.M with the given input arguments.
+%      mglTestGammaGUI('CALLBACK',hObject,eventData,handles,...) calls the local
+%      function named CALLBACK in mglTestGammaGUI.M with the given input arguments.
 %
-%      MGLTESTGAMMAGUI('Property','Value',...) creates a new MGLTESTGAMMAGUI or raises the
+%      mglTestGammaGUI('Property','Value',...) creates a new mglTestGammaGUI or raises the
 %      existing singleton*.  Starting from the left, property value pairs are
 %      applied to the GUI before mglTestGammaGUI_OpeningFunction gets called.  An
 %      unrecognized property name or invalid value makes property application
@@ -141,7 +141,6 @@ function pushbutton2_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 % reset gamma and close screen
 
-global MGL;
 mglClose;
 
 delete(handles.figure1);

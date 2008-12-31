@@ -31,16 +31,13 @@ mglOpen(screenNumber);
 mglDisplayCursor(1);
 mglVisualAngleCoordinates(57,[40 30]);
 
-% get MGL global
-global MGL;
-
 % change the gamma of the monitor
 thisGamma = 1;
 mglSetGammaTable(0,1,thisGamma,0,1,thisGamma,0,1,thisGamma);
 
 % create a background of desired grayscale level
 backgroundColor = 128;
-backgroundBuffer(1:MGL.screenHeight,1:MGL.screenWidth) = backgroundColor;
+backgroundBuffer(1:mglGetParam('screenHeight'),1:mglGetParam('screenWidth')) = backgroundColor;
 backgroundTex = mglCreateTexture(backgroundBuffer);
 % and draw it to the screen
 mglBltTexture(backgroundTex,[0 0]);
@@ -50,8 +47,8 @@ texWidth = 8;
 texHeight = 8;
 
 % get size in pixels
-texWidthPixels = round(texWidth*MGL.xDeviceToPixels);
-texHeightPixels = round(texHeight*MGL.yDeviceToPixels);
+texWidthPixels = round(texWidth*mglGetParam('xDeviceToPixels'));
+texHeightPixels = round(texHeight*mglGetParam('yDeviceToPixels'));
 
 % create the pattern
 fineGrating(1:texHeightPixels,1:texWidthPixels) = -1;
@@ -68,11 +65,11 @@ for contrastNum = 1:length(contrasts)
 end
 
 % calculate position
-horizontalSpacing = (MGL.deviceWidth-texWidth*length(contrasts))/(length(contrasts)+1);
+horizontalSpacing = (mglGetParam('deviceWidth')-texWidth*length(contrasts))/(length(contrasts)+1);
 
 % now draw them to the screen
 for contrastNum = 1:length(contrasts)
-  mglBltTexture(fineGratingTex(contrastNum),[-MGL.deviceWidth/2+horizontalSpacing*contrastNum+texWidth*(contrastNum-1) 0],-1,0);
+  mglBltTexture(fineGratingTex(contrastNum),[-mglGetParam('deviceWidth')/2+horizontalSpacing*contrastNum+texWidth*(contrastNum-1) 0],-1,0);
 end
 
 % flush the screen  

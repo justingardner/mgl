@@ -11,8 +11,6 @@
 %      
 function mglTestStencil(screenNumber)
 
-  global MGL
-  
 % check arguments
 if ~any(nargin == [0 1])
   help mglTestStencil
@@ -27,7 +25,7 @@ mglVisualAngleCoordinates(57,[40 30]);
 
 % Draw another oval stencil
 mglStencilCreateBegin(1);
-if (MGL.stencilBits==0)
+if (mglGetParam('stencilBits')==0)
   disp('Stencils not supported on this platform.. sorry!')
   mglClose;
   return
@@ -42,23 +40,21 @@ mglFillOval(0,0,[8 8]);
 mglStencilCreateEnd;
 mglClearScreen;
 
-global MGL;
-
-
 nDots=2500;
 dotSize=5;
 % get some random points
-dots(1).x = MGL.deviceRect(1)+rand(1,nDots)*MGL.deviceWidth;
-dots(1).y = MGL.deviceRect(2)+rand(1,nDots)*MGL.deviceHeight;
-dots(2).x = MGL.deviceRect(1)+rand(1,nDots)*MGL.deviceWidth;
-dots(2).y = MGL.deviceRect(2)+rand(1,nDots)*MGL.deviceHeight;
+deviceRect = mglGetParam('deviceRect');
+dots(1).x = deviceRect(1)+rand(1,nDots)*mglGetParam('deviceWidth');
+dots(1).y = deviceRect(2)+rand(1,nDots)*mglGetParam('deviceHeight');
+dots(2).x = deviceRect(1)+rand(1,nDots)*mglGetParam('deviceWidth');
+dots(2).y = deviceRect(2)+rand(1,nDots)*mglGetParam('deviceHeight');
 
 % set dot speed to 10 deg/sec
-dx = 10/MGL.frameRate;
+dx = 10/mglGetParam('frameRate');
 
 numsec = 5;
 starttime = mglGetSecs;
-for i = 1:MGL.frameRate*numsec
+for i = 1:mglGetParam('frameRate')*numsec
   % now draw the dots using the two stencil's we'ver created
   mglStencilSelect(1);
   mglPoints2(dots(1).x,dots(1).y,dotSize,[0.8 0.4 0.5]);
@@ -69,9 +65,9 @@ for i = 1:MGL.frameRate*numsec
   mglClearScreen;
   % upate the dot position
   dots(1).x = dots(1).x-dx;
-  dots(1).x(dots(1).x<MGL.deviceRect(1)) = dots(1).x(dots(1).x<MGL.deviceRect(1))+MGL.deviceWidth;
+  dots(1).x(dots(1).x<deviceRect(1)) = dots(1).x(dots(1).x<deviceRect(1))+mglGetParam('deviceWidth');
   dots(2).x = dots(2).x+dx;
-  dots(2).x(dots(2).x>MGL.deviceRect(3)) = dots(2).x(dots(2).x>MGL.deviceRect(3))-MGL.deviceWidth;
+  dots(2).x(dots(2).x>deviceRect(3)) = dots(2).x(dots(2).x>deviceRect(3))-mglGetParam('deviceWidth');
 end
 endtime=mglGetSecs;
 
@@ -82,6 +78,6 @@ mglClose;
 % check how long it ran for
 disp(sprintf('Ran for: %0.8f sec Intended: %0.8f sec',endtime-starttime,numsec));
 disp(sprintf('Difference from intended: %0.8f ms',1000*((endtime-starttime)-numsec)));
-disp(sprintf('Number of frames lost: %i/%i (%0.2f%%)',round(((endtime-starttime)-numsec)*MGL.frameRate),numsec*MGL.frameRate,100*(((endtime-starttime)-numsec)*MGL.frameRate)/(MGL.frameRate*numsec)));
+disp(sprintf('Number of frames lost: %i/%i (%0.2f%%)',round(((endtime-starttime)-numsec)*mglGetParam('frameRate')),numsec*mglGetParam('frameRate'),100*(((endtime-starttime)-numsec)*mglGetParam('frameRate'))/(mglGetParam('frameRate')*numsec)));
 
 

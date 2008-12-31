@@ -24,9 +24,6 @@ mglOpen(screenNumber);
 mglScreenCoordinates;
 mglClearScreen;
 
-% get MGL global
-global MGL
-
 doExpandingText = 1;
 if doExpandingText
   % render the text into textures
@@ -53,14 +50,14 @@ if doExpandingText
     % display expanding text
     for i = 1:nFrames
       mglClearScreen;
-      mglBltTexture(expandingText(i),[MGL.screenWidth/2 MGL.screenHeight/2],0,0);
+      mglBltTexture(expandingText(i),[mglGetParam('screenWidth')/2 mglGetParam('screenHeight')/2],0,0);
       mglFlush;
     end
     mglWaitSecs(0.3);
     % display contracting text
     for i = nFrames:-1:1
       mglClearScreen;
-      mglBltTexture(contractingText(i),[MGL.screenWidth/2 MGL.screenHeight/2],0,0);
+      mglBltTexture(contractingText(i),[mglGetParam('screenWidth')/2 mglGetParam('screenHeight')/2],0,0);
       mglFlush;
     end
     mglWaitSecs(0.3);

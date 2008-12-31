@@ -23,9 +23,7 @@ if ~any(nargin == [0])
   return
 end
 
-global MGL;
-
-if ~isfield(MGL,'displayNumber') || (MGL.displayNumber < 0)
+if mglGetParam('displayNumber') == -1
   disp(sprintf('(mglVisualAngleCoordinates) No open display'));
   return
 end
