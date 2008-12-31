@@ -30,24 +30,21 @@ if ~exist('screenHeight','var'), screenHeight = []; end
 if ~exist('frameRate','var'), frameRate = []; end
 if ~exist('bitDepth','var'), bitDepth = []; end
 
-% get the MGL global
-global MGL;
-
 % set whether the desktop is running
 if usejava('desktop')
-  MGL.matlabDesktop = 1;
+  mglSetParam('matlabDesktop',1);
 else
-  MGL.matlabDesktop = 0;
+  mglSetParam('matlabDesktop',0);
 end
 
 % set verbose off
-if ~isfield(MGL,'verbose')
-  MGL.verbose = 0;
+if isempty(mglGetParam('verbose'))
+  mglSetParam('verbose',0);
 end
 
 openDisplay = 0;
 % check to see if a display is already open
-if isfield(MGL,'displayNumber') && ~isempty(MGL.displayNumber) && (MGL.displayNumber ~= -1)
+if mglGetParam('displayNumber') ~= -1
   openDisplay = 1;
 end
 
@@ -61,13 +58,14 @@ if ~openDisplay && ~isempty(whichScreen) && (whichScreen >= 1)
   end
 end
 
+mglSetParam('verbose',1);
 if ~openDisplay
   % default to showing that cocoa is not running
   % mglPrivateOpen will later reset this if a 
   % cocoa window has been opened
-  MGL.isCocoaWindow = 0;
+  mglSetParam('isCocoaWindow',0);
   % clear the originalResolution
-  MGL.originalResolution = [];
+  mglSetParam('originalResolution',[]);
   % call the private mex function
   if nargin <= 1 % 1 or less arguments then don't try to set screen resolution
     % if whichScreen has not been set then get the default
@@ -91,7 +89,7 @@ if ~openDisplay
     % for full screen resolution
     if isempty(whichScreen) || (whichScreen>=1)
       % get the current resolution, so we can return to it on close
-      MGL.originalResolution = mglResolution;
+      mglSetParam('originalResolution',mglResolution);
       % set the display resolution
       displayResolution = mglResolution(whichScreen,screenWidth,screenHeight,frameRate,bitDepth);
       whichScreen = displayResolution.displayNumber;
@@ -118,13 +116,14 @@ if ~openDisplay
   end
 
   % remember the frameRate and bitDepth in the MGL global
-  MGL.frameRate = frameRate;
-  MGL.bitDepth = bitDepth;
+  mglSetParam('frameRate',frameRate);
+  mglSetParam('bitDepth',bitDepth);
 
   % clear screen to black
   mglClearScreen(0);
   mglFlush;
 end
+mglSetParam('verbose',0);
 
 % round down to remove any decimal alpha request
 whichScreen = floor(whichScreen);
@@ -138,16 +137,16 @@ end
 
 % get gamma table
 if ~openDisplay
-  MGL.initialGammaTable = mglGetGammaTable;
+  mglSetParam('initialGammaTable',mglGetGammaTable);
 end
 
 % set some other added global
-MGL.screenCoordinates = 0;
-MGL.deviceHDirection = 1;
-MGL.deviceVDirection = 1;
+mglSetParam('screenCoordinates',0);
+mglSetParam('deviceHDirection',1);
+mglSetParam('deviceVDirection',1);
 
 % clear the number of textures we have
-MGL.numTextures = 0;
+mglSetParam('numTextures',0);
 
 % install sounds
 if exist('mglInstallSound') == 3 
@@ -156,17 +155,19 @@ if exist('mglInstallSound') == 3
   for i = 1:length(sounds)
     soundNum = mglInstallSound(fullfile(sounddir,sounds(i).name));
     if ~isempty(soundNum)
-      [soundPath MGL.soundNames{soundNum}] = fileparts(sounds(i).name);
+      soundNames = mglGetParam('soundNames');
+      [soundPath soundNames{soundNum}] = fileparts(sounds(i).name);
+      mglSetParam('soundNames',soundNames);
     end
   end
 end
 
 % the displayID (used by mglSwitchDisplay defaults to the display number)
-if ~isfield(MGL,'displayID') || isempty(MGL.displayID)
-  MGL.displayID = MGL.displayNumber;
+if isempty(mglGetParam('displayID'))
+  mglSetParam('displayID',mglGetParam('displayNumber'));
 end
 
-if usejava('desktop')
+if mglGetParam('matlabDesktop')
   % always show the cursor from the desktop.
   mglDisplayCursor(1);
 end

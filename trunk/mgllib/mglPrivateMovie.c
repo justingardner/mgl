@@ -140,8 +140,8 @@ unsigned long openMovie(char *filename, int xpos, int ypos, int width, int heigh
   // But this code does appear to work on 64bit, so maybe QT has become more
   // thread safe in 64bit mode?
 
-  // see if there is an existing window controller
-  NSWindowController *myWindowController = (NSWindowController*)(unsigned long)mglGetGlobalDouble("windowController");
+  // see if there is an existing window
+  NSWindow *myWindow = (NSWindow*)(unsigned long)mglGetGlobalDouble("window");
 
   // init a QTMovie
   NSError *myError = [NSError alloc];//NULL;
@@ -168,8 +168,8 @@ unsigned long openMovie(char *filename, int xpos, int ypos, int width, int heigh
   // set the movie to display
   [movieView setMovie:movie];
   [movieView setControllerVisible:NO];
-  [[[myWindowController window] contentView] addSubview:movieView];
-  [[[myWindowController window] contentView] display];
+  [[myWindow contentView] addSubview:movieView];
+  [[myWindow contentView] display];
 
   // release memory
   [movie release];
@@ -190,9 +190,6 @@ mxArray *doMovieCommand(int command, unsigned long moviePointer, const mxArray *
 
   // convert pointer to QTMovieView
   QTMovieView *movieView = (QTMovieView *)moviePointer;
-
-  // see if there is an existing window controller
-  NSWindowController *myWindowController = (NSWindowController*)(unsigned long)mglGetGlobalDouble("windowController");
 
   switch(command) {
     case CLOSE:

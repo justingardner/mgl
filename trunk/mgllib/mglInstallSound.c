@@ -123,7 +123,8 @@ unsigned long installSound(char *filename)
   NSSound *mySound;
   mySound = [[NSSound alloc] initWithContentsOfFile:filenameString byReference:NO];
 
-  // drain pool
+  // drain memory
+  [filenameString release];
   [pool drain];
 
   return((unsigned long)mySound);
@@ -134,8 +135,18 @@ unsigned long installSound(char *filename)
 //////////////////////////
 void removeSound(unsigned long soundID)
 {
+  // verbose information
+  int verbose = (int)mglGetGlobalDouble("verbose");
+
+  // convert to pointer
   NSSound *mySound = (NSSound*)soundID;
+  
+  // print message
+  if (verbose) mexPrintf("(mglInstallSound) Deallocating pointer %x with retain count: %i\n",soundID,[mySound retainCount]);
+
+  // release
   [mySound release];
+
 }
 #else//__cocoa__
 //-----------------------------------------------------------------------------------///

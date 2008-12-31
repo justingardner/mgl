@@ -90,31 +90,41 @@ void closeDisplay(int displayNumber,int verbose)
 ////////////////////
 void cocoaClose(displayNumber,verbose)
 {
-  if (verbose)
-    mexPrintf("(mglPrivateClose) Closing cocoa window\n");
+  if (verbose) mexPrintf("(mglPrivateClose) Closing cocoa window\n");
 
   // start auto release pool
   NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
-  NSWindowController *myWindowController = (NSWindowController*)(unsigned long)mglGetGlobalDouble("windowController");
+
+  // get pointers
+  NSWindow *myWindow = (NSWindow*)(unsigned long)mglGetGlobalDouble("window");
   NSOpenGLContext *myOpenGLContext = (NSOpenGLContext*)(unsigned long)mglGetGlobalDouble("context");
+
   // exit full screen mode
   if (displayNumber >= 1) {
     if (verbose) mexPrintf("(mglPrivateClose) Closing full screen mode\n");
-    [[[myWindowController window] contentView] exitFullScreenModeWithOptions:nil];
+    [[myWindow contentView] exitFullScreenModeWithOptions:nil];
   }
 
   // orderOut (i.e. hide the window) -- subsequent mglOpen's will just unhide --
   // this is not necessary since we now deallocate the window
   //  [[myWindowController window] orderOut:nil];
 
-  if (verbose){
-    mexPrintf("(mglPrivateClose) Retain counts are controller: %i window: %i view: %i openGLContext: %i\n",[myWindowController retainCount],[[myWindowController window] retainCount],[[[myWindowController window] contentView] retainCount],[myOpenGLContext retainCount]);
-  }
+  // display retain counts
+  if (verbose)
+    mexPrintf("(mglPrivateClose) Retain counts are window: %i view: %i openGLContext: %i\n",[myWindow retainCount],[[myWindow contentView] retainCount],[myOpenGLContext retainCount]);
 
+  // close the window
   if (verbose) mexPrintf("(mglPrivateClose) Releasing cocoa window\n");
-  [myWindowController release];
-  mglSetGlobalDouble("windowController",0);
+
+  // close the window. Note that we just orderOut (or make invisible) for now,
+  // since there is some problem with actually closing and reopening
+#if 0
+  [myWindow close];
+  mglSetGlobalDouble("window",0);
   mglSetGlobalDouble("context",0);
+#else
+  [myWindow orderOut:nil];
+#endif
 
   // drain the pool
   [pool drain];
@@ -221,6 +231,9 @@ void cglClose(int displayNumber,int verbose)
     
   // Restore cursor
   CGDisplayShowCursor( kCGDirectMainDisplay ) ; 
+
+  // set context to empty
+  mglSetGlobalDouble("context",0);
 }
 #endif//__APPLE__
 //-----------------------------------------------------------------------------------///
