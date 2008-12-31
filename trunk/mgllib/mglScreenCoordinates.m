@@ -21,6 +21,7 @@ if mglGetParam('displayNumber') == -1
   return
 end
 
+% remember old settings
 oldDeviceHDirection = mglGetParam('deviceHDirection');
 oldDeviceVDirection = mglGetParam('deviceVDirection');
 oldXDeviceToPixels = mglGetParam('xDeviceToPixels');
