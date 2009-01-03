@@ -17,6 +17,7 @@
 %
 %% Open display 1 and draw
 %mglSwitchDisplay(1);
+%mglSetParam('useCarbon',1);
 %mglOpen(1);
 %mglClearScreen(0.5);
 %mglVisualAngleCoordinates(57,[16 12]);
@@ -25,6 +26,7 @@
 %
 %% Open display 2 and draw
 %mglSwitchDisplay(2);
+%mglSetParam('useCarbon',1);
 %mglOpen(2);
 %mglClearScreen(1);
 %mglVisualAngleCoordinates(57,[16 12]);
@@ -160,11 +162,9 @@ end
 % could not find the display
 if isempty(newIndex)
   clear global MGL
+  global MGL;
   MGL.displayNumber = -1;
   MGL.displayID = displayID;
-  if isfield(MGL,'window')
-    MGL = rmfield(MGL,'window');
-  end
   % otherwise switch to the correct display
 else
   MGL = MGLALL{newIndex};
