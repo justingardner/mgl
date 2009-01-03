@@ -34,7 +34,17 @@ if ~exist('bitDepth','var'), bitDepth = []; end
 if usejava('desktop')
   mglSetParam('matlabDesktop',1);
 else
-  mglSetParam('matlabDesktop',0);
+  % slight little hack here, the mglOpen code will
+  % check for matlabDestop to see whether it should
+  % run with carbon for full screen contexts. So, if 
+  % the user set the flag useCarbon in the global
+  % variable, then act as if the matlab desktop is running
+  if mglGetParam('useCarbon')
+    mglSetParam('matlabDesktop',1);
+  else
+    mglSetParam('matlabDesktop',0);
+  end
+    
 end
 
 % set verbose off
