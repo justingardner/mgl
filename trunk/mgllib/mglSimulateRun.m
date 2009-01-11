@@ -1,7 +1,7 @@
 % mglSimulateRun.m
 %
 %        $Id: mglOpen.m 385 2009-01-03 20:34:37Z justin $
-%      usage: mglPostEvent(framePeriod,numFrames,<startDelay>,<char>)
+%      usage: mglSimulateRun(framePeriod,numFrames,<startDelay>,<char>)
 %         by: justin gardner
 %       date: 01/10/09
 %  copyright: (c) 2006 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
@@ -10,15 +10,20 @@
 %             mglPostEvent. For example if you want to have 375 backticks
 %             occur spaced 1.5 seconds apart:
 %
-%             mglPostEvent(1.5,375);
+%             mglSimulateRun(1.5,375);
 % 
 %             Also, you can delay the start of the backticks, by doing
 %
-%             mglPostEvent(1.5,375,10);
+%             mglSimulateRun(1.5,375,10);
 % 
 %             Instead of sending the backtick character, send the character 'a'
 %            
-%             mglPostEvent(1.5,375,0,'a');
+%             mglSimulateRun(1.5,375,0,'a');
+%
+%             Note that if you want to stop the keyboard events in the middle,
+%             you need to do:
+%
+%             mglPostEvent('quit');
 %
 function mglSimulateRun(framePeriod,numFrames,startDelay,char)
 
