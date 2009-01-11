@@ -1,8 +1,10 @@
 % mglListener.m
 %
+%        $Id$
 %      usage: mglListener(command)
 %         by: justin gardner
 %       date: 06/19/08
+%  copyright: (c) 2006 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
 %    purpose: This is a mac specific command that is used to capture low-level
 %             keyboard and mouse events. It provides the event information used
 %             by mglGetKeyEvent and mglGetMouseEvent on the mac. On linux it
