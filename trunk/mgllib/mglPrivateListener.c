@@ -405,7 +405,7 @@ void* setupEventTap(void *data)
 
   // see if it was created properly
   if (!gEventTap) {
-    mexPrintf("(mglPrivateInstallListener) Failed to create event tap\n");
+    mexPrintf("(mglPrivateListener) Failed to create event tap\n");
     return NULL;
   }
 
@@ -420,7 +420,7 @@ void* setupEventTap(void *data)
 
   // see if it is enable
   if (!CGEventTapIsEnabled(gEventTap)) {
-    mexPrintf("(mglPrivateInstallListener) Failed to enable event tap\n");
+    mexPrintf("(mglPrivateListener) Failed to enable event tap\n");
     return NULL;
   }
     
@@ -502,7 +502,7 @@ void launchSetupEventTapAsThread()
  
   pthread_attr_destroy(&attr);
   if (threadError != 0)
-      mexPrintf("(MglGetKeyEventNew) Error could not setup event tap thread: error %i\n",threadError);
+      mexPrintf("(mglPrivateListener) Error could not setup event tap thread: error %i\n",threadError);
 }
 
 ///////////////////////////////////
@@ -562,13 +562,11 @@ void launchSetupEventTapAsThread()
 }
 @end
 
-#else// __cocoa__
+#else// __eventtap__
 //-----------------------------------------------------------------------------------///
 // ***************************** other-os specific code  **************************** //
 //-----------------------------------------------------------------------------------///
 // THIS FUNCTION IS ONLY FOR MAC COCOA
-#include "mgl.h"
-
 //////////////
 //   main   //
 //////////////
