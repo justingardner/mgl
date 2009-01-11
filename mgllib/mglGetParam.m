@@ -12,13 +12,15 @@ function retval  = mglGetParam(paramName)
 % default to returning empty
 retval = [];
 
-if (nargin ~= 1)
-  help mglGetParam;
-  return
-end
-
 % get the global
 global MGL
+
+if (nargin ~= 1)
+  help mglGetParam;
+  disp(sprintf('(mglGetParam) List of all mgl global parameters'));
+  MGL
+  return
+end
 
 % and grab the field if it exist
 if isfield(MGL,paramName)
