@@ -1,5 +1,5 @@
 function keycode=mglCharToKeycode(keyname,returnAllMatches)
-% keycode=mglCharToKeycode(keyname)
+% keycode=mglCharToKeycode(keyname,<returnAllMatches>)
 %
 % Returns the keycodes of a (list of) keynames
 % 
