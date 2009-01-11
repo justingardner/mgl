@@ -57,9 +57,9 @@ elseif strcmp(lower(command),'keypress')
     disp(sprintf('(mglPostEvent) Enabling post event thread.'));
     mglPrivatePostEvent(1);
   end
-  % and post the event. First post a keyDown and then a keyUp 1ms later
+  % and post the event. First post a keyDown and then a keyUp 100ms later
   mglPrivatePostEvent(2,time,keyCode,1);
-  mglPrivatePostEvent(2,time+0.001,keyCode,0);
+  mglPrivatePostEvent(2,time+0.1,keyCode,0);
 else
   disp(sprintf('(mglPostEvent) Command %s not recognized',command));
 end

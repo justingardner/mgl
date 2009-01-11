@@ -18,6 +18,13 @@
   		  called). In this case, 3 arguments are expected. The time
     	          to generate the event in seconds. The keyCode and a boolean
                   as to whether it is a keyDown event.
+
+                Note that this function relies on objective-c constructs
+                like the NSMutabaleArray - it could be written without this
+                since that is just that we have an easy way to implement
+                a sortable expandable event queue. These structures might
+                be available in openstep/GNUstep. The only really OS-specific
+                call is posting the event, which is one line of code marked below
 =========================================================================
 #endif
 
@@ -57,12 +64,13 @@ void quitPostEvent(void);
 @interface queueEvent : NSObject {
   double time;
   int type;
-  CGEventRef event;
+  int keyCode;
+  int keyDown;
 }
-- (id)initWithTimeKeyCodeAndKeyDown:(double)initTime :(CGKeyCode)keyCode :(bool)keyDown;
+- (id)initWithTimeKeyCodeAndKeyDown:(double)initTime :(int)initKeyCode :(int)initKeyDown;
 - (id)initQuitEventWithTime:(double)initTime;
-- (CGEventRef)event;
 - (int)eventType;
+- (void)postEvent;
 - (double)timeInSeconds;
 - (NSComparisonResult)compareByTime:(queueEvent *)otherQueueEvent;
 - (NSString *)description;
@@ -148,8 +156,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
       // get time, keyCode and keyDown
       double time = (double)mxGetScalar(prhs[1]);
-      CGKeyCode keyCode = (CGKeyCode)(double)mxGetScalar(prhs[2])-1;
-      bool keyDown = (bool)(double)mxGetScalar(prhs[3]);
+      int keyCode = (int)(double)mxGetScalar(prhs[2])-1;
+      int keyDown = (int)(double)mxGetScalar(prhs[3]);
 
       // lock the mutex to avoid concurrent access to the global variables
       pthread_mutex_lock(&mut);
@@ -253,7 +261,7 @@ void* eventDispatcher(void *data)
 	}
 	else {
 	  // post the event
-	  CGEventPost(kCGHIDEventTap,[[gEventQueue objectAtIndex:0] event]);
+	  [[gEventQueue objectAtIndex:0] postEvent];
 	}
 	// and remove it from the queue
 	[gEventQueue removeObjectAtIndex:0];
@@ -308,17 +316,20 @@ void launchEventDispatcherAsThread()
 //   queue event implementation  //
 ///////////////////////////////////
 @implementation queueEvent 
-- (id)initWithTimeKeyCodeAndKeyDown:(double)initTime :(CGKeyCode)keyCode :(bool)keyDown;
+// init a key event
+- (id)initWithTimeKeyCodeAndKeyDown:(double)initTime :(int)initKeyCode :(int)initKeyDown;
 {
   // init parent
   [super init];
   // set internals
   time = initTime;
   type = KEYEVENT;
-  event = CGEventCreateKeyboardEvent(NULL,keyCode,keyDown);
+  keyCode = initKeyCode;
+  keyDown = initKeyDown;
   //return self
   return self;
 }
+// init a quit event
 - (id)initQuitEventWithTime:(double)initTime
 {
   // init parent
@@ -329,10 +340,26 @@ void launchEventDispatcherAsThread()
   //return self
   return self;
 }
-- (CGEventRef)event
+//-----------------------------------------------------------------------------------///
+// ******************************* mac specific code  ******************************* //
+//-----------------------------------------------------------------------------------///
+// post the event (i.e. send it to the os. This is the only
+// truly os-specific function
+- (void)postEvent
 {
-  return event;
+  if (type == KEYEVENT) {
+    // create the desired key event
+    CGEventRef event = CGEventCreateKeyboardEvent(NULL,(CGKeyCode)keyCode,(bool)keyDown);
+    // post it at the earliest location in the system event-queue that we can
+    CGEventPost(kCGHIDEventTap,event);
+    // and release the event
+    CFRelease(event);
+  }
 }
+//-----------------------------------------------------------------------------------///
+// **************************** end mac specific code  ****************************** //
+//-----------------------------------------------------------------------------------///
+// comparison function, used to sort the queue in time order
 - (NSComparisonResult)compareByTime:(queueEvent*)otherQueueEvent
 {
   if ([self timeInSeconds] > [otherQueueEvent timeInSeconds])  {
@@ -345,30 +372,31 @@ void launchEventDispatcherAsThread()
     return NSOrderedAscending;
   }
 }
+// return the time in seconds of the event
 - (double)timeInSeconds
 {
   return time;
 }  
+// return the event type
 - (int)eventType
 {
   return type;
 }  
+// a descriptive string for listing pending events
 - (NSString *)description
 {
   NSString *descriptionString;
   if (type == KEYEVENT) {
-    int keyCode = (int)(CGKeyCode)CGEventGetIntegerValueField(event, kCGKeyboardEventKeycode)+1;
-    CGEventType eventType = CGEventGetType(event);
-    if (eventType == kCGEventKeyDown)
+    if (keyDown)
       descriptionString = [NSString stringWithFormat:@"keyCode: %i down", keyCode];
     else
       descriptionString = [NSString stringWithFormat:@"keyCode: %i up", keyCode];
   }
 }
+// dealloc the event
 - (void)dealloc
 {
   // release event
-  if (type != QUIT) CFRelease(event);
   [super dealloc];
 }
 @end
