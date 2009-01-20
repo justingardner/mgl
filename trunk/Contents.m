@@ -4,6 +4,7 @@
 %  mglOpen                   : Opens the screen
 %  mglFlush                  : Flips front and back buffer
 %  mglClose                  : Closes the screen
+%  mglResolution             : Sets the resolution of a display
 %
 %Other screen functions
 %  mglSwitchDisplay          : Switches between multiple monitors
@@ -50,19 +51,24 @@
 %  mglStencilCreateEnd       : End drawing a stencil
 %  mglStencilSelect          : Select a stencil 
 %
-%Functions to get keyboard/mouse status
+%Keyboard and mouse functions
 %  mglGetKeys                : Get keyboard state
 %  mglGetMouse               : Get mouse state
 %  mglGetKeyEvent            : Get a key down event off of queue
 %  mglGetMouseEvent          : Get a mouse button down event off of queue
+%  mglPostEvent              : Post a keyboard event to happen in the future (mac only)
+%  mglSimulateRun            : Post a series of keyboard backticks 
 %
 %Timing functions
 %  mglGetSecs                : Get time in seconds
 %  mglWaitSecs               : Wait for a time in seconds
 %
 %Sound functions
-%  mglInstallSound             : Install an .aiff file for playing with mglPlaySound
-%  mglPlaySound                : Play a system sound
+%  mglInstallSound           : Install an .aiff file for playing with mglPlaySound
+%  mglPlaySound              : Play a system sound
+%
+%Movies
+%  mglMovie                  : Function to play quicktime movies (mac 64bit only)
 %
 %Test/Demo programs
 %  mglTestAlignment          : Alignment of textures
