@@ -23,7 +23,7 @@ mglTestGammaGUI
 
 % make sure the gui is visible before continuing
 if isempty(screenNumber) || (screenNumber ~= 0)
-  uiwait(msgbox('Move mglTestGammaGUI so it will be visible','modal'));
+%  uiwait(msgbox('Move mglTestGammaGUI so it will be visible','modal'));
 end
 
 % open up screen
