@@ -148,8 +148,8 @@ unsigned long openDisplay(double *displayNumber, int *screenWidth, int *screenHe
   unsigned long contextPointer;
 
   if ((*displayNumber >= 1) || (*displayNumber < 0))
-    // for full screen displays, use cocoa only if the desktop is *not* running
-    if (mglGetGlobalDouble("matlabDesktop"))
+    // for full screen displays, useCGL is asked for
+    if (mglGetGlobalDouble("useCGL"))
       contextPointer = cglOpen(displayNumber,screenWidth,screenHeight);
     else
       contextPointer = cocoaOpen(displayNumber,screenWidth,screenHeight);
