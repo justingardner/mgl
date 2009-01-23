@@ -50,7 +50,9 @@ if ~isempty(movieStructs)
 end
 
 % run mex function to actually close display
+mglSetParam('verbose',1);
 mglPrivateClose;
+mglSetParam('verbose',0);
 
 % reset resolution if necessary
 originalResolution = mglGetParam('originalResolution');
