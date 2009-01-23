@@ -105,24 +105,20 @@ void cocoaClose(displayNumber,verbose)
     [[myWindow contentView] exitFullScreenModeWithOptions:nil];
   }
 
-  // orderOut (i.e. hide the window) -- subsequent mglOpen's will just unhide --
-  // this is not necessary since we now deallocate the window
-  //  [[myWindowController window] orderOut:nil];
-
   // display retain counts
   if (verbose)
     mexPrintf("(mglPrivateClose) Retain counts are window: %i view: %i openGLContext: %i\n",[myWindow retainCount],[[myWindow contentView] retainCount],[myOpenGLContext retainCount]);
 
-  // close the window
-  if (verbose) mexPrintf("(mglPrivateClose) Releasing cocoa window\n");
-
   // close the window. Note that we just orderOut (or make invisible) for now,
   // since there is some problem with actually closing and reopening
 #if 0
+  if (verbose) mexPrintf("(mglPrivateClose) Releasing cocoa window\n");
+  [[myWindow contentView] clearGLContext];
   [myWindow close];
   mglSetGlobalDouble("window",0);
   mglSetGlobalDouble("context",0);
 #else
+  if (verbose) mexPrintf("(mglPrivateClose) Hiding cocoa window\n");
   [myWindow orderOut:nil];
 #endif
 
