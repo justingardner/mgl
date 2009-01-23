@@ -17,7 +17,7 @@
 %
 %% Open display 1 and draw
 %mglSwitchDisplay(1);
-%mglSetParam('useCarbon',1);  % for now, cocoa displays don't switch very well
+%mglSetParam('useCGL',1);  % for now, cocoa displays don't switch very well
 %mglOpen(1);
 %mglClearScreen(0.5);
 %mglVisualAngleCoordinates(57,[16 12]);
@@ -26,7 +26,7 @@
 %
 %% Open display 2 and draw
 %mglSwitchDisplay(2);
-%mglSetParam('useCarbon',1);
+%mglSetParam('useCGL',1);
 %mglOpen(2);
 %mglClearScreen(1);
 %mglVisualAngleCoordinates(57,[16 12]);
