@@ -6,7 +6,8 @@
 %       date: 12/23/08
 %    purpose: Used to display quicktime movies. This *only* works on 64 bit mac for now.
 %             (There is some issue with the quicktime library QTKit and threads which
-%             does not seem to be a problem on 64 bit). 
+%             does not seem to be a problem on 64 bit). You also need to be using a cocoa
+%             window, so make sure to set mglSetParam('useCGL',0) before running mglOpen.
 %
 %             Also, note that the movies will play in front of the openGL buffer. Thus
 %             you can't draw on top of the movie and mglFrameGrab won't grab the movie
@@ -42,6 +43,7 @@
 %                      passed in. Make sure the string is one returned from getCurrentTime
 %            12:'getFrame' Returns a nxmx3 matrix containing RGB data for current frame
 %
+%mglSetParam('useCGL',0);
 %mglOpen(0);
 %m = mglMovie('bosque.mov');
 %mglMovie(m,'play');
