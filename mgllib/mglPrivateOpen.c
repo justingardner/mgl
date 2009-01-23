@@ -225,7 +225,14 @@ unsigned long cocoaOpen(double *displayNumber, int *screenWidth, int *screenHeig
 
     // release the openGLView
     [myOpenGLView release];
+
+    // center the window
+    [myWindow center];
   } 
+  else {
+    if (verbose) mexPrintf("(mglPrivateOpen) Reusing view: %x\n",(unsigned long)[myWindow contentView]);
+    if (verbose) mexPrintf("(mglPrivateOpen) Reusing window: %x\n",(unsigned long)myWindow);
+  }
 
   // set the openGL context as current
   myOpenGLContext = [[myWindow contentView] openGLContext];
@@ -237,18 +244,16 @@ unsigned long cocoaOpen(double *displayNumber, int *screenWidth, int *screenHeig
   [myWindow setAlphaValue:0];
 
   // show window
-  if (verbose) mexPrintf("(mglPrivateOpen) Show window\n");
-  [myWindow makeKeyAndOrderFront: nil];
+  if (verbose) mexPrintf("(mglPrivateOpen) Order window\n");
+  [myWindow orderFront:nil];
+  if (verbose) mexPrintf("(mglPrivateOpen) Display window\n");
   [myWindow display];
-
-  // set the swap interval so that flush waits for vertical refresh
-  const GLint swapInterval = 1;
-  [myOpenGLContext setValues:&swapInterval forParameter:NSOpenGLCPSwapInterval];
-
+  if (verbose) mexPrintf("(mglPrivateOpen) Window isVisible:%i\n",[myWindow isVisible]);
+  
   // Set a full screen context
   if ((*displayNumber >= 1) || (*displayNumber < 0)){
     // display message
-    if (verbose) mexPrintf("(mglPrivateOpen) Going full screen\n");
+    if (verbose) mexPrintf("(mglPrivateOpen) Setting parameters for full screen mode\n");
 
     //  Set some options for going full screen
     NSArray *objects = [NSArray arrayWithObjects:[NSNumber numberWithBool:NO],[NSNumber numberWithInt:0],nil];
@@ -257,10 +262,13 @@ unsigned long cocoaOpen(double *displayNumber, int *screenWidth, int *screenHeig
     NSDictionary *fullScreenOptions = [NSDictionary dictionaryWithObjects:objects forKeys:keys];
 
     // get all the screens
+    if (verbose) mexPrintf("(mglPrivateOpen) Getting screen information\n");
     NSArray *screens = [NSScreen screens];
 
     // now enter full screen mode
-    [[myWindow contentView] enterFullScreenMode:[screens objectAtIndex:(*displayNumber-1)] withOptions:fullScreenOptions];
+    if (verbose) mexPrintf("(mglPrivateOpen) Going full screen\n");
+    BOOL success = [[myWindow contentView] enterFullScreenMode:[screens objectAtIndex:(*displayNumber-1)] withOptions:fullScreenOptions];
+    if (verbose) mexPrintf("(mglPrivateOpen) Full screen success: %i\n",success);
 
     // get the size of the relevant screen
     NSRect screenRect = [[screens objectAtIndex:(*displayNumber-1)] frame];
@@ -281,6 +289,10 @@ unsigned long cocoaOpen(double *displayNumber, int *screenWidth, int *screenHeig
   mglSetGlobalDouble("window",(unsigned long)myWindow);
   // and that this is a cocoa window
   mglSetGlobalDouble("isCocoaWindow",1);
+
+  // set the swap interval so that flush waits for vertical refresh
+  const GLint swapInterval = 1;
+  [myOpenGLContext setValues:&swapInterval forParameter:NSOpenGLCPSwapInterval];
 
   // drain the pool
   [pool drain];
