@@ -40,6 +40,9 @@ if exist('mglPrivateListener')==3,mglPrivateListener(0);end
 % close all open displays
 mglSwitchDisplay(-1);
 
+% clear the MGL global
+clear global MGL;
+
 % make sure we have the mgl.h file--this will make
 % sure we are in the correct directory
 hfile = dir('mgl.h');
