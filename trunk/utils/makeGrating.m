@@ -3,79 +3,37 @@
 %      usage: makeGrating(width,height,sf,angle,phase,<xDeg2pix>,<yDeg2pix>)
 %         by: justin gardner
 %       date: 09/14/06
-%    purpose: create a 2D grating. You should start mgl
-%             and use mglVisualAngleCoordinates before using.
-%
-%             width and height are in degrees of visual angle
-%             sf is in cycles/degrees
-%             angle and phase are in degrees
-%
-%             xDeg2pix and yDeg2pix are optional arguments that specify the
-%             number of pixels per visual angle in the x and y dimension, respectively.
-%             If not specified, these values are derived from the open mgl screen (make
-%             sure you set mglVisualAngleCoordinates).
-%       e.g.:
-%
-% mglOpen;
-% mglVisualAngleCoordinates(57,[16 12]);
-% g = makeGrating(16,12,1.5,45,0);
-% g = 255*(g+1)/2;
-% tex = mglCreateTexture(g);
-% mglBltTexture(tex,[0 0]);
-% mglFlush;
-
+%    purpose: This function *name* is deprecated. Use mglMakeGrating (same functionality)
+%             instead.
 function m = makeGrating(width,height,sf,angle,phase,xDeg2pix,yDeg2pix)
 
 % check arguments
 m = [];
 if ~any(nargin == [3 4 5 6 7])
-  help makeGrating
+  help mglMakeGrating
   return
 end
 
-if ~exist('sf','var'),sf = 1;end
-if ~exist('angle','var'),angle = 0;end
-if ~exist('phase','var'),phase = 0;end
+if ieNotDefined('sf'),sf = [];end
+if ieNotDefined('angle'),angle = [];end
+if ieNotDefined('phase'),phase = [];end
+if ieNotDefined('xDeg2pix'),xDeg2pix=[];end
+if ieNotDefined('yDeg2pix'),yDeg2pix=[];end
 
-% make it so that angle of 0 is horizontal
-angle = angle-90;
+% figure out how many makeGrating's are in the path
+whichMakeGrating = which('makeGrating','-ALL');
 
-
-% defaults for xDeg2pix
-if ieNotDefined('xDeg2pix')
-  if isempty(mglGetParam('xDeviceToPixels'))
-    disp(sprintf('(makeGrating) mgl is not initialized'));
-    return
+% if only one in path
+if length(whichMakeGrating) == 1
+  disp(sprintf('(makeGrating) Warning the name of this function has changed to mglMakeGrating. Please change your code appropriately. In a future release of mgl you will *have* to use the function name mglMakeGrating rather than mglGrating'));
+  % then just run the new one with a warning
+  m = mglMakeGrating(width,height,sf,angle,phase,xDeg2pix,yDeg2pix);
+else
+  whichMakeGratingString = whichMakeGrating{1};
+  for i = 2:length(whichMakeGrating)
+    whichMakeGratingString = sprintf('%s, %s',whichMakeGratingString,whichMakeGrating{i});
   end
-  xDeg2pix = mglGetParam('xDeviceToPixels');
+  disp(sprintf('(makeGrating) You have multiple copies of the function makeGrating in your path. The version in mgl will run now. If this is what you want then you should change your mgl code to call the function mglMakeGrating instead of calling makeGrating. In a future release of mgl you will *have* to use the function name mglMakeGrating rather than mglGrating. The versions in your path are: %s',whichMakeGratingString));
+  m = mglMakeGrating(width,height,sf,angle,phase,xDeg2pix,yDeg2pix);
 end
 
-% defaults for yDeg2pix
-if ieNotDefined('yDeg2pix')
-  if isempty(mglGetParam('yDeviceToPixels'))
-    disp(sprintf('(makeGrating) mgl is not initialized'));
-    return
-  end
-  yDeg2pix = mglGetParam('yDeviceToPixels');
-end
-
-
-% get size in pixels
-widthPixels = round(width*xDeg2pix);
-heightPixels = round(height*yDeg2pix);
-widthPixels = widthPixels + mod(widthPixels+1,2);
-heightPixels = heightPixels + mod(heightPixels+1,2);
-
-% get a grid of x and y coordinates that has 
-% the correct number of pixels
-x = -width/2:width/(widthPixels-1):width/2;
-y = -height/2:height/(heightPixels-1):height/2;
-[xMesh,yMesh] = meshgrid(x,y);
-
-% calculate image parameters
-phase = pi*phase/180;
-angle = pi*angle/180;
-a=cos(angle)*sf*2*pi;
-b=sin(angle)*sf*2*pi;
-% compute grating
-m = cos(a*xMesh+b*yMesh+phase);
