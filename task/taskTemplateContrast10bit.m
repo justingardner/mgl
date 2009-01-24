@@ -149,12 +149,12 @@ stimulus.grayColor = stimulus.midGratingColors/255;% this is a single number for
 % calculate an annulus envelope (annulus is in the alpha channel)
 % all envelopes for your stimuli can be sent to the alpha channels 
 % instead of being numerically aprroximated in matlab (e.g., gaussian for gabors)
-maskOut = 255*(makeGaussian(6,6,3,3)>exp(-1/2));
-maskIn = 255*(makeGaussian(6,6,1,1)>exp(-1/2));
+maskOut = 255*(mglMakeGaussian(6,6,3,3)>exp(-1/2));
+maskIn = 255*(mglMakeGaussian(6,6,1,1)>exp(-1/2));
 annulus = maskOut - maskIn;
 
 % put a grating in the annulus
-tempGrating = stimulus.deltaGratingColors*(makeGrating(6,6,2.5,0,0));
+tempGrating = stimulus.deltaGratingColors*(mglMakeGrating(6,6,2.5,0,0));
 grating(:,:,1) = stimulus.midGratingColors + tempGrating;
 grating(:,:,2) = grating(:,:,1);
 grating(:,:,3) = grating(:,:,1);

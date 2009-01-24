@@ -21,7 +21,7 @@
 % mglOpen;
 % mglVisualAngleCoordinates(57,[16 12]);
 % mglClearScreen(0.5);
-% grating = makeGrating(10,10,1.5,45,0);
+% grating = mglMakeGrating(10,10,1.5,45,0);
 % gaussian = mglMakeGaussian(10,10,1,1); 
 % gabor = 255*(grating.*gaussian+1)/2;
 % tex = mglCreateTexture(gabor);

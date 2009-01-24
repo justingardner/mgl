@@ -142,12 +142,12 @@ stimulus.count = 0;
 
 % make the stimulus:
 % calculate an annulus envelope (annulus is in the alpha channel)
-maskOut = 255*(makeGaussian(6,6,3,3)>exp(-1/2));
-maskIn = 255*(makeGaussian(6,6,1,1)>exp(-1/2));
+maskOut = 255*(mglMakeGaussian(6,6,3,3)>exp(-1/2));
+maskIn = 255*(mglMakeGaussian(6,6,1,1)>exp(-1/2));
 annulus = maskOut - maskIn;
 
 % put a grating in the annulus
-tempGrating = 100*(makeGrating(6,6,2.5,0,0));
+tempGrating = 100*(mglMakeGrating(6,6,2.5,0,0));
 grating(:,:,1) = 128 + tempGrating;
 grating(:,:,2) = grating(:,:,1);
 grating(:,:,3) = grating(:,:,1);
