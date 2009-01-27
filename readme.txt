@@ -3,7 +3,7 @@ MGL (Matlab GL): A suite of mex/m files for displaying psychophysics stimuli.
                  Runs on Mac OS X and Linux. Version 1.0
 ============================================================================
 
-The text in this file is not necessarily up to date. 
+The text in this file is not necessarily up to date.
 Please refer to the wiki for up to date information.
 
 http://justingardner.net/mgl
