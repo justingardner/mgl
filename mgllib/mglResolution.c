@@ -1,14 +1,22 @@
 #ifdef documentation
 =========================================================================
 
-     program: mglResolution.c
-          by: justin gardner
-        date: 12/27/08
-   copyright: (c) 2006 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
-     purpose: set the resolution/refresh rate of a monitor
+  program:
+  mglResolution.c
+  by:
+  justin gardner
+  date:
+  12/27/08
+  copyright:
+  (c) 2006 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
+  purpose:
+  set the resolution/refresh rate of a monitor
 
-$Id: mglPrivateOpen.c,v 1.14 2007/10/25 20:31:43 justin Exp $
-=========================================================================
+  $Id:
+  mglPrivateOpen.c,v 1.14 2007/10/25 20:
+  31:
+  43 justin Exp $
+  =========================================================================
 #endif
 
 /////////////////////////
@@ -19,7 +27,7 @@ $Id: mglPrivateOpen.c,v 1.14 2007/10/25 20:31:43 justin Exp $
 ///////////////////////////////
 //   function declarations   //
 ///////////////////////////////
-void mglPrivateOpenOnExit(void);
+    void mglPrivateOpenOnExit(void);
 
 /////////////////////////
 //   OS Specific calls //
@@ -42,8 +50,11 @@ void getNumDisplaysAndDefault(int *numDisplays, int *defaultDisplayNum);
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
   // variables
-  int frameRate,screenWidth,screenHeight,bitDepth,displayNumber,numDisplays,defaultDisplayNum,changeResolution = 0;;
-  
+  int frameRate,screenWidth,screenHeight,bitDepth,displayNumber,numDisplays,defaultDisplayNum,changeResolution = 0;
+  int requestedScreenWidth, requestedScreenHeight, requestedFrameRate, requestedBitDepth;
+  const char *fieldNames[] = {"displayNumber","numDisplays","screenWidth","screenHeight","frameRate","bitDepth"};
+  int outDims[2] = {1, 1};
+
   // get how many displays there are at which one is the default.
   getNumDisplaysAndDefault(&numDisplays,&defaultDisplayNum);
 
@@ -95,24 +106,24 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     }
 
     // remember what was asked for
-    int requestedScreenWidth = screenWidth, requestedScreenHeight = screenHeight,requestedFrameRate = frameRate,requestedBitDepth = bitDepth;
+    requestedScreenWidth = screenWidth;
+    requestedScreenHeight = screenHeight;
+    requestedFrameRate = frameRate;
+    requestedBitDepth = bitDepth;
 
     // now set the resolution of the monitor
     setResolution(&displayNumber,&screenWidth,&screenHeight,&frameRate,&bitDepth);
 
     // check for match with requested
     if ((requestedScreenWidth != screenWidth) || (requestedScreenHeight != screenHeight)||(requestedFrameRate != frameRate) || (requestedBitDepth != bitDepth)) {
-      mexPrintf("(mglPrivateOpen) Could not set display parameters to [%ix%i], frameRate: %i bitDepth: %i\n                 Display parameters are set to: [%ix%i], frameRate=%i, bitDepth=%i\n",requestedScreenWidth,requestedScreenHeight,requestedFrameRate,requestedBitDepth,screenWidth,screenHeight,frameRate,bitDepth); 
+      mexPrintf("(mglPrivateOpen) Could not set display parameters to [%ix%i], frameRate: %i bitDepth: %i\n                 Display parameters are set to: [%ix%i], frameRate=%i, bitDepth=%i\n",requestedScreenWidth,requestedScreenHeight,requestedFrameRate,requestedBitDepth,screenWidth,screenHeight,frameRate,bitDepth);
     }
   }
 
-
   // return info as a struct
   // create the output structure
-  const char *fieldNames[] =  {"displayNumber","numDisplays","screenWidth","screenHeight","frameRate","bitDepth"};
-  int outDims[2] = {1, 1};
   plhs[0] = mxCreateStructArray(1,outDims,6,fieldNames);
-      
+
   // add set the fields
   mxSetField(plhs[0],0,"displayNumber",mxCreateDoubleMatrix(1,1,mxREAL));
   *(double *)mxGetPr(mxGetField(plhs[0],0,"displayNumber")) = (double)displayNumber;
@@ -175,7 +186,7 @@ void getResolution(int *displayNumber, int *screenWidth, int *screenHeight, int 
   modeInfo = CGDisplayCurrentMode(whichDisplay);
   if (modeInfo != NULL) {
     CFNumberRef value = (CFNumberRef)CFDictionaryGetValue(modeInfo, kCGDisplayRefreshRate);
-    if (value != NULL) 
+    if (value != NULL)
       CFNumberGetValue(value, kCFNumberIntType, frameRate);
   }
   // assume 60, if the above fails
@@ -186,7 +197,7 @@ void getResolution(int *displayNumber, int *screenWidth, int *screenHeight, int 
   }
 
   if (verbose)
-    mexPrintf("(mglResolution) Current display parameters: screenWidth=%i, screenHeight=%i, frameRate=%i, bitDepth=%i\n",*screenWidth,*screenHeight,*frameRate,*bitDepth); 
+    mexPrintf("(mglResolution) Current display parameters: screenWidth=%i, screenHeight=%i, frameRate=%i, bitDepth=%i\n",*screenWidth,*screenHeight,*frameRate,*bitDepth);
 
 }
 ///////////////////////
@@ -240,7 +251,7 @@ void setResolution(int *displayNumber, int *screenWidth, int *screenHeight, int 
   modeInfo = CGDisplayCurrentMode(whichDisplay);
   if (modeInfo != NULL) {
     CFNumberRef value = (CFNumberRef)CFDictionaryGetValue(modeInfo, kCGDisplayRefreshRate);
-    if (value != NULL) 
+    if (value != NULL)
       CFNumberGetValue(value, kCFNumberIntType, frameRate);
   }
   // assume 60, if the above fails
@@ -251,7 +262,7 @@ void setResolution(int *displayNumber, int *screenWidth, int *screenHeight, int 
   }
 
   if (verbose)
-    mexPrintf("(mglResolution) Current display parameters: screenWidth=%i, screenHeight=%i, frameRate=%i, bitDepth=%i\n",*screenWidth,*screenHeight,*frameRate,*bitDepth); 
+    mexPrintf("(mglResolution) Current display parameters: screenWidth=%i, screenHeight=%i, frameRate=%i, bitDepth=%i\n",*screenWidth,*screenHeight,*frameRate,*bitDepth);
 
 }
 
@@ -274,16 +285,18 @@ void getNumDisplaysAndDefault(int *numDisplays, int *defaultDisplayNum)
     mexPrintf("(mglResolution) Cannot get displays (%d)\n", displayErrorNum);
     return;
   }
-  
+
   // set the defaultDiplayNum to the last in the list of displays
   *defaultDisplayNum = *numDisplays;
 
   // if the display is the main display, then go look for another one, but
   // make sure to stop at displayNum = 1
-  while (CGDisplayIsMain(displays[*defaultDisplayNum-1]) && (*defaultDisplayNum>1)) 
+  while (CGDisplayIsMain(displays[*defaultDisplayNum-1]) && (*defaultDisplayNum>1))
     *defaultDisplayNum--;
 }
 #endif //__APPLE__
+
+
 //-----------------------------------------------------------------------------------///
 // ****************************** linux specific code  ****************************** //
 //-----------------------------------------------------------------------------------///
@@ -307,3 +320,54 @@ void getNumDisplaysAndDefault(int *numDisplays, int *defaultDisplayNum)
 {
 }
 #endif //__linux__
+
+
+//-----------------------------------------------------------------------------------///
+// **************************** Windows specific code  ****************************** //
+//-----------------------------------------------------------------------------------///
+#ifdef __WINDOWS__
+void getResolution(int *displayNumber, int *screenWidth, int *screenHeight, int *frameRate, int *bitDepth)
+{
+  DISPLAY_DEVICE dd;
+  DEVMODE dv;
+
+  dd.cb = sizeof(DISPLAY_DEVICE);
+  dv.dmSize = sizeof(DEVMODE);
+
+  if (EnumDisplayDevices(NULL, *displayNumber - 1, &dd, 0x00000001) == FALSE) {
+    mexPrintf("(mglResolution) Could not enumerate displays.\n");
+    return;
+  }
+
+  if (EnumDisplaySettings(dd.DeviceName, ENUM_CURRENT_SETTINGS, &dv) == FALSE) {
+    mexPrintf("(mglResolution) Enum display settings failed.\n");
+    return;
+  }
+
+  *screenWidth = dv.dmPelsWidth;
+  *screenHeight = dv.dmPelsHeight;
+  *bitDepth = dv.dmBitsPerPel;
+
+  // Set the frame rate to something sensible if we get a crap value.  0 or 1 is returned
+  // via the Windows API if the monitor is using the "default" frame rate.
+  if (dv.dmDisplayFrequency <= 1) {
+    *frameRate = 60;
+  }
+  else {
+    *frameRate = dv.dmDisplayFrequency;
+  }
+}
+
+void setResolution(int *displayNumber, int *screenWidth, int *screenHeight, int *frameRate, int *bitDepth)
+{
+}
+
+void getNumDisplaysAndDefault(int *numDisplays, int *defaultDisplayNum)
+{
+  // Get the number of visible displays.
+  *numDisplays = GetSystemMetrics(SM_CMONITORS);
+
+  // Set the default display to be the last one.
+  *defaultDisplayNum = *numDisplays;
+}
+#endif // __WINDOWS__
