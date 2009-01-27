@@ -7,7 +7,7 @@
   copyright: (c) 2006 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
   purpose: set the resolution/refresh rate of a monitor
 
-  $Id: mglPrivateOpen.c,v 1.14 2007/10/25 20: 31: 43 justin Exp $
+  $Id$
 =========================================================================
 #endif
 
