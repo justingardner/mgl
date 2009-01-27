@@ -27,7 +27,7 @@
 ///////////////////////////////
 //   function declarations   //
 ///////////////////////////////
-    void mglPrivateOpenOnExit(void);
+void mglPrivateOpenOnExit(void);
 
 /////////////////////////
 //   OS Specific calls //
@@ -86,7 +86,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   contextPointer = openDisplay(&displayNumber,&screenWidth,&screenHeight);
 
   // and save the context pointer
-  mglSetGlobalDouble("context",(double)contextPointer);
+  mglSetGlobalDouble("GLContext",(double)contextPointer);
 
   // get the floor of the displayNumber because the decimal place is for alpha
   displayNumber = floor(displayNumber);
@@ -186,7 +186,7 @@ unsigned long cocoaOpen(double *displayNumber, int *screenWidth, int *screenHeig
   NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
 
   // see if there is an existing window
-  myWindow = (NSWindow*)(unsigned long)mglGetGlobalDouble("window");
+  myWindow = (NSWindow*)(unsigned long)mglGetGlobalDouble("cocoaWindowPointer");
 
   // if there isn't we need to set everything up
   if (myWindow == 0) {
@@ -203,7 +203,7 @@ unsigned long cocoaOpen(double *displayNumber, int *screenWidth, int *screenHeig
       NSOpenGLPFAStencilSize, 8,
       0
     };
-NSOpenGLPixelFormat* myPixelFormat = [[NSOpenGLPixelFormat alloc] initWithAttributes:attrs];
+    NSOpenGLPixelFormat* myPixelFormat = [[NSOpenGLPixelFormat alloc] initWithAttributes:attrs];
     if (myPixelFormat==nil) {
       mexPrintf("(mglPrivateOpen) Could not create pixel format\n");
       return;
@@ -300,7 +300,7 @@ NSRect screenRect = [[screens objectAtIndex:(*displayNumber-1)] frame];
   }
 
   // remember the window
-  mglSetGlobalDouble("window",(unsigned long)myWindow);
+  mglSetGlobalDouble("cocoaWindowPointer",(unsigned long)myWindow);
   // and that this is a cocoa window
   mglSetGlobalDouble("isCocoaWindow",1);
 
@@ -467,6 +467,8 @@ unsigned long aglOpen(double *displayNumber, int *screenWidth, int *screenHeight
   }
   if (verbose>1) mexPrintf("(mglPrivateOpen) Repositioning window\n");
   RepositionWindow (theWindow, NULL, kWindowCascadeOnMainScreen);
+
+  mglSetGlobalDouble("aglWindowPointer",(unsigned long)theWindow);
   return((unsigned long)aglContextObj);
 }
 #endif //__cocoa__
@@ -561,9 +563,6 @@ unsigned long cglOpen(double *displayNumber, int *screenWidth, int *screenHeight
 
   // Hide cursor
   CGDisplayHideCursor( kCGDirectMainDisplay ) ;
-
-  // we only keep a pointer to the window for AGL
-  mglSetGlobalDouble("windowPointer", 0.0);
 
   return((unsigned long)contextObj);
 }

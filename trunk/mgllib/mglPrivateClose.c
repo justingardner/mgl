@@ -96,8 +96,10 @@ void cocoaClose(displayNumber,verbose)
   NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
 
   // get pointers
-  NSWindow *myWindow = (NSWindow*)(unsigned long)mglGetGlobalDouble("window");
-  NSOpenGLContext *myOpenGLContext = (NSOpenGLContext*)(unsigned long)mglGetGlobalDouble("context");
+  NSWindow *myWindow = (NSWindow*)(unsigned long)mglGetGlobalDouble("cocoaWindowPointer");
+  NSOpenGLContext *myOpenGLContext = (NSOpenGLContext*)(unsigned long)mglGetGlobalDouble("GLContext");
+
+  if (verbose) mexPrintf("(mglPrivateClose) Closing window: %x with openGLContext: %x\n",(unsigned long)myWindow,(unsigned long)myOpenGLContext);
 
   // exit full screen mode
   if (displayNumber >= 1) {
@@ -115,8 +117,8 @@ void cocoaClose(displayNumber,verbose)
   if (verbose) mexPrintf("(mglPrivateClose) Releasing cocoa window\n");
   [[myWindow contentView] clearGLContext];
   [myWindow close];
-  mglSetGlobalDouble("window",0);
-  mglSetGlobalDouble("context",0);
+  mglSetGlobalDouble("cocoaWindowPointer",0);
+  mglSetGlobalDouble("GLContext",0);
 #else
   if (verbose) mexPrintf("(mglPrivateClose) Hiding cocoa window\n");
   [myWindow orderOut:nil];
@@ -229,7 +231,7 @@ void cglClose(int displayNumber,int verbose)
   CGDisplayShowCursor( kCGDirectMainDisplay ) ; 
 
   // set context to empty
-  mglSetGlobalDouble("context",0);
+  mglSetGlobalDouble("GLContext",0);
 }
 #endif//__APPLE__
 //-----------------------------------------------------------------------------------///
