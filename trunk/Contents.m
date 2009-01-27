@@ -1,4 +1,4 @@
- %MGL library functions
+%MGL library functions
 %
 %Main screen functions
 %  mglOpen                   : Opens the screen
