@@ -141,7 +141,7 @@ unsigned long openMovie(char *filename, int xpos, int ypos, int width, int heigh
   // thread safe in 64bit mode?
 
   // see if there is an existing window
-  NSWindow *myWindow = (NSWindow*)(unsigned long)mglGetGlobalDouble("window");
+  NSWindow *myWindow = (NSWindow*)(unsigned long)mglGetGlobalDouble("cocoaWindowPointer");
 
   // init a QTMovie
   NSError *myError = [NSError alloc];//NULL;

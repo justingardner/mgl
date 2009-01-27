@@ -34,7 +34,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 //-----------------------------------------------------------------------------------///
 #ifdef __APPLE__
 #ifdef __cocoa__
-  NSWindow *myWindow = (NSWindow*)(unsigned long)mglGetGlobalDouble("window");
+  NSWindow *myWindow = (NSWindow*)(unsigned long)mglGetGlobalDouble("cocoaWindowPointer");
   [myWindow setFrameTopLeftPoint:NSMakePoint((float)left,(float)top)];
 //-----------------------------------------------------------------------------------///
 // **************************** mac carbon specific code  *************************** //
@@ -45,7 +45,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   unsigned int r;
   WindowRef winRef;
 	
-  r = (unsigned int)mglGetGlobalDouble("windowPointer");
+  r = (unsigned int)mglGetGlobalDouble("aglWindowPointer");
   winRef = (WindowRef)r;
 	
   if (IsValidWindowPtr(winRef)) {

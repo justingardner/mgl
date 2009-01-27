@@ -41,13 +41,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   if (displayNumber >= 0) {
     if (mglGetGlobalDouble("isCocoaWindow")) {
       // switch the cocoa openGLContext
-      NSOpenGLContext *myOpenGLContext = (NSOpenGLContext*)(unsigned long)mglGetGlobalDouble("context");
+      NSOpenGLContext *myOpenGLContext = (NSOpenGLContext*)(unsigned long)mglGetGlobalDouble("GLContext");
       [myOpenGLContext makeCurrentContext];
     }
     else {
       // switch the CGL context
       CGLContextObj contextObj;
-      contextObj = (CGLContextObj)(unsigned long)mglGetGlobalDouble("context");
+      contextObj = (CGLContextObj)(unsigned long)mglGetGlobalDouble("GLContext");
       CGLSetCurrentContext(contextObj);
     }
   }
@@ -59,12 +59,12 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   // If displayNumber > 0, then it's a CGL window.
   if (displayNumber > 0) {
     CGLContextObj contextObj;
-    contextObj = (CGLContextObj)(unsigned long)mglGetGlobalDouble("context");
+    contextObj = (CGLContextObj)(unsigned long)mglGetGlobalDouble("GLContext");
     CGLSetCurrentContext(contextObj);
   }
   else {
     AGLContext contextObj;
-    contextObj = (AGLContext)(unsigned int)mglGetGlobalDouble("context");
+    contextObj = (AGLContext)(unsigned int)mglGetGlobalDouble("GLContext");
     aglSetCurrentContext(contextObj);
   }
 #endif//__cocoa__

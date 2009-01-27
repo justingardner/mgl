@@ -39,7 +39,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   if (displayNumber >= 0) {
     if (mglGetGlobalDouble("isCocoaWindow")) {
       // cocoa, get openGLContext and flush
-      NSOpenGLContext *myOpenGLContext = (NSOpenGLContext*)(unsigned long)mglGetGlobalDouble("context");
+      NSOpenGLContext *myOpenGLContext = (NSOpenGLContext*)(unsigned long)mglGetGlobalDouble("GLContext");
       if (myOpenGLContext)
 	[myOpenGLContext flushBuffer];
     }
