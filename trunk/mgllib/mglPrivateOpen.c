@@ -1,25 +1,17 @@
 #ifdef documentation
 =========================================================================
 
-  program:
-  mglPrivateOpen.c
-  by:
-  justin gardner with modifications by jonas larsson
-  date:
-  04/03/06
-  copyright:
-  (c) 2006 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
-  purpose:
-  opens an OpenGL window on Mac OS X or Linux
+  program: mglPrivateOpen.c
+  by: justin gardner with modifications by jonas larsson
+  date: 04/03/06
+  copyright: (c) 2006 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
+  purpose: opens an OpenGL window on Mac OS X or Linux
   See Macintosh OpenGL Programming Guide
 
   http://developer.apple.com/documentation/GraphicsImaging/OpenGL-date.html#//apple_ref/doc/uid/TP30000440-TP30000424-TP30000549
 
-  $Id:
-  mglPrivateOpen.c 410 2009-01-23 23:
-  43:
-  17Z justin $
-  =========================================================================
+  $Id$
+=========================================================================
 #endif
 
 /////////////////////////
