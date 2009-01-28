@@ -784,9 +784,9 @@ unsigned long openDisplay(double *displayNumber, int *screenWidth, int *screenHe
   WindowRect.top = (long)0;				// Set Top Value To 0
   WindowRect.bottom = (long)*screenHeight;	// Set Bottom Value To Requested Height
 
-  //   if (displayNumber) {
-  // 	  fullScreen = TRUE;
-  //   }
+  if (*displayNumber != 0) {
+    //fullScreen = TRUE;
+  }
 
   hInstance = GetModuleHandle(NULL);				// Grab An Instance For Our Window
   wc.style = CS_HREDRAW | CS_VREDRAW | CS_OWNDC;	// Redraw On Size, And Own DC For Window.
@@ -822,13 +822,13 @@ unsigned long openDisplay(double *displayNumber, int *screenWidth, int *screenHe
       return -1;
     }
 
-    dwExStyle=WS_EX_APPWINDOW;	// Window Extended Style
-    dwStyle=WS_POPUP;			// Windows Style
-    ShowCursor(FALSE);			// Hide Mouse Pointer
+    dwExStyle = WS_EX_APPWINDOW;  // Window Extended Style
+    dwStyle = WS_POPUP;           // Windows Style
+    ShowCursor(FALSE);            // Hide Mouse Pointer
   }
   else {
-    dwExStyle = WS_EX_APPWINDOW | WS_EX_WINDOWEDGE; // Window Extended Style
-    dwStyle = WS_OVERLAPPEDWINDOW;					// Windows Style
+    dwExStyle = WS_EX_APPWINDOW;   // Window Extended Style
+    dwStyle = WS_POPUP;            // Windows Style
   }
 
   // Adjust Window To True Requested Size.
@@ -903,11 +903,11 @@ unsigned long openDisplay(double *displayNumber, int *screenWidth, int *screenHe
   SwapBuffers(hDC);
 
   ref = (unsigned int)hWnd;
-  mglSetGlobalDouble("windowPointer", (double)ref);
+  mglSetGlobalDouble("winWindowPointer", (double)ref);
   ref = (unsigned int)hDC;
-  mglSetGlobalDouble("deviceContext", (double)ref);
+  mglSetGlobalDouble("winDeviceContext", (double)ref);
   ref = (unsigned int)hInstance;
-  mglSetGlobalDouble("appInstance", (double)ref);
+  mglSetGlobalDouble("winAppInstance", (double)ref);
   mglSetGlobalDouble("fullScreen", (double)fullScreen);
 
   return (unsigned long)hRC;

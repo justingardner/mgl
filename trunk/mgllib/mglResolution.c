@@ -58,7 +58,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     else
       displayNumber = -1;
   }
-
+  
   // if the display number is set to something less than 1 then
   // set it to the last display in the list
   if ((nrhs==0) || (displayNumber < 1))
@@ -318,6 +318,8 @@ void getNumDisplaysAndDefault(int *numDisplays, int *defaultDisplayNum)
 // **************************** Windows specific code  ****************************** //
 //-----------------------------------------------------------------------------------///
 #ifdef __WINDOWS__
+
+// Gets a specified display resolution, frame rate, and bit depth.
 void getResolution(int *displayNumber, int *screenWidth, int *screenHeight, int *frameRate, int *bitDepth)
 {
   DISPLAY_DEVICE dd;
@@ -350,10 +352,14 @@ void getResolution(int *displayNumber, int *screenWidth, int *screenHeight, int 
   }
 }
 
+// Sets the display resolution.
 void setResolution(int *displayNumber, int *screenWidth, int *screenHeight, int *frameRate, int *bitDepth)
 {
+  mexPrintf("(mglResolution) setResolution not implemented for Windows.\n");
+  return;
 }
 
+// Gets the number of displays and which one is the default.
 void getNumDisplaysAndDefault(int *numDisplays, int *defaultDisplayNum)
 {
   // Get the number of visible displays.
@@ -362,4 +368,5 @@ void getNumDisplaysAndDefault(int *numDisplays, int *defaultDisplayNum)
   // Set the default display to be the last one.
   *defaultDisplayNum = *numDisplays;
 }
+
 #endif // __WINDOWS__
