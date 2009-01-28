@@ -162,10 +162,10 @@ stimulus.period = 1/stimulus.tf;
 
 for i = 1:length(stimulus.phases)
   % make a gabor patch
-  grating(:,:,1) = 255*(makeGrating(8,8,1.5,0,stimulus.phases(i))+1)/2;
-  grating(:,:,2) = 255*(makeGrating(8,8,1.5,0,stimulus.phases(i))+1)/2;
-  grating(:,:,3) = 255*(makeGrating(8,8,1.5,0,stimulus.phases(i))+1)/2;
-  grating(:,:,4) = 255*makeGaussian(8,8,1,1);
+  grating(:,:,1) = 255*(mglMakeGrating(8,8,1.5,0,stimulus.phases(i))+1)/2;
+  grating(:,:,2) = 255*(mglMakeGrating(8,8,1.5,0,stimulus.phases(i))+1)/2;
+  grating(:,:,3) = 255*(mglMakeGrating(8,8,1.5,0,stimulus.phases(i))+1)/2;
+  grating(:,:,4) = 255*mglMakeGaussian(8,8,1,1);
 
   % make it into a texture
   stimulus.tex(i) = mglCreateTexture(grating);
