@@ -9,12 +9,27 @@
 %
 function myscreen = initScreen(myscreen,randstate)
 
+% see if passed in myscreen variable is actually the name of a monitor to open
+if exist('myscreen','var') && (isstr(myscreen) || isscalar(myscreen))
+  displayname = myscreen;
+  clear myscreen;
+  % see if it is a computer:displayname field
+  colonloc = findstr(':',displayname);
+  if length(colonloc) == 1
+    myscreen.computer = displayname(1:colonloc-1);
+    displayname = displayname(colonloc+1:end);
+  end
+  % set the display name
+  myscreen.displayname = displayname;
+end
+
 % set version number
 myscreen.ver = 1.1;
 
 % get computer name
-myscreen.computer = getHostName;
-myscreen.tickcode = hex2dec('35');
+if ~isfield(myscreen,'computer')
+  myscreen.computer = getHostName;
+end
 
 % default monitor gamma (used when there is no calibration file)
 defaultMonitorGamma = 1.8;
@@ -26,62 +41,77 @@ screenParamsList = {'computerName','displayName','screenNumber',...
 		    'screenWidth','screenHeight','displayDistance',...
 		    'displaySize','framesPerSecond','autoCloseScreen',...
 		    'saveData','monitorGamma','calibFilename','flipHV'};
-screenParams{1} = {'yoyodyne.cns.nyu.edu','projector',2,1280,1024,57,[31 23],60,1,0,defaultMonitorGamma,'yoyodyne',[0 0]};
-screenParams{end+1} = {'yoyodyne.cns.nyu.edu','lcd',2,1280,1024,157.5,[43.2 32.5],60,1,0,defaultMonitorGamma,'yoyodyne',[0 0]};
 
-screenParams{end+1} = {'Stimulus.local','projector',2,1024,768,57,[31 23],60,0,50,defaultMonitorGamma,'',[0 0]};
-screenParams{end+1} = {'Stimulus.local','lcd',2,800,600,157.5,[43.2 32.5],60,0,50,[0 1 0.4790 0 1 0.4790 0 1 0.4790],'',[1 0]};
-screenParams{end+1} = {'stimulus-g5.local','projector',2,1024,768,57,[31 23],60,0,50,defaultMonitorGamma,'stimulus-g5_projector',[0 0]};
-screenParams{end+1} = {'stimulus-g5.local','lcd',2,800,600,157.5,[43.2 32.5],60,0,50,[0 1 0.4790 0 1 0.4790 0 1 0.4790],'',[0 0]};
-%screenParams{end+1} = {'eigenstate','',0,1440,900,57,[31 23],60,1,0,defaultMonitorGamma,''};
-screenParams{end+1} = {'eigenstate','',0,800,600,57,[31 23],60,1,0,defaultMonitorGamma,'',[0 0]};
-%screenParams{end+1} = {'eigenworld','',0,1440,900,57,[31 23],60,1,0,defaultMonitorGamma,'',[0 0]};
-screenParams{end+1} = {'dhcp.bnf.brain.riken.jp','',0,1024,768,57,[31 23],60,1,0,defaultMonitorGamma,'',[0 0]};
-screenParams{end+1} = {'alta','',[],1024,768,57,[31 23],60,1,0,defaultMonitorGamma,'',[0 0]};
-screenParams{end+1} = {'dsltop','',0,400,300,57,[18 24],60,1,0,defaultMonitorGamma,'',[0 0]};
-screenParams{end+1} = {'whistler.cns.nyu.edu','',2,1280,1024,57,[31 23],60,1,0,defaultMonitorGamma,'',[0 0]};
-screenParams{end+1} = {'froh.cns.nyu.edu','',[],1280,1024,57,[31 23],100,1,0,defaultMonitorGamma,'',[0 0]};
-screenParams{end+1} = {'jackson','',2,1152,870,57,[43.2 32.5],75,1,0,defaultMonitorGamma,'',[0 0]};
-screenParams{end+1} = {'cronos.psychology.nottingham.ac.uk','',2,1280,1024,57,[31 23],100,1,0,defaultMonitorGamma,'',[0 0]};
-screenParams{end+1} = {'hyperion.local','',0,800,600,57,[31 23],100,1,0,defaultMonitorGamma,'',[0 0]};
-screenParams{end+1} = {'tejas.cns.nyu.edu', '', 2, 1680, 1050, 57, [31 23], 60, 1, 0, defaultMonitorGamma, '',[0 0]};
+% load the screen params file. Note that you can override the default
+% location from mgl/task/mglScreenParams to whatever you like, by 
+% setting mglSetParam('screenParamsFilename')'
+screenParamsFilename = mglGetParam('screenParamsFilename');
+if isempty(screenParamsFilename)
+  screenParamsFilename = fullfile(mglGetParam('taskdir'),'mglScreenParams');
+end
+% make sure we have a .mat extension
+[pathstr name] = fileparts(screenParamsFilename);
+screenParamsFilename = sprintf('%s.mat',fullfile(pathstr,name));
+% check for file
+if ~isfile(screenParamsFilename)
+  disp(sprintf('(initScreen) UHOH: Could not find screenParams file %s',screenParamsFilename));
+  screenParams = {};
+else
+  % load
+  screenParams = load(screenParamsFilename);
+end
+if isfield(screenParams,'screenParams')
+  screenParams = screenParams.screenParams;
+elseif ~isempty(screenParams)
+  disp(sprintf('(initScreen) UHOH: File %s does not contain screenParams',screenParamsFilename));
+  screenParams = {};
+end
 
+% check for passed in screenParams
 if isfield(myscreen,'screenParams')
   screenParams = cat(2,myscreen.screenParams,screenParams);
 end
-
-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % find matching database parameters
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 foundComputer = 0;
 for pnum = 1:length(screenParams)
-  if ~foundComputer && ~isempty(strfind(myscreen.computer,screenParams{pnum}{1}))
-    if isempty(screenParams{pnum}{2}) || ~isfield(myscreen,'displayname') || (isfield(myscreen,'displayname') && strcmp(myscreen.displayname,screenParams{pnum}{2}))
-      foundComputer = 1;
-      % if we find a match then set the parameters accordingly
-      if ~isempty(screenParams{pnum}{2})
-	disp(sprintf('(initScreen) Monitor parameters for: %s displayName: %s',screenParams{pnum}{1},screenParams{pnum}{2}));
-      else
-	disp(sprintf('(initScreen) Monitor parameters for: %s',screenParams{pnum}{1}));
-      end
-      % setup all parameters for the monitor (if the settings are
-      % already set then do nothing
-      for j = 3:length(screenParams{pnum})
-	if ~isfield(myscreen,screenParamsList{j})
-	  eval(sprintf('myscreen.%s = screenParams{pnum}{%i};',screenParamsList{j},j));
-	end
-      end
-      if ~isempty(myscreen.displayDistance) & ~isempty(myscreen.displaySize)
-	disp(sprintf('(initScreen) %i: %ix%i(pix) dist:%0.1f (cm) size:%0.1fx%0.1f (cm) %iHz save:%i autoclose:%i flipHV:[%i %i]',myscreen.screenNumber,myscreen.screenWidth,myscreen.screenHeight,myscreen.displayDistance,myscreen.displaySize(1),myscreen.displaySize(2),myscreen.framesPerSecond,myscreen.saveData,myscreen.autoCloseScreen,myscreen.flipHV(1),myscreen.flipHV(2)));
-      end
+  if ~isempty(strfind(myscreen.computer,screenParams{pnum}{1}))
+    % if no displayName is asked for or no displayname is set in the screenParams
+    % then only accept the computer if we haven't already found it
+    if (foundComputer == 0) && (isempty(screenParams{pnum}{2}) || ~isfield(myscreen,'displayname'))
+      foundComputer = pnum;
+    % check for matching displayname
+    elseif isfield(myscreen,'displayname') && isstr(myscreen.displayname) && strcmp(myscreen.displayname,screenParams{pnum}{2})
+      foundComputer = pnum;
+    % check for matching display number
+    elseif isfield(myscreen,'displayname') && isnumeric(myscreen.displayname) && isequal(myscreen.displayname,screenParams{pnum}{3})
+      foundComputer = pnum;
     end
   end
 end
 
 % check to make sure that we have found the computer in the table
-if ~foundComputer
+if foundComputer
+  % display the match
+  if ~isempty(screenParams{foundComputer}{2})
+    disp(sprintf('(initScreen) Monitor parameters for: %s displayName: %s',screenParams{foundComputer}{1},screenParams{foundComputer}{2}));
+  else
+    disp(sprintf('(initScreen) Monitor parameters for: %s',screenParams{foundComputer}{1}));
+  end
+  % setup all parameters for the monitor (if the settings are
+  % already set in myscreen then do nothing)
+  for j = 3:length(screenParams{foundComputer})
+    if ~isfield(myscreen,screenParamsList{j})
+      eval(sprintf('myscreen.%s = screenParams{foundComputer}{%i};',screenParamsList{j},j));
+    end
+  end
+  % display the settings
+  if ~isempty(myscreen.displayDistance) & ~isempty(myscreen.displaySize)
+    disp(sprintf('(initScreen) %i: %ix%i(pix) dist:%0.1f (cm) size:%0.1fx%0.1f (cm) %iHz save:%i autoclose:%i flipHV:[%i %i]',myscreen.screenNumber,myscreen.screenWidth,myscreen.screenHeight,myscreen.displayDistance,myscreen.displaySize(1),myscreen.displaySize(2),myscreen.framesPerSecond,myscreen.saveData,myscreen.autoCloseScreen,myscreen.flipHV(1),myscreen.flipHV(2)));
+  end
+else
   disp(sprintf('(initScreen) Could not find computer %s in initScreen',myscreen.computer));
 end
 
@@ -90,8 +120,8 @@ end
 %%%%%%%%%%%%%%%%%
 if ~isfield(myscreen,'autoCloseScreen'),myscreen.autoCloseScreen = 1;end
 if ~isfield(myscreen,'screenNumber'),myscreen.screenNumber = [];end
-if ~isfield(myscreen,'screenWidth'),myscreen.screenWidth = 1024;end
-if ~isfield(myscreen,'screenHeight'),myscreen.screenHeight = 768;end
+if ~isfield(myscreen,'screenWidth'),myscreen.screenWidth = [];end
+if ~isfield(myscreen,'screenHeight'),myscreen.screenHeight = [];end
 if ~isfield(myscreen,'framesPerSecond'),myscreen.framesPerSecond = 60;end
 if ~isfield(myscreen,'saveData'),myscreen.saveData = -1;end
 if ~isfield(myscreen,'displayDistance'),myscreen.displayDistance = 57;end
