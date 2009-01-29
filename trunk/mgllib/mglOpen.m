@@ -92,7 +92,7 @@ if ~openDisplay
     % for full screen resolution
     if isempty(whichScreen) || (whichScreen>=1)
       % get the current resolution, so we can return to it on close
-      mglSetParam('originalResolution',mglResolution);
+      mglSetParam('originalResolution',mglResolution(whichScreen));
       % set the display resolution
       displayResolution = mglResolution(whichScreen,screenWidth,screenHeight,frameRate,bitDepth);
       whichScreen = displayResolution.displayNumber;
