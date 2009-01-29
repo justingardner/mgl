@@ -116,6 +116,11 @@ if ~isfield(task,'synchToVol')
   task.synchToVol = zeros(1,length(task.segmin));
 end
 
+% just warn if user has a writeTrace field. It is no longer necessary
+if isfield(task,'writeTrace') || isfield(task,'writetrace')
+  disp(sprintf('(initTask) There is no longer any need to use writeTrace. All variable settings are correctly stored in the task variables and can be extracted after the experiment using getTaskParameters. The passed in writeTrace field will be ignored'));
+end
+
 task.numsegs = length(task.segmin);
 if length(task.segmin) ~= length(task.segmax)
   error(sprintf('(initTask) task.segmin and task.segmax not of same length\n'));
@@ -128,7 +133,15 @@ end
 
 % keep the task randstate. Note that initScreen initializes the
 % state of the random generator to a random value (set by clock)
-% each time, guaranteeing a different random sequence
+% each time, guaranteeing a different random sequence. 
+% Note that the updateTask code switches the rand state
+% back and forth between the blockState / trialState at
+% the appropriate times to make sure that *if* the randstate
+% set by initScreen is set the same as a previous run, we
+% get exactly the same sequence of random numbers for
+% the blocks and trials (regardless of what the user is
+% doing inside their callbacks -- which will have a different
+% rand number state).
 % set the randstate type
 task.randstate.type = myscreen.randstate.type;
 % init the random sequence for this task
@@ -144,6 +157,12 @@ task.randstate.trialState = floor((2^32-1)*rand);
 randstate = rand(myscreen.randstate.type);
 rand(task.randstate.type,task.randstate.state);
 
+% here we deal with randVars (see wiki for how to use randVars). The randVars
+% are independent random variables from parameters. Note that this code allows
+% two different ways of setting them up (either as block or uniform). But it
+% is written in a way to be extensible. (look at the functions blockRandomization
+% and uniformRandomization). All the variable values are precomputed, so you 
+% have to specify how long to precompute them for. 
 randTypes = {'block','uniform'};
 % compute stuff for random variables
 task.randVars.n_ = 0;
@@ -204,7 +223,7 @@ end
 randVarNames = fieldnames(task.randVars);
 for i = 1:length(randVarNames)
   % check if it is a random variable
-  if ~any(strcmp(randVarNames{i},{'block','uniform'})) && isempty(regexp(randVarNames{i},'_$'))
+  if ~any(strcmp(randVarNames{i},randTypes)) && isempty(regexp(randVarNames{i},'_$'))
     task.randVars.n_ = task.randVars.n_+1;
     task.randVars.names_{task.randVars.n_} = randVarNames{i};
     task.randVars.varlen_(task.randVars.n_) = eval(sprintf('length(task.randVars.%s)',randVarNames{i}));
@@ -215,93 +234,6 @@ for i = 1:length(randVarNames)
     end      
   end
 end
-
-% new way of setting up write trace
-if isfield(task,'writeTrace') && isstruct(task.writeTrace)
-  thiswriteTrace = task.writeTrace;
-  task = rmfield(task,'writeTrace');
-  for i = 1:task.numsegs
-    task.writeTrace{i} = {};
-  end
-  % go through all variables to be written
-  for i = 1:length(thisWriteTrace.tracenum)
-    % get the segment num or default to 1
-    if isfield(thisWriteTrace,'segnum') && (length(thisWriteTrace.segnum)>=i)
-      segnum = thisWriteTrace.segnum(i);
-    else
-      segnum = 1;
-    end
-    % write the trace variable
-    thisTracevarNum = 1;
-    if isfield(task.writeTrace{segnum},'tracevar')
-      thisTracevarNum = length(task.writeTrace{segnum}.tracevar)+1;
-    end
-    task.writeTrace{segnum}.tracevar{thisTracevarNum} = thisWriteTrace.tracevar{i};
-    % the row
-    if isfield(thisWriteTrace,'tracerow') && (length(thisWriteTrace.tracerow)>=i)
-      task.writeTrace{segnum}.tracerow(thisTracevarNum) = thisWriteTrace.tracerow(i);
-    end
-    % the tracenum
-    if isfield(thisWriteTrace,'tracenum') && (length(thisWriteTrace.tracenum)>=i)
-      task.writeTrace{segnum}.tracenum(thisTracevarNum) = thisWriteTrace.tracenum(i);
-    end
-    % and usenum
-    if isfield(thisWriteTrace,'usenum') && (length(thisWriteTrace.usenum)>=i)
-      task.writeTrace{segnum}.usenum(thisTracevarNum) = thisWriteTrace.usenum(i);
-    end
-  end
-end
-
-% this is the old way of setting up. first check to see if we have
-% enough segments
-if ~isfield(task,'writeTrace'),task.writeTrace = {};,end
-for i = (length(task.writeTrace)+1):task.numsegs
-  task.writeTrace{i} = {};
-end
-
-% now make sure the writeTrace references existing variables
-maxtracenum = -inf;
-for i = 1:length(task.writeTrace)
-  if isfield(task.writeTrace{i},'tracenum')
-    % tracerow is optional
-    if ~isfield(task.writeTrace{i},'tracerow')
-      task.writeTrace{i}.tracerow = ones(1,length(task.writeTrace{i}.tracenum));
-    end
-    % usenum is optional
-    if ~isfield(task.writeTrace{i},'usenum')
-      task.writeTrace{i}.usenum = zeros(1,length(task.writeTrace{i}.tracenum));
-    end
-    % make traceval into a cell array if necessary
-    if isstr(task.writeTrace{i}.tracevar)
-      tracevarcell{1} = task.writeTrace{i}.tracevar;
-      task.writeTrace{i}.tracevar = tracevarcell;
-    end
-    % now look for maximum and check variable and
-    % row existence
-    for j = 1:length(task.writeTrace{i}.tracenum)
-      % look for maximum tracenum
-      if task.writeTrace{i}.tracenum(j) > maxtracenum
-	maxtracenum = task.writeTrace{i}.tracenum(j);
-      end
-      % see if variable called for exists
-      thistracevar = task.writeTrace{i}.tracevar{j};
-      if isfield(task.parameter,thistracevar)
-	task.writeTrace{i}.original{j} = sprintf('task.parameter.%s',thistracevar);
-      elseif isfield(task.randVars,thistracevar)
-	task.writeTrace{i}.original{j} = task.randVars.originalName_{find(strcmp(thistracevar,task.randVars.names_))};
-      else
-	error(sprintf('(initTask): WriteTrace can not save variable %s (Does not exist)',thistracevar));
-      end
-      % see if tracerow is long enough
-      thistracerow = task.writeTrace{i}.tracerow(j);
-      thissize = eval(sprintf('size(%s,1);',task.writeTrace{i}.original{j}));
-      if (thissize(1) < thistracerow)
-	error(sprintf('(initTask): WriteTrace can not write row %i of variable %s',thistracerow,thistracevar));
-      end
-    end
-  end
-end
-task.numstimtraces = maxtracenum;
 
 % check get response
 if ~isfield(task,'getResponse')
