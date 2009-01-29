@@ -35,6 +35,21 @@ else
   if strcmp(paramName,'soundNames') || strcmp(paramName,'movieStructs')
     retval = {};
   end
+  % special case for the location of mgllibDir
+  if any(strcmp(lower(paramName),{'mgllibdir','mgllib'}))
+    retval = fileparts(which('mglOpen'));
+    if isempty(retval)
+      disp(sprintf('(mglGetParam) Could not find mgllib directory'));
+    end
+  end
+  % special case for the location of mgl/task dir
+  if any(strcmp(lower(paramName),{'taskdir','task','mgltaskdir','mgltask'}))
+    retval = fileparts(which('initTask'));
+    if isempty(retval)
+      disp(sprintf('(mglGetParam) Could not find mgl/task directory'));
+    end
+  end
+
 end
 
     
