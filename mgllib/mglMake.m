@@ -48,12 +48,11 @@ clear global MGL;
 hfile = dir('mgl.h');
 if (length(hfile) == 0)
   % try to switch to the diretory where mglOpen lives
-  mgldir = fileparts(which('mglOpen'));
+  mgldir = mglGetParam('mgllibDir');
   if ~isempty(mgldir)
     cd(mgldir);
     hfile = dir('mgl.h');
   else
-    disp(sprintf('(mglMake) Could not find source files'));
     return
   end
 end
