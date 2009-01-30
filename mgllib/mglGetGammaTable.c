@@ -20,6 +20,12 @@ $Id$
 ////////////////////////
 #define kMaxDisplays 8
 #define TABLESIZE 256
+#ifdef __WINDOWS__
+#define GAMMAVALUE WORD
+#define GAMMAVALUESIZE sizeof(WORD)
+#define GAMMARANGE 65536
+#define Bool int
+#endif
 #ifdef __linux__
 #define GAMMAVALUE unsigned short
 #define GAMMAVALUESIZE sizeof(unsigned short)
@@ -287,3 +293,45 @@ Bool getGammaFormula(GAMMAVALUE *redMin,GAMMAVALUE *redMax,GAMMAVALUE *redGamma,
   return(1);
 }
 #endif//__linux__
+
+
+//-----------------------------------------------------------------------------------///
+// **************************** Windows specific code  ****************************** //
+//-----------------------------------------------------------------------------------///
+#ifdef __WINDOWS__
+Bool getGammaTable(int *gammaTableSize, GAMMAVALUE **redTable, GAMMAVALUE **greenTable, GAMMAVALUE **blueTable)
+{
+  HDC hDC;
+  unsigned int ref;
+  int i;
+  GAMMAVALUE ramp[256*3];
+  
+  *gammaTableSize = 256;
+  
+  // Allocate the memory for the gamma ramps.
+  *redTable = (GAMMAVALUE*) malloc(sizeof(GAMMAVALUE) * (*gammaTableSize));
+  *greenTable = (GAMMAVALUE*)malloc(sizeof(GAMMAVALUE) * (*gammaTableSize));
+  *blueTable = (GAMMAVALUE*)malloc(sizeof(GAMMAVALUE) * (*gammaTableSize));
+  
+  // Grab the current device context.
+  ref = (unsigned int)mglGetGlobalDouble("winDeviceContext");
+  hDC = (HDC)ref;
+  
+  if (GetDeviceGammaRamp(hDC, &ramp) == TRUE) {
+    for (i = 0; i < 256; i++) {
+      (*redTable)[i] = ramp[i];
+      (*blueTable)[i] = ramp[i+256];
+      (*greenTable)[i] = ramp[i+512];
+    }
+  }
+  else {
+    mexPrintf("(mglGetGammaTable) Could not get gamma table.\n");
+    return 0;
+  }
+}
+
+Bool getGammaFormula(GAMMAVALUE *redMin,GAMMAVALUE *redMax,GAMMAVALUE *redGamma,GAMMAVALUE *greenMin,GAMMAVALUE *greenMax,GAMMAVALUE *greenGamma,GAMMAVALUE *blueMin,GAMMAVALUE *blueMax,GAMMAVALUE *blueGamma)
+{
+  return 1;
+}
+#endif //__WINDOWS__
