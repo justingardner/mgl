@@ -54,14 +54,15 @@
 #ifndef __carbon__
 #ifndef __cocoa__
 #define __cocoa__
-#endif
-#endif //__carbon__
+#endif // ifndef __cocoa__
+#endif // ifndef __carbon__
 #else //__x86_64__
 // for 32bit
 #ifndef __carbon__
 #define __cocoa__
-#endif
-#endif
+#endif // ifndef __carbon__
+#endif // ifdef __x86_64__
+
 #define __eventtap__
 #include <OpenGL/OpenGL.h>
 #include <OpenGL/gl.h>
@@ -71,10 +72,15 @@
 #include <Carbon/Carbon.h>
 #include <CoreServices/CoreServices.h>
 #include <AGL/agl.h>
+
+// Cocoa specific imports.
+#ifdef __cocoa__
 #import <Foundation/Foundation.h>
 #import <Appkit/Appkit.h>
 #import <QTKit/QTKit.h>
 #endif
+
+#endif // __APPLE__
 
 #ifdef __linux__
 #include <stdlib.h>
