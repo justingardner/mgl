@@ -12,6 +12,10 @@
 %  mglDescribeDisplays       : Gets info about displays
 %  mglFrameGrab              : Frame grab to a matlab matrix
 %
+%mgl global parameters
+% mglSetParam                : Sets an mgl global parameter
+% mglGetParam                : Gets an mgl global parameter
+%
 %Functions to adjust the coordinate frame
 %  mglVisualAngleCoordinates : Visual angle coordinates
 %  mglScreenCoordinates      : Pixel coordinate frame
@@ -58,6 +62,7 @@
 %  mglGetMouseEvent          : Get a mouse button down event off of queue
 %  mglPostEvent              : Post a keyboard event to happen in the future (mac only)
 %  mglSimulateRun            : Post a series of keyboard backticks 
+%  mglEatKeys                : Prevent unneeded key presses from being sent to application (mac only)
 %
 %Timing functions
 %  mglGetSecs                : Get time in seconds
