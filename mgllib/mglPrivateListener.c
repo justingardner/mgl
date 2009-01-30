@@ -27,13 +27,6 @@
 //-----------------------------------------------------------------------------------///
 #ifdef __eventtap__
 
-///////////////////////////////
-//   function declarations   //
-///////////////////////////////
-void* setupEventTap(void *data);
-void launchSetupEventTapAsThread();
-CGEventRef myCGEventCallback(CGEventTapProxy proxy, CGEventType type, CGEventRef event, void *refcon);
- 
 ////////////////////////
 //   define section   //
 ////////////////////////
@@ -46,7 +39,8 @@ CGEventRef myCGEventCallback(CGEventTapProxy proxy, CGEventType type, CGEventRef
 #define GETKEYS 4
 #define GETALLKEYEVENTS 5
 #define GETALLMOUSEEVENTS 6
-
+#define EATKEYS 7
+#define MAXEATKEYS 256
 #define MAXKEYCODES 128
 
 /////////////////////
@@ -69,6 +63,14 @@ CGEventRef myCGEventCallback(CGEventTapProxy proxy, CGEventType type, CGEventRef
 - (void)dealloc;
 @end
 
+///////////////////////////////
+//   function declarations   //
+///////////////////////////////
+void* setupEventTap(void *data);
+void launchSetupEventTapAsThread();
+CGEventRef myCGEventCallback(CGEventTapProxy proxy, CGEventType type, CGEventRef event, void *refcon);
+CGEventRef eatEvent(CGEventRef event, queueEvent *qEvent);
+ 
 ////////////////
 //   globals  //
 ////////////////
@@ -78,19 +80,14 @@ static eventTapInstalled = FALSE;
 static NSAutoreleasePool *gPool;
 static NSMutableArray *gKeyboardEventQueue;
 static NSMutableArray *gMouseEventQueue;
-static double keyStatus[MAXKEYCODES];
+static double gKeyStatus[MAXKEYCODES];
+static unsigned char gEatKeys[MAXEATKEYS];
 
 //////////////
 //   main   //
 //////////////
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
-  // check command line arguments
-  if (nrhs != 1) {
-    usageError("mglListener");
-    return;
-  }
-
   // start auto release pool
   NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
 
@@ -135,14 +132,16 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       gPool = [[NSAutoreleasePool alloc] init];
       gKeyboardEventQueue = [[NSMutableArray alloc] init];
       gMouseEventQueue = [[NSMutableArray alloc] init];
+      // default to no keys to eat
+      gEatKeys[0] = 0;
       // set up the event tap
       launchSetupEventTapAsThread();
       // and remember that we have an event tap thread running
       eventTapInstalled = TRUE;
-      // and clear the keyStatus array
+      // and clear the gKeyStatus array
       for (i = 0; i < MAXKEYCODES; i++)
-	keyStatus[i] = 0;
-      mexPrintf("(mglPrivateListener) Starting keyboard and mouse event tap. End with mglListener(''quit'').\n");
+	gKeyStatus[i] = 0;
+      mexPrintf("(mglPrivateListener) Starting keyboard and mouse event tap. End with mglListener('quit').\n");
       // started running, return 1
       *mxGetPr(plhs[0]) = 1;
     }
@@ -358,7 +357,37 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     plhs[0] = mxCreateDoubleMatrix(1,MAXKEYCODES,mxREAL);
     double *outptr = mxGetPr(plhs[0]);
     for (i = 0; i < MAXKEYCODES; i++)
-      outptr[i] = keyStatus[i];
+      outptr[i] = gKeyStatus[i];
+  }
+  // GETKEYEVENT command ----------------------------------------------------------
+  else if (command == EATKEYS) {
+    // return argument
+    plhs[0] = mxCreateDoubleMatrix(1,1,mxREAL);
+    // check if eventTap is installed
+    if (eventTapInstalled) {
+      // get the keycodes that are to be eaten
+      int nkeys = MIN(mxGetNumberOfElements(prhs[1]),MAXEATKEYS);
+      double *keyCodesToEat = (double*)mxGetPr(prhs[1]);
+      // get the mutex
+      pthread_mutex_lock(&mut);
+      int i;
+      mexPrintf("(mglPrivateListener) Eating all keypresses with keycodes: ");
+      for (i = 0;i < nkeys;i++) {
+	mexPrintf("%i ",(int)keyCodesToEat[i]);
+	gEatKeys[i] = (unsigned char)(int)keyCodesToEat[i];
+      }
+      mexPrintf("\n");
+      gEatKeys[nkeys] = 0;
+      // release the mutex
+      pthread_mutex_unlock(&mut);
+      // return argument set to 1
+      *mxGetPr(plhs[0]) = 1;
+    }
+    else {
+      mexPrintf("(mglPrivateListener) Cannot eat keys if listener is not installed\n");
+      // return argument set to 0
+      *mxGetPr(plhs[0]) = 0;
+    }
   }
   // QUIT command -----------------------------------------------------------------
   else if (command == QUIT) {
@@ -401,7 +430,8 @@ void* setupEventTap(void *data)
 
   // Create an event tap. We are interested in key presses and mouse presses
   eventMask = ((1 << kCGEventKeyDown) | (1 << kCGEventKeyUp) | (1 << kCGEventLeftMouseDown) | (1 << kCGEventRightMouseDown));
-  gEventTap = CGEventTapCreate(kCGSessionEventTap, kCGHeadInsertEventTap, kCGEventTapOptionListenOnly, eventMask, myCGEventCallback, NULL);
+  //  gEventTap = CGEventTapCreate(kCGSessionEventTap, kCGHeadInsertEventTap, kCGEventTapOptionListenOnly, eventMask, myCGEventCallback, NULL);
+  gEventTap = CGEventTapCreate(kCGSessionEventTap, kCGHeadInsertEventTap, kCGEventTapOptionDefault, eventMask, myCGEventCallback, NULL);
 
   // see if it was created properly
   if (!gEventTap) {
@@ -436,8 +466,6 @@ void* setupEventTap(void *data)
 ////////////////////////
 CGEventRef myCGEventCallback(CGEventTapProxy proxy, CGEventType type, CGEventRef event, void *refcon)
 {
-  double *outptr;
-
   // check for keyboard event
   if (type == kCGEventKeyDown) {
     // record the event in the globals, first lock the mutex
@@ -449,7 +477,9 @@ CGEventRef myCGEventCallback(CGEventTapProxy proxy, CGEventType type, CGEventRef
     [gKeyboardEventQueue addObject:qEvent];
     // also save the keystatus
     if ([qEvent keycode] <= MAXKEYCODES)
-      keyStatus[[qEvent keycode]-1] = [qEvent timestamp];
+      gKeyStatus[[qEvent keycode]-1] = [qEvent timestamp];
+    // check for edible keycode (i.e. one that we don't want to return)
+    event = eatEvent(event,qEvent);
     // release qEvent as it is now in the keyboard event queue
     [qEvent release];
     // unlock mutex
@@ -457,14 +487,16 @@ CGEventRef myCGEventCallback(CGEventTapProxy proxy, CGEventType type, CGEventRef
 
   }
   else if (type == kCGEventKeyUp) {
-    // remove the key from the keyStatus
+    // remove the key from the gKeyStatus
     pthread_mutex_lock(&mut);
     // convert to a queueEvent to get fields easier
     queueEvent *qEvent;
     qEvent = [[queueEvent alloc] initWithEventAndType:event :type];
-    // set the keyStatus back to 0
+    // set the gKeyStatus back to 0
     if ([qEvent keycode] <= MAXKEYCODES)
-      keyStatus[[qEvent keycode]-1] = 0;
+      gKeyStatus[[qEvent keycode]-1] = 0;
+    // check for edible keycode (i.e. one that we don't want to return)
+    event = eatEvent(event,qEvent);
     // release qEvent
     [qEvent release];
     // unlock mutex
@@ -486,6 +518,32 @@ CGEventRef myCGEventCallback(CGEventTapProxy proxy, CGEventType type, CGEventRef
   return event;
 }
 
+//////////////////
+//   eatEvent   //
+//////////////////
+CGEventRef eatEvent(CGEventRef event, queueEvent *qEvent)
+{
+  int i = 0;
+  // check if keyup or keydown event
+  if (([qEvent type] == kCGEventKeyDown) || ([qEvent type] == kCGEventKeyDown)) {
+    // now check to make sure there is no modifier flag (i.e. always
+    // let key events when a modifier key is down through)
+    if (!([qEvent eventFlags] & (kCGEventFlagMaskShift | kCGEventFlagMaskControl | kCGEventFlagMaskAlternate | kCGEventFlagMaskCommand | kCGEventFlagMaskAlphaShift))) {
+      // now check to see if the keyCode matches one that we are
+      // supposed to eat.
+      while (gEatKeys[i] && (i < MAXEATKEYS)) {
+	if (gEatKeys[i++] == (unsigned char)[qEvent keycode]){
+	  // then eat the event (i.e. it will not be sent to any application)
+	  event = NULL;
+	}
+      }
+    }
+    // if we are not going to eat the key event, then we should stop eating keys
+    if (event != NULL) gEatKeys[0] = 0;
+  }
+  // return the event (this may be NULL if we have decided to eat the event)
+  return event;
+}
 /////////////////////////////////////
 //   launchSetupEventTapAsThread   //
 /////////////////////////////////////
