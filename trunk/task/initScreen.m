@@ -10,7 +10,7 @@
 function myscreen = initScreen(myscreen,randstate)
 
 % see if passed in myscreen variable is actually the name of a monitor to open
-if exist('myscreen','var') && (isstr(myscreen) || isscalar(myscreen))
+if exist('myscreen','var') && (isstr(myscreen) || (isnumeric(myscreen) && isscalar(myscreen)))
   displayname = myscreen;
   clear myscreen;
   % see if it is a computer:displayname field
@@ -322,6 +322,8 @@ myscreen.keyboard.backtick = mglCharToKeycode({'`'});
 if ~isfield(myscreen.keyboard,'nums')
   myscreen.keyboard.nums = mglCharToKeycode({'1' '2' '3' '4' '5' '6' '7' '8' '9' '0'});
 end
+myscreen.keyCodes = [];
+myscreen.keyTimes = [];
 
 %init traces
 numinit = 3000;

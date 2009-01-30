@@ -24,11 +24,12 @@ if (myscreen.eyecalib.prompt)
   disp(sprintf('Esc aborts at any time'));
   disp(sprintf('-----------------------------'));
   drawnow;
-  while ~mglGetKeys(myscreen.keyboard.space)
-    if mglGetKeys(myscreen.keyboard.esc)
+  keyCodes=[];
+  while ~any(keyCodes==myscreen.keyboard.space)
+    if any(keyCodes == myscreen.keyboard.esc)
       return
     end
-    if mglGetKeys(myscreen.keyboard.return)
+    if any(keyCodes == myscreen.keyboard.return)
       % starting experiment, start the eye tracker
       writeDigPort(16,2);
       %myscreen.fishcamp = bitor(myscreen.fishcamp,1);
@@ -37,6 +38,7 @@ if (myscreen.eyecalib.prompt)
       myscreen.fliptime = inf;
       return
     end
+    [keyCodes keyTimes] = mglGetKeyEvent([],1);
   end
 end
 
@@ -63,7 +65,8 @@ for j = 1:myscreen.eyecalib.n
   startTime = mglGetSecs;
   if ~isinf(myscreen.eyecalib.waittime)
     while (myscreen.eyecalib.waittime > (mglGetSecs-startTime));
-      if mglGetKeys(myscreen.keyboard.esc)
+      [keyCodes keyTimes] = mglGetKeyEvent([],1);
+      if any(keyCodes==myscreen.keyboard.esc)
 	mglClearScreen;mglFlush;
 	mglClearScreen;mglFlush;
 	return
@@ -89,7 +92,8 @@ function retval = waitSecsEsc(waitTime,myscreen)
 retval = 1;
 startTime = mglGetSecs;
 while mglGetSecs(startTime) <= waitTime
-  if mglGetKeys(myscreen.keyboard.esc)
+  [keyCodes keyTimes] = mglGetKeyEvent([],1);
+  if any(keyCodes==myscreen.keyboard.esc)
     retval = -1;
     return
   end
