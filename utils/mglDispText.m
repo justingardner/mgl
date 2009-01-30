@@ -1,24 +1,24 @@
 % mglDispText.m
 %
-%      usage: mglDispText(hFlip,vFlip)
+%      usage: mglDispText(whichScreen)
 %         by: justin gardner
 %       date: 05/16/06
 %    purpose: display text to screen (useful for communicating
-%             w/subject). hFlip and vFlip will flip the screen
-%             appropriately
+%             w/subject). 
 % 
 %
-function retval = mglDispText(hFlip,vFlip)
+function retval = mglDispText(whichScreen)
 
 % check arguments
-if ~any(nargin == [0 1 2])
+if ~any(nargin == [0 1])
   help disptext
   return
 end
 
+if nargin == 0,whichScreen = [];end
+  
 % open the screen
-mglOpen
-mglVisualAngleCoordinates(57,[16 12]);
+initScreen(whichScreen);
 mglTextSet('Helvetica',64,[1 1 1],0,0,0,0,0,0,0);
 
 % set flipping
