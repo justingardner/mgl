@@ -271,15 +271,16 @@ end
 % if we have to collect observer response, then look for that
 if (task{tnum}.getResponse(task{tnum}.thistrial.thisseg))
   % get keyboard state
-  buttons = mglGetKeys(myscreen.keyboard.nums);
+  buttons = ismember(myscreen.keyboard.nums,myscreen.keyCodes);
   % if a button was pressed, then record response
   if (any(buttons) && (~isequal(buttons,task{tnum}.thistrial.buttonState)))
-    % get the time of the button press
-    responseTime = mglGetSecs;
     % set the button state to pass
     task{tnum}.thistrial.buttonState = buttons;
     task{tnum}.thistrial.whichButton = find(buttons);
     task{tnum}.thistrial.whichButton = task{tnum}.thistrial.whichButton(1);
+    % get the time of the button press
+    whichKeyCode = find(myscreen.keyboard.nums(task{tnum}.thistrial.whichButton)==myscreen.keyCodes);
+    responseTime = myscreen.keyTimes(whichKeyCode(1));
     % write out an event
     myscreen = writeTrace(task{tnum}.thistrial.whichButton,task{tnum}.responseTrace,myscreen,1,responseTime);
     % get reaction time
