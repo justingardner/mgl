@@ -51,6 +51,18 @@ if mglGetParam('displayNumber') ~= -1
   openDisplay = 1;
 end
 
+% check if whichScreen < 0, then we set it so that it either
+% opens a secondary display, or if none is available opens
+% up a windowed context
+if ~isempty(whichScreen) && (whichScreen < 0)
+  displayResolution = mglResolution;
+  if displayResolution.numDisplays > 1
+    whichScreen = displayResolution.displayNumber;
+  else
+    whichScreen = -whichScreen;
+  end
+end
+
 % check mglSwitchDisplay to make sure it is not already open
 if ~openDisplay && ~isempty(whichScreen) && (whichScreen >= 1)
   switchNumber = mglSwitchDisplay(-3,floor(whichScreen));
