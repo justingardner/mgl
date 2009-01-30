@@ -48,7 +48,9 @@ elseif strcmp(lower(command),'list')
 elseif strcmp(lower(command),'keypress')
   % get the keycode we want
   if ischar(arg1)
-    keyCode = mglCharToKeycode({arg1});
+    for i = 1:length(arg1)
+      keyCode(i) = mglCharToKeycode({arg1(i)});
+    end
   else
     keyCode = arg1;
   end
@@ -58,8 +60,11 @@ elseif strcmp(lower(command),'keypress')
     mglPrivatePostEvent(1);
   end
   % and post the event. First post a keyDown and then a keyUp 100ms later
-  mglPrivatePostEvent(2,time,keyCode,1);
-  mglPrivatePostEvent(2,time+0.1,keyCode,0);
+  for i = 1:length(keyCode)
+    mglPrivatePostEvent(2,time,keyCode(i),1);
+    mglPrivatePostEvent(2,time+0.1,keyCode(i),0);
+    time = time+0.01;
+  end
 else
   disp(sprintf('(mglPostEvent) Command %s not recognized',command));
 end
