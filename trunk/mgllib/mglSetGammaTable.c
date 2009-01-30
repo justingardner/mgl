@@ -19,6 +19,11 @@ $Id$
 //   define section   //
 ////////////////////////
 #define kMaxDisplays 8
+#ifdef __WINDOWS__
+#define GAMMAVALUE WORD
+#define GAMMAVALUESIZE sizeof(WORD)
+#define MAXGAMMAVALUE 65535
+#endif
 #ifdef __linux__
 #define GAMMAVALUE unsigned short
 #define GAMMAVALUESIZE sizeof(unsigned short)
@@ -373,3 +378,42 @@ int getGammaTableSize()
   return(gammaTableSize);
 }
 #endif//__linux__
+
+
+//-----------------------------------------------------------------------------------///
+// **************************** Windows specific code  ****************************** //
+//-----------------------------------------------------------------------------------///
+#ifdef __WINDOWS__
+void setGammaTableWithTable(int displayNumber, int verbose, int gammaTableSize, int numTableEntries,
+                            GAMMAVALUE *redTable, GAMMAVALUE *greenTable, GAMMAVALUE *blueTable)
+{
+  int i;
+  unsigned int ref;
+  HDC hDC;
+  GAMMAVALUE ramp[256*3];
+  
+  // Grab the current device context.
+  ref = (unsigned int)mglGetGlobalDouble("winDeviceContext");
+  hDC = (HDC)ref;
+  
+  // Copy the gamma components into the giant data structure we'll pass to the Windows API.
+  for (i = 0; i < 256; i++) {
+    ramp[i] = redTable[i];
+    ramp[i+256] = blueTable[i];
+    ramp[i+512] = greenTable[i];
+  }
+  
+  if (SetDeviceGammaRamp(hDC, &ramp) == FALSE) {
+    mexPrintf("(mglSetGammaTable) Failed to set gamma table.\n");
+  }
+}
+
+void setGammaTableWithFormula(int displayNumber, int verbose, double redMin, double redMax, double redGamma, double greenMin,double greenMax,double greenGamma,double blueMin,double blueMax, double blueGamma)
+{
+}
+
+int getGammaTableSize()
+{
+  return 256;
+}
+#endif

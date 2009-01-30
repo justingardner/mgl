@@ -319,14 +319,24 @@ void getNumDisplaysAndDefault(int *numDisplays, int *defaultDisplayNum)
 //-----------------------------------------------------------------------------------///
 #ifdef __WINDOWS__
 
+//BOOL CALLBACK MonitorEnumProc(__in  HMONITOR hMonitor, __in  HDC hdcMonitor,
+//  __in  LPRECT lprcMonitor, __in  LPARAM dwData);
+
+//static int displayCount;
+//static HMONITOR *monitorList;
+
 // Gets a specified display resolution, frame rate, and bit depth.
 void getResolution(int *displayNumber, int *screenWidth, int *screenHeight, int *frameRate, int *bitDepth)
 {
   DISPLAY_DEVICE dd;
   DEVMODE dv;
+  int numMonitors, i;
 
   dd.cb = sizeof(DISPLAY_DEVICE);
   dv.dmSize = sizeof(DEVMODE);
+  //displayCount = 0;
+  //numMonitors = GetSystemMetrics(SM_CMONITORS);
+  //monitorList = (HMONITOR*)malloc(numMonitors * sizeof(HMONITOR));
 
   if (EnumDisplayDevices(NULL, *displayNumber - 1, &dd, 0x00000001) == FALSE) {
     mexPrintf("(mglResolution) Could not enumerate displays.\n");
@@ -350,6 +360,22 @@ void getResolution(int *displayNumber, int *screenWidth, int *screenHeight, int 
   else {
     *frameRate = dv.dmDisplayFrequency;
   }
+  
+//   EnumDisplayMonitors(NULL, NULL, MonitorEnumProc, NULL);
+//   
+//   for (i = 0; i < displayCount; i++) {
+//     MONITORINFOEX mi;
+//     
+//     mi.cbSize = sizeof(MONITORINFOEX);
+//     
+//     if (GetMonitorInfo(monitorList[i], ) == FALSE) {
+//       mexPrintf("(mglResolution) Cannot get monitor info.\n");
+//     }
+//     else {
+//     }
+//   }
+//   
+//   free(monitorList);
 }
 
 // Sets the display resolution.
@@ -368,5 +394,15 @@ void getNumDisplaysAndDefault(int *numDisplays, int *defaultDisplayNum)
   // Set the default display to be the last one.
   *defaultDisplayNum = *numDisplays;
 }
+
+// BOOL CALLBACK MonitorEnumProc(__in  HMONITOR hMonitor, __in  HDC hdcMonitor,
+//   __in  LPRECT lprcMonitor, __in  LPARAM dwData)
+// {
+//   mexPrintf("called\n");
+//   
+//   monitorList[displayCount++] = hMonitor;
+//   
+//   return TRUE;
+// }
 
 #endif // __WINDOWS__
