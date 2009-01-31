@@ -317,7 +317,7 @@ Bool getGammaTable(int *gammaTableSize, GAMMAVALUE **redTable, GAMMAVALUE **gree
   ref = (unsigned int)mglGetGlobalDouble("winDeviceContext");
   hDC = (HDC)ref;
   
-  if (GetDeviceGammaRamp(hDC, &ramp) == TRUE) {
+  if (GetDeviceGammaRamp(hDC, ramp) == TRUE) {
     for (i = 0; i < 256; i++) {
       (*redTable)[i] = ramp[i];
       (*blueTable)[i] = ramp[i+256];
@@ -328,10 +328,12 @@ Bool getGammaTable(int *gammaTableSize, GAMMAVALUE **redTable, GAMMAVALUE **gree
     mexPrintf("(mglGetGammaTable) Could not get gamma table.\n");
     return 0;
   }
+  
+  return 1;
 }
 
 Bool getGammaFormula(GAMMAVALUE *redMin,GAMMAVALUE *redMax,GAMMAVALUE *redGamma,GAMMAVALUE *greenMin,GAMMAVALUE *greenMax,GAMMAVALUE *greenGamma,GAMMAVALUE *blueMin,GAMMAVALUE *blueMax,GAMMAVALUE *blueGamma)
 {
-  return 1;
+  return 0;
 }
 #endif //__WINDOWS__

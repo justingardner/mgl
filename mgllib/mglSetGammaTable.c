@@ -23,16 +23,32 @@ $Id$
 #define GAMMAVALUE WORD
 #define GAMMAVALUESIZE sizeof(WORD)
 #define MAXGAMMAVALUE 65535
+
+// We need to make sure the windows values are rounded to the nearest integer value
+// otherwise when the the passed values are converted to type WORD, they'll be merely
+// floored since a integer type cast of a double typically just slices off the decimal part.
+// We can simulate rounding by adding 0.5 and flooring via type conversion.
+#define ROUND(x) x + 0.5
 #endif
+
 #ifdef __linux__
 #define GAMMAVALUE unsigned short
 #define GAMMAVALUESIZE sizeof(unsigned short)
 #define MAXGAMMAVALUE 65535
+
+// Defined to satisfy interworkings with Windows.  It might be useful
+// to round properly in Linux, but I'll leave that up to the Linux coder. (CGB)
+#define ROUND(x) x
 #endif
+
 #ifdef __APPLE__
 #define GAMMAVALUE CGGammaValue
 #define GAMMAVALUESIZE sizeof(CGGammaValue)
 #define MAXGAMMAVALUE 1
+
+// Does nothing, only defined because it's needed for
+// Windows and possibly Linux.
+#define ROUND(x) x
 #endif
 
 /////////////////////////
@@ -69,6 +85,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   double *redInputTable,*greenInputTable,*blueInputTable,*inputTable;
   int numTableEntries = 0,i,rowOffset,tableEntrySize = 0;
   int gammaTableSize;
+  int isColumnOrdered;
 
   // get the size of the gamma table
   gammaTableSize = getGammaTableSize();
@@ -111,14 +128,14 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       blueInputArray = mxGetField(prhs[0],0,"blueTable");
       // now check to see if everything is ok.
       if ((redInputArray == NULL) || (greenInputArray == NULL) || (blueInputArray == NULL)) {
-	mexPrintf("(mglSetGammaTable) Table structure must have redTable, greenTable and blueTable\n");
-	return;
+        mexPrintf("(mglSetGammaTable) Table structure must have redTable, greenTable and blueTable\n");
+        return;
       }
       numTableEntries = mxGetN(redInputArray);
       // and check that they are the right length
       if ((mxGetN(greenInputArray)!=numTableEntries) || (mxGetN(blueInputArray)!=numTableEntries)) {
-	mexPrintf("(mglSetGammaTable) Tables in structure must all have have the same %i elements\n",numTableEntries);
-	return;
+        mexPrintf("(mglSetGammaTable) Tables in structure must all have have the same %i elements\n",numTableEntries);
+        return;
       }
       // now get the ponters
       redInputTable = (double *)mxGetPr(redInputArray);
@@ -126,73 +143,87 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       blueInputTable = (double *)mxGetPr(blueInputArray);
       // now set the table
       for (i=0;i<numTableEntries;i++) {
-	redTable[i] = (GAMMAVALUE)MAXGAMMAVALUE*redInputTable[i];
-	greenTable[i] = (GAMMAVALUE)MAXGAMMAVALUE*greenInputTable[i];
-	blueTable[i] = (GAMMAVALUE)MAXGAMMAVALUE*blueInputTable[i];	
+        redTable[i] = (GAMMAVALUE)ROUND(MAXGAMMAVALUE*redInputTable[i]);
+        greenTable[i] = (GAMMAVALUE)ROUND(MAXGAMMAVALUE*greenInputTable[i]);
+        blueTable[i] = (GAMMAVALUE)ROUND(MAXGAMMAVALUE*blueInputTable[i]);
       }
-    } 
-    else {
+    } // if (mxIsStruct(prhs[0]))
+    else {  // Not a struct.
       // Get values from vector/array input
       // get size of table and table pointer
       // allow the user o pass either a row or column vector
       numTableEntries = mxGetN(prhs[0]);
-      rowOffset = 1;
       tableEntrySize = mxGetM(prhs[0]);
+      rowOffset = 3;
+      isColumnOrdered = 0; // Row ordered gamma.
       if (numTableEntries < tableEntrySize) {
-	numTableEntries = mxGetM(prhs[0]);
-	rowOffset = numTableEntries;
-	tableEntrySize = mxGetN(prhs[0]);
+        numTableEntries = mxGetM(prhs[0]);
+        rowOffset = numTableEntries;
+        tableEntrySize = mxGetN(prhs[0]);
+        isColumnOrdered = 1; // Column ordered gamma.
       }
+        
       if (verbose)
-	mexPrintf("(mglSetGammaTable) %ix%i\n",numTableEntries,tableEntrySize);
+        mexPrintf("(mglSetGammaTable) %ix%i\n",numTableEntries,tableEntrySize);
       inputTable = (double *)mxGetPr(prhs[0]);
       // if the table size is 9 then this means that we are setting
       // by formula
       if ((tableEntrySize == 1) && (numTableEntries == 9)) {
-	useFormula = 1;
-	// set the function values
-	redMin = inputTable[0];redMax = inputTable[1];redGamma = inputTable[2];
-	greenMin = inputTable[3];greenMax = inputTable[4];greenGamma = inputTable[5];
-	blueMin = inputTable[6];blueMax = inputTable[7];blueGamma = inputTable[8];
+        useFormula = 1;
+        // set the function values
+        redMin = inputTable[0];redMax = inputTable[1];redGamma = inputTable[2];
+        greenMin = inputTable[3];greenMax = inputTable[4];greenGamma = inputTable[5];
+        blueMin = inputTable[6];blueMax = inputTable[7];blueGamma = inputTable[8];
       }
       // looks like it is not a formula, see what kind of table it is
       else {
-	if (tableEntrySize == 1) {
-	  if (verbose) mexPrintf("(mglSetGammaTable) Using same table for RGB\n");
-	  if (verbose) mexPrintf("(mglSetGammaTable) numTableEntries = %i\n",numTableEntries);
-	  if (numTableEntries != gammaTableSize) {
-	    mexPrintf("(mglSetGammaTable) Table size (n=%i) differs from system table size %i\n",numTableEntries,gammaTableSize);
-	    return;
-	  }
-	  // and set the tables from the input table
-	  for (i=0;i<numTableEntries;i++) {
-	    redTable[i] = (GAMMAVALUE)MAXGAMMAVALUE*inputTable[i];
-	    greenTable[i] = (GAMMAVALUE)MAXGAMMAVALUE*inputTable[i];
-	    blueTable[i] = (GAMMAVALUE)MAXGAMMAVALUE*inputTable[i];	
-	  }
-	}
-	else if (tableEntrySize == 3) {
-	  if (verbose) mexPrintf("(mglSetGammaTable) Using different tables for RGB\n");
-	  if (verbose) mexPrintf("(mglSetGammaTable) numTableEntries = %i\n",numTableEntries);
-	  if (numTableEntries != gammaTableSize) {
-	    mexPrintf("(mglSetGammaTable) Table size (n=%i) differs from system table size %i\n",numTableEntries,gammaTableSize);
-	    return;
-	  }
-	  // and set the tables from the input table
-	  for (i=0;i<numTableEntries;i++) {
-	    redTable[i] = (GAMMAVALUE)MAXGAMMAVALUE*inputTable[i];
-	    greenTable[i] = (GAMMAVALUE)MAXGAMMAVALUE*inputTable[i+rowOffset];
-	    blueTable[i] = (GAMMAVALUE)MAXGAMMAVALUE*inputTable[i+2*rowOffset];	
-	  }
-	}
-	else {
-	  mexPrintf("(mglSetGammaTable) Gamma table should be %ix1 or %ix3 (%ix%i)\n",\
-		    gammaTableSize,gammaTableSize,mxGetM(prhs[0]),mxGetN(prhs[0]));
-	  return;
-	}
-      }
-    }
-  }
+        if (tableEntrySize == 1) {
+          if (verbose) mexPrintf("(mglSetGammaTable) Using same table for RGB\n");
+          if (verbose) mexPrintf("(mglSetGammaTable) numTableEntries = %i\n",numTableEntries);
+          if (numTableEntries != gammaTableSize) {
+            mexPrintf("(mglSetGammaTable) Table size (n=%i) differs from system table size %i\n",numTableEntries,gammaTableSize);
+            return;
+          }
+          // and set the tables from the input table
+          for (i=0;i<numTableEntries;i++) {
+            redTable[i] = (GAMMAVALUE)ROUND(MAXGAMMAVALUE*inputTable[i]);
+            greenTable[i] = (GAMMAVALUE)ROUND(MAXGAMMAVALUE*inputTable[i]);
+            blueTable[i] = (GAMMAVALUE)ROUND(MAXGAMMAVALUE*inputTable[i]);
+          }
+        }
+        else if (tableEntrySize == 3) {          
+          if (verbose) mexPrintf("(mglSetGammaTable) Using different tables for RGB\n");
+          if (verbose) mexPrintf("(mglSetGammaTable) numTableEntries = %i\n",numTableEntries);
+          if (numTableEntries != gammaTableSize) {
+            mexPrintf("(mglSetGammaTable) Table size (n=%i) differs from system table size %i\n",numTableEntries,gammaTableSize);
+            return;
+          }
+          
+          // Set the individual RGB tables from the input table.  How things are indexed 
+          // out of the input table depends on if the input table is column or row ordered.
+          if (isColumnOrdered) { // Column ordered
+            for (i=0;i<numTableEntries;i++) {
+              redTable[i] = (GAMMAVALUE)MAXGAMMAVALUE*inputTable[i];
+              greenTable[i] = (GAMMAVALUE)MAXGAMMAVALUE*inputTable[i+rowOffset];
+              blueTable[i] = (GAMMAVALUE)MAXGAMMAVALUE*inputTable[i+2*rowOffset];
+            }
+          }
+          else { // Row ordered
+            for (i=0; i < numTableEntries; i++) {
+              redTable[i] = (GAMMAVALUE)ROUND(MAXGAMMAVALUE*inputTable[i*rowOffset]);
+              greenTable[i] = (GAMMAVALUE)ROUND(MAXGAMMAVALUE*inputTable[i*rowOffset + 1]); 
+              blueTable[i] = (GAMMAVALUE)ROUND(MAXGAMMAVALUE*inputTable[i*rowOffset + 2]);
+            }
+          }
+        }
+        else {
+          mexPrintf("(mglSetGammaTable) Gamma table should be %ix1 or %ix3 (%ix%i)\n",\
+            gammaTableSize,gammaTableSize,mxGetM(prhs[0]),mxGetN(prhs[0]));
+          return;
+        }
+      } // if ((tableEntrySize == 1) && (numTableEntries == 9))
+    } // if (mxIsStruct(prhs[0]))
+  } // if (nrhs == 1)
   else if (nrhs == 3) {
     if (verbose) mexPrintf("(mglSetGammaTable) Using different tables for RGB\n");
     // get size of table
@@ -213,9 +244,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     blueInputTable = (double *)mxGetPr(prhs[2]);
     // and set the tables fom the input tables
     for (i=0;i<numTableEntries;i++) {
-	redTable[i] = (GAMMAVALUE)MAXGAMMAVALUE*redInputTable[i];
-	greenTable[i] = (GAMMAVALUE)MAXGAMMAVALUE*greenInputTable[i];
-	blueTable[i] = (GAMMAVALUE)MAXGAMMAVALUE*blueInputTable[i];	
+      redTable[i] = (GAMMAVALUE)MAXGAMMAVALUE*redInputTable[i];
+      greenTable[i] = (GAMMAVALUE)MAXGAMMAVALUE*greenInputTable[i];
+      blueTable[i] = (GAMMAVALUE)MAXGAMMAVALUE*blueInputTable[i];	
     }
   }
   
@@ -228,7 +259,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mexPrintf("(mglSetGammaTable) No display is open\n");
     return;
   }
-
+  
   // Now, actually set the gamma table with the OS specific calls
   if (useFormula)
     setGammaTableWithFormula(displayNumber, verbose, redMin, redMax, redGamma, greenMin, greenMax, greenGamma, blueMin, blueMax, blueGamma);
@@ -239,7 +270,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   free(redTable);
   free(greenTable);
   free(blueTable);
-
 }
 
 
@@ -398,18 +428,20 @@ void setGammaTableWithTable(int displayNumber, int verbose, int gammaTableSize, 
   
   // Copy the gamma components into the giant data structure we'll pass to the Windows API.
   for (i = 0; i < 256; i++) {
+    //mexPrintf("rval %d: %d\n", i, redTable[i]);
     ramp[i] = redTable[i];
     ramp[i+256] = blueTable[i];
     ramp[i+512] = greenTable[i];
   }
   
-  if (SetDeviceGammaRamp(hDC, &ramp) == FALSE) {
+  if (SetDeviceGammaRamp(hDC, ramp) == FALSE) {
     mexPrintf("(mglSetGammaTable) Failed to set gamma table.\n");
   }
 }
 
 void setGammaTableWithFormula(int displayNumber, int verbose, double redMin, double redMax, double redGamma, double greenMin,double greenMax,double greenGamma,double blueMin,double blueMax, double blueGamma)
 {
+  mexPrintf("(mglSetGammaRamp) Setting gamma with a formula is not supported at this time.\n");
 }
 
 int getGammaTableSize()

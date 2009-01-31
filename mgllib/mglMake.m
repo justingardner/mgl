@@ -46,7 +46,7 @@ clear global MGL;
 % make sure we have the mgl.h file--this will make
 % sure we are in the correct directory
 hfile = dir('mgl.h');
-if (length(hfile) == 0)
+if isempty(hfile)
   % try to switch to the diretory where mglOpen lives
   mgldir = mglGetParam('mgllibDir');
   if ~isempty(mgldir)
@@ -99,10 +99,10 @@ if ~any(nargin == [1 2])
   return
 end
 % dot delimits end
-if exist('delimiter')~=1,delimiter='.';,end
+if exist('delimiter', 'var')~=1,delimiter='.';end
 
 retval = filename;
 dotloc = findstr(filename,delimiter);
-if length(dotloc) > 0
+if ~isempty(dotloc)
   retval = filename(1:dotloc(length(dotloc))-1);
 end
