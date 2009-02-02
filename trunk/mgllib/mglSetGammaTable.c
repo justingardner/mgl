@@ -24,7 +24,7 @@ $Id$
 #define GAMMAVALUESIZE sizeof(WORD)
 #define MAXGAMMAVALUE 65535
 
-// We need to make sure the windows values are rounded to the nearest integer value
+// We need to make sure the Windows values are rounded to the nearest integer value
 // otherwise when the the passed values are converted to type WORD, they'll be merely
 // floored since a integer type cast of a double typically just slices off the decimal part.
 // We can simulate rounding by adding 0.5 and flooring via type conversion.
@@ -203,9 +203,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
           // out of the input table depends on if the input table is column or row ordered.
           if (isColumnOrdered) { // Column ordered
             for (i=0;i<numTableEntries;i++) {
-              redTable[i] = (GAMMAVALUE)MAXGAMMAVALUE*inputTable[i];
-              greenTable[i] = (GAMMAVALUE)MAXGAMMAVALUE*inputTable[i+rowOffset];
-              blueTable[i] = (GAMMAVALUE)MAXGAMMAVALUE*inputTable[i+2*rowOffset];
+              redTable[i] = (GAMMAVALUE)ROUND(MAXGAMMAVALUE*inputTable[i]);
+              greenTable[i] = (GAMMAVALUE)ROUND(MAXGAMMAVALUE*inputTable[i+rowOffset]);
+              blueTable[i] = (GAMMAVALUE)ROUND(MAXGAMMAVALUE*inputTable[i+2*rowOffset]);
             }
           }
           else { // Row ordered
@@ -244,9 +244,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     blueInputTable = (double *)mxGetPr(prhs[2]);
     // and set the tables fom the input tables
     for (i=0;i<numTableEntries;i++) {
-      redTable[i] = (GAMMAVALUE)MAXGAMMAVALUE*redInputTable[i];
-      greenTable[i] = (GAMMAVALUE)MAXGAMMAVALUE*greenInputTable[i];
-      blueTable[i] = (GAMMAVALUE)MAXGAMMAVALUE*blueInputTable[i];	
+      redTable[i] = (GAMMAVALUE)ROUND(MAXGAMMAVALUE*redInputTable[i]);
+      greenTable[i] = (GAMMAVALUE)ROUND(MAXGAMMAVALUE*greenInputTable[i]);
+      blueTable[i] = (GAMMAVALUE)ROUND(MAXGAMMAVALUE*blueInputTable[i]);
     }
   }
   

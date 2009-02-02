@@ -44,10 +44,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   Rect bounds;
   unsigned int r;
   WindowRef winRef;
-	
+
   r = (unsigned int)mglGetGlobalDouble("aglWindowPointer");
   winRef = (WindowRef)r;
-	
+
   if (IsValidWindowPtr(winRef)) {
     MoveWindowStructure(winRef, (short)left, (short)top);
     SelectWindow(winRef);
@@ -63,5 +63,27 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 #ifdef __linux__
   mexPrintf("(mglPrivateMoveWindow) Not implemented\n");
 #endif//__linux__
+
+//-----------------------------------------------------------------------------------///
+// **************************** Windows specific code  ****************************** //
+//-----------------------------------------------------------------------------------///
+#ifdef __WINDOWS__
+  u_int ref;
+  HWND hWND;
+  int w, h;
+  
+  // Get the window pointer and its dimensions.
+  ref = (u_int)mglGetGlobalDouble("winWindowPointer");
+  hWND = (HWND)ref;
+  ref = (u_int)mglGetGlobalDouble("screenWidth");
+  w = (int)ref;
+  ref = (u_int)mglGetGlobalDouble("screenHeight");
+  h = (int)ref;
+  
+  // Move the window.
+  if (MoveWindow(hWND, left, top, w, h, NULL) == FALSE) {
+    mexPrintf("(mglPrivateMoveWindow) Move window failed.\n");
+  }
+#endif // __WINDOWS__
 }
 

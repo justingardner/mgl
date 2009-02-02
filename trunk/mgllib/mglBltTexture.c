@@ -52,15 +52,32 @@ typedef struct textype {
 //////////////////////////////
 // getmsec is used for profiling
 double getmsec()
-{ 
+{
+#ifdef __WINDOWS__
+  LARGE_INTEGER freq, t;
+  
+  if (QueryPerformanceFrequency(&freq) == FALSE) {
+    mexPrintf("(mglBltTexture) Could not get high resolution timer frequency.\n");
+    return -1;
+  }
+  
+  if (QueryPerformanceCounter(&t) == FALSE) {
+    mexPrintf("(mglBltTexture) Could not get high resolution timer value.\n");
+    return -1;
+  }
+
+  return (double)t.QuadPart/(double)freq.QuadPart*1000.0;
+#endif
+
 #ifdef __linux__
   struct timeval tp;
   struct timezone tz;
 
   gettimeofday( &tp, &tz );
-  double doubleValue = (double) tp.tv_sec + (double) tp.tv_usec * 0.000001;
-  doubleValue = doubleValue * 1000;
+  
+  return (double)tp.tv_sec + (double)tp.tv_usec * 0.000001;
 #endif
+
 #ifdef __APPLE__
   UnsignedWide currentTime; 
   Microseconds(&currentTime); 
@@ -71,9 +88,10 @@ double getmsec()
   double upperHalf = (double)currentTime.hi; 
   double lowerHalf = (double)currentTime.lo; 
   
-  doubleValue = (upperHalf * twoPower32) + lowerHalf; 
+  doubleValue = (upperHalf * twoPower32) + lowerHalf;
+  
+  return doubleValue/1000;
 #endif
-  return(doubleValue/1000); 
 }
 
 //////////////
@@ -278,11 +296,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       hAlignment = DEFAULT_H_ALIGNMENT;
     }
     else {
-      hAlignment = (mxGetN(prhs[2]) > texnum) ? *(mxGetPr(prhs[2])+texnum) : *mxGetPr(prhs[2]);
+      hAlignment = ((int)mxGetN(prhs[2]) > texnum) ? *(mxGetPr(prhs[2])+texnum) : *mxGetPr(prhs[2]);
       if ((hAlignment != CENTER) && (hAlignment != LEFT) && (hAlignment != RIGHT)) {
-	mexPrintf("(mglBltTexture) Unknown hAlignment %i\n",*mxGetPr(prhs[2]));
-	free(tex);
-	return;
+        mexPrintf("(mglBltTexture) Unknown hAlignment %i\n",*mxGetPr(prhs[2]));
+        free(tex);
+        return;
       }
     }
     if (verbose) mexPrintf("hAlignment is %s\n",(hAlignment == CENTER)?"center":((hAlignment == LEFT)?"left":"right"));
@@ -294,9 +312,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     else {
       vAlignment = (mxGetN(prhs[3]) > texnum) ? *(mxGetPr(prhs[3])+texnum) : *mxGetPr(prhs[3]);
       if ((vAlignment != CENTER) && (vAlignment != TOP) && (vAlignment != BOTTOM)) {
-	mexPrintf("(mglBltTexture) Unknown vAlignment %i\n",*mxGetPr(prhs[3]));
-	free(tex);
-	return;
+        mexPrintf("(mglBltTexture) Unknown vAlignment %i\n",*mxGetPr(prhs[3]));
+        free(tex);
+        return;
       }
     }
     if (verbose) mexPrintf("vAlignment is %s\n",(vAlignment == CENTER)?"center":((vAlignment == TOP)?"top":"bottom"));
@@ -306,7 +324,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       tex[texnum].rotation = 0;
     }
     else {
-      tex[texnum].rotation = (mxGetN(prhs[4]) > texnum) ? *(mxGetPr(prhs[4])+texnum) : *mxGetPr(prhs[4]);
+      tex[texnum].rotation = ((int)mxGetN(prhs[4]) > texnum) ? *(mxGetPr(prhs[4])+texnum) : *mxGetPr(prhs[4]);
     }
     if (verbose) mexPrintf("rotation is %f\n",tex[texnum].rotation);
 
@@ -319,11 +337,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     }
     else if (hAlignment == RIGHT) {
       if (deviceHDirection > 0)
-	tex[texnum].displayRect[0] = tex[texnum].displayRect[0] - (tex[texnum].displayRect[2]+tex[texnum].textOverhang);
+        tex[texnum].displayRect[0] = tex[texnum].displayRect[0] - (tex[texnum].displayRect[2]+tex[texnum].textOverhang);
     }
     else if (hAlignment == LEFT) {
       if (deviceHDirection < 0)
-	tex[texnum].displayRect[0] = tex[texnum].displayRect[0] + (tex[texnum].displayRect[2]+tex[texnum].textOverhang);
+        tex[texnum].displayRect[0] = tex[texnum].displayRect[0] + (tex[texnum].displayRect[2]+tex[texnum].textOverhang);
     }
 
     // ok now fix vertical alignment
@@ -406,7 +424,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     // calculate the amount of shift we need to
     // move the axis (to center tex)
     double xshift = tex[texnum].displayRect[0]+(tex[texnum].displayRect[2]-tex[texnum].displayRect[0])/2;
-  double yshift = tex[texnum].displayRect[1]+(tex[texnum].displayRect[3]-tex[texnum].displayRect[1])/2;
+    double yshift = tex[texnum].displayRect[1]+(tex[texnum].displayRect[3]-tex[texnum].displayRect[1])/2;
     tex[texnum].displayRect[3] -= yshift;
     tex[texnum].displayRect[2] -= xshift;
     tex[texnum].displayRect[1] -= yshift;
@@ -433,31 +451,31 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     glBegin(GL_QUADS);
     if (tex[texnum].textureAxes == YX) {
     // default texture axes (yx, using matlab coordinates) does not require swapping y and x in texture coords (done in mglCreateTexture)
-      glTexCoord2f(0.0, 0.0);
-      glVertex3f(tex[texnum].displayRect[0],tex[texnum].displayRect[1], 0.0);
+      glTexCoord2d(0.0, 0.0);
+      glVertex3d(tex[texnum].displayRect[0],tex[texnum].displayRect[1], 0.0);
     
-      glTexCoord2f(0.0, tex[texnum].imageHeight);
-      glVertex3f(tex[texnum].displayRect[0], tex[texnum].displayRect[3], 0.0);
+      glTexCoord2d(0.0, tex[texnum].imageHeight);
+      glVertex3d(tex[texnum].displayRect[0], tex[texnum].displayRect[3], 0.0);
     
-      glTexCoord2f(tex[texnum].imageWidth, tex[texnum].imageHeight);
-      glVertex3f(tex[texnum].displayRect[2], tex[texnum].displayRect[3], 0.0);
+      glTexCoord2d(tex[texnum].imageWidth, tex[texnum].imageHeight);
+      glVertex3d(tex[texnum].displayRect[2], tex[texnum].displayRect[3], 0.0);
     
-      glTexCoord2f(tex[texnum].imageWidth, 0.0);
-      glVertex3f(tex[texnum].displayRect[2], tex[texnum].displayRect[1], 0.0);
+      glTexCoord2d(tex[texnum].imageWidth, 0.0);
+      glVertex3d(tex[texnum].displayRect[2], tex[texnum].displayRect[1], 0.0);
       glEnd();
     }  else if (tex[texnum].textureAxes==XY) {
       //  using reverse ordered coordinates does require swapping y and x in texture coords.
-      glTexCoord2f(0.0, 0.0);
-      glVertex3f(tex[texnum].displayRect[0],tex[texnum].displayRect[1], 0.0);
+      glTexCoord2d(0.0, 0.0);
+      glVertex3d(tex[texnum].displayRect[0],tex[texnum].displayRect[1], 0.0);
     
-      glTexCoord2f(0.0, tex[texnum].imageWidth);
-      glVertex3f(tex[texnum].displayRect[2], tex[texnum].displayRect[1], 0.0);
+      glTexCoord2d(0.0, tex[texnum].imageWidth);
+      glVertex3d(tex[texnum].displayRect[2], tex[texnum].displayRect[1], 0.0);
     
-      glTexCoord2f(tex[texnum].imageHeight,tex[texnum].imageWidth);
-      glVertex3f(tex[texnum].displayRect[2], tex[texnum].displayRect[3], 0.0);
+      glTexCoord2d(tex[texnum].imageHeight,tex[texnum].imageWidth);
+      glVertex3d(tex[texnum].displayRect[2], tex[texnum].displayRect[3], 0.0);
     
-      glTexCoord2f(tex[texnum].imageHeight, 0.0);
-      glVertex3f(tex[texnum].displayRect[0], tex[texnum].displayRect[3], 0.0);    
+      glTexCoord2d(tex[texnum].imageHeight, 0.0);
+      glVertex3d(tex[texnum].displayRect[0], tex[texnum].displayRect[3], 0.0);    
     }
 
     glEnd();
@@ -469,7 +487,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
     // and set the transformation
     glBegin(GL_QUADS);
-    if (strncmp(tex[texnum].textureAxes,"yx",2)==0) {
+    if (strncmp(tex[texnum].textureAxes, "yx",2)==0) {
     // default texture axes (yx, using matlab coordinates) does not require swapping y and x in texture coords.
       glTexCoord2f(0.0, 0.0);
       glVertex3f(tex[texnum].displayRect[0],tex[texnum].displayRect[1], 0.0);
