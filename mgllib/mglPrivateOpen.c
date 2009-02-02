@@ -878,8 +878,9 @@ unsigned long openDisplay(double *displayNumber, int *screenWidth, int *screenHe
     return -1;
   }
 
-  if (!SetPixelFormat(hDC, PixelFormat, &pfd)) {	// Are We Able To Set The Pixel Format?
-    WinKillGLWindow(hDC, hRC, hWnd, hInstance);								// Reset The Display
+  // Are We Able To Set The Pixel Format?
+  if (!SetPixelFormat(hDC, PixelFormat, &pfd)) {
+    WinKillGLWindow(hDC, hRC, hWnd, hInstance); // Reset The Display
     mexPrintf("(mglPrivateOpen) Can't Set The PixelFormat.\n");
     return -1;
   }
@@ -891,15 +892,15 @@ unsigned long openDisplay(double *displayNumber, int *screenWidth, int *screenHe
   }
 
   if (!wglMakeCurrent(hDC, hRC)) {				// Try To Activate The Rendering Context
-    WinKillGLWindow(hDC, hRC, hWnd, hInstance);								// Reset The Display
+    WinKillGLWindow(hDC, hRC, hWnd, hInstance); // Reset The Display
     mexPrintf("(mglPrivateOpen) Can't Activate The GL Rendering Context.\n");
     return -1;
   }
 
-  ShowWindow(hWnd, SW_SHOW);						// Show The Window
-  SetForegroundWindow(hWnd);						// Slightly Higher Priority
-  SetFocus(hWnd);									// Sets Keyboard Focus To The Window
-  WinResizeGLScene(*screenWidth, *screenHeight);	// Set Up Our Perspective GL Screen
+  ShowWindow(hWnd, SW_SHOW);                      // Show The Window
+  SetForegroundWindow(hWnd);                      // Slightly Higher Priority
+  SetFocus(hWnd);                                 // Sets Keyboard Focus To The Window
+  WinResizeGLScene(*screenWidth, *screenHeight);  // Set Up Our Perspective GL Screen
   SwapBuffers(hDC);
 
   ref = (unsigned int)hWnd;

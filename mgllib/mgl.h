@@ -99,7 +99,16 @@
 #include <windows.h>
 #include <GL\gl.h>
 #include <GL\glu.h>
+#include <GL\glaux.h>
 #include <math.h>
+
+// Make sure that these extensions are defined.
+#ifndef GL_TEXTURE_RECTANGLE_EXT
+#define GL_TEXTURE_RECTANGLE_EXT 0x84F5
+#endif
+#ifndef GL_CLAMP_TO_EDGE
+#define GL_CLAMP_TO_EDGE 0x812F
+#endif
 #endif
 
 
@@ -322,7 +331,7 @@ mxArray *mglGetGlobalField(char *varname)
 void mglSetGlobalDouble(char *varname,double value)
 {
   mxArray *MGL, *tmpvalue; 
-  double *mglFieldPointer;
+  //double *mglFieldPointer;
   
   MGL = mexGetVariable("global",MGL_GLOBAL_NAME);
 

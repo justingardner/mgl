@@ -23,13 +23,12 @@ $Id$
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
   int displayNumber;
-  WindowRef wr;
-	
+
   if (nrhs != 0) {
     usageError("mglSwitchDisplay");
     return;
   }
-	
+
   displayNumber = (int)mglGetGlobalDouble("displayNumber");
 
 //-----------------------------------------------------------------------------------///
@@ -55,7 +54,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 // **************************** mac carbon specific code  *************************** //
 //-----------------------------------------------------------------------------------///
 #else //__cocoa__
-	
+
   // If displayNumber > 0, then it's a CGL window.
   if (displayNumber > 0) {
     CGLContextObj contextObj;
@@ -75,4 +74,24 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 #ifdef __linux__
   mexPrintf("(mglPrivateSwitchDisplay) Not implemented\n");
 #endif //__linux__
+
+//-----------------------------------------------------------------------------------///
+// ****************************** Windows specific code  **************************** //
+//-----------------------------------------------------------------------------------///
+#ifdef __WINDOWS__
+unsigned int ref;
+HGLRC hRC;
+HDC hDC;
+
+// Grab the rendering and device contexts.
+ref = (unsigned int)mglGetGlobalDouble("GLContext");
+hRC = (HGLRC)ref;
+ref = (unsigned int)mglGetGlobalDouble("winDeviceContext");
+hDC = (HDC)ref;
+
+// Make the rendering context current.
+if (wglMakeCurrent(hDC, hRC) == FALSE) {
+  mexPrintf("(mglPrivateSwithDisplay) Failed to make the rendering context current.\n");
+}
+#endif // __WINDOWS__
 }
