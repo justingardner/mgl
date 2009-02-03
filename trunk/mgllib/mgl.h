@@ -99,7 +99,7 @@
 #include <windows.h>
 #include <GL\gl.h>
 #include <GL\glu.h>
-#include <GL\glaux.h>
+//#include <GL\glaux.h>
 #include <math.h>
 
 // Make sure that these extensions are defined.
