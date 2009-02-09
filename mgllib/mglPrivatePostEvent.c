@@ -18,7 +18,8 @@
   		  called). In this case, 3 arguments are expected. The time
     	          to generate the event in seconds. The keyCode and a boolean
                   as to whether it is a keyDown event.
-
+                3:LIST. Lists all pending events
+ 
                 Note that this function relies on objective-c constructs
                 like the NSMutabaleArray - it could be written without this
                 since that is just that we have an easy way to implement
