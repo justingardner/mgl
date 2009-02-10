@@ -4,7 +4,10 @@ Developer Notes for mglEyelink
 
 Notes:
 Use seperate gl context (window) to display stimulus + eye postion
-
+Look up the screen_pixel_coordds & calibration_type for setting the screen 
+ 	dimensions on the fly for the eye tracker
+Look up specifying eye-tracking using calibration_targets & calibration weights, etc
+	for specifying specific calibration locations
 
 
 

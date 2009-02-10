@@ -80,9 +80,9 @@ for i = 1:length(mgldir)
       disp(command);
       % now run it, catching an errors
       try
-	eval(command);
-      catch
-	disp(['Error compiling ' mgldir(i).name]);
+	      eval(command);
+      catch err
+	      disp(['Error compiling ' mgldir(i).name]);
       end
     else
       disp(sprintf('%s is up to date',mgldir(i).name));
