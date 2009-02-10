@@ -1,0 +1,31 @@
+Developer Notes for mglEyelink
+
+
+
+Notes:
+Use seperate gl context (window) to display stimulus + eye postion
+
+
+
+
+To Do list:
+
+mglEyelink functions that handle trials should return (when appropraite):
+	TRIAL_OK, TRIAL_ERROR, ABORT_EXPT, SKIP_TRIAL, REPEAT_TRIAL
+
+TODO: write mglEyelinkPrivateEDFWrite
+		mex interface to edf 
+TODO: write mglEyelinkEDFWrite
+		writes a generic message
+TODO: write	mglEyeLinkEDFSetConfiguration
+		this function writes in succession:
+		DISPLAY_COORDS [left top right bottom]
+		FRAMERATE [framerate]
+TODO: write mglEyelinkEDFStartTrial [task?]
+		this function writes in succession:
+		TRIALID [uniquetrialid [other info]]
+		SYNCTIME [delaytostartinms]
+TODO: write mglEyelinkEDFEndTrial [task?]
+		this funciton writes:
+		TRIAL_OK
+		

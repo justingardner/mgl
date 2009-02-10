@@ -1,0 +1,18 @@
+Notes for Developers
+--------------------
+
+This document contains the programming conventions, documentation
+conventions and other information useful for developers or individuals
+who want to contribute code or bug reports.
+
+
+To Do List:
+-----------
+
+TODO: write this document
+
+TODO: write abstract eye tracker interface
+
+TODO: write eyelink eye tracker interface
+
+TODO: write abstract digital I/O interface
