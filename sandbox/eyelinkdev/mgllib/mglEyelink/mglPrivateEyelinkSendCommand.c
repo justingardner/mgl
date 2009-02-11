@@ -48,32 +48,31 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     /* copy the string data from prhs[0] into a C string input_ buf.    */
     message = mxArrayToString(prhs[0]);
     
-    UINT32 t; 
-    int i, j; 
+    UINT32 t = current_msec(); 
+    int results, errormsg;
     char buf[256]; 
 
+    // Sends command
     eyelink_send_command(message); 
 
-    t = current_msec(); 
     // Waits for a maximum of 1000 msec 
     while(current_msec()-t < 1000) 
     { 
-    // Checks for result from command execution 
-        i = eyelink_command_result(); 
-    // Used to get more information on tracker result 
-        j = eyelink_last_message(buf); 
-        if (i == OK_RESULT) 
+        // Checks for result from command execution 
+        results = eyelink_command_result(); 
+        // Used to get more information on tracker result 
+        errormsg = eyelink_last_message(buf); 
+        if (results == OK_RESULT) 
         { 
-            eyemsg_printf("Command executed successfully: %s", j?buf:""); 
+            eyemsg_printf("Command executed successfully: %s", errormsg?buf:""); 
             break; 
         } 
-        else if (i!=NO_REPLY) 
+        else if (results!=NO_REPLY) 
         { 
-            eyemsg_printf("Error in executing command: %s", j?buf:""); 
+            eyemsg_printf("Error in executing command: %s", errormsg?buf:""); 
             break; 
         } 
-    } 
-    
+    }     
 }
 
 

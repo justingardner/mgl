@@ -25,14 +25,33 @@ usage:   mglPrivateEyelinkEDFPrintF(message)
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
 
-    if (nrhs!=1) /* What arguments should this take? */
+    if (nrhs<1) /* What arguments should this take? */
     {
-        usageError("mglPrivateEyelinkClose");
+        usageError("mglPrivateEyelinkEDFPrintF");
         return;
     }
+    
+    /* input must be a string */
+    if ( mxIsChar(prhs[0]) != 1)
+        mexErrMsgTxt("Input must be a string.");
 
-    close_eyelink_connection();
-    mexPrintf("(mglPrivateEyelinkClose) MGL Eyelink tracker link closed.\n");
+    /* input must be a row vector */
+    if (mxGetM(prhs[0])!=1)
+        mexErrMsgTxt("Input must be a row vector.");    
+        
+    char *message;
+    mwSize buflen;
+
+    /* get the length of the input string */
+    buflen = (mxGetM(prhs[0]) * mxGetN(prhs[0])) + 1;
+
+    /* copy the string data from prhs[0] into a C string input_ buf.    */
+    message = mxArrayToString(prhs[0]);
+    
+    // TODO: Test for "\n" in the string--they suggest not ending (using) them
+    // in the messsage string
+    
+    eyemsg_printf(message);
     
 }
 

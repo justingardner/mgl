@@ -16,8 +16,9 @@ To Do list:
 mglEyelink functions that handle trials should return (when appropraite):
 	TRIAL_OK, TRIAL_ERROR, ABORT_EXPT, SKIP_TRIAL, REPEAT_TRIAL
 
-TODO: write mglPrivateEyelinkEDFPrintF
-		mex interface to edf 
+TODO: write mglPrivateEyelinkCurrentMode
+TODO: write mglPrivateEyelink
+
 TODO: write mglEyelinkEDFMessage
 		writes a generic message
 TODO: write	mglEyeLinkEDFSetConfiguration
