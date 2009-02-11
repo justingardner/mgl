@@ -57,22 +57,26 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     
 
     /* **** TODO: Clean up the trackercontype code to use integer values? */
-    double *trackerconntype = 0;
+    // double *trackerconntype = 0;
+    // // • 0, opens a connection with the eye tracker; 
+    // // • 1, will create a dummy connection for simulation; 
+    // // • -1, initializes the DLL but does not open a connection. 
+    // *trackerconntype = 0; 
     
-    if (nrhs==2) {
-        /* optional parameter which controlls the link connection type */
-        if (mxGetM(prhs[1]) != 1 && mxGetN(prhs[1]) != 1){
-            mexErrMsgTxt("Connection type must be an single value.");
-        } else {
-            /* should be a real data access call */
-            trackerconntype = (double*)mxGetPr(prhs[1]);
-            // if (trackerconntype[0] != -1 || trackerconntype[0] != 0 || trackerconntype[0] != 1) {
-            //     mexErrMsgTxt("Connection type must be one of {-1, 0, 1}.");
-            // }
-        }
-    }
+    // if (nrhs==2) {
+    //     /* optional parameter which controlls the link connection type */
+    //     if (mxGetM(prhs[1]) != 1 && mxGetN(prhs[1]) != 1){
+    //         mexErrMsgTxt("Connection type must be an single value.");
+    //     } else {
+    //         /* should be a real data access call */
+    //         trackerconntype = (double*)mxGetPr(prhs[1]);
+    //         // if (trackerconntype[0] != -1 || trackerconntype[0] != 0 || trackerconntype[0] != 1) {
+    //         //     mexErrMsgTxt("Connection type must be one of {-1, 0, 1}.");
+    //         // }
+    //     }
+    // }
 
-    if(open_eyelink_connection(trackerconntype[0])) {
+    if(open_eyelink_connection(0)) {
         /* abort if we can't open link*/
         mexErrMsgTxt("Connection failed: could not establish a link.\n");
     } else {

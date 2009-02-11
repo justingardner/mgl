@@ -22,7 +22,7 @@ usage:   mglPrivateEyelinkOpen(ipaddress, trackedwindow, displaywindow)
 
 // declarations -- coule be in header
 void ELCALLBACK clear_cal_display(void);
-INT16  ELCALLBACK  setup_cal_display(void);
+INT16  ELCALLBACK setup_cal_display(void);
 void ELCALLBACK exit_cal_display(void);
 INT16 ELCALLBACK setup_image_display(INT16 width, INT16 height);
 void ELCALLBACK image_title(INT16 threshold, char *cam_name);
@@ -30,7 +30,7 @@ void ELCALLBACK draw_image_line(INT16 width, INT16 line, INT16 totlines, byte *p
 void ELCALLBACK set_image_palette(INT16 ncolors, byte r[130], byte g[130], byte b[130]);
 void ELCALLBACK exit_image_display(void);
 void ELCALLBACK erase_cal_target(void);
-void ELCALLBACK  draw_cal_target(INT16 x, INT16 y);
+void ELCALLBACK draw_cal_target(INT16 x, INT16 y);
 void ELCALLBACK cal_target_beep(void);
 void ELCALLBACK dc_done_beep(INT16 error);
 void ELCALLBACK dc_target_beep(void);
@@ -48,9 +48,14 @@ INT16 ELCALLTYPE init_expt_graphics();
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
 
+    // get current screen coordinate state
+    // set to screen coordinates
     init_expt_graphics(); // initialize the callbacks
+    // we need an event loop to pass keyboard commmands to the tracker
+    do_tracker_setup();
     
-
+    // return to prior screen coordinate state
+    
 }
 
 /*!
@@ -240,10 +245,10 @@ void ELCALLBACK  draw_cal_target(INT16 x, INT16 y)
       inColor = (double*)mxGetPr(callInput[3]);
       *inX = (double)x;
       *inY = (double)y;
-      *inSize = 5; // in pixels for now
-      inColor[0] = 0.5; // red
-      inColor[1] = 0.5; // green
-      inColor[2] = 0.5; // blue
+      *inSize = 20; // in pixels for now
+      inColor[0] = 0.7; // red
+      inColor[1] = 0.7; // green
+      inColor[2] = 0.7; // blue
       
       
       mexCallMATLAB(0,NULL,4,callInput,"mglGluDisk");            
@@ -273,26 +278,38 @@ void ELCALLBACK erase_cal_target(void)
 	beep callbacks using just one function.  
 	
 	This function is responsible for selecting and playing the audio clip.
-	@param sound sound id to play. 
-*/
+	@param sound sound id to play. */
+
 void ELCALLBACK  cal_sound(INT16 sound)
 {
-
-  switch(sound)
-  {
-    case CAL_TARG_BEEP: /* play cal target beep */
-    	break;
-    case CAL_GOOD_BEEP: /* play cal good beep */
+    char *wave =NULL;
+    switch(sound) // select the appropriate sound to play
+    {
+        case CAL_TARG_BEEP: /* play cal target beep */
+        wave ="Tink";
         break;
-    case CAL_ERR_BEEP:  /* play cal error beep */
+        case CAL_GOOD_BEEP: /* play cal good beep */
+        wave ="Purr";
         break;
-    case DC_TARG_BEEP:  /* play drift correct target beep */
-       	break;
-    case DC_GOOD_BEEP:  /* play drift correct good beep */
-      	break;
-    case DC_ERR_BEEP:  /* play drift correct error beep */
-      	break;
-  }
+        case CAL_ERR_BEEP:  /* play cal error beep */
+        wave ="Funk";
+        break;
+        case DC_TARG_BEEP:  /* play drift correct target beep */
+        wave ="Hero";
+        break;
+        case DC_GOOD_BEEP:  /* play drift correct good beep */
+        wave ="Morse";
+        break;
+        case DC_ERR_BEEP:  /* play drift correct error beep */
+        wave ="Sosumi";
+        break;
+    }
+    if(wave)
+    {
+        mxArray *sound[1];
+        sound[0] = mxCreateString(wave);
+        mexCallMATLAB(0,NULL,1,sound,"mglPlaySound");
+    }
 }
 
 /*!
@@ -351,6 +368,8 @@ void ELCALLBACK dc_done_beep(INT16 error)
  */
 void ELCALLBACK clear_cal_display(void)
 {
+    mexCallMATLAB(0,NULL,0,NULL,"mglClearScreen");
+    mexCallMATLAB(0,NULL,0,NULL,"mglFlush");
    
 }
 
