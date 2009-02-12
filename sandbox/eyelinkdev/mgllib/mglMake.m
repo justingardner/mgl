@@ -30,20 +30,23 @@ function retval = mglMake(rebuild, varargin)
             rebuild = 1;
         elseif isequal(rebuild,'carbon')
             define(nDefine).name = '__carbon__';
+            nDefine = nDefine + 1;
             rebuild = 1;
         elseif isequal(rebuild,'cocoa')
             define(nDefine).name = '__cocoa__';
+            nDefine = nDefine + 1;
             rebuild = 1;
         elseif ischar(rebuild) && isequal(rebuild(1:2),'__')
             define(nDefine).name = rebuild;
+            nDefine = nDefine + 1;
             rebuild = 0;
         end
     end
     if nargin > 1
         for nArg = 1:numel(varargin)
             if ischar(varargin{nArg})
-                nDefine = nDefine + 1;
                 define(nDefine).name = varargin{nArg};
+                nDefine = nDefine + 1;
             else
                 error('Attempted to pass a non-string as a define');
             end

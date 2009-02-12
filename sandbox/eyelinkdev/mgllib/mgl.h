@@ -62,8 +62,9 @@
 #define __cocoa__
 #endif // ifndef __carbon__
 #endif // ifdef __x86_64__
-
+#ifndef __eventtap__
 #define __eventtap__
+#endif
 #include <OpenGL/OpenGL.h>
 #include <OpenGL/gl.h>
 #include <OpenGL/glext.h>
