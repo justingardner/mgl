@@ -113,6 +113,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     if (!eventTapInstalled) {
       // first check if the accessibility API is enabled, cause otherwise we are F*&%ed.
       if (!AXAPIEnabled()) {
+	mexPrintf("(mglPrivateListener) **WARNING** To get keyboard events, you must have the Accessibility API enabled. From System Preferences open Universal Access and make sure that \"Enable access for assistive devices\" is checked **WARNING **\n");
 	int ret = NSRunAlertPanel (@"To get keyboard events, you must have the Accessibility API enabled.  Would you like to launch System Preferences so that you can turn on \"Enable access for assistive devices\".", @"", @"OK",@"", @"Cancel");
 	switch (ret) {
 	case NSAlertDefaultReturn:
