@@ -18,7 +18,11 @@ mglEyelink functions that handle trials should return (when appropraite):
 
 TODO: write mglPrivateEyelinkCurrentMode
 TODO: write mglPrivateEyelink
-
+		check_recording
+		eyelink_newest_float_sample
+		** we should have a seperate thread method as well for 
+			avergage eye position, a queue for doing vel/saccade detection
+		
 TODO: write mglEyelinkEDFMessage
 		writes a generic message
 TODO: write	mglEyeLinkEDFSetConfiguration
@@ -33,3 +37,5 @@ TODO: write mglEyelinkEDFEndTrial [task?]
 		this funciton writes:
 		TRIAL_OK
 		
+
+

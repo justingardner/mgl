@@ -25,7 +25,7 @@ usage:   mglPrivateEyelinkOpen(ipaddress, trackedwindow, displaywindow)
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
 
-    if (nrhs!=1) /* What arguments should this take? */
+    if (nrhs!=0) /* What arguments should this take? */
     {
         usageError("mglPrivateEyelinkGoOffline");
         return;
@@ -35,10 +35,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     if(eyelink_is_connected()) 
     { 
         // Places EyeLink tracker in off-line (idle) mode 
-        if(set_offline_mode()) {
-            mexErrMsgTxt("Link error occured.");
-        }; 
-    }
+        set_offline_mode();
+    } else      {
+        mexErrMsgTxt("Link error occured.");
+    };
      
 }
 
