@@ -16,5 +16,11 @@ TODO: write this document
 TODO: write abstract eye tracker interface
 
 TODO: write eyelink eye tracker interface
+	  the initial version of this is written and basically working.
+	  There could be a thread that handles at least the polling for samples
+	  but perhaps could handle other elements as well.
 
 TODO: write abstract digital I/O interface
+	  there should be the basic read/write functions--modeled on existing
+	  but for most work the best would be to setup a thread that reads/writes
+	  when requested via messages
