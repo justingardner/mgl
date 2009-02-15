@@ -13,6 +13,9 @@ Look up specifying eye-tracking using calibration_targets & calibration weights,
 
 To Do list:
 
+all eyelink mex files that call eyelink functions should pass in cross
+platform defined types (i.e. convert 'int' to the 'INT16' eyelink macro)
+
 mglEyelink functions that handle trials should return (when appropraite):
 	TRIAL_OK, TRIAL_ERROR, ABORT_EXPT, SKIP_TRIAL, REPEAT_TRIAL
 
@@ -39,3 +42,98 @@ TODO: write mglEyelinkEDFEndTrial [task?]
 		
 
 
+---
+
+26.4.2.8 INT16 eyelink_cal_result (void) 
+Checks for a numeric result code returned by calibration, validation, or drift correction. 
+Returns: 
+NO_REPLY if drift correction not completed yet. 
+OK_RESULT (0) if success. 
+ABORT_REPLY (27) if ’ESC’ key aborted operation. 
+-1 if operation failed. 
+1 if poor calibration or excessive validation error. 
+
+/* 
+Special Raw function
+ ON request of e_flister@yahoo.com
+ now, the normal data structure returned from eyelink will give you
+ pupil position, but not corneal reflection position. we've been
+ working with sol simpson at sr research, who has given us access to an
+ undocumented way to access the corneal reflection data.
+ 
+ i've got it working in c, but am dreading integrating it into matlab.
+ since it is extremely simple and of potential interest to other
+ labs, i was hoping you'd be willing to add support to the eyelink
+ toolbox (both windows and osx versions). sol said it was ok to share
+ this info with the developers/users of the eyelink toolbox as long as
+ i made it very clear that this functionality is unofficial and not
+ guaranteed.
+ 
+ 
+ */
+static char useStringRaw[] = "[sample, raw] = Eyelink('NewestFloatSampleRaw')";
+
+static char synopsisStringRaw[] =
+"CAUTION: Not supported on Linux. This makes use of undocumented Eyelink functions, with no "
+"official support from SR-Research: It may or may not work on your setup with your "
+"tracker. Currently it doesn't work on Linux at least.\n\n"
+"Makes copy of most recent float sample received "
+"and will copy extra (raw) data as well "
+"returns -1 if no new sample or error ";
+
+PsychError EyelinkNewestFloatSampleRaw(void)
+{
+	FSAMPLE			structFloatSample;
+	FSAMPLE_RAW		structFloatSampleRaw;
+	mxArray			**mxOutArg[2];
+	int				iSampleType;
+	
+	// Add help strings
+	PsychPushHelp(useStringRaw, synopsisStringRaw, seeAlsoString);
+	
+	// Output help if asked
+	if(PsychIsGiveHelp()) {
+		PsychGiveHelp();
+		return(PsychError_none);
+	}
+	
+	// Check arguments
+	PsychErrorExit(PsychCapNumInputArgs(0));
+	PsychErrorExit(PsychRequireNumInputArgs(0));
+	PsychErrorExit(PsychCapNumOutputArgs(2));
+	
+	// Verify eyelink is up and running
+	EyelinkSystemIsConnected();
+	EyelinkSystemIsInitialized();
+	
+	mxOutArg[0] = PsychGetOutArgMxPtr(1);
+	mxOutArg[1] = PsychGetOutArgMxPtr(2);
+	
+#if PSYCH_SYSTEM != PSYCH_LINUX
+	// Grab the sample
+	iSampleType=eyelink_newest_float_sample(&structFloatSample);
+
+	if( iSampleType==1 || iSampleType==0 )
+	{
+		//	mexPrintf("old or new sample\n");
+		*mxOutArg[0] = (mxArray*) CreateMXFSample(&structFloatSample);
+		eyelink_get_extra_raw_values(&structFloatSample, &structFloatSampleRaw);
+		
+		// Can we assume that there is always a raw sample?
+		(*mxOutArg)[1] = (mxArray *)CreateMXFSampleRaw(&structFloatSampleRaw);
+	}
+	else
+	{
+		//		mexPrintf("error or no new sample\n");
+		*mxOutArg[0] = mxCreateDoubleMatrix(1,1,mxREAL);
+		mxGetPr((*mxOutArg[0]))[0]=iSampleType;
+		*mxOutArg[1] = mxCreateDoubleMatrix(1,1,mxREAL);
+		mxGetPr((*mxOutArg[1]))[0]=iSampleType;
+		
+	}
+	
+	return(PsychError_none);
+#else
+	PsychErrorExitMsg(PsychError_unimplemented, "Sorry, this function is not supported on your system.");
+#endif
+}
