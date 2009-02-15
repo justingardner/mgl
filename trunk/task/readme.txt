@@ -3,7 +3,6 @@ task: A set of functions that handle basic structures of experiments
 ============================================================================
 
 todo:
-explain writeTrace
 explain blockLen and trialLen
 explain multiple phase tasks
 explain how save works
@@ -138,5 +137,14 @@ Then you need to set this as your drawStimulus callback when you call initTask:
  task = initTask(task,myscreen,@startSegmentCallback,@drawStimulusCallback);
 
 The other callbacks that are available (optional) are explained in the help for initTask. You can omit any callback by either not specifying it as an argument to initTask or setting it to [].
+
+=== How can I keep track of events or values during my task ===
+
+If you want to keep track of values or events that occur during an experiment you can use the the built in traces system. During a normal task, the time of certain events are recorded. For example, when a task changes phase, when a reaction time is recorded, when a segment changes, etc. These events are stored in a compressed format where just the event time and the new value are
+recorded. When you call makeTraces, the events are turned into traces that indicated the value of each type of event (a trace) at each time point. 
+
+You can add your own traces using the addTraces function. This adds a new trace to the list of event types that can be saved in myscreen. Each trace is has a name which is used to indicate the event type and a variable is attached to either a task/phase or myscreen. You write the value of an event using writeTrace, passing the new value and the trace variable. The optional last argument to writeTrace indicates that the event should be forced. Normally, writeTrace will only add an event when the value of the event has changed. If you want force the event to be written regardless of changes in value (for example, a binary indicator variable) you must set the force flag.
+
+The name of each trace is listed in myscreen.traceNames. You can get a parameter trace via getParameterTrace. You must call makeTraces to build the traces from the stored events.
 
 

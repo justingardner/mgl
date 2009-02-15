@@ -8,6 +8,8 @@
 %    purpose: eye calibration - mgl version
 %             stimuli should be defined in visual angle coords
 %
+
+% TODO: make this function generic with respect to the eyetracker used
 function myscreen = eyeCalibDisp(myscreen)
 
 % set the screen background color
