@@ -6,6 +6,20 @@ conventions and other information useful for developers or individuals
 who want to contribute code or bug reports.
 
 
+**
+Should all parameter checking, etc for 'Private' functions occur in their
+non-private matlab wrappers? This keeps the code simpler to read and more
+reliable (less matlab <-> C errors likely)?
+**
+mglCreateTexture contains a lot of generic texture code that could be used in
+other texture functions (e.g. mglPrivateEyelinkCalibration) but would need to
+be separated into a library. If there are enough instances like this, I think
+it would make sense to break the mgl.h functions and these other accessory
+functions into an mgllib.a (or mgllib.dylib if appropriate). I know this makes
+linking slightly more complicated, but I think in the long run it would make
+mgllib more rational.
+**
+
 To Do List:
 -----------
 
