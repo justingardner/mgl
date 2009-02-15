@@ -1,13 +1,15 @@
 #ifdef documentation
 =========================================================================
-program: mglPrivateEyelinkOpen.c
+program: mglPrivateEyelinkSetup.c
 by:      eric dewitt and eli merriam
 date:    02/08/09
 copyright: (c) 2006 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
-purpose: mex function to open a connection to an Eyelink tracker and configure
-         it for use with the specificed mgl window
-usage:   mglPrivateEyelinkOpen(ipaddress, trackedwindow, displaywindow)
-
+purpose: Sets the eyetracker into setup mode for calibration, validation
+         and drift correction. Allows for mgl based (local) calibration 
+         and eyelink software (remote, on eyelink computer) based setup.
+         Local setup allows for self calibration. Wrapper handles keyboard.
+         You must specify display location for the camera graphics.
+usage:   mglPrivateEyelinkSetup(display)
 
 =========================================================================
 #endif
@@ -47,14 +49,39 @@ INT16 ELCALLTYPE init_expt_graphics();
 
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
-
-    // get current screen coordinate state
-    // set to screen coordinates
-    init_expt_graphics(); // initialize the callbacks
-    // we need an event loop to pass keyboard commmands to the tracker
-    do_tracker_setup();
+    if (nrhs>1) /* What arguments should this take? */
+    {
+        usageError("mglPrivateEyelinkSetup");
+        return;
+    }
+        
+    if (nrhs==1) {
+        int n;
+        n = (mxGetN(prhs[0])*mxGetM(prhs[0]));
+        if (n != 1) {
+            mexErrMsgTxt("Display location must be an integer: -1 for"
+            "eyelink, or the mgl display number.");
+        }
+        displayLoc = (int)*mxGetPr(prhs[0]);
+    }
     
-    // return to prior screen coordinate state
+    init_expt_graphics(); // initialize the callbacks
+
+    if (displayLoc > 0) {
+        // test to verify that the mgldisplay is open so we can get a context
+        // we'll need to swtich between contexts for drawing targets and
+        // calibration screens if the screen context is not the one passed in
+        // (that is, the mgl display that is open and active is presumably the
+        // subject's, but the display passed in is the experimenter's).
+        
+        // for camera grapics we'll need to do the following for each cam call
+        // get current screen coordinate state
+        // set to screen coordinates
+        // return to prior screen coordinate state
+    }
+    
+    // regardless of where the callbacks will display, we swtich to setup
+    do_tracker_setup();
     
 }
 
@@ -107,10 +134,12 @@ void ELCALLTYPE get_display_information(DISPLAYINFO *di)
 /*!
 
   This is an optional function to initialze graphics and calibration system.
-  Although, this is optional, one should do the innerds of this function elsewhere in a proper manner.
-
-  @remark The prototype of this function can be modified to suit ones needs. Eg.
-  The init_expt_graphics of eyelink_core_graphics.dll takes in 2 parameters.
+  Although, this is optional, one should do the innerds of this function
+  elsewhere in a proper manner.
+  
+   @remark The prototype of this function can be modified to suit ones needs.
+  Eg. The init_expt_graphics of eyelink_core_graphics.dll takes in 2
+  parameters.
   
 */
 INT16 ELCALLTYPE init_expt_graphics()
