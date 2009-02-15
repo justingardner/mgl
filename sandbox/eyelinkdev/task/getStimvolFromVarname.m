@@ -1,6 +1,6 @@
 % getStimvolFromVarname.m
 %
-%      usage: [stimvol stimNames] = getStimvolFromVarname(varnameIn,myscreen,task,[taskNum],[phaseNum],[segmentNum])
+%      usage: [stimvol stimNames] = getStimvolFromVarname(varnameIn,myscreen,task,[taskNum],[phaseNum],[segmentNum],[verbose])
 %         by: justin gardner
 %       date: 03/15/07
 %    purpose: returns the volume numbers for the stimulus variable in stimvol and also
@@ -36,7 +36,7 @@ function [stimvolOut stimNamesOut] = getStimvolFromVarname(varnameIn,myscreen,ta
 stimvolOut = {};
 stimNamesOut = {};
 % check arguments
-if ~any(nargin == [3 4 5 6])
+if ~any(nargin == [3 4 5 6 7])
   help getStimvolFromVarname
   return
 end
@@ -51,6 +51,9 @@ if isstruct(varnameIn)
   end
   if isfield(varnameIn,'phaseNum')
     phaseNum = varnameIn.phaseNum;
+  end
+  if isfield(varnameIn,'verbose')
+    verbose = varnameIn.verbose;
   end
   if isfield(varnameIn,'varname')
     varnameIn = varnameIn.varname;
@@ -72,8 +75,11 @@ if ~exist('phaseNum','var')
   end
   phaseNum = 1:phaseNum;
 end
+if ~exist('verbose','var'),verbose = true;end
 
-disp(sprintf('(getStimvolFromVarname) taskNum=[%s], phaseNum=[%s], segmentNum=[%s]',num2str(taskNum),num2str(phaseNum),num2str(segmentNum)));
+if verbose
+  disp(sprintf('(getStimvolFromVarname) taskNum=[%s], phaseNum=[%s], segmentNum=[%s]',num2str(taskNum),num2str(phaseNum),num2str(segmentNum)));
+end
 % first make varname into a cell array of cell arrays.
 if isstr(varnameIn)
   varname{1}{1} = varnameIn;
@@ -266,6 +272,8 @@ if isempty(stimvolOut)
 end
 
 % display the number of stimvols and the variable name
-for i = 1:length(stimvolOut)
-  disp(sprintf('(getStimvolFromVarname) %s: %i trials',stimNamesOut{i},length(stimvolOut{i})));
+if verbose
+  for i = 1:length(stimvolOut)
+    disp(sprintf('(getStimvolFromVarname) %s: %i trials',stimNamesOut{i},length(stimvolOut{i})));
+  end
 end
