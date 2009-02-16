@@ -48,7 +48,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
   // check for null pointer
   if (gFontName == NULL)
-    sprintf(fontName,DEFAULT_FONT);
+    snprintf(fontName, sizeof(fontName), DEFAULT_FONT); // safety first!
   // otherwise get the font
   else {
     mxGetString(gFontName,fontName,1024);

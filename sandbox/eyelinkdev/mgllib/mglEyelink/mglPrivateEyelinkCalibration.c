@@ -41,25 +41,27 @@ INT16 ELCALLBACK get_input_key(InputEvent *key_input);
 void ELCALLTYPE get_display_information(DISPLAYINFO *di);
 INT16 ELCALLTYPE init_expt_graphics();
 
-//draws a line from (x1,y1) to (x2,y2) - required for all tracker versions.
+// draws a line from (x1,y1) to (x2,y2) - required for all tracker versions.
 void drawLine(CrossHairInfo *chi, int x1, int y1, int x2, int y2, int cindex);
 
-//draws shap that has semi-circle on either side and connected by lines.
-//Bounded by x,y,width,height. x,y may be negative.
-//This only needed for EL1000.
+// draws shap that has semi-circle on either side and connected by lines.
+// Bounded by x,y,width,height. x,y may be negative.
+// This only needed for EL1000.
 void drawLozenge(CrossHairInfo *chi, int x, int y, int width, int height, int cindex);
 
-//Returns the current mouse position and its state. only neede for EL1000.
+// Returns the current mouse position and its state. only neede for EL1000.
 void getMouseState(CrossHairInfo *chi, int *rx, int *ry, int *rstate);
 
 // int ELCALLBACK writeImage(char *outfilename, int format, EYEBITMAP *bitmap);
 
 // library variables (would be class member vars)
-GLuint glTextureNumber;
-GLubyte *glCameraImage;
-static UINT32 cameraImagePalleteMap[130+2];
-mxArray* mglTexture[2];
-int mglDisplayNum;
+GLuint glCameraImageTextureNumber;          // Texture for camera image display
+GLuint glCameraTitleTextureNumber;          // Texture for camera title display
+GLubyte *glCameraImage;                     // Camera image texture contents
+static UINT32 cameraImagePalleteMap[130+2]; // Camera image pallete mapping
+mxArray* mglTexture[2];                     // mgl texture structures
+char cameraTitle[1024];                     // current camera title
+int mglDisplayNum;                          // which mgl display are we using
 
 /////////////
 //   main   //
@@ -431,18 +433,18 @@ INT16 ELCALLBACK setup_image_display(INT16 width, INT16 height)
     // create an mgl texture
     mexCallMATLAB(1, mglTexture[0], 1, camArray, "mglPrivateCreateTexture");
     mxDestroyArray(camArray);
-    mexCallMATLAB(1, mglTexture[1], 1, mxCreateString("TITLE"), "mglPrivateCreateTexture");
+    cameraTitle = "IMAGE";
+    mexCallMATLAB(1, mglTexture[1], 1, mxCreateString(cameraTitle), "mglPrivateCreateTexture");
     
     // get the texture number for the camera texture
-    glTextureNumber = *(double*)mxGetPr(mxGetField(mglTexture[0],0,"textureNumber"));
+    glCameraImageTextureNumber = (int)*mxGetPr(mxGetField(mglTexture[0],0,"textureNumber"));
+    glCameraImageTextureNumber = (int)*mxGetPr(mxGetField(mglTexture[1],0,"textureNumber"));
     
-    glBindTexture(GL_TEXTURE_2D, glTextureNumber);
+    glBindTexture(GL_TEXTURE_2D, glCameraImageTextureNumber);
     glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, TEXTURE_DATATYPE, glCameraImage);
-    
     
     return 0;
 }
-
 
 /*!
 	This is called to notify that all camera setup things are complete.  Any
@@ -451,9 +453,12 @@ INT16 ELCALLBACK setup_image_display(INT16 width, INT16 height)
 */
 void ELCALLBACK exit_image_display(void)
 {
-    // mglPrivateDeleteTexture
+    // clean up matlab/mgl textures
+    mexCallMATLAB(1, mglTexture[0], 1, camArray, "mglPrivateDeleteTexture");
+    mexCallMATLAB(1, mglTexture[1], 1, camArray, "mglPrivateDeleteTexture");
+    // cleanup our local texture
+    free(glCameraImage);    
 }
-
 
 /*!
   This function is called to update any image title change.
@@ -464,9 +469,15 @@ void ELCALLBACK exit_image_display(void)
  */
 void ELCALLBACK image_title(INT16 threshold, char *title)
 {
-	
+    // printf("this is a very slow way to do re-titling.");
+    mexCallMATLAB(1, mglTexture[1], 1, camArray, "mglPrivateDeleteTexture");
+    if (threshold == -1){
+        snprintf(cameraTitle, sizeof(cameraTitle), "%s", title);
+    } else {
+        snprintf(cameraTitle, sizeof(cameraTitle), "%s, threshold at %d", threshold);
+    }
+    mexCallMATLAB(1, mglTexture[1], 1, mxCreateString(cameraTitle), "mglPrivateCreateTexture");
 }
-
 
 /*!
 	This function is called after setup_image_display and before the first call to 
@@ -477,9 +488,7 @@ void ELCALLBACK image_title(INT16 threshold, char *title)
 	@param r       red component of rgb.
 	@param g       blue component of rgb.
 	@param b       green component of rgb.
-
-    
-
+	
 */
 void ELCALLBACK set_image_palette(INT16 ncolors, byte r[130], byte g[130], byte b[130])
 {
@@ -495,7 +504,6 @@ void ELCALLBACK set_image_palette(INT16 ncolors, byte r[130], byte g[130], byte 
     } 
 
 }
-
 
 /*!
 	This function is called to supply the image line by line from top to bottom.
@@ -530,10 +538,149 @@ void ELCALLBACK draw_image_line(INT16 width, INT16 line, INT16 totlines, byte *p
     //       }
     //     }
 //    glCameraImage set image texture
-    glBindTexture(GL_TEXTURE_2D, glTextureNumber);
+
+    short i;
+    UINT32 *v0;
+    GLubyte *p = pixels;
+
+    glBindTexture(GL_TEXTURE_2D, glCameraImageTextureNumber);
+    glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, TEXTURE_DATATYPE, glCameraImage);
+    glBindTexture(GL_TEXTURE_2D, glCameraImageTextureNumber);
     glTexImage2D(GL_TEXTURE_RECTANGLE_EXT,0,GL_RGBA,width,imageHeight,0,GL_RGBA,TEXTURE_DATATYPE,glCameraImage);
-    
+
+
+    v0 = (UINT32 *)(((GLubyte*)image->pixels) + ((line-1)*()));
+    for(i=0; i<width; i++)
+    {
+        *v0++ = image_palmap32[*p++]; // copy the line to image
+    }
+    if(line == totlines)
+    {
+        // at this point we have a complete camera image. This may be very small.
+        // we might want to enlarge it. For simplicity reasons, we will skip that.
+
+    // center the camera image on the screen
+    // SDL_Rect r = {(mainWindow->w-image->w)/2,(mainWindow->h-image->h)/2,0,0};
+    // mgl blt texture
+
+    // now we need to draw the cursors.
+
+        CrossHairInfo crossHairInfo;
+        memset(&crossHairInfo,0,sizeof(crossHairInfo));
+
+        crossHairInfo.w = image->w;
+        crossHairInfo.h = image->h;
+        crossHairInfo.drawLozenge = drawLozenge;
+        crossHairInfo.drawLine = drawLine;
+        crossHairInfo.getMouseState = getMouseState;
+        crossHairInfo.userdata = image;
+
+        eyelink_draw_cross_hair(&crossHairInfo);
+    }
+
 }
 
 
+/*!
+	@ingroup cam_example
+	draws a line from (x1,y1) to (x2,y2) - required for all tracker versions.
+*/
+void drawLine(CrossHairInfo *chi, int x1, int y1, int x2, int y2, int cindex)
+{
+    SDL_Rect r;
+    UINT32 color =0;
+    SDL_Surface *img = (SDL_Surface *)(chi->userdata);
+    switch(cindex)
+    {
+        case CR_HAIR_COLOR:
+        case PUPIL_HAIR_COLOR:
+            // color = SDL_MapRGB(img->format,255,255,255);
+        printf("Add Parse Color\n");
+        break;
+        case PUPIL_BOX_COLOR:
+            // color = SDL_MapRGB(img->format,0,255,0);
+        printf("Add Parse Color\n");
+        break;
+        case SEARCH_LIMIT_BOX_COLOR:
+        case MOUSE_CURSOR_COLOR:
+            // color = SDL_MapRGB(img->format,255,0,0);
+        printf("Add Parse Color\n");
+        break;
+    }
+	mglLines(x0, y0, x1, y1,size,color,bgcolor)
+  if(x1 == x2) // vertical line
+  {
+	  if(y1 < y2)
+	  {
+		  r.x = x1;
+		  r.y = y1;
+		  r.w = 1;
+		  r.h = y2-y1;
+	  }
+	  else
+	  {
+		  r.x = x2;
+		  r.y = y2;
+		  r.w = 1;
+		  r.h = y1-y2;
+	  }
+	  SDL_FillRect(img,&r,color);
+  }
+  else if(y1 == y2) // horizontal line.
+  {
+	  if(x1 < x2)
+	  {
+		  r.x = x1;
+		  r.y = y1;
+		  r.w = x2-x1;
+		  r.h = 1;
+	  }
+	  else
+	  {
+		  r.x = x2;
+		  r.y = y2;
+		  r.w = x1-x2;
+		  r.h = 1;
+	  }
+	  SDL_FillRect(img,&r,color);
+  }
+  else
+  {
+	printf("non horizontal/vertical lines not implemented. \n");
+  }
+}
 
+/*!
+	@ingroup cam_example
+	draws shap that has semi-circle on either side and connected by lines.
+	Bounded by x,y,width,height. x,y may be negative.
+	@remark This is only needed for EL1000.	
+*/
+void drawLozenge(CrossHairInfo *chi, int x, int y, int width, int height, int cindex)
+{
+	// NOT IMPLEMENTED.
+	printf("drawLozenge not implemented. \n");
+}
+
+/*!
+	@ingroup cam_example
+	Returns the current mouse position and its state.
+	@remark This is only needed for EL1000.	
+*/
+void getMouseState(CrossHairInfo *chi, int *rx, int *ry, int *rstate)
+{
+    // NOT IMPLEMENTED.
+    printf("drawLozenge not implemented. \n");
+
+//   int x =0;
+//   int y =0;
+//   Uint8 state =SDL_GetMouseState(&x,&y);
+//   x = x-(mainWindow->w - ((SDL_Surface*)chi->userdata)->w)/2;
+//   y = y-(mainWindow->h - ((SDL_Surface*)chi->userdata)->h)/2;
+//   if(x>=0 && y >=0 && x <=((SDL_Surface*)chi->userdata)->w && y <= ((SDL_Surface*)chi->userdata)->h)
+//   {
+//     *rx = x;
+// *ry = y;
+// *rstate = state;
+//   }
+}
