@@ -32,6 +32,8 @@ if any(nargin==[3 4])
 end
 
 % find last occurrence of data on this trace
+%% isn't this operation slow? wouldn't it make more sense to
+%% keep a 1xtraceNum vector of the the last event with an increment?
 getlast = find((myscreen.events.tracenum == tracenum));
 if ~isempty(getlast)
   getlast = getlast(end);

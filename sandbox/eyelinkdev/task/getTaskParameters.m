@@ -67,7 +67,7 @@ for taskNum = 1:length(allTasks)
       % volume (i.e. the one last recorded by a backtick, then
       % we want to use the following volume as our volume number
       if (eventTime-volTime) > (nextVolTime-eventTime)
-	volnum = nextVolNum;
+	      volnum = nextVolNum;
       end
       % deal with segment trace
       if myscreen.events.tracenum(enum) == task{phaseNum}.segmentTrace
@@ -78,6 +78,10 @@ for taskNum = 1:length(allTasks)
 	% check for new trial
 	if thisseg == 1
 	  tnum = tnum+1;
+	  if tnum > task{phaseNum}.numTrials
+	      fprintf('Recorded trace events past end of last trial.\n');
+	      return
+	  end 
 	  experiment(phaseNum).nTrials = tnum;
 	  % get the time that the experiment starts
 	  % this will only get set for the 1st seg of 1st trial

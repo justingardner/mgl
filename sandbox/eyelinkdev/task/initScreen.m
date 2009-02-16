@@ -334,11 +334,24 @@ myscreen.events.ticknum = zeros(1,numinit);
 myscreen.events.volnum = zeros(1,numinit);
 myscreen.events.time = zeros(1,numinit);
 
+%% a new struct indicates all trace names
 % first stimtrace is reserved for acq pulses
+myscreen.traceNames{1} = 'volume';
 % second is for segment times
+myscreen.traceNames{2} = 'segmentTime';
 % third is for response times
+myscreen.traceNames{3} = 'responseTime';
 % fourth is for task phase
+myscreen.traceNames{4} = 'taskPhase';
 % fifth is for fix task
+myscreen.traceNames{5} = 'fixationTask';
+%% addTraces now provides a safe way to add traces
+%% stimtrace is now a legacy variable which could be
+%% deprecated in a future version. numTraces specifies
+%% the number of traces and traceName the name
+myscreen.numTraces = 5;
+%% legacy if you use stimtace without addTraces, you will
+%% get a free trace
 myscreen.stimtrace = 6;
 
 % save the beginning of time
