@@ -39,11 +39,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         if (n != 4) {
             mexErrMsgTxt("Specify data to record with a logical array: [ edf_samples, edf_events, link_samples, link_events ]");
         }
-        double *toRecord = mxGetPr(prhs[0]);
-        edf_samples = (int)*toRecord[0];
-        edf_events = (int)*toRecord[1];
-        link_samples = (int)*toRecord[2];
-        link_events = (int)*toRecord[3];
+        double* toRecord = mxGetPr(prhs[0]);
+        edf_samples = (int)toRecord[0];
+        edf_events = (int)toRecord[1];
+        link_samples = (int)toRecord[2];
+        link_events = (int)toRecord[3];
         // could bitwise or and verify that inputs are logical
     }
     
