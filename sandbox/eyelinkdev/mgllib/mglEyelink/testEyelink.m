@@ -1,6 +1,6 @@
 
 % open the link
-mglPrivateEyelinkOpen('100.1.1.1');
+mglEyelinkOpen(); % calls mglPrivateEyelinkOpen, default ip is '100.1.1.1'
 
 %mglPrivateEyelinkSendCommand
 
@@ -12,7 +12,7 @@ mglPrivateEyelinkCMDPrintF('file_sample_data = RIGHT,GAZE,AREA,GAZERES,STATUS');
 mglPrivateEyelinkCMDPrintF('sample_rate = 500');
 
 % run the calibration
-%mglPrivateEyelinkCalibration
+mglPrivateEyelinkCalibration
 
 % open up a data file
 mglPrivateEyelinkOpenEDF('foo.edf');
