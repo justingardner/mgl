@@ -41,11 +41,23 @@ INT16 ELCALLBACK get_input_key(InputEvent *key_input);
 void ELCALLTYPE get_display_information(DISPLAYINFO *di);
 INT16 ELCALLTYPE init_expt_graphics();
 
+//draws a line from (x1,y1) to (x2,y2) - required for all tracker versions.
+void drawLine(CrossHairInfo *chi, int x1, int y1, int x2, int y2, int cindex);
+
+//draws shap that has semi-circle on either side and connected by lines.
+//Bounded by x,y,width,height. x,y may be negative.
+//This only needed for EL1000.
+void drawLozenge(CrossHairInfo *chi, int x, int y, int width, int height, int cindex);
+
+//Returns the current mouse position and its state. only neede for EL1000.
+void getMouseState(CrossHairInfo *chi, int *rx, int *ry, int *rstate);
+
 // int ELCALLBACK writeImage(char *outfilename, int format, EYEBITMAP *bitmap);
 
 // library variables (would be class member vars)
-GLubyte *glCameraImage;
 GLuint glTextureNumber;
+GLubyte *glCameraImage;
+static UINT32 cameraImagePalleteMap[130+2];
 mxArray* mglTexture[2];
 int mglDisplayNum;
 
@@ -456,7 +468,6 @@ void ELCALLBACK image_title(INT16 threshold, char *title)
 }
 
 
-
 /*!
 	This function is called after setup_image_display and before the first call to 
 	draw_image_line. This is responsible to setup the palettes to display the camera
@@ -472,6 +483,16 @@ void ELCALLBACK image_title(INT16 threshold, char *title)
 */
 void ELCALLBACK set_image_palette(INT16 ncolors, byte r[130], byte g[130], byte b[130])
 {
+
+    int i = 0; 
+    for(i=0; i<ncolors; i++) 
+    { 
+        UINT32 rf = r[i];
+        UINT32 gf = g[i];
+        UINT32 bf = b[i];
+        // we will have an rgba palette setup. 
+        cameraImagePalleteMap[i] = (rf<<16) | (gf<<8) | (bf);
+    } 
 
 }
 
