@@ -1,6 +1,6 @@
 #ifdef documentation
 =========================================================================
-program: mglPrivateEyelinkSetup.c
+program: mglPrivateEyelinkCalibration.c
 by:      eric dewitt and eli merriam
 date:    02/08/09
 copyright: (c) 2006 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
@@ -9,7 +9,7 @@ purpose: Sets the eyetracker into setup mode for calibration, validation
          and eyelink software (remote, on eyelink computer) based setup.
          Local setup allows for self calibration. Wrapper handles keyboard.
          You must specify display location for the camera graphics.
-usage:   mglPrivateEyelinkSetup(display)
+usage:   mglPrivateEyelinkCalibration([display_num])
 
 =========================================================================
 #endif
@@ -43,45 +43,52 @@ INT16 ELCALLTYPE init_expt_graphics();
 
 // int ELCALLBACK writeImage(char *outfilename, int format, EYEBITMAP *bitmap);
 
+// library variables (would be class member vars)
+GLubyte *glCameraImage;
+GLuint glTextureNumber;
+mxArray* mglTexture[2];
+int mglDisplayNum;
+
 /////////////
 //   main   //
 //////////////
 
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
-    if (nrhs>1) /* What arguments should this take? */
+    if (nrhs>2) /* What arguments should this take? */
     {
-        usageError("mglPrivateEyelinkSetup");
+        usageError("mglPrivateEyelinkCalibration");
         return;
     }
-        
-    if (nrhs==1) {
-        int n;
-        n = (mxGetN(prhs[0])*mxGetM(prhs[0]));
-        if (n != 1) {
-            mexErrMsgTxt("Display location must be an integer: -1 for"
-            "eyelink, or the mgl display number.");
-        }
-        displayLoc = (int)*mxGetPr(prhs[0]);
+    
+    if (nrhs>=1) {
+       mexPrintf("(mglPrivateEyelinkCalibration) Attempting to use specific display.\n"); 
+       n = mxGetN(prhs[0])*mxGetM(prhs[0]);
+       if (n != 1) {
+         mexErrMsgTxt("(mglPrivateEyelinkCalibration) You must specify a single display number.");
+       }
+       mglDisplayNum = (int)*(double*)mxGetPr(prhs[0]);
+       mexPrintf("(mglPrivateEyelinkCalibrate) Attempting to use display %d.\n");
+       mexPrintf("(mglPrivateEyelinkCalibrate) [Currently reverting to current display.]\n");
     }
     
-    init_expt_graphics(); // initialize the callbacks
+    if (nrhs==2) {
+        // get default mode for this round
+    }
+    
+    // initialize the callbacks
+    init_expt_graphics();
 
-    if (displayLoc > 0) {
-        // test to verify that the mgldisplay is open so we can get a context
-        // we'll need to swtich between contexts for drawing targets and
-        // calibration screens if the screen context is not the one passed in
-        // (that is, the mgl display that is open and active is presumably the
-        // subject's, but the display passed in is the experimenter's).
-        
-        // for camera grapics we'll need to do the following for each cam call
-        // get current screen coordinate state
-        // set to screen coordinates
-        // return to prior screen coordinate state
-    }
-    
-    // regardless of where the callbacks will display, we swtich to setup
+    // this handles all the actual calibration routines
+    // we need to be able to pass in a variable to push the system into
+    // calibrate, validate, or drift_correct
+    // NOTE: Display and keyboard handling is done via callbacks--this function
+    //       does not exit until the exit setup button has been pressed on the
+    //       eyelink (or via key/message sent to the device)
     do_tracker_setup();
+
+    // let everyone know that we're finished
+    mexPrintf("(mglPrivateEyelinkCalibrate) finished...\n");
     
 }
 
@@ -128,8 +135,6 @@ void ELCALLTYPE get_display_information(DISPLAYINFO *di)
   }
   
 }
-
-
 
 /*!
 
@@ -179,8 +184,6 @@ INT16 ELCALLTYPE init_expt_graphics()
   return 0;
 }
 
-
-
 /*!
   This is an optional function to properly close and release any resources
   that are not required beyond calibration needs.
@@ -190,9 +193,6 @@ void ELCALLTYPE close_expt_graphics()
 {
 	
 }
-
-
-
 
 /*!
 	This is called to check for keyboard input. 
@@ -212,8 +212,6 @@ INT16 ELCALLBACK get_input_key(InputEvent *key_input)
 	return 0;
 }
 
-
-
 /*!
 	This function provides support to writing images to disk. Upon calls to el_bitmap_save_and_backdrop or
 	el_bitmap_save this function is requested to do the write operaiton in the preferred format.
@@ -223,12 +221,11 @@ INT16 ELCALLBACK get_input_key(InputEvent *key_input)
 	@param[in] bitmap bitmap data to be saved.
 	@return if successful, return 0.
 */
-// int ELCALLBACK writeImage(char *outfilename, IMAGETYPE format, EYEBITMAP *bitmap)
-// {
-// 
-//  return 0;
-// }
+int ELCALLBACK writeImage(char *outfilename, IMAGETYPE format, EYEBITMAP *bitmap)
+{
 
+ return 0;
+}
 
 /*! 
 	Setup the calibration display. This function called before any
@@ -238,7 +235,6 @@ INT16  ELCALLBACK  setup_cal_display(void)
 {
   return 0;
 }
-
 
 /*!
   This is called to release any resources that are not required beyond calibration.
@@ -295,7 +291,6 @@ void ELCALLBACK erase_cal_target(void)
     mexCallMATLAB(0,NULL,0,NULL,"mglFlush");
 }
 
-
 #define CAL_TARG_BEEP   1
 #define CAL_GOOD_BEEP   0
 #define CAL_ERR_BEEP   -1
@@ -307,8 +302,8 @@ void ELCALLBACK erase_cal_target(void)
 	beep callbacks using just one function.  
 	
 	This function is responsible for selecting and playing the audio clip.
-	@param sound sound id to play. */
-
+	@param sound sound id to play.
+ */
 void ELCALLBACK  cal_sound(INT16 sound)
 {
     char *wave =NULL;
@@ -389,9 +384,6 @@ void ELCALLBACK dc_done_beep(INT16 error)
     }
 }
 
-/***************************** HIDE DISPLAY ON RECORDING ABORT ************************/
-
-
 /*
   Called to clear the display.
  */
@@ -402,6 +394,8 @@ void ELCALLBACK clear_cal_display(void)
    
 }
 
+#define BYTEDEPTH 4
+#define TEXTURE_DATATYPE GL_UNSIGNED_BYTE // Independent of endianness
 /*!
 	This function is responsible for initializing any resources that are 
 	required for camera setup.
@@ -412,7 +406,29 @@ void ELCALLBACK clear_cal_display(void)
  */
 INT16 ELCALLBACK setup_image_display(INT16 width, INT16 height)
 {
-  return 0;
+    // a bit of a hack, but this will be the easiest way to not duplicate
+    // code see the note in the mgllib developers.txt file.
+    
+    // get an array of the correct size for the image
+    mwSize ndims = 3, dims[3] = {height, width, 4};
+    mxArray* camArray[1];
+    camArray[0] = mxCreateNumericArray(ndims, dims, mxDOUBLE_CLASS, mxReal);
+    glCameraImage = (GLubyte*)malloc(width*height*sizeof(GLubyte)*BYTEDEPTH);
+    
+    
+    // create an mgl texture
+    mexCallMATLAB(1, mglTexture[0], 1, camArray, "mglPrivateCreateTexture");
+    mxDestroyArray(camArray);
+    mexCallMATLAB(1, mglTexture[1], 1, mxCreateString("TITLE"), "mglPrivateCreateTexture");
+    
+    // get the texture number for the camera texture
+    glTextureNumber = *(double*)mxGetPr(mxGetField(mglTexture[0],0,"textureNumber"));
+    
+    glBindTexture(GL_TEXTURE_2D, glTextureNumber);
+    glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, TEXTURE_DATATYPE, glCameraImage);
+    
+    
+    return 0;
 }
 
 
@@ -423,7 +439,7 @@ INT16 ELCALLBACK setup_image_display(INT16 width, INT16 height)
 */
 void ELCALLBACK exit_image_display(void)
 {
-
+    // mglPrivateDeleteTexture
 }
 
 
@@ -482,7 +498,20 @@ void ELCALLBACK set_image_palette(INT16 ncolors, byte r[130], byte g[130], byte 
 */
 void ELCALLBACK draw_image_line(INT16 width, INT16 line, INT16 totlines, byte *pixels)
 {
-
+    //     else if (imageType == 3) {    
+    //       for(i = 0; i < imageHeight; i++) { 
+    //         for(j = 0; j < imageWidth;j++,c+=BYTEDEPTH) {
+    // imageFormatted[c+0] = (GLubyte)imageData[sub2ind( i, j, imageHeight, 1 )];
+    // imageFormatted[c+1] = (GLubyte)imageData[sub2ind( i, j, imageHeight, 1 )+imageWidth*imageHeight];
+    // imageFormatted[c+2] = (GLubyte)imageData[sub2ind( i, j, imageHeight, 1 )+imageWidth*imageHeight*2];
+    // imageFormatted[c+3] = (GLubyte)255;
+    //         }
+    //       }
+    //     }
+//    glCameraImage set image texture
+    glBindTexture(GL_TEXTURE_2D, glTextureNumber);
+    glTexImage2D(GL_TEXTURE_RECTANGLE_EXT,0,GL_RGBA,width,imageHeight,0,GL_RGBA,TEXTURE_DATATYPE,glCameraImage);
+    
 }
 
 
