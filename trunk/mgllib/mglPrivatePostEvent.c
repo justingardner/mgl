@@ -62,7 +62,7 @@ void quitPostEvent(void);
 /////////////////////
 //   queue event   //
 /////////////////////
-@interface queueEvent : NSObject {
+@interface postQueueEvent : NSObject {
   double time;
   int type;
   int keyCode;
@@ -73,7 +73,7 @@ void quitPostEvent(void);
 - (int)eventType;
 - (void)postEvent;
 - (double)timeInSeconds;
-- (NSComparisonResult)compareByTime:(queueEvent *)otherQueueEvent;
+- (NSComparisonResult)compareByTime:(postQueueEvent *)otherQueueEvent;
 - (NSString *)description;
 - (void)dealloc;
 @end
@@ -164,7 +164,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       pthread_mutex_lock(&mut);
 
       // create the event
-      queueEvent *qEvent = [[queueEvent alloc] initWithTimeKeyCodeAndKeyDown:time :keyCode :keyDown];
+      postQueueEvent *qEvent = [[postQueueEvent alloc] initWithTimeKeyCodeAndKeyDown:time :keyCode :keyDown];
 
       // add the event to the event queue
       [gEventQueue addObject:qEvent];
@@ -218,7 +218,7 @@ void quitPostEvent(void)
     pthread_mutex_lock(&mut);
     
     // add a quit event
-    queueEvent *qEvent = [[queueEvent alloc] initQuitEventWithTime:getCurrentTimeInSeconds()];
+    postQueueEvent *qEvent = [[postQueueEvent alloc] initQuitEventWithTime:getCurrentTimeInSeconds()];
     [gEventQueue insertObject:qEvent atIndex:0];
     [qEvent release];
 
@@ -316,7 +316,7 @@ void launchEventDispatcherAsThread()
 ///////////////////////////////////
 //   queue event implementation  //
 ///////////////////////////////////
-@implementation queueEvent 
+@implementation postQueueEvent 
 // init a key event
 - (id)initWithTimeKeyCodeAndKeyDown:(double)initTime :(int)initKeyCode :(int)initKeyDown;
 {
@@ -361,7 +361,7 @@ void launchEventDispatcherAsThread()
 // **************************** end mac specific code  ****************************** //
 //-----------------------------------------------------------------------------------///
 // comparison function, used to sort the queue in time order
-- (NSComparisonResult)compareByTime:(queueEvent*)otherQueueEvent
+- (NSComparisonResult)compareByTime:(postQueueEvent*)otherQueueEvent
 {
   if ([self timeInSeconds] > [otherQueueEvent timeInSeconds])  {
     return NSOrderedDescending;
