@@ -59,7 +59,8 @@ GLuint glCameraImageTextureNumber;          // Texture for camera image display
 GLuint glCameraTitleTextureNumber;          // Texture for camera title display
 GLubyte *glCameraImage;                     // Camera image texture contents
 static UINT32 cameraImagePalleteMap[130+2]; // Camera image pallete mapping
-mxArray* mglTexture[2];                     // mgl texture structures
+mxArray *mglTexture[1];                     // mgl texture structures
+mxArray *mglTextureLoc[1];                  // texture location
 char cameraTitle[1024];                     // current camera title
 int mglDisplayNum;                          // which mgl display are we using
 
@@ -74,22 +75,23 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         usageError("mglPrivateEyelinkCalibration");
         return;
     }
-    
+
     if (nrhs>=1) {
-       mexPrintf("(mglPrivateEyelinkCalibration) Attempting to use specific display.\n"); 
-       n = mxGetN(prhs[0])*mxGetM(prhs[0]);
-       if (n != 1) {
-         mexErrMsgTxt("(mglPrivateEyelinkCalibration) You must specify a single display number.");
-       }
-       mglDisplayNum = (int)*(double*)mxGetPr(prhs[0]);
-       mexPrintf("(mglPrivateEyelinkCalibrate) Attempting to use display %d.\n");
-       mexPrintf("(mglPrivateEyelinkCalibrate) [Currently reverting to current display.]\n");
+        int n;
+        mexPrintf("(mglPrivateEyelinkCalibration) Attempting to use specific display.\n"); 
+        n = mxGetN(prhs[0])*mxGetM(prhs[0]);
+        if (n != 1) {
+            mexErrMsgTxt("(mglPrivateEyelinkCalibration) You must specify a single display number.");
+        }
+        mglDisplayNum = (int)*(double*)mxGetPr(prhs[0]);
+        mexPrintf("(mglPrivateEyelinkCalibrate) Attempting to use display %d.\n");
+        mexPrintf("(mglPrivateEyelinkCalibrate) [Currently reverting to current display.]\n");
     }
-    
+
     if (nrhs==2) {
         // get default mode for this round
     }
-    
+
     // initialize the callbacks
     init_expt_graphics();
 
@@ -103,7 +105,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
     // let everyone know that we're finished
     mexPrintf("(mglPrivateEyelinkCalibrate) finished...\n");
-    
+
 }
 
 /*!
@@ -408,7 +410,7 @@ void ELCALLBACK clear_cal_display(void)
    
 }
 
-#define BYTEDEPTH 4
+#define BYTEDEPTH 4 // MUST be 4 for now--or we'd have to change a bunch of code
 #define TEXTURE_DATATYPE GL_UNSIGNED_BYTE // Independent of endianness
 /*!
 	This function is responsible for initializing any resources that are 
@@ -425,23 +427,36 @@ INT16 ELCALLBACK setup_image_display(INT16 width, INT16 height)
     
     // get an array of the correct size for the image
     mwSize ndims = 3, dims[3] = {height, width, 4};
-    mxArray* camArray[1];
-    camArray[0] = mxCreateNumericArray(ndims, dims, mxDOUBLE_CLASS, mxReal);
+    mxArray *camArray[1];
+    camArray[0] = mxCreateNumericArray(ndims, dims, mxDOUBLE_CLASS, mxREAL);
     glCameraImage = (GLubyte*)malloc(width*height*sizeof(GLubyte)*BYTEDEPTH);
     
-    
     // create an mgl texture
-    mexCallMATLAB(1, mglTexture[0], 1, camArray, "mglPrivateCreateTexture");
-    mxDestroyArray(camArray);
-    cameraTitle = "IMAGE";
-    mexCallMATLAB(1, mglTexture[1], 1, mxCreateString(cameraTitle), "mglPrivateCreateTexture");
+    mxArray *tex[2];
+    mexCallMATLAB(1, (mxArray**)tex[0], 1, camArray, "mglCreateTexture");
+    mxDestroyArray(camArray[0]);
+    snprintf(cameraTitle, sizeof(cameraTitle), "%s","IMAGE");
+    mexCallMATLAB(1, (mxArray**)tex[1], 1, (mxArray**)mxCreateString(cameraTitle), "mglText");
+    mexCallMATLAB(1, mglTexture, 2, tex, "vertcat");
+    mglTextureLoc[0] = mxCreateDoubleMatrix(1, 2, mxREAL);
+    double *loc = (double*)mxGetPr(mglTextureLoc[0]);
+    loc[0] = 0; // x
+    loc[1] = 0; // y
     
     // get the texture number for the camera texture
     glCameraImageTextureNumber = (int)*mxGetPr(mxGetField(mglTexture[0],0,"textureNumber"));
     glCameraImageTextureNumber = (int)*mxGetPr(mxGetField(mglTexture[1],0,"textureNumber"));
     
+    #ifndef GL_TEXTURE_RECTANGLE_EXT
+    printf("ERROR: GL requires ^2 on this system and is unhandled by this code.\n")
+    #endif
+    
     glBindTexture(GL_TEXTURE_2D, glCameraImageTextureNumber);
     glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, TEXTURE_DATATYPE, glCameraImage);
+    
+    mexCallMATLAB(0,NULL,0,NULL,"mglClearScreen");
+    mexCallMATLAB(0,NULL,0,NULL,"mglFlush");
+    
     
     return 0;
 }
@@ -454,8 +469,8 @@ INT16 ELCALLBACK setup_image_display(INT16 width, INT16 height)
 void ELCALLBACK exit_image_display(void)
 {
     // clean up matlab/mgl textures
-    mexCallMATLAB(1, mglTexture[0], 1, camArray, "mglPrivateDeleteTexture");
-    mexCallMATLAB(1, mglTexture[1], 1, camArray, "mglPrivateDeleteTexture");
+    // mexCallMATLAB(1, mglTexture[0], 1, camArray, "mglPrivateDeleteTexture");
+    // mexCallMATLAB(1, mglTexture[1], 1, camArray, "mglPrivateDeleteTexture");
     // cleanup our local texture
     free(glCameraImage);    
 }
@@ -470,13 +485,13 @@ void ELCALLBACK exit_image_display(void)
 void ELCALLBACK image_title(INT16 threshold, char *title)
 {
     // printf("this is a very slow way to do re-titling.");
-    mexCallMATLAB(1, mglTexture[1], 1, camArray, "mglPrivateDeleteTexture");
-    if (threshold == -1){
-        snprintf(cameraTitle, sizeof(cameraTitle), "%s", title);
-    } else {
-        snprintf(cameraTitle, sizeof(cameraTitle), "%s, threshold at %d", threshold);
-    }
-    mexCallMATLAB(1, mglTexture[1], 1, mxCreateString(cameraTitle), "mglPrivateCreateTexture");
+    // mexCallMATLAB(1, mglTexture[1], 1, camArray, "mglPrivateDeleteTexture");
+    // if (threshold == -1){
+    //     snprintf(cameraTitle, sizeof(cameraTitle), "%s", title);
+    // } else {
+    //     snprintf(cameraTitle, sizeof(cameraTitle), "%s, threshold at %d", threshold);
+    // }
+    // mexCallMATLAB(1, mglTexture[1], 1, mxCreateString(cameraTitle), "mglCreateTexture");
 }
 
 /*!
@@ -527,55 +542,47 @@ void ELCALLBACK set_image_palette(INT16 ncolors, byte r[130], byte g[130], byte 
 */
 void ELCALLBACK draw_image_line(INT16 width, INT16 line, INT16 totlines, byte *pixels)
 {
-    //     else if (imageType == 3) {    
-    //       for(i = 0; i < imageHeight; i++) { 
-    //         for(j = 0; j < imageWidth;j++,c+=BYTEDEPTH) {
-    // imageFormatted[c+0] = (GLubyte)imageData[sub2ind( i, j, imageHeight, 1 )];
-    // imageFormatted[c+1] = (GLubyte)imageData[sub2ind( i, j, imageHeight, 1 )+imageWidth*imageHeight];
-    // imageFormatted[c+2] = (GLubyte)imageData[sub2ind( i, j, imageHeight, 1 )+imageWidth*imageHeight*2];
-    // imageFormatted[c+3] = (GLubyte)255;
-    //         }
-    //       }
-    //     }
-//    glCameraImage set image texture
-
+    
     short i;
-    UINT32 *v0;
-    GLubyte *p = pixels;
+    UINT32 *currentLine;    // we will write rgba at once as a packed pixel
+    // byte *p = pixels;       // a packed rgba lookup
 
-    glBindTexture(GL_TEXTURE_2D, glCameraImageTextureNumber);
-    glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, TEXTURE_DATATYPE, glCameraImage);
-    glBindTexture(GL_TEXTURE_2D, glCameraImageTextureNumber);
-    glTexImage2D(GL_TEXTURE_RECTANGLE_EXT,0,GL_RGBA,width,imageHeight,0,GL_RGBA,TEXTURE_DATATYPE,glCameraImage);
+    // get the beginning of the current line
+    currentLine = (UINT32*)glCameraImage+((line-1)*sizeof(GLubyte)*BYTEDEPTH*width);
 
-
-    v0 = (UINT32 *)(((GLubyte*)image->pixels) + ((line-1)*()));
     for(i=0; i<width; i++)
     {
-        *v0++ = image_palmap32[*p++]; // copy the line to image
+        *currentLine++ = cameraImagePalleteMap[*pixels++]; // copy the line to image
     }
     if(line == totlines)
     {
         // at this point we have a complete camera image. This may be very small.
         // we might want to enlarge it. For simplicity reasons, we will skip that.
 
-    // center the camera image on the screen
-    // SDL_Rect r = {(mainWindow->w-image->w)/2,(mainWindow->h-image->h)/2,0,0};
-    // mgl blt texture
+        // center the camera image on the screen
+        glBindTexture(GL_TEXTURE_2D, glCameraImageTextureNumber);
+        glTexImage2D(GL_TEXTURE_RECTANGLE_EXT,0,GL_RGBA,width,totlines,0,
+            GL_RGBA,TEXTURE_DATATYPE,glCameraImage);
+        mxArray *bltTextureRHS[2];
+        bltTextureRHS[0] = mglTexture[0];
+        bltTextureRHS[1] = mglTextureLoc[0];
+        mexCallMATLAB(0, NULL, 2, bltTextureRHS, "mglBltTexture");
+        mexCallMATLAB(0,NULL,0,NULL,"mglFlush");
+        
+        // now we need to draw the cursors.
 
-    // now we need to draw the cursors.
-
-        CrossHairInfo crossHairInfo;
-        memset(&crossHairInfo,0,sizeof(crossHairInfo));
-
-        crossHairInfo.w = image->w;
-        crossHairInfo.h = image->h;
-        crossHairInfo.drawLozenge = drawLozenge;
-        crossHairInfo.drawLine = drawLine;
-        crossHairInfo.getMouseState = getMouseState;
-        crossHairInfo.userdata = image;
-
-        eyelink_draw_cross_hair(&crossHairInfo);
+        // CrossHairInfo crossHairInfo;
+        // memset(&crossHairInfo,0,sizeof(crossHairInfo));
+        // 
+        // crossHairInfo.w = image->w;
+        // crossHairInfo.h = image->h;
+        // crossHairInfo.drawLozenge = drawLozenge;
+        // crossHairInfo.drawLine = drawLine;
+        // crossHairInfo.getMouseState = getMouseState;
+        // crossHairInfo.userdata = image;
+        // 
+        // eyelink_draw_cross_hair(&crossHairInfo);
+        
     }
 
 }
@@ -587,67 +594,69 @@ void ELCALLBACK draw_image_line(INT16 width, INT16 line, INT16 totlines, byte *p
 */
 void drawLine(CrossHairInfo *chi, int x1, int y1, int x2, int y2, int cindex)
 {
-    SDL_Rect r;
-    UINT32 color =0;
-    SDL_Surface *img = (SDL_Surface *)(chi->userdata);
-    switch(cindex)
-    {
-        case CR_HAIR_COLOR:
-        case PUPIL_HAIR_COLOR:
-            // color = SDL_MapRGB(img->format,255,255,255);
-        printf("Add Parse Color\n");
-        break;
-        case PUPIL_BOX_COLOR:
-            // color = SDL_MapRGB(img->format,0,255,0);
-        printf("Add Parse Color\n");
-        break;
-        case SEARCH_LIMIT_BOX_COLOR:
-        case MOUSE_CURSOR_COLOR:
-            // color = SDL_MapRGB(img->format,255,0,0);
-        printf("Add Parse Color\n");
-        break;
-    }
-	mglLines(x0, y0, x1, y1,size,color,bgcolor)
-  if(x1 == x2) // vertical line
-  {
-	  if(y1 < y2)
-	  {
-		  r.x = x1;
-		  r.y = y1;
-		  r.w = 1;
-		  r.h = y2-y1;
-	  }
-	  else
-	  {
-		  r.x = x2;
-		  r.y = y2;
-		  r.w = 1;
-		  r.h = y1-y2;
-	  }
-	  SDL_FillRect(img,&r,color);
-  }
-  else if(y1 == y2) // horizontal line.
-  {
-	  if(x1 < x2)
-	  {
-		  r.x = x1;
-		  r.y = y1;
-		  r.w = x2-x1;
-		  r.h = 1;
-	  }
-	  else
-	  {
-		  r.x = x2;
-		  r.y = y2;
-		  r.w = x1-x2;
-		  r.h = 1;
-	  }
-	  SDL_FillRect(img,&r,color);
-  }
-  else
-  {
-	printf("non horizontal/vertical lines not implemented. \n");
-  }
+    //     SDL_Rect r;
+    //     UINT32 color =0;
+    //     SDL_Surface *img = (SDL_Surface *)(chi->userdata);
+    //     switch(cindex)
+    //     {
+    //         case CR_HAIR_COLOR:
+    //         case PUPIL_HAIR_COLOR:
+    //             // color = SDL_MapRGB(img->format,255,255,255);
+    //         printf("Add Parse Color\n");
+    //         break;
+    //         case PUPIL_BOX_COLOR:
+    //             // color = SDL_MapRGB(img->format,0,255,0);
+    //         printf("Add Parse Color\n");
+    //         break;
+    //         case SEARCH_LIMIT_BOX_COLOR:
+    //         case MOUSE_CURSOR_COLOR:
+    //             // color = SDL_MapRGB(img->format,255,0,0);
+    //         printf("Add Parse Color\n");
+    //         break;
+    //     }
+    // mglLines(x0, y0, x1, y1,size,color,bgcolor)
+    //   if(x1 == x2) // vertical line
+    //   {
+    //   if(y1 < y2)
+    //   {
+    //    r.x = x1;
+    //    r.y = y1;
+    //    r.w = 1;
+    //    r.h = y2-y1;
+    //   }
+    //   else
+    //   {
+    //    r.x = x2;
+    //    r.y = y2;
+    //    r.w = 1;
+    //    r.h = y1-y2;
+    //   }
+    //   SDL_FillRect(img,&r,color);
+    //   }
+    //   else if(y1 == y2) // horizontal line.
+    //   {
+    //   if(x1 < x2)
+    //   {
+    //    r.x = x1;
+    //    r.y = y1;
+    //    r.w = x2-x1;
+    //    r.h = 1;
+    //   }
+    //   else
+    //   {
+    //    r.x = x2;
+    //    r.y = y2;
+    //    r.w = x1-x2;
+    //    r.h = 1;
+    //   }
+    //   SDL_FillRect(img,&r,color);
+    //   }
+    //   else
+    //   {
+    // printf("non horizontal/vertical lines not implemented. \n");
+    //   }
+	// NOT IMPLEMENTED.
+	printf("drawLine not implemented. \n");
 }
 
 /*!
@@ -670,7 +679,7 @@ void drawLozenge(CrossHairInfo *chi, int x, int y, int width, int height, int ci
 void getMouseState(CrossHairInfo *chi, int *rx, int *ry, int *rstate)
 {
     // NOT IMPLEMENTED.
-    printf("drawLozenge not implemented. \n");
+    printf("getMouseState not implemented. \n");
 
 //   int x =0;
 //   int y =0;
