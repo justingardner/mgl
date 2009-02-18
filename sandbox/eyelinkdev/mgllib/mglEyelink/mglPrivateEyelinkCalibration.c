@@ -224,8 +224,19 @@ void ELCALLTYPE close_expt_graphics()
 
 INT16 ELCALLBACK get_input_key(InputEvent *key_input)
 {
-	
-	return 0;
+    mxArray *callOutput[3];
+    
+    // get a key event using the get key event.
+    // mglGetKeyEvent()
+    mexCallMATLAB(3,*callOutput,0,NULL,"mglGetKeyEvent");            
+    if (mxIsEmpty(callOutput[0]))
+    {
+    	return 0;        
+    } else
+    {
+        // parse key and place in *key_input
+        return 1;
+    }
 }
 
 /*!
@@ -571,17 +582,17 @@ void ELCALLBACK draw_image_line(INT16 width, INT16 line, INT16 totlines, byte *p
         
         // now we need to draw the cursors.
 
-        // CrossHairInfo crossHairInfo;
-        // memset(&crossHairInfo,0,sizeof(crossHairInfo));
-        // 
-        // crossHairInfo.w = image->w;
-        // crossHairInfo.h = image->h;
-        // crossHairInfo.drawLozenge = drawLozenge;
-        // crossHairInfo.drawLine = drawLine;
-        // crossHairInfo.getMouseState = getMouseState;
-        // crossHairInfo.userdata = image;
-        // 
-        // eyelink_draw_cross_hair(&crossHairInfo);
+        CrossHairInfo crossHairInfo;
+        memset(&crossHairInfo,0,sizeof(crossHairInfo));
+        
+        crossHairInfo.w = image->width;
+        crossHairInfo.h = image->totlines;
+        crossHairInfo.drawLozenge = drawLozenge;
+        crossHairInfo.drawLine = drawLine;
+        crossHairInfo.getMouseState = getMouseState;
+        // crossHairInfo.userdata = image; // could be used for gl display num
+        
+        eyelink_draw_cross_hair(&crossHairInfo);
         
     }
 
@@ -594,69 +605,47 @@ void ELCALLBACK draw_image_line(INT16 width, INT16 line, INT16 totlines, byte *p
 */
 void drawLine(CrossHairInfo *chi, int x1, int y1, int x2, int y2, int cindex)
 {
-    //     SDL_Rect r;
-    //     UINT32 color =0;
-    //     SDL_Surface *img = (SDL_Surface *)(chi->userdata);
-    //     switch(cindex)
-    //     {
-    //         case CR_HAIR_COLOR:
-    //         case PUPIL_HAIR_COLOR:
-    //             // color = SDL_MapRGB(img->format,255,255,255);
-    //         printf("Add Parse Color\n");
-    //         break;
-    //         case PUPIL_BOX_COLOR:
-    //             // color = SDL_MapRGB(img->format,0,255,0);
-    //         printf("Add Parse Color\n");
-    //         break;
-    //         case SEARCH_LIMIT_BOX_COLOR:
-    //         case MOUSE_CURSOR_COLOR:
-    //             // color = SDL_MapRGB(img->format,255,0,0);
-    //         printf("Add Parse Color\n");
-    //         break;
-    //     }
+    mxArray *callInput[6];
+    double *inX1, *inX2;
+    double *inY1, *inY2;
+    double *inSize;
+    double *inColor;
+
+    callInput[0] = mxCreateDoubleMatrix(1,1,mxREAL);
+    callInput[1] = mxCreateDoubleMatrix(1,1,mxREAL);
+    callInput[2] = mxCreateDoubleMatrix(1,1,mxREAL);
+    callInput[3] = mxCreateDoubleMatrix(1,3,mxREAL);
+    callInput[4] = mxCreateDoubleMatrix(1,3,mxREAL);
+    callInput[5] = mxCreateDoubleMatrix(1,3,mxREAL);
+    inX1 = (double*)mxGetPr(callInput[0]);
+    inX2 = (double*)mxGetPr(callInput[1]);
+    inY1 = (double*)mxGetPr(callInput[2]);
+    inY2 = (double*)mxGetPr(callInput[3]);
+    inSize = (double*)mxGetPr(callInput[4]);
+    inColor = (double*)mxGetPr(callInput[5]);
+    *inX = (double)x;
+    *inY = (double)y;
+    *inSize = 2; // in pixels for now
+    inColor = {0, 0, 0};
+
+    switch(cindex)
+    {
+        case CR_HAIR_COLOR:
+        case PUPIL_HAIR_COLOR:
+        inColor = {1, 1, 1};
+        break;
+        case PUPIL_BOX_COLOR:
+        inColor = {0, 1, 0};
+        break;
+        case SEARCH_LIMIT_BOX_COLOR:
+        case MOUSE_CURSOR_COLOR:
+        inColor = {1, 0, 0};
+        break;
+    }
+
     // mglLines(x0, y0, x1, y1,size,color,bgcolor)
-    //   if(x1 == x2) // vertical line
-    //   {
-    //   if(y1 < y2)
-    //   {
-    //    r.x = x1;
-    //    r.y = y1;
-    //    r.w = 1;
-    //    r.h = y2-y1;
-    //   }
-    //   else
-    //   {
-    //    r.x = x2;
-    //    r.y = y2;
-    //    r.w = 1;
-    //    r.h = y1-y2;
-    //   }
-    //   SDL_FillRect(img,&r,color);
-    //   }
-    //   else if(y1 == y2) // horizontal line.
-    //   {
-    //   if(x1 < x2)
-    //   {
-    //    r.x = x1;
-    //    r.y = y1;
-    //    r.w = x2-x1;
-    //    r.h = 1;
-    //   }
-    //   else
-    //   {
-    //    r.x = x2;
-    //    r.y = y2;
-    //    r.w = x1-x2;
-    //    r.h = 1;
-    //   }
-    //   SDL_FillRect(img,&r,color);
-    //   }
-    //   else
-    //   {
-    // printf("non horizontal/vertical lines not implemented. \n");
-    //   }
-	// NOT IMPLEMENTED.
-	printf("drawLine not implemented. \n");
+    mexCallMATLAB(0,NULL,6,callInput,"mglLines");            
+
 }
 
 /*!

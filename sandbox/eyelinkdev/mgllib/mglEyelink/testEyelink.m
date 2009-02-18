@@ -1,7 +1,7 @@
 
 % open the link
-mglEyelinkOpen(); % calls mglPrivateEyelinkOpen, default ip is '100.1.1.1'
-
+% mglEyelinkOpen(); % calls mglPrivateEyelinkOpen, default ip is '100.1.1.1'
+mglEyelinkOpen('100.1.1.1', 1);
 %mglPrivateEyelinkSendCommand
 
 % set up some variables
@@ -10,6 +10,9 @@ mglPrivateEyelinkCMDPrintF('calibration_type = HV9');
 mglPrivateEyelinkCMDPrintF('file_event_filter = RIGHT,FIXATION,SACCADE,BLINK,MESSAGE,BUTTON'); 
 mglPrivateEyelinkCMDPrintF('file_sample_data = RIGHT,GAZE,AREA,GAZERES,STATUS'); 
 mglPrivateEyelinkCMDPrintF('sample_rate = 500');
+
+% get a key even listener
+mglListener(1);
 
 % run the calibration
 mglPrivateEyelinkCalibration
