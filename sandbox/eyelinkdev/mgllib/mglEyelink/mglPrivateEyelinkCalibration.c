@@ -210,6 +210,50 @@ void ELCALLTYPE close_expt_graphics()
 	
 }
 
+// Below are the key code defines to be passed for all non-ascii chars
+
+// The following are defined in <core_expt.h>
+// #define CURS_UP    0x4800    /*!< Cursor up key.*/
+// #define CURS_DOWN  0x5000    /*!< Cursor down key.*/
+// #define CURS_LEFT  0x4B00    /*!< Cursor left key.*/
+// #define CURS_RIGHT 0x4D00    /*!< Cursor right key.*/
+// 
+// #define ESC_KEY   0x001B     /*!< Escape key.*/
+// #define ENTER_KEY 0x000D     /*!< Return key.*/
+// 
+// #define PAGE_UP   0x4900     /*!< Page up key.*/
+// #define PAGE_DOWN 0x5100     /*!< Page down key.*/
+// #define JUNK_KEY      1      /*!< Junk key to indicate untranslatable key.*/ 
+// #define TERMINATE_KEY 0x7FFF /*!< Returned by getkey if program should exit.*/
+
+// other keycode defines
+#define F1_KEY    0x3B00
+#define F2_KEY    0x3C00
+#define F3_KEY    0x3D00
+#define F4_KEY    0x3E00
+#define F5_KEY    0x3F00
+#define F6_KEY    0x4000
+#define F7_KEY    0x4100
+#define F8_KEY    0x4200
+#define F9_KEY    0x4300
+#define F10_KEY   0x4400
+
+// #define ELKMOD_NONE   0x0000
+// #define ELKMOD_LSHIFT 0x0001
+// #define ELKMOD_RSHIFT 0x0002
+// #define ELKMOD_LCTRL  0x0040
+// #define ELKMOD_RCTRL  0x0080
+// #define ELKMOD_LALT   0x0100
+// #define ELKMOD_RALT   0x0200
+// #define ELKMOD_LMETA  0x0400
+// #define ELKMOD_RMETA  0x0800,
+// #define ELKMOD_NUM    0x1000
+// #define ELKMOD_CAPS   0x2000
+// #define ELKMOD_MODE   0x4000
+
+#define KEYDOWN 0
+#define KEYUP 1
+
 /*!
 	This is called to check for keyboard input. 
 	In this function:
@@ -221,20 +265,109 @@ void ELCALLTYPE close_expt_graphics()
 		 key,modifier values.
 	@return if there is a key, return 1 otherwise return 0.
 */
-
 INT16 ELCALLBACK get_input_key(InputEvent *key_input)
 {
-    mxArray *callOutput[3];
-    
+    mxArray *callOutput[1];
+
     // get a key event using the get key event.
     // mglGetKeyEvent()
-    mexCallMATLAB(3,*callOutput,0,NULL,"mglGetKeyEvent");            
-    if (mxIsEmpty(callOutput[0]))
-    {
-    	return 0;        
-    } else
-    {
+    mexCallMATLAB(1,callOutput,0,NULL,"mglGetKeyEvent");            
+    if (mxIsEmpty(callOutput[0])) {
+        return 0;        
+    } else {
         // parse key and place in *key_input
+        UINT16 charcode = 0, modcode = 0; // the key (ascii)
+        UINT16 keycode = 0;    // the key (mgl code)
+
+        // get modifiers
+        int shift, control, command, alt, capslock;
+
+        // get the key event
+        charcode = (UINT16)*(double*)mxGetPr(mxGetField(callOutput[0],0,"charCode"));
+        keycode = (UINT16)*(double*)mxGetPr(mxGetField(callOutput[0],0,"keyCode"));
+        shift = (int)*(double*)mxGetPr(mxGetField(callOutput[0],0,"shift"));
+        control = (int)*(double*)mxGetPr(mxGetField(callOutput[0],0,"control"));
+        capslock = (int)*(double*)mxGetPr(mxGetField(callOutput[0],0,"capslock"));
+        alt = (int)*(double*)mxGetPr(mxGetField(callOutput[0],0,"alt"));
+        
+        if (shift)
+            modcode = (modcode & ELKMOD_LSHIFT & ELKMOD_RSHIFT);
+        if (control)
+            modcode = (modcode & ELKMOD_LCTRL & ELKMOD_RCTRL);
+        if (alt)
+            modcode = (modcode & ELKMOD_LALT & ELKMOD_RALT);
+        if (capslock)
+            modcode = (modcode & ELKMOD_CAPS);
+        
+        if (charcode>=20 && charcode <=127) {
+            key_input->key.key = charcode;
+        } else {
+            switch (keycode) {
+                case 100:
+                key_input->key.key = F1_KEY;
+                break;
+                case 123:
+                key_input->key.key = F2_KEY;
+                break;
+                case 121:
+                key_input->key.key = F3_KEY;
+                break;
+                case 119:
+                key_input->key.key = F4_KEY;
+                break;
+                case 97:
+                key_input->key.key = F5_KEY;
+                break;
+                case 98:
+                key_input->key.key = F6_KEY;
+                break;
+                case 99:
+                key_input->key.key = F7_KEY;
+                break;
+                case 101:
+                key_input->key.key = F8_KEY;
+                break;
+                case 102:
+                key_input->key.key = F9_KEY;
+                break;
+                case 110:
+                key_input->key.key = F10_KEY;
+                break;
+                case 127:
+                key_input->key.key = CURS_UP;
+                break;
+                case 126:
+                key_input->key.key = CURS_DOWN;
+                break;
+                case 124:
+                key_input->key.key = CURS_LEFT;
+                break;
+                case 125:
+                key_input->key.key = CURS_RIGHT;
+                break;
+                case 54:
+                key_input->key.key = ESC_KEY;
+                break;
+                case 37:
+                key_input->key.key = ENTER_KEY;
+                break;
+                case 117:
+                key_input->key.key = PAGE_UP;
+                break;
+                case 122:
+                key_input->key.key = PAGE_DOWN;
+                break;
+                  // case 000:
+                  // key_input->key.key = TERMINATE_KEY; // what should this be?
+                  // break;
+                default:
+                key_input->key.key = JUNK_KEY;
+            }
+        }
+        key_input->key.modifier = modcode;
+        key_input->key.state = KEYDOWN;
+        key_input->key.type = KEYINPUT_EVENT;
+        key_input->type = KEYINPUT_EVENT;
         return 1;
     }
 }
@@ -585,8 +718,8 @@ void ELCALLBACK draw_image_line(INT16 width, INT16 line, INT16 totlines, byte *p
         CrossHairInfo crossHairInfo;
         memset(&crossHairInfo,0,sizeof(crossHairInfo));
         
-        crossHairInfo.w = image->width;
-        crossHairInfo.h = image->totlines;
+        crossHairInfo.w = width;
+        crossHairInfo.h = totlines;
         crossHairInfo.drawLozenge = drawLozenge;
         crossHairInfo.drawLine = drawLine;
         crossHairInfo.getMouseState = getMouseState;
@@ -609,22 +742,20 @@ void drawLine(CrossHairInfo *chi, int x1, int y1, int x2, int y2, int cindex)
     double *inX1, *inX2;
     double *inY1, *inY2;
     double *inSize;
-    double *inColor;
+    double inColor[3];
 
     callInput[0] = mxCreateDoubleMatrix(1,1,mxREAL);
     callInput[1] = mxCreateDoubleMatrix(1,1,mxREAL);
     callInput[2] = mxCreateDoubleMatrix(1,1,mxREAL);
-    callInput[3] = mxCreateDoubleMatrix(1,3,mxREAL);
-    callInput[4] = mxCreateDoubleMatrix(1,3,mxREAL);
+    callInput[3] = mxCreateDoubleMatrix(1,1,mxREAL);
+    callInput[4] = mxCreateDoubleMatrix(1,1,mxREAL);
     callInput[5] = mxCreateDoubleMatrix(1,3,mxREAL);
-    inX1 = (double*)mxGetPr(callInput[0]);
-    inX2 = (double*)mxGetPr(callInput[1]);
-    inY1 = (double*)mxGetPr(callInput[2]);
-    inY2 = (double*)mxGetPr(callInput[3]);
+    *(double*)mxGetPr(callInput[0]) = x1;
+    *(double*)mxGetPr(callInput[1]) = y1;
+    *(double*)mxGetPr(callInput[2]) = x2;
+    *(double*)mxGetPr(callInput[3]) = y2;
     inSize = (double*)mxGetPr(callInput[4]);
-    inColor = (double*)mxGetPr(callInput[5]);
-    *inX = (double)x;
-    *inY = (double)y;
+    &inColor = (double*)mxGetPr(callInput[5]);
     *inSize = 2; // in pixels for now
     inColor = {0, 0, 0};
 
