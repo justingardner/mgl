@@ -10,7 +10,7 @@
 %             rebuild set to 1 removes all mex files for
 %             the current platform and ebuilds; rebuild can also
 %             specify 'carbon' or 'cocoa' or the defines. additional
-%             arguments are treated as defines
+%             arguments are treated as mex arguments
 %    
 %
 function retval = mglMake(rebuild, varargin)
@@ -25,31 +25,27 @@ function retval = mglMake(rebuild, varargin)
     if ~exist('rebuild','var')
         rebuild=0;
     else
-        nDefine=1;
         if isequal(rebuild,1) || isequal(rebuild,'rebuild')
             rebuild = 1;
         elseif isequal(rebuild,'carbon')
-            define(nDefine).name = '__carbon__';
-            nDefine = nDefine + 1;
+            varargin = {'-D__carbon__', varargin};
             rebuild = 1;
         elseif isequal(rebuild,'cocoa')
-            define(nDefine).name = '__cocoa__';
-            nDefine = nDefine + 1;
+            varargin = {'-D__cocoa__', varargin};
             rebuild = 1;
-        elseif ischar(rebuild) && isequal(rebuild(1:2),'__')
-            define(nDefine).name = rebuild;
-            nDefine = nDefine + 1;
-            rebuild = 0;
+        elseif ischar(rebuild) && isequal(rebuild(1), '-')
+            varargin = {rebuild, varargin{:}};
+            rebuild=0;
+        else
+            help mglMake
+            return
         end
     end
-    if nargin > 1
-        for nArg = 1:numel(varargin)
-            if ischar(varargin{nArg})
-                define(nDefine).name = varargin{nArg};
-                nDefine = nDefine + 1;
-            else
-                error('Attempted to pass a non-string as a define');
-            end
+    for nArg = 1:numel(varargin)
+        if ischar(varargin{nArg}) && isequal(varargin{nArg}(1), '-')
+            arg(nArg).name = varargin{nArg};
+        else
+            error('Attempted to pass a non-string as a parameter');
         end
     end
                 
@@ -106,10 +102,12 @@ function retval = mglMake(rebuild, varargin)
                 mexfile = dir(mexname);
                 % mex the file if either there is no mexfile or
                 % the date of the mexfile is older than the date of the source file
-                if (rebuild || length(mexfile)<1) || (datenum(sourcefile(i).date) > datenum(mexfile(1).date)) || (datenum(hfile(1).date) > datenum(mexfile(1).date))
+                if (rebuild || length(mexfile)<1) || ...
+                    (datenum(sourcefile(i).date) > datenum(mexfile(1).date)) || ...
+                    (datenum(hfile(1).date) > datenum(mexfile(1).date))
                     command = sprintf('mex ');
-                    if exist('define', 'var') && isfield(define, 'name');
-                        command = [command sprintf('-D%s ',define.name)];
+                    if exist('arg', 'var') && isfield(arg, 'name');
+                        command = [command sprintf('%s ',arg.name)];
                     end
                     command = [command sprintf('%s',sourcefile(i).name)];
                     % display the mex command
@@ -119,6 +117,8 @@ function retval = mglMake(rebuild, varargin)
                         eval(command);
                     catch err
                         disp(['Error compiling ' sourcefile(i).name]);
+                        disp(err.message);
+                        disp(err.identifier);
                     end
                 else
                     disp(sprintf('%s is up to date',sourcefile(i).name));
