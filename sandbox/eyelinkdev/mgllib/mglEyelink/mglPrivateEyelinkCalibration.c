@@ -274,33 +274,38 @@ INT16 ELCALLBACK get_input_key(InputEvent *key_input)
     mexCallMATLAB(1,callOutput,0,NULL,"mglGetKeyEvent");            
     if (mxIsEmpty(callOutput[0])) {
         return 0;        
-    } else {
+    }
+    else {
         // parse key and place in *key_input
         UINT16 charcode = 0, modcode = 0; // the key (ascii)
         UINT16 keycode = 0;    // the key (mgl code)
-
+        char *charbuff;
         // get modifiers
         int shift, control, command, alt, capslock;
 
         // get the key event
-        charcode = (UINT16)*(double*)mxGetPr(mxGetField(callOutput[0],0,"charCode"));
+        charbuff = mxArrayToString(mxGetField(callOutput[0],0,"charCode"));
+        charcode = (UINT16)charbuff[0];
         keycode = (UINT16)*(double*)mxGetPr(mxGetField(callOutput[0],0,"keyCode"));
         shift = (int)*(double*)mxGetPr(mxGetField(callOutput[0],0,"shift"));
         control = (int)*(double*)mxGetPr(mxGetField(callOutput[0],0,"control"));
         capslock = (int)*(double*)mxGetPr(mxGetField(callOutput[0],0,"capslock"));
         alt = (int)*(double*)mxGetPr(mxGetField(callOutput[0],0,"alt"));
-        
+
+        mexPrintf("c %d (%.1s) k %d shift %d cntr %d caps %d alt %d\n", charcode,
+            charbuff, keycode, shift, control, capslock, alt);
+
         if (shift)
-            modcode = (modcode & ELKMOD_LSHIFT & ELKMOD_RSHIFT);
+            modcode = (modcode | ELKMOD_LSHIFT | ELKMOD_RSHIFT);
         if (control)
-            modcode = (modcode & ELKMOD_LCTRL & ELKMOD_RCTRL);
+            modcode = (modcode | ELKMOD_LCTRL | ELKMOD_RCTRL);
         if (alt)
-            modcode = (modcode & ELKMOD_LALT & ELKMOD_RALT);
+            modcode = (modcode | ELKMOD_LALT | ELKMOD_RALT);
         if (capslock)
-            modcode = (modcode & ELKMOD_CAPS);
-        
+            modcode = (modcode | ELKMOD_CAPS);
+
         if (charcode>=20 && charcode <=127) {
-            key_input->key.key = charcode;
+            key_input->key.key = (char)charcode;
         } else {
             switch (keycode) {
                 case 100:
@@ -365,9 +370,12 @@ INT16 ELCALLBACK get_input_key(InputEvent *key_input)
             }
         }
         key_input->key.modifier = modcode;
-        key_input->key.state = KEYDOWN;
+        key_input->key.state = KEYUP;
         key_input->key.type = KEYINPUT_EVENT;
         key_input->type = KEYINPUT_EVENT;
+        mexPrintf("InputEvent->type %d\nInputEvent->key.key %d\nInputEvent->key.modifier %d\n"
+        "InputEvent->key.state %d\nInputEvent->key.type %d\n", key_input->type, key_input->key.key,
+        key_input->key.modifier, key_input->key.state, key_input->key.type);
         return 1;
     }
 }
@@ -436,9 +444,9 @@ void ELCALLBACK  draw_cal_target(INT16 x, INT16 y)
       inColor[2] = 0.7; // blue
       
       
-      mexCallMATLAB(0,NULL,4,callInput,"mglGluDisk");            
+      mexCallMATLAB(0, NULL, 4, callInput, "mglGluDisk");            
       //mglGluDisk(xDeg, yDeg, targetSize, targetcolor);
-      mexCallMATLAB(0,NULL,0,NULL,"mglFlush");
+      mexCallMATLAB(0, NULL, 0, NULL, "mglFlush");
 }
 
 /*!
@@ -447,8 +455,8 @@ void ELCALLBACK  draw_cal_target(INT16 x, INT16 y)
 void ELCALLBACK erase_cal_target(void)
 {
 	/* erase the last calibration target  */
-    mexCallMATLAB(0,NULL,0,NULL,"mglClearScreen");
-    mexCallMATLAB(0,NULL,0,NULL,"mglFlush");
+    mexCallMATLAB(0, NULL, 0, NULL, "mglClearScreen");
+    mexCallMATLAB(0, NULL, 0, NULL, "mglFlush");
 }
 
 #define CAL_TARG_BEEP   1
@@ -492,7 +500,7 @@ void ELCALLBACK  cal_sound(INT16 sound)
     {
         mxArray *sound[1];
         sound[0] = mxCreateString(wave);
-        mexCallMATLAB(0,NULL,1,sound,"mglPlaySound");
+        mexCallMATLAB(0, NULL, 1, sound, "mglPlaySound");
     }
 }
 
@@ -549,8 +557,8 @@ void ELCALLBACK dc_done_beep(INT16 error)
  */
 void ELCALLBACK clear_cal_display(void)
 {
-    mexCallMATLAB(0,NULL,0,NULL,"mglClearScreen");
-    mexCallMATLAB(0,NULL,0,NULL,"mglFlush");
+    mexCallMATLAB(0, NULL, 0, NULL, "mglClearScreen");
+    mexCallMATLAB(0, NULL, 0, NULL, "mglFlush");
    
 }
 
@@ -576,11 +584,16 @@ INT16 ELCALLBACK setup_image_display(INT16 width, INT16 height)
     glCameraImage = (GLubyte*)malloc(width*height*sizeof(GLubyte)*BYTEDEPTH);
     
     // create an mgl texture
-    mxArray *tex[2];
-    mexCallMATLAB(1, (mxArray**)tex[0], 1, camArray, "mglCreateTexture");
+    mxArray *texI[1], *texT[1], *tex[2];
+    mexCallMATLAB(1, texI, 1, camArray, "mglCreateTexture");
     mxDestroyArray(camArray[0]);
     snprintf(cameraTitle, sizeof(cameraTitle), "%s","IMAGE");
-    mexCallMATLAB(1, (mxArray**)tex[1], 1, (mxArray**)mxCreateString(cameraTitle), "mglText");
+    mxArray *title[1];
+    title[0] = mxCreateString(cameraTitle);
+    mexCallMATLAB(1, texT, 1, title, "mglText");
+    
+    tex[0] = texI[1];
+    tex[1] = texT[1];
     mexCallMATLAB(1, mglTexture, 2, tex, "vertcat");
     mglTextureLoc[0] = mxCreateDoubleMatrix(1, 2, mxREAL);
     double *loc = (double*)mxGetPr(mglTextureLoc[0]);
@@ -589,7 +602,7 @@ INT16 ELCALLBACK setup_image_display(INT16 width, INT16 height)
     
     // get the texture number for the camera texture
     glCameraImageTextureNumber = (int)*mxGetPr(mxGetField(mglTexture[0],0,"textureNumber"));
-    glCameraImageTextureNumber = (int)*mxGetPr(mxGetField(mglTexture[1],0,"textureNumber"));
+    glCameraImageTextureNumber = (int)*mxGetPr(mxGetField(mglTexture[0],1,"textureNumber"));
     
     #ifndef GL_TEXTURE_RECTANGLE_EXT
     printf("ERROR: GL requires ^2 on this system and is unhandled by this code.\n")
@@ -600,7 +613,7 @@ INT16 ELCALLBACK setup_image_display(INT16 width, INT16 height)
     
     mexCallMATLAB(0,NULL,0,NULL,"mglClearScreen");
     mexCallMATLAB(0,NULL,0,NULL,"mglFlush");
-    
+        
     
     return 0;
 }
@@ -687,47 +700,47 @@ void ELCALLBACK set_image_palette(INT16 ncolors, byte r[130], byte g[130], byte 
 void ELCALLBACK draw_image_line(INT16 width, INT16 line, INT16 totlines, byte *pixels)
 {
     
-    short i;
-    UINT32 *currentLine;    // we will write rgba at once as a packed pixel
-    // byte *p = pixels;       // a packed rgba lookup
-
-    // get the beginning of the current line
-    currentLine = (UINT32*)glCameraImage+((line-1)*sizeof(GLubyte)*BYTEDEPTH*width);
-
-    for(i=0; i<width; i++)
-    {
-        *currentLine++ = cameraImagePalleteMap[*pixels++]; // copy the line to image
-    }
-    if(line == totlines)
-    {
-        // at this point we have a complete camera image. This may be very small.
-        // we might want to enlarge it. For simplicity reasons, we will skip that.
-
-        // center the camera image on the screen
-        glBindTexture(GL_TEXTURE_2D, glCameraImageTextureNumber);
-        glTexImage2D(GL_TEXTURE_RECTANGLE_EXT,0,GL_RGBA,width,totlines,0,
-            GL_RGBA,TEXTURE_DATATYPE,glCameraImage);
-        mxArray *bltTextureRHS[2];
-        bltTextureRHS[0] = mglTexture[0];
-        bltTextureRHS[1] = mglTextureLoc[0];
-        mexCallMATLAB(0, NULL, 2, bltTextureRHS, "mglBltTexture");
-        mexCallMATLAB(0,NULL,0,NULL,"mglFlush");
-        
-        // now we need to draw the cursors.
-
-        CrossHairInfo crossHairInfo;
-        memset(&crossHairInfo,0,sizeof(crossHairInfo));
-        
-        crossHairInfo.w = width;
-        crossHairInfo.h = totlines;
-        crossHairInfo.drawLozenge = drawLozenge;
-        crossHairInfo.drawLine = drawLine;
-        crossHairInfo.getMouseState = getMouseState;
-        // crossHairInfo.userdata = image; // could be used for gl display num
-        
-        eyelink_draw_cross_hair(&crossHairInfo);
-        
-    }
+    // short i;
+    // UINT32 *currentLine;    // we will write rgba at once as a packed pixel
+    // // byte *p = pixels;       // a packed rgba lookup
+    // 
+    // // get the beginning of the current line
+    // currentLine = (UINT32*)glCameraImage+((line-1)*sizeof(GLubyte)*BYTEDEPTH*width);
+    // 
+    // for(i=0; i<width; i++)
+    // {
+    //     *currentLine++ = cameraImagePalleteMap[*pixels++]; // copy the line to image
+    // }
+    // if(line == totlines)
+    // {
+    //     // at this point we have a complete camera image. This may be very small.
+    //     // we might want to enlarge it. For simplicity reasons, we will skip that.
+    // 
+    //     // center the camera image on the screen
+    //     glBindTexture(GL_TEXTURE_2D, glCameraImageTextureNumber);
+    //     glTexImage2D(GL_TEXTURE_RECTANGLE_EXT,0,GL_RGBA,width,totlines,0,
+    //         GL_RGBA,TEXTURE_DATATYPE,glCameraImage);
+    //     mxArray *bltTextureRHS[2];
+    //     bltTextureRHS[0] = mglTexture[0];
+    //     bltTextureRHS[1] = mglTextureLoc[0];
+    //     mexCallMATLAB(0, NULL, 2, bltTextureRHS, "mglBltTexture");
+    //     mexCallMATLAB(0, NULL, 0, NULL,"mglFlush");
+    //     
+    //     // now we need to draw the cursors.
+    // 
+    //     CrossHairInfo crossHairInfo;
+    //     memset(&crossHairInfo,0,sizeof(crossHairInfo));
+    //     
+    //     crossHairInfo.w = width;
+    //     crossHairInfo.h = totlines;
+    //     crossHairInfo.drawLozenge = drawLozenge;
+    //     crossHairInfo.drawLine = drawLine;
+    //     crossHairInfo.getMouseState = getMouseState;
+    //     // crossHairInfo.userdata = image; // could be used for gl display num
+    //     
+    //     eyelink_draw_cross_hair(&crossHairInfo);
+    //     
+    // }
 
 }
 

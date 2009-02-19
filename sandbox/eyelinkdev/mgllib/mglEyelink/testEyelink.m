@@ -1,7 +1,10 @@
+% needed for video test
+mglOpen()
 
 % open the link
-% mglEyelinkOpen(); % calls mglPrivateEyelinkOpen, default ip is '100.1.1.1'
-mglEyelinkOpen('100.1.1.1', 1);
+% calls mglPrivateEyelinkOpen, default ip is '100.1.1.1', default conntype is 0
+mglEyelinkOpen('100.1.1.1', 0);
+
 %mglPrivateEyelinkSendCommand
 
 % set up some variables
@@ -40,6 +43,9 @@ mglPrivateEyelinkGoOffline();
 
 % transfer the datafile
 mglPrivateEyelinkEDFGetFile('foo.edf');
+
+% get a key even listener
+mglListener(0);
 
 % close the link
 mglPrivateEyelinkClose();
