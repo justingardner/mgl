@@ -8,7 +8,7 @@
 %
 %             varnameIn can be the name of a parameter or randVar. e.g.:
 %
-%             getStimvolFromVarname('dir',myscreen,task,'taskNum=2','phaseNum=2');
+%             getStimvolFromVarname('dir',myscreen,task,2,2);
 %
 %             It can also be of the form varname(indexVar). For when you have used
 %             a parameterCode and an index variable. e.g.:

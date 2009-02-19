@@ -32,7 +32,10 @@ if ~exist('task','var') || isempty(task)
 end
 
 % if there is only one task
-if ~iscell(task{1})
+if ~iscell(task)
+  allTasks{1}{1} = task;
+  multiTask = 0;
+elseif ~iscell(task{1})
   allTasks{1} = task;
   multiTask = 0;
 else

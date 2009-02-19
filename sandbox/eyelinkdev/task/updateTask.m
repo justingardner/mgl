@@ -409,11 +409,6 @@ end
 % set the button states to zero
 task.thistrial.buttonState = [0 0];
 
-% call the init trial callback
-if isfield(task.callback,'startTrial')
-  [task myscreen] = feval(task.callback.startTrial,task,myscreen);
-end
-
 % get trial parameters
 for i = 1:task.parameter.n_
   eval(sprintf('task.thistrial.%s = task.block(task.blocknum).parameter.%s(:,task.blockTrialnum);',task.parameter.names_{i},task.parameter.names_{i}));
@@ -422,6 +417,11 @@ end
 % get randomization parameters
 for i = 1:task.randVars.n_
   eval(sprintf('task.thistrial.%s = task.randVars.%s(mod(task.trialnum-1,task.randVars.varlen_(%i))+1);',task.randVars.names_{i},task.randVars.names_{i},i));
+end
+
+% call the init trial callback
+if isfield(task.callback,'startTrial')
+  [task myscreen] = feval(task.callback.startTrial,task,myscreen);
 end
 
 % the trial is no longer waiting to start
