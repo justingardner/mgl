@@ -45,7 +45,7 @@ function retval = mglMake(rebuild, varargin)
         if ischar(varargin{nArg}) && isequal(varargin{nArg}(1), '-')
             arg(nArg).name = varargin{nArg};
         else
-            error('Attempted to pass a non-string as a parameter');
+            error('Attempted to pass an argument that is not a mex option.');
         end
     end
                 
