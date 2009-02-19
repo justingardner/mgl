@@ -742,7 +742,7 @@ void drawLine(CrossHairInfo *chi, int x1, int y1, int x2, int y2, int cindex)
     double *inX1, *inX2;
     double *inY1, *inY2;
     double *inSize;
-    double inColor[3];
+    double *inColor;
 
     callInput[0] = mxCreateDoubleMatrix(1,1,mxREAL);
     callInput[1] = mxCreateDoubleMatrix(1,1,mxREAL);
@@ -755,22 +755,30 @@ void drawLine(CrossHairInfo *chi, int x1, int y1, int x2, int y2, int cindex)
     *(double*)mxGetPr(callInput[2]) = x2;
     *(double*)mxGetPr(callInput[3]) = y2;
     inSize = (double*)mxGetPr(callInput[4]);
-    &inColor = (double*)mxGetPr(callInput[5]);
+    inColor = (double*)mxGetPr(callInput[5]);
     *inSize = 2; // in pixels for now
-    inColor = {0, 0, 0};
+    inColor[0] = 0;
+    inColor[1] = 0;
+    inColor[2] = 0;
 
     switch(cindex)
     {
         case CR_HAIR_COLOR:
         case PUPIL_HAIR_COLOR:
-        inColor = {1, 1, 1};
+        inColor[0] = 1;
+        inColor[1] = 1;
+        inColor[2] = 1;
         break;
         case PUPIL_BOX_COLOR:
-        inColor = {0, 1, 0};
+        inColor[0] = 0;
+        inColor[1] = 1;
+        inColor[2] = 0;
         break;
         case SEARCH_LIMIT_BOX_COLOR:
         case MOUSE_CURSOR_COLOR:
-        inColor = {1, 0, 0};
+        inColor[0] = 1;
+        inColor[1] = 0;
+        inColor[2] = 0;
         break;
     }
 
