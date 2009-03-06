@@ -1,6 +1,6 @@
 % needed for video test
 mglOpen()
-
+mglScreenCoordinates()
 % open the link
 % calls mglPrivateEyelinkOpen, default ip is '100.1.1.1', default conntype is 0
 mglEyelinkOpen('100.1.1.1', 0);
@@ -20,29 +20,29 @@ mglListener(1);
 % run the calibration
 mglPrivateEyelinkCalibration
 
-% open up a data file
-mglPrivateEyelinkOpenEDF('foo.edf');
-
-% start recording
-mglPrivateEyelinkStartRecording([1 1 1 1]);
-
-% write some messages to the EDF file
-mglPrivateEyelinkEDFPrintF('this is my message')
-
-% get a sample
-mglPrivateEyelinkGetCurrentSample()
-
-% stop recording
-mglEyelinkStopRecording();
-
-% close the datafile
-mglPrivateEyelinkCMDPrintF('close_data_file');
-
-% go offline
-mglPrivateEyelinkGoOffline();
-
-% transfer the datafile
-mglPrivateEyelinkEDFGetFile('foo.edf');
+% % open up a data file
+% mglPrivateEyelinkOpenEDF('foo.edf');
+% 
+% % start recording
+% mglPrivateEyelinkStartRecording([1 1 1 1]);
+% 
+% % write some messages to the EDF file
+% mglPrivateEyelinkEDFPrintF('this is my message')
+% 
+% % get a sample
+% mglPrivateEyelinkGetCurrentSample()
+% 
+% % stop recording
+% mglEyelinkStopRecording();
+% 
+% % close the datafile
+% mglPrivateEyelinkCMDPrintF('close_data_file');
+% 
+% % go offline
+% mglPrivateEyelinkGoOffline();
+% 
+% % transfer the datafile
+% mglPrivateEyelinkEDFGetFile('foo.edf');
 
 % get a key even listener
 mglListener(0);
@@ -50,3 +50,5 @@ mglListener(0);
 % close the link
 mglPrivateEyelinkClose();
 
+% close context
+mglClose
