@@ -305,14 +305,15 @@ INT16 ELCALLBACK get_input_key(InputEvent *key_input)
 int ELCALLBACK writeImage(char *outfilename, IMAGETYPE format, EYEBITMAP *bitmap)
 {
 
- return 0;
+    return 0;
+ 
 }
 
 /*! 
 	Setup the calibration display. This function called before any
 	calibration routines are called.
 */
-INT16  ELCALLBACK  setup_cal_display(void)
+INT16 ELCALLBACK setup_cal_display(void)
 {
   return 0;
 }
@@ -333,7 +334,7 @@ void ELCALLBACK exit_cal_display(void)
   @param y y coordinate of the target.
   @remark The x and y are relative to what is sent to the tracker for the command screen_pixel_coords.
  */
-void ELCALLBACK  draw_cal_target(INT16 x, INT16 y)
+void ELCALLBACK draw_cal_target(INT16 x, INT16 y)
 {    
       mxArray *callInput[4];
       double *inX;
@@ -480,43 +481,12 @@ void ELCALLBACK clear_cal_display(void)
  */
 INT16 ELCALLBACK setup_image_display(INT16 width, INT16 height)
 {
-    // a bit of a hack, see the note in the mgllib developers.txt file. 
-    
-    glCameraPixels = (GLubyte*)malloc(width*height*sizeof(GLubyte)*BYTEDEPTH);
-    glCameraTexture = createGLTexture(width, height);
-    
-    loc[0] = 551; // x
-    loc[1] = 551; // x
-    loc[2] = 435; // y
-    loc[3] = 100; // y
-    loc[4] = width;
-    loc[5] = width;
-    loc[6] = height;
-    loc[7] = 30;
-    mglTextureHAlign[0] = mxCreateDoubleMatrix(1, 1, mxREAL);
-    mglTextureVAlign[0] = mxCreateDoubleMatrix(1, 1, mxREAL);
-    mglTextureRot[0] = mxCreateDoubleMatrix(1, 1, mxREAL);
-    double *ha = (double*)mxGetPr(mglTextureHAlign[0]);
-    double *va = (double*)mxGetPr(mglTextureVAlign[0]);
-    double *rot = (double*)mxGetPr(mglTextureRot[0]);
-    ha[0] = 0;
-    va[0] = 0;
-    rot[0] = 90;
-    
-    // get the texture number for the camera texture
-    glCameraTexture = (int)*mxGetPr(mxGetField(mglTexture[0],0,"textureNumber"));
-    // glCameraTitleTextureNumber = (int)*mxGetPr(mxGetField(mglTexture[1],0,"textureNumber"));
-    
-    #ifndef GL_TEXTURE_RECTANGLE_EXT
-    printf("ERROR: GL requires ^2 on this system and is unhandled by this code.\n")
-    #endif
-    
-    glBindTexture(GL_TEXTURE_2D, glCameraTexture);
-    glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, TEXTURE_DATATYPE, glCameraImage);
-    
+    cameraPos[2] = width;
+    cameraPos[3] = height;
+    mgltCamera = mglCreateRGBATexture(width, height, cameraPos);
+    mgltTitle = mglCreateTextTexture("Title", titlePos);    
     mexCallMATLAB(0,NULL,0,NULL,"mglClearScreen");
-    mexCallMATLAB(0,NULL,0,NULL,"mglFlush");
-        
+    mexCallMATLAB(0,NULL,0,NULL,"mglFlush");        
     
     return 0;
 }
@@ -528,11 +498,10 @@ INT16 ELCALLBACK setup_image_display(INT16 width, INT16 height)
 */
 void ELCALLBACK exit_image_display(void)
 {
-    // clean up matlab/mgl textures
-    // mexCallMATLAB(0, NULL, 1, (mxArray **)mglTexture[0], "mglPrivateDeleteTexture");
-    // mexCallMATLAB(0, NULL, 1, (mxArray **)mglTexture[1], "mglPrivateDeleteTexture");
-    // cleanup our local texture
-    // free(glCameraImage);
+
+    glFreeTexture(mgltCamera);
+    glFreeTexture(mgltTitle);
+    
 }
 
 /*!
@@ -544,16 +513,15 @@ void ELCALLBACK exit_image_display(void)
  */
 void ELCALLBACK image_title(INT16 threshold, char *title)
 {
-    // printf("this is a very slow way to do re-titling.");
-    // mexCallMATLAB(0, NULL, 1, (mxArray **)mglTexture[1], "mglPrivateDeleteTexture");
-    // if (threshold == -1){
-    //     snprintf(cameraTitle, sizeof(cameraTitle), "%s", title);
-    // } else {
-    //     snprintf(cameraTitle, sizeof(cameraTitle), "%s, threshold at %d", threshold);
-    // }
-    // mxArray *mxtitle[1];
-    // mxtitle[0] = mxCreateString(cameraTitle);
-    // mexCallMATLAB(1, (mxArray **)mglTexture[1], 1, mxtitle, "mglCreateTexture");
+
+    if (threshold == -1){
+        snprintf(cameraTitle, sizeof(cameraTitle), "%s", title);
+    } else {
+        snprintf(cameraTitle, sizeof(cameraTitle), "%s, threshold at %d", threshold);
+    }
+    mglFreeTexture(mgltTitle);
+    mgltTitle = mglCreateTextTexture(cameraTitle, titlePos);
+    
 }
 
 /*!
@@ -576,9 +544,11 @@ void ELCALLBACK set_image_palette(INT16 ncolors, byte r[130], byte g[130], byte 
         UINT32 rf = r[i];
         UINT32 gf = g[i];
         UINT32 bf = b[i];
-        // we will have an rgba palette setup.
-        mexPrintf("THIS WILL CURRENTLY ONLY WORK ON PPC BIG ENDIAN--NEED FIX");
+#ifdef __LITTLE_ENDIAN__
+        cameraImagePalleteMap[i] = (rf<<16) | (gf<<8) | (bf);
+#else
         cameraImagePalleteMap[i] = (bf<<16) | (gf<<8) | (rf);
+#endif
     }
 
 }
@@ -613,7 +583,7 @@ void ELCALLBACK draw_image_line(INT16 width, INT16 line, INT16 totlines, byte *p
     // mexPrintf("(mglPrivateEyelinkCalibrate) width %d, line %d, height %d\n", width, line, totlines);
     
     // get the beginning of the current line
-    currentLine = (UINT32*)(((GLubyte*)glCameraImage)+((line-1)*sizeof(GLubyte)*BYTEDEPTH*width));
+    currentLine = (UINT32*)(((GLubyte*)(mgltCamera->pixels))+((line-1)*sizeof(GLubyte)*BYTEDEPTH*width));
     
     for(i=0; i<width; i++)
     {
@@ -625,17 +595,13 @@ void ELCALLBACK draw_image_line(INT16 width, INT16 line, INT16 totlines, byte *p
         // we might want to enlarge it. For simplicity reasons, we will skip that.
     
         // center the camera image on the screen
-        glBindTexture(GL_TEXTURE_2D, glCameraTexture);
-        glTexImage2D(GL_TEXTURE_RECTANGLE_EXT,0,GL_RGBA,width,totlines,0,
-            GL_RGBA,TEXTURE_DATATYPE,glCameraImage);
-        mxArray *bltTextureRHS[5];
-        bltTextureRHS[0] = mglTexture[0];
-        bltTextureRHS[1] = mglTextureLoc[0];
-        bltTextureRHS[2] = mglTextureHAlign[0];
-        bltTextureRHS[3] = mglTextureVAlign[0];
-        bltTextureRHS[4] = mglTextureRot[0];
         
-        mexCallMATLAB(0, NULL, 5, bltTextureRHS, "mglBltTexture");
+        // glBindTexture(GL_TEXTURE_2D, glCameraTexture);
+        // glTexImage2D(GL_TEXTURE_RECTANGLE_EXT,0,GL_RGBA,width,totlines,0,
+        //     GL_RGBA,TEXTURE_DATATYPE,glCameraImage);
+        
+        mglBltTexture(mgltCamera, ALIGNCENTER, ALIGNCENTER);
+        mglBltTexture(mgltTitle, ALIGNCENTER, ALIGNCENTER);
         mexCallMATLAB(0, NULL, 0, NULL,"mglFlush");
         
         // now we need to draw the cursors.
@@ -755,7 +721,7 @@ void getMouseState(CrossHairInfo *chi, int *rx, int *ry, int *rstate)
     vAlignment = DEFAULT_V_ALIGNMENT;
 */
 
-void glBltTexture(MGLTexture *texture, int hAlignment, int vAlignment)
+void mglBltTexture(MGLTexture *texture, int hAlignment, int vAlignment)
 {
 
     double xPixelsToDevice, yPixelsToDevice, deviceHDirection, deviceVDirection;
@@ -773,74 +739,74 @@ void glBltTexture(MGLTexture *texture, int hAlignment, int vAlignment)
 
 
     // ok now fix horizontal alignment
-    if (hAlignment == CENTER) {
-        texture    .displayRect[0] = texture.displayRect[0] - (texture.displayRect[2]+texture.textOverhang)/2;
+    if (hAlignment == ALIGNCENTER) {
+        texture->displayRect[0] = texture->displayRect[0] - (texture->displayRect[2]+texture->textOverhang)/2;
     }
-    else if (hAlignment == RIGHT) {
+    else if (hAlignment == ALIGNRIGHT) {
         if (deviceHDirection > 0)
-            texture.displayRect[0] = texture.displayRect[0] - (texture.displayRect[2]+texture.textOverhang);
+            texture->displayRect[0] = texture->displayRect[0] - (texture->displayRect[2]+texture->textOverhang);
     }
-    else if (hAlignment == LEFT) {
+    else if (hAlignment == ALIGNLEFT) {
         if (deviceHDirection < 0)
-            texture.displayRect[0] = texture.displayRect[0] + (texture.displayRect[2]+texture.textOverhang);
+            texture->displayRect[0] = texture->displayRect[0] + (texture->displayRect[2]+texture->textOverhang);
     }
 
     // ok now fix vertical alignment
-    if (vAlignment == CENTER) {
-        texture.displayRect[1] = texture.displayRect[1] - (texture.displayRect[3]+texture.textOverhang)/2;
+    if (vAlignment == ALIGNCENTER) {
+        texture->displayRect[1] = texture->displayRect[1] - (texture->displayRect[3]+texture->textOverhang)/2;
         if (deviceVDirection > 0) {
     // and adjust overhang
-            texture.displayRect[1] = texture.displayRect[1]+texture.textOverhang;
+            texture->displayRect[1] = texture->displayRect[1]+texture->textOverhang;
         }
     }
-    else if (vAlignment == BOTTOM) {
+    else if (vAlignment == ALIGNBOTTOM) {
         if (deviceVDirection < 0) {
-            texture.displayRect[1] = texture.displayRect[1] - (texture.displayRect[3]+texture.textOverhang);
-            texture.displayRect[1] = texture.displayRect[1]-texture.textOverhang;
+            texture->displayRect[1] = texture->displayRect[1] - (texture->displayRect[3]+texture->textOverhang);
+            texture->displayRect[1] = texture->displayRect[1]-texture->textOverhang;
         }
         else {
-            texture.displayRect[1] = texture.displayRect[1]+2*texture.textOverhang;
+            texture->displayRect[1] = texture->displayRect[1]+2*texture->textOverhang;
         }
     }
-    else if (vAlignment == TOP) {
+    else if (vAlignment == ALIGNTOP) {
         if (deviceVDirection > 0) {
-            texture.displayRect[1] = texture.displayRect[1] - (texture.displayRect[3]+texture.textOverhang);
+            texture->displayRect[1] = texture->displayRect[1] - (texture->displayRect[3]+texture->textOverhang);
         }
         else {
-            texture.displayRect[1] = texture.displayRect[1]+texture.textOverhang;
+            texture->displayRect[1] = texture->displayRect[1]+texture->textOverhang;
         }
     }
 
     // add the offset to the display rect
-    texture.displayRect[2] = texture.displayRect[2] + texture.displayRect[0];
-    texture.displayRect[3] = texture.displayRect[3] + texture.displayRect[1];
+    texture->displayRect[2] = texture->displayRect[2] + texture->displayRect[0];
+    texture->displayRect[3] = texture->displayRect[3] + texture->displayRect[1];
 
     // check for flips, this is only necessary for text textures (i.e. ones created by mglText)
     // so that the global variables textHFlip and textVFlip control how the texture is blted
-    if (texture.isText) {
+    if (texture->isText) {
       // look in global for flips    
       // first check whether coordinate system runs upward or downward
         if (deviceVDirection < 0) {
             // coordinate system flipped in y-direction; flip text by default
             double temp;
-            temp = texture.displayRect[1];
-            texture.displayRect[1] = texture.displayRect[3];
-            texture.displayRect[3] = temp;
+            temp = texture->displayRect[1];
+            texture->displayRect[1] = texture->displayRect[3];
+            texture->displayRect[3] = temp;
         }
     }
     // see if we need to do vflip
-    if (texture.vFlip) {
+    if (texture->vFlip) {
         double temp;
-        temp = texture.displayRect[1];
-        texture.displayRect[1] = texture.displayRect[3];
-        texture.displayRect[3] = temp;
+        temp = texture->displayRect[1];
+        texture->displayRect[1] = texture->displayRect[3];
+        texture->displayRect[3] = temp;
     }
     // see if we need to do hflip
-    if (texture.hFlip) {
+    if (texture->hFlip) {
         double temp;
-        temp = texture.displayRect[2];
-        texture.displayRect[2] = texture.displayRect[0];
-        texture.displayRect[0] = temp;
+        temp = texture->displayRect[2];
+        texture->displayRect[2] = texture->displayRect[0];
+        texture->displayRect[0] = temp;
     }
 
 
@@ -852,55 +818,55 @@ void glBltTexture(MGLTexture *texture, int hAlignment, int vAlignment)
 
     // calculate the amount of shift we need to
     // move the axis (to center tex)
-    double xshift = texture.displayRect[0]+(texture.displayRect[2]-texture.displayRect[0])/2;
-    double yshift = texture.displayRect[1]+(texture.displayRect[3]-texture.displayRect[1])/2;
-    texture.displayRect[3] -= yshift;
-    texture.displayRect[2] -= xshift;
-    texture.displayRect[1] -= yshift;
-    texture.displayRect[0] -= xshift;
+    double xshift = texture->displayRect[0]+(texture->displayRect[2]-texture->displayRect[0])/2;
+    double yshift = texture->displayRect[1]+(texture->displayRect[3]-texture->displayRect[1])/2;
+    texture->displayRect[3] -= yshift;
+    texture->displayRect[2] -= xshift;
+    texture->displayRect[1] -= yshift;
+    texture->displayRect[0] -= xshift;
 
     // now shift and rotate the coordinate frame
     glMatrixMode( GL_MODELVIEW );    
     glPushMatrix();
     glTranslated(xshift,yshift,0);
-    glRotated(texture.rotation,0,0,1);
+    glRotated(texture->rotation,0,0,1);
 
 #ifdef GL_TEXTURE_RECTANGLE_EXT
     // bind the texture we want to draw
     glEnable(GL_TEXTURE_RECTANGLE_EXT);
-    glBindTexture(GL_TEXTURE_RECTANGLE_EXT, texture.textureNumber);
+    glBindTexture(GL_TEXTURE_RECTANGLE_EXT, texture->textureNumber);
 
     // and set the transformation
     glBegin(GL_QUADS);
-    if (texture.textureAxes == YX) {
+    if (texture->textureAxes == YX) {
     // default texture axes (yx, using matlab coordinates) does not require swapping y and x in texture coords (done in mglCreateTexture)
         glTexCoord2d(0.0, 0.0);
-        glVertex3d(texture.displayRect[0],texture.displayRect[1], 0.0);
+        glVertex3d(texture->displayRect[0],texture->displayRect[1], 0.0);
 
-        glTexCoord2d(0.0, texture.imageHeight);
-        glVertex3d(texture.displayRect[0], texture.displayRect[3], 0.0);
+        glTexCoord2d(0.0, texture->imageHeight);
+        glVertex3d(texture->displayRect[0], texture->displayRect[3], 0.0);
 
-        glTexCoord2d(texture.imageWidth, texture.imageHeight);
-        glVertex3d(texture.displayRect[2], texture.displayRect[3], 0.0);
+        glTexCoord2d(texture->imageWidth, texture->imageHeight);
+        glVertex3d(texture->displayRect[2], texture->displayRect[3], 0.0);
 
-        glTexCoord2d(texture.imageWidth, 0.0);
-        glVertex3d(texture.displayRect[2], texture.displayRect[1], 0.0);
+        glTexCoord2d(texture->imageWidth, 0.0);
+        glVertex3d(texture->displayRect[2], texture->displayRect[1], 0.0);
         glEnd();
     }
     else {
-        if (texture.textureAxes==XY) {
+        if (texture->textureAxes==XY) {
       //  using reverse ordered coordinates does require swapping y and x in texture coords.
             glTexCoord2d(0.0, 0.0);
-            glVertex3d(texture.displayRect[0],texture.displayRect[1], 0.0);
+            glVertex3d(texture->displayRect[0],texture->displayRect[1], 0.0);
 
-            glTexCoord2d(0.0, texture.imageWidth);
-            glVertex3d(texture.displayRect[2], texture.displayRect[1], 0.0);
+            glTexCoord2d(0.0, texture->imageWidth);
+            glVertex3d(texture->displayRect[2], texture->displayRect[1], 0.0);
 
-            glTexCoord2d(texture.imageHeight,texture.imageWidth);
-            glVertex3d(texture.displayRect[2], texture.displayRect[3], 0.0);
+            glTexCoord2d(texture->imageHeight,texture->imageWidth);
+            glVertex3d(texture->displayRect[2], texture->displayRect[3], 0.0);
 
-            glTexCoord2d(texture.imageHeight, 0.0);
-            glVertex3d(texture.displayRect[0], texture.displayRect[3], 0.0);    
+            glTexCoord2d(texture->imageHeight, 0.0);
+            glVertex3d(texture->displayRect[0], texture->displayRect[3], 0.0);    
         }
     }
 
@@ -909,91 +875,97 @@ void glBltTexture(MGLTexture *texture, int hAlignment, int vAlignment)
 #else//GL_TEXTURE_RECTANGLE_EXT
     // bind the texture we want to draw
     glEnable(GL_TEXTURE_2D);
-    glBindTexture(GL_TEXTURE_2D, texture.textureNumber);
+    glBindTexture(GL_TEXTURE_2D, texture->textureNumber);
 
     // and set the transformation
     glBegin(GL_QUADS);
-    if (strncmp(texture.textureAxes, "yx",2)==0) {
+    if (strncmp(texture->textureAxes, "yx",2)==0) {
         // default texture axes (yx, using matlab coordinates) does not require swapping y and x in texture coords.
         glTexCoord2f(0.0, 0.0);
-        glVertex3f(texture.displayRect[0],texture.displayRect[1], 0.0);
+        glVertex3f(texture->displayRect[0],texture->displayRect[1], 0.0);
 
         glTexCoord2f(0.0, 1.0);
-        glVertex3f(texture.displayRect[0], texture.displayRect[3], 0.0);
+        glVertex3f(texture->displayRect[0], texture->displayRect[3], 0.0);
 
         glTexCoord2f(1.0, 1.0);
-        glVertex3f(texture.displayRect[2], texture.displayRect[3], 0.0);
+        glVertex3f(texture->displayRect[2], texture->displayRect[3], 0.0);
 
         glTexCoord2f(1.0, 0.0);
-        glVertex3f(texture.displayRect[2], texture.displayRect[1], 0.0);
+        glVertex3f(texture->displayRect[2], texture->displayRect[1], 0.0);
     }
     else {
-        if (strncmp(texture.textureAxes,"xy",2)==0) {
+        if (strncmp(texture->textureAxes,"xy",2)==0) {
         //  using reverse ordered coordinates does require swapping y and x in texture coords.
             glTexCoord2f(0.0, 0.0);
-            glVertex3f(texture.displayRect[0],texture.displayRect[1], 0.0);
+            glVertex3f(texture->displayRect[0],texture->displayRect[1], 0.0);
 
             glTexCoord2f(0.0, 1.0);
-            glVertex3f(texture.displayRect[2], texture.displayRect[1], 0.0);
+            glVertex3f(texture->displayRect[2], texture->displayRect[1], 0.0);
 
             glTexCoord2f(1.0, 1.0);
-            glVertex3f(texture.displayRect[2], texture.displayRect[3], 0.0);
+            glVertex3f(texture->displayRect[2], texture->displayRect[3], 0.0);
 
             glTexCoord2f(1.0, 0.0);
-            glVertex3f(texture.displayRect[0], texture.displayRect[3], 0.0);
+            glVertex3f(texture->displayRect[0], texture->displayRect[3], 0.0);
 
         }
     }
-        glEnd();
+    glEnd();
 #endif//GL_TEXTURE_RECTANGLE_EXT
-        glPopMatrix();
-    }
+    glPopMatrix();
 }
 
-
-MGLTexture glCreateRGBATexture(int width, int height, int pos[4])
+MGLTexture *mglCreateRGBATexture(int width, int height, int position[4])
 {
     // we need eventually add parameters to set other elements of the texture
     // array
 
     // declare some variables
     int i,j;
+    double xPixelsToDevice, yPixelsToDevice, deviceHDirection, deviceVDirection;
+    MGLTexture *texture;
     
     texture = (MGLTexture*)malloc(sizeof(MGLTexture));
+
+    xPixelsToDevice = mglGetGlobalDouble("xPixelsToDevice");
+    yPixelsToDevice = mglGetGlobalDouble("yPixelsToDevice");
+    deviceHDirection = mglGetGlobalDouble("deviceHDirection");
+    deviceVDirection = mglGetGlobalDouble("deviceVDirection");
     
-    glGenTextures(1, &(texture.textureNumber));
-    texture.pixels = (GLubyte*)malloc(width*height*sizeof(GLubyte)*BYTEDEPTH);
-    texture.imageWidth = width;
-    texture.imageHeight = height;
-    texture.textureAxes = YX;
-    texture.hFlip = 0;
-    texture.vFlip = 0;
-    texture.textOverhang = 0;
-    texture.isText = 0;
-    texture.rotation = 0;
-    texture.displayRect[0] = pos[0]
-        texture.displayRect[1] = pos[1];
-    texture.displayRect[2] = texture.imageWidth*xPixelsToDevice;
-    texture.displayRect[3] = texture.imageHeight*yPixelsToDevice;
+    glGenTextures(1, &(texture->textureNumber));
+    texture->pixels = (GLubyte*)malloc(width*height*sizeof(GLubyte)*BYTEDEPTH);
+    texture->imageWidth = width;
+    texture->imageHeight = height;
+    texture->textureAxes = YX;
+    texture->hFlip = 0;
+    texture->vFlip = 0;
+    texture->textOverhang = 0;
+    texture->isText = 0;
+    texture->rotation = 0;
+    texture->displayRect[0] = position[0];
+    texture->displayRect[1] = position[1];
+    texture->displayRect[2] = position[2]*xPixelsToDevice;
+    texture->displayRect[3] = position[3]*yPixelsToDevice;
 
   // If rectangular textures are unsupported, scale image to nearest dimensions
 #ifndef GL_TEXTURE_RECTANGLE_EXT
   // No support for non-power of two textures
-    int po2Width=texture.imageWidth;
-    int po2Height=texture.imageHeight;
-    double lw=log(texture.imageWidth)/log(2);
-    double lh=log(texture.imageHeight)/log(2);
+    printf("NO SUPPORT FOR NON-POWER OF TWO TEXTURES!");
+    int po2Width=texture->imageWidth;
+    int po2Height=texture->imageHeight;
+    double lw=log(texture->imageWidth)/log(2);
+    double lh=log(texture->imageHeight)/log(2);
     if (lw!=round(lw) | lh!=round(lh)) {
         po2Width=(int) pow(2,round(lw));
         po2Height=(int) pow(2,round(lh));
         GLubyte * tmp = (GLubyte*)malloc(po2Width*po2Height*sizeof(GLubyte)*BYTEDEPTH);
-        gluScaleImage( GL_RGBA, texture.imageWidth, texture.imageHeight, TEXTURE_DATATYPE, glPixels, po2Width, po2Height, TEXTURE_DATATYPE, tmp);
-        free(texture.pixels);
-        texture.pixels=tmp;
-        texture.imageWidth = po2Width;
-        texture.imageHeight = po2Height;
+        gluScaleImage( GL_RGBA, texture->imageWidth, texture->imageHeight, TEXTURE_DATATYPE, glPixels, po2Width, po2Height, TEXTURE_DATATYPE, tmp);
+        free(texture->pixels);
+        texture->pixels=tmp;
+        texture->imageWidth = po2Width;
+        texture->imageHeight = po2Height;
     }
-    glBindTexture(GL_TEXTURE_2D, texture.textureNumber);
+    glBindTexture(GL_TEXTURE_2D, texture->textureNumber);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -1001,18 +973,18 @@ MGLTexture glCreateRGBATexture(int width, int height, int pos[4])
     glPixelStorei(GL_UNPACK_ROW_LENGTH,0);
 
   // now place the data into the texture
-    glTexImage2D(GL_TEXTURE_2D,0,4,texture.imageWidth,texture.imageHeight,0,GL_RGBA,TEXTURE_DATATYPE,texture.pixels);
+    glTexImage2D(GL_TEXTURE_2D,0,4,texture->imageWidth,texture->imageHeight,0,GL_RGBA,TEXTURE_DATATYPE,texture->pixels);
 
 #else// GL_TEXTURE_RECTANGLE_EXT
   // Support for non-power of two textures
-    glBindTexture(GL_TEXTURE_RECTANGLE_EXT, texture.textureNumber);
+    glBindTexture(GL_TEXTURE_RECTANGLE_EXT, texture->textureNumber);
 
 #ifdef __APPLE__
   // tell GL that the memory will be handled by us. (apple)
     glPixelStorei(GL_UNPACK_CLIENT_STORAGE_APPLE,0);
   // now, try to store the memory in VRAM (apple)
     glTexParameteri(GL_TEXTURE_RECTANGLE_EXT,GL_TEXTURE_STORAGE_HINT_APPLE,GL_STORAGE_CACHED_APPLE);
-    glTextureRangeAPPLE(GL_TEXTURE_RECTANGLE_EXT,texture.imageWidth*texture.imageHeight*BYTEDEPTH,texture.pixels);
+    glTextureRangeAPPLE(GL_TEXTURE_RECTANGLE_EXT,texture->imageWidth*texture->imageHeight*BYTEDEPTH,texture->pixels);
 #endif
 
   // some other stuff
@@ -1023,13 +995,19 @@ MGLTexture glCreateRGBATexture(int width, int height, int pos[4])
     glPixelStorei(GL_UNPACK_ROW_LENGTH,0);
 
   // now place the data into the texture
-    glTexImage2D(GL_TEXTURE_RECTANGLE_EXT,0,GL_RGBA,texture.imageWidth,texture.imageHeight,0,GL_RGBA,TEXTURE_DATATYPE,texture.pixels);
+    glTexImage2D(GL_TEXTURE_RECTANGLE_EXT,0,GL_RGBA,texture->imageWidth,texture->imageHeight,0,GL_RGBA,TEXTURE_DATATYPE,texture->pixels);
 
 #endif// GL_TEXTURE_RECTANGLE_EXT
 
 }
 
-MGLTexture mglTextTexture(text)
+void mglFreeTexture(MGLTexture *texture)
+{
+    free(texture->pixels);
+    free(texture);
+}
+
+MGLTexture *mglCreateTextTexture(char *text, int position[2])
 {
 
   // get the global variable for the font
@@ -1078,40 +1056,33 @@ MGLTexture mglTextTexture(text)
     // now render the text into a bitmap.
     int pixelsWide = 0, pixelsHigh = 0;
     Rect textImageRect;
-    unsigned char *bitmapData = renderText(text, fontName, fontSize, fontColor, fontRotation, fontBold, fontItalic, fontUnderline, fontStrikethrough, &pixelsWide, &pixelsHigh, &textImageRect);
+    GLubyte *bitmapData = (GLubyte *)renderText(text, fontName, fontSize, fontColor, fontRotation, fontBold, fontItalic, fontUnderline, fontStrikethrough, &pixelsWide, &pixelsHigh, &textImageRect);
 
     ///////////////////////////
     // create a texture
     ///////////////////////////
     MGLTexture *texture;
-    
-    texture = mglCreateTexture(pixelsWide, pixelsHigh)
-    // now place the data into the texture
-    glBindTexture(GL_TEXTURE_2D, texture.textureNumber);
-    
-    glTexImage2D(GL_TEXTURE_RECTANGLE_EXT,0,GL_RGBA,texture.imageWidth,texture.imageHeight,0,GL_RGBA,TEXTURE_DATATYPE,bitmapData);  
+    int posRect[4] = {position[0], position[1], pixelsWide, pixelsHigh};
+    texture = mglCreateRGBATexture(pixelsWide, pixelsHigh, posRect);
+    free(texture->pixels);
+    texture->pixels = bitmapData;
 
-    }
-    
-    // free up the original bitmapData
-    free(bitmapData);
+    // WE'LL NEED THIS IF THE DATA ISN'T HANDLED LOCALLY
+    // // now place the data into the texture
+    // glBindTexture(GL_TEXTURE_2D, texture->textureNumber);
+    // 
+    // glTexImage2D(GL_TEXTURE_RECTANGLE_EXT,0,GL_RGBA,texture->imageWidth,texture->imageHeight,0,GL_RGBA,TEXTURE_DATATYPE,);  
+
+        // free up the original bitmapData
+    // free(bitmapData);
 }
 
 #ifdef __APPLE__
 //-----------------------------------------------------------------------------------///
 // ******************************* mac specific code  ******************************* //
 //-----------------------------------------------------------------------------------///
-unsigned char *renderText(const mxArray *inputString, char*fontName, int fontSize, double *fontColor, double fontRotation, Boolean fontBold, Boolean fontItalic, Boolean fontUnderline, Boolean fontStrikethrough, int *pixelsWide, int *pixelsHigh, Rect *textImageRect)
+unsigned char *renderText(char *cInputString, char*fontName, int fontSize, double *fontColor, double fontRotation, Boolean fontBold, Boolean fontItalic, Boolean fontUnderline, Boolean fontStrikethrough, int *pixelsWide, int *pixelsHigh, Rect *textImageRect)
 {
-  // get text string
-    int buflen = mxGetN(inputString)*mxGetM(inputString)+1;
-    char *cInputString= (char*)malloc(buflen);
-    if (cInputString == NULL) {
-        mexPrintf("(mglText) Could not allocate buffer for string array of length %i\n",buflen);
-        return(NULL);
-    }
-  // get the string
-    mxGetString(inputString, cInputString, buflen);
 
   // get status of global variable verbose
     int verbose = (int)mglGetGlobalDouble("verbose");
@@ -1239,9 +1210,9 @@ unsigned char *renderText(const mxArray *inputString, char*fontName, int fontSiz
   // Attach text to layout
   ////////////////////////////////////
   // If input is 16bit Uint then it is a unicode, otherwise Attach the resulting UTF-16 Unicode text to the layout
-    if (mxIsUint16(inputString)) 
-        verify_noerr( ATSUSetTextPointerLocation(layout,(UniChar*)mxGetData(inputString),kATSUFromTextBeginning, kATSUToTextEnd, mxGetN(inputString)));
-    else
+    // if (mxIsUint16(inputString)) 
+    //     verify_noerr( ATSUSetTextPointerLocation(layout,(UniChar*)mxGetData(inputString),kATSUFromTextBeginning, kATSUToTextEnd, mxGetN(inputString)));
+    // else
         verify_noerr( ATSUSetTextPointerLocation(layout,text,kATSUFromTextBeginning, kATSUToTextEnd, length) );
 
   // Now we tie the two necessary objects, the layout and the style, together

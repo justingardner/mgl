@@ -60,13 +60,13 @@
 #define DC_GOOD_BEEP    2
 #define DC_ERR_BEEP    -2
 
-#define LEFT -1
-#define CENTER 0
-#define RIGHT 1
-#define TOP -1
-#define BOTTOM 1
-#define DEFAULT_H_ALIGNMENT CENTER
-#define DEFAULT_V_ALIGNMENT CENTER
+#define ALIGNLEFT -1
+#define ALIGNCENTER 0
+#define ALIGNRIGHT 1
+#define ALIGNTOP -1
+#define ALIGNBOTTOM 1
+#define DEFAULT_H_ALIGNMENT ALIGNCENTER
+#define DEFAULT_V_ALIGNMENT ALIGNCENTER
 #define XY 1
 #define YX 0
 
@@ -75,7 +75,7 @@
 // ===========
 typedef struct MGLTexture {
   GLuint textureNumber;
-  GLubyte pixels;
+  GLubyte *pixels;
   double imageWidth;
   double imageHeight;
   int textureAxes;
@@ -86,7 +86,6 @@ typedef struct MGLTexture {
   double displayRect[4];
   double rotation;
 } MGLTexture;
-
 
 // ================
 // = Declarations =
@@ -111,17 +110,24 @@ INT16 ELCALLTYPE init_expt_graphics();
 void drawLine(CrossHairInfo *chi, int x1, int y1, int x2, int y2, int cindex);
 void drawLozenge(CrossHairInfo *chi, int x, int y, int width, int height, int cindex);
 void getMouseState(CrossHairInfo *chi, int *rx, int *ry, int *rstate);
-int ELCALLBACK writeImage(char *outfilename, int format, EYEBITMAP *bitmap);
+int ELCALLBACK writeImage(char *outfilename, IMAGETYPE format, EYEBITMAP *bitmap);
 
-unsigned char *renderText(const mxArray *inputString, char*fontName, int fontSize, double *fontColor, double fontRotation, Boolean fontBold, Boolean fontItalic, Boolean fontUnderline, Boolean fontStrikethrough, int *pixelsWide, int *pixelsHigh, Rect *textImageRect);
+void mglBltTexture(MGLTexture *texture, int hAlignment, int vAlignment);
+MGLTexture *mglCreateRGBATexture(int width, int height, int position[4]);
+MGLTexture *mglCreateTextTexture(char *text, int position[2]);
+void mglFreeTexture(MGLTexture *texture);
+
+unsigned char *renderText(char *cInputString, char*fontName, int fontSize, double *fontColor, double fontRotation, Boolean fontBold, Boolean fontItalic, Boolean fontUnderline, Boolean fontStrikethrough, int *pixelsWide, int *pixelsHigh, Rect *textImageRect);
 
 // =============================
 // = (Static) Member Variables =
 // =============================
-GLuint glCameraTexture;                     // Texture for camera image display
-GLubyte *glCameraPixels;                    // Camera image texture contents
-GLuint glTitleTexture;                      // Texture for camera title display
-GLubyte *glTitlePixels;                     // Camera image texture contents
+MGLTexture *mgltCamera;                     // Texture for camera image display
+MGLTexture *mgltTitle;                      // Texture for camera title display
+static char cameraTitle[1024];
+static int cameraPos[4] = {551, 435, 0, 0};
+static int titlePos[2] = {551, 100};
 static UINT32 cameraImagePalleteMap[130+2]; // Camera image pallete mapping
+static int mglDisplayNum;
 
 #endif __MGLEYELINK_H

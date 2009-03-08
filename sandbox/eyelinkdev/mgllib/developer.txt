@@ -16,7 +16,18 @@ it would make sense to break the mgl.h functions and these other accessory
 functions into an mgllib.a (or mgllib.dylib if appropriate). I know this makes
 linking slightly more complicated, but I think in the long run it would make
 mgllib more rational.
-**		
+
+In general, I think that breaking the C code up into a library would also make
+maintenance easier. Rather than hard to parse #ifdefs for each architecture,
+you would just build a library for each architecture and link it in the
+existing architecture dependent mglMake file.
+**
+I note that the gl texture code in mglCreateTexture and mglText are not
+consistent. One seems to use an architecture independent texture type and the
+other uses 8_8_8_... which was noted in the code elsewhere as not independent.
+This may also provide a reason for consolidation of the code.
+**
+
 Is GL_UNSIGNED_BYTE == GLubyte
 ---
 
