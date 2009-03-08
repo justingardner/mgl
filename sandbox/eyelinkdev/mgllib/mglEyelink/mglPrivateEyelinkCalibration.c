@@ -481,10 +481,10 @@ void ELCALLBACK clear_cal_display(void)
  */
 INT16 ELCALLBACK setup_image_display(INT16 width, INT16 height)
 {
-    cameraPos[2] = width;
-    cameraPos[3] = height;
-    mgltCamera = mglCreateRGBATexture(width, height, cameraPos);
-    mgltTitle = mglCreateTextTexture("Title", titlePos);    
+    cameraPos[2] = width*2;
+    cameraPos[3] = height*2;
+    mgltCamera = mglCreateRGBATexture(width, height);
+    mgltTitle = mglCreateTextTexture("Title");    
     mexCallMATLAB(0,NULL,0,NULL,"mglClearScreen");
     mexCallMATLAB(0,NULL,0,NULL,"mglFlush");        
     
@@ -499,8 +499,8 @@ INT16 ELCALLBACK setup_image_display(INT16 width, INT16 height)
 void ELCALLBACK exit_image_display(void)
 {
 
-    glFreeTexture(mgltCamera);
-    glFreeTexture(mgltTitle);
+    mglFreeTexture(mgltCamera);
+    mglFreeTexture(mgltTitle);
     
 }
 
@@ -520,7 +520,7 @@ void ELCALLBACK image_title(INT16 threshold, char *title)
         snprintf(cameraTitle, sizeof(cameraTitle), "%s, threshold at %d", threshold);
     }
     mglFreeTexture(mgltTitle);
-    mgltTitle = mglCreateTextTexture(cameraTitle, titlePos);
+    mgltTitle = mglCreateTextTexture(cameraTitle);
     
 }
 
@@ -595,13 +595,13 @@ void ELCALLBACK draw_image_line(INT16 width, INT16 line, INT16 totlines, byte *p
         // we might want to enlarge it. For simplicity reasons, we will skip that.
     
         // center the camera image on the screen
-        
-        // glBindTexture(GL_TEXTURE_2D, glCameraTexture);
-        // glTexImage2D(GL_TEXTURE_RECTANGLE_EXT,0,GL_RGBA,width,totlines,0,
-        //     GL_RGBA,TEXTURE_DATATYPE,glCameraImage);
-        
-        mglBltTexture(mgltCamera, ALIGNCENTER, ALIGNCENTER);
-        mglBltTexture(mgltTitle, ALIGNCENTER, ALIGNCENTER);
+        glBindTexture(GL_TEXTURE_2D, mgltCamera->textureNumber);    
+        glTexImage2D(GL_TEXTURE_RECTANGLE_EXT,0,GL_RGBA,
+            mgltCamera->imageWidth,mgltCamera->imageHeight,0,
+            GL_RGBA,TEXTURE_DATATYPE,mgltCamera->pixels);  
+                
+        mglBltTexture(mgltCamera, cameraPos, ALIGNCENTER, ALIGNCENTER);
+        mglBltTexture(mgltTitle, titlePos, ALIGNCENTER, ALIGNCENTER);
         mexCallMATLAB(0, NULL, 0, NULL,"mglFlush");
         
         // now we need to draw the cursors.
@@ -721,7 +721,7 @@ void getMouseState(CrossHairInfo *chi, int *rx, int *ry, int *rstate)
     vAlignment = DEFAULT_V_ALIGNMENT;
 */
 
-void mglBltTexture(MGLTexture *texture, int hAlignment, int vAlignment)
+void mglBltTexture(MGLTexture *texture, int position[4], int hAlignment, int vAlignment)
 {
 
     double xPixelsToDevice, yPixelsToDevice, deviceHDirection, deviceVDirection;
@@ -730,13 +730,25 @@ void mglBltTexture(MGLTexture *texture, int hAlignment, int vAlignment)
     yPixelsToDevice = mglGetGlobalDouble("yPixelsToDevice");
     deviceHDirection = mglGetGlobalDouble("deviceHDirection");
     deviceVDirection = mglGetGlobalDouble("deviceVDirection");
+    
+    texture->displayRect[0] = position[0];
+    texture->displayRect[1] = position[1];
+    if (position[2] == 0)
+        texture->displayRect[2] = texture->imageWidth*xPixelsToDevice;
+    else
+        texture->displayRect[2] = position[2];
+    if (position[3] == 0)
+        texture->displayRect[3] = texture->imageHeight*yPixelsToDevice;
+    else
+        texture->displayRect[3] = position[3];
+    
+    mexPrintf("(mglBltTexture) Display rect = [%0.2f %0.2f %0.2f %0.2f]\n",texture->displayRect[0],texture->displayRect[1],texture->displayRect[2],texture->displayRect[3]);
 
     // get the xPixelsToDevice and yPixelsToDevice making sure these are set properly
     if ((xPixelsToDevice == 0) || (yPixelsToDevice == 0)) {
         xPixelsToDevice = 1;
         yPixelsToDevice = 1;
     }
-
 
     // ok now fix horizontal alignment
     if (hAlignment == ALIGNCENTER) {
@@ -808,8 +820,7 @@ void mglBltTexture(MGLTexture *texture, int hAlignment, int vAlignment)
         texture->displayRect[2] = texture->displayRect[0];
         texture->displayRect[0] = temp;
     }
-
-
+    mexPrintf("(mglBltTexture) Display rect = [%0.2f %0.2f %0.2f %0.2f]\n",texture->displayRect[0],texture->displayRect[1],texture->displayRect[2],texture->displayRect[3]);
 
     // set blending functions etc.
     glEnable(GL_BLEND);
@@ -839,7 +850,8 @@ void mglBltTexture(MGLTexture *texture, int hAlignment, int vAlignment)
     // and set the transformation
     glBegin(GL_QUADS);
     if (texture->textureAxes == YX) {
-    // default texture axes (yx, using matlab coordinates) does not require swapping y and x in texture coords (done in mglCreateTexture)
+    // default texture axes (yx, using matlab coordinates) does not require
+    // swapping y and x in texture coords (done in mglCreateTexture)
         glTexCoord2d(0.0, 0.0);
         glVertex3d(texture->displayRect[0],texture->displayRect[1], 0.0);
 
@@ -915,7 +927,7 @@ void mglBltTexture(MGLTexture *texture, int hAlignment, int vAlignment)
     glPopMatrix();
 }
 
-MGLTexture *mglCreateRGBATexture(int width, int height, int position[4])
+MGLTexture *mglCreateRGBATexture(int width, int height)
 {
     // we need eventually add parameters to set other elements of the texture
     // array
@@ -941,11 +953,11 @@ MGLTexture *mglCreateRGBATexture(int width, int height, int position[4])
     texture->vFlip = 0;
     texture->textOverhang = 0;
     texture->isText = 0;
-    texture->rotation = 0;
-    texture->displayRect[0] = position[0];
-    texture->displayRect[1] = position[1];
-    texture->displayRect[2] = position[2]*xPixelsToDevice;
-    texture->displayRect[3] = position[3]*yPixelsToDevice;
+    texture->rotation = -90;
+    texture->displayRect[0] = 0;
+    texture->displayRect[1] = 0;
+    texture->displayRect[2] = 0;
+    texture->displayRect[3] = 0;
 
   // If rectangular textures are unsupported, scale image to nearest dimensions
 #ifndef GL_TEXTURE_RECTANGLE_EXT
@@ -998,7 +1010,8 @@ MGLTexture *mglCreateRGBATexture(int width, int height, int position[4])
     glTexImage2D(GL_TEXTURE_RECTANGLE_EXT,0,GL_RGBA,texture->imageWidth,texture->imageHeight,0,GL_RGBA,TEXTURE_DATATYPE,texture->pixels);
 
 #endif// GL_TEXTURE_RECTANGLE_EXT
-
+    return(texture);
+    
 }
 
 void mglFreeTexture(MGLTexture *texture)
@@ -1007,7 +1020,7 @@ void mglFreeTexture(MGLTexture *texture)
     free(texture);
 }
 
-MGLTexture *mglCreateTextTexture(char *text, int position[2])
+MGLTexture *mglCreateTextTexture(char *text)
 {
 
   // get the global variable for the font
@@ -1062,19 +1075,19 @@ MGLTexture *mglCreateTextTexture(char *text, int position[2])
     // create a texture
     ///////////////////////////
     MGLTexture *texture;
-    int posRect[4] = {position[0], position[1], pixelsWide, pixelsHigh};
-    texture = mglCreateRGBATexture(pixelsWide, pixelsHigh, posRect);
+    texture = mglCreateRGBATexture(pixelsWide, pixelsHigh);
     free(texture->pixels);
     texture->pixels = bitmapData;
-
+    texture->isText = 1;
+    
     // WE'LL NEED THIS IF THE DATA ISN'T HANDLED LOCALLY
     // // now place the data into the texture
-    // glBindTexture(GL_TEXTURE_2D, texture->textureNumber);
-    // 
-    // glTexImage2D(GL_TEXTURE_RECTANGLE_EXT,0,GL_RGBA,texture->imageWidth,texture->imageHeight,0,GL_RGBA,TEXTURE_DATATYPE,);  
+    glBindTexture(GL_TEXTURE_2D, texture->textureNumber);    
+    glTexImage2D(GL_TEXTURE_RECTANGLE_EXT,0,GL_RGBA,texture->imageWidth,texture->imageHeight,0,GL_RGBA,TEXTURE_DATATYPE,texture->pixels);  
 
-        // free up the original bitmapData
+    // free up the original bitmapData
     // free(bitmapData);
+    return(texture);
 }
 
 #ifdef __APPLE__
@@ -1331,7 +1344,7 @@ unsigned char *renderText(char *cInputString, char*fontName, int fontSize, doubl
   ////////////////////////////////////
   // Deallocate string storage
     free(text);
-    free(cInputString);
+    // free(cInputString);
 
   // Layout and style also need to be disposed
     verify_noerr( ATSUDisposeStyle(style) );

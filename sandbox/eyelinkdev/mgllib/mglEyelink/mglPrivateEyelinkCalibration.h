@@ -112,9 +112,9 @@ void drawLozenge(CrossHairInfo *chi, int x, int y, int width, int height, int ci
 void getMouseState(CrossHairInfo *chi, int *rx, int *ry, int *rstate);
 int ELCALLBACK writeImage(char *outfilename, IMAGETYPE format, EYEBITMAP *bitmap);
 
-void mglBltTexture(MGLTexture *texture, int hAlignment, int vAlignment);
-MGLTexture *mglCreateRGBATexture(int width, int height, int position[4]);
-MGLTexture *mglCreateTextTexture(char *text, int position[2]);
+void mglBltTexture(MGLTexture *texture, int position[4], int hAlignment, int vAlignment);
+MGLTexture *mglCreateRGBATexture(int width, int height);
+MGLTexture *mglCreateTextTexture(char *text);
 void mglFreeTexture(MGLTexture *texture);
 
 unsigned char *renderText(char *cInputString, char*fontName, int fontSize, double *fontColor, double fontRotation, Boolean fontBold, Boolean fontItalic, Boolean fontUnderline, Boolean fontStrikethrough, int *pixelsWide, int *pixelsHigh, Rect *textImageRect);
@@ -122,11 +122,11 @@ unsigned char *renderText(char *cInputString, char*fontName, int fontSize, doubl
 // =============================
 // = (Static) Member Variables =
 // =============================
-MGLTexture *mgltCamera;                     // Texture for camera image display
-MGLTexture *mgltTitle;                      // Texture for camera title display
+MGLTexture *mgltCamera = NULL;                     // Texture for camera image display
+MGLTexture *mgltTitle = NULL;                      // Texture for camera title display
 static char cameraTitle[1024];
 static int cameraPos[4] = {551, 435, 0, 0};
-static int titlePos[2] = {551, 100};
+static int titlePos[4] = {551, 100, 0, 0};
 static UINT32 cameraImagePalleteMap[130+2]; // Camera image pallete mapping
 static int mglDisplayNum;
 

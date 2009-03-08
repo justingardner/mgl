@@ -32,4 +32,5 @@ Is GL_UNSIGNED_BYTE == GLubyte
 ---
 
 To Do List:
-
+	mglBltTexture: Textures created in one coordinate system fail to reflect changes in anther coordinate system. e.g. if you are in eye coords, use mglCreateTexture, the allParams field stores the incorrect pixel transform
+	
