@@ -65,6 +65,7 @@
 #ifndef __eventtap__
 #define __eventtap__
 #endif
+
 #include <OpenGL/OpenGL.h>
 #include <OpenGL/gl.h>
 #include <OpenGL/glext.h>

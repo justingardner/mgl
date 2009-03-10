@@ -78,12 +78,17 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   if (!result && verbose)
     mexPrintf("(mglGetKeyEvent) No event\n");
 
-  // set the output variables
-  plhs[0] = makeOutputStructure(&outptrCharCode,&outptrKeyCode,&outptrKeyboard,&outptrWhen);
-  *outptrCharCode = (double)(theEvent.message & charCodeMask);
-  *outptrKeyCode = (double)((theEvent.message & keyCodeMask)>>8);
-  *outptrKeyboard = (double)(theEvent.message>>16);
-  *outptrWhen = (double)theEvent.when;
+  if (result) {
+      // set the output variables
+      plhs[0] = makeOutputStructure(&outptrCharCode,&outptrKeyCode,&outptrKeyboard,&outptrWhen);
+      *outptrCharCode = (double)(theEvent.message & charCodeMask);
+      *outptrKeyCode = (double)((theEvent.message & keyCodeMask)>>8);
+      *outptrKeyboard = (double)(theEvent.message>>16);
+      *outptrWhen = (double)theEvent.when;
+  } else {
+      plhs[0] = mxCreateDoubleMatrix(0,0,mxREAL);
+  }
+  
 #endif//__cocoa__
 #endif//__APPLE__
 //-----------------------------------------------------------------------------------///

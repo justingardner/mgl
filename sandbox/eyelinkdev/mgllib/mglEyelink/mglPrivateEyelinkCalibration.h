@@ -112,10 +112,11 @@ void drawLozenge(CrossHairInfo *chi, int x, int y, int width, int height, int ci
 void getMouseState(CrossHairInfo *chi, int *rx, int *ry, int *rstate);
 int ELCALLBACK writeImage(char *outfilename, IMAGETYPE format, EYEBITMAP *bitmap);
 
-void mglBltTexture(MGLTexture *texture, int position[4], int hAlignment, int vAlignment);
-MGLTexture *mglCreateRGBATexture(int width, int height);
-MGLTexture *mglCreateTextTexture(char *text);
-void mglFreeTexture(MGLTexture *texture);
+void mglcBltTexture(MGLTexture *texture, int position[4], int hAlignment, int vAlignment);
+MGLTexture *mglcCreateRGBATexture(int width, int height);
+MGLTexture *mglcCreateTextTexture(char *text);
+void mglcFreeTexture(MGLTexture *texture);
+void mglcFlush(int displayNumber);
 
 unsigned char *renderText(char *cInputString, char*fontName, int fontSize, double *fontColor, double fontRotation, Boolean fontBold, Boolean fontItalic, Boolean fontUnderline, Boolean fontStrikethrough, int *pixelsWide, int *pixelsHigh, Rect *textImageRect);
 
@@ -128,6 +129,6 @@ static char cameraTitle[1024];
 static int cameraPos[4] = {551, 435, 0, 0};
 static int titlePos[4] = {551, 100, 0, 0};
 static UINT32 cameraImagePalleteMap[130+2]; // Camera image pallete mapping
-static int mglDisplayNum;
+static int mglcDisplayNumber;
 
 #endif __MGLEYELINK_H

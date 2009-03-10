@@ -38,15 +38,17 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         if (n != 1) {
             mexErrMsgTxt("(mglPrivateEyelinkCalibration) You must specify a single display number.");
         }
-        mglDisplayNum = (int)*(double*)mxGetPr(prhs[0]);
+        mglcDisplayNumber = (int)*(double*)mxGetPr(prhs[0]);
         mexPrintf("(mglPrivateEyelinkCalibrate) Attempting to use display %d.\n");
         mexPrintf("(mglPrivateEyelinkCalibrate) [Currently reverting to current display.]\n");
+    } else {
+        mglcDisplayNumber = (int)mglGetGlobalDouble("displayNumber");
     }
 
     if (nrhs==2) {
         // get default mode for this round
     }
-
+    
     // initialize the callbacks
     init_expt_graphics();
 
@@ -139,7 +141,7 @@ INT16 ELCALLTYPE init_expt_graphics()
   fcns.cal_done_beep_hook     = cal_done_beep;
   fcns.dc_done_beep_hook      = dc_done_beep;
   fcns.dc_target_beep_hook    = dc_target_beep;
-  // fcns.get_input_key_hook     = get_input_key;
+  fcns.get_input_key_hook     = get_input_key;   
 
 
   /* register the call back functions with eyelink_core library */
@@ -180,7 +182,7 @@ void ELCALLTYPE close_expt_graphics()
 */
 INT16 ELCALLBACK get_input_key(InputEvent *key_input)
 {
-    mxArray *callOutput[1];
+    mxArray *callOutput[1], *tmpOut;
 
     // get a key event using the get key event.
     // mglGetKeyEvent()
@@ -194,19 +196,26 @@ INT16 ELCALLBACK get_input_key(InputEvent *key_input)
         UINT16 keycode = 0;    // the key (mgl code)
         char *charbuff;
         // get modifiers
-        int shift, control, command, alt, capslock;
+        int shift = 0, control = 0, command = 0, alt = 0, capslock = 0;
 
         // get the key event
         charbuff = mxArrayToString(mxGetField(callOutput[0],0,"charCode"));
-        charcode = (UINT16)charbuff[0];
+        if (charbuff!=NULL)
+            charcode = (UINT16)charbuff[0];
+        else
+            charcode = 0;
+        mxFree(charbuff);
         keycode = (UINT16)*(double*)mxGetPr(mxGetField(callOutput[0],0,"keyCode"));
-        shift = (int)*(double*)mxGetPr(mxGetField(callOutput[0],0,"shift"));
-        control = (int)*(double*)mxGetPr(mxGetField(callOutput[0],0,"control"));
-        capslock = (int)*(double*)mxGetPr(mxGetField(callOutput[0],0,"capslock"));
-        alt = (int)*(double*)mxGetPr(mxGetField(callOutput[0],0,"alt"));
+        tmpOut = mxGetField(callOutput[0],0,"shift");
+        if (tmpOut!=NULL) {
+            shift = (int)*(double*)mxGetPr(tmpOut);
+            control = (int)*(double*)mxGetPr(mxGetField(callOutput[0],0,"control"));
+            capslock = (int)*(double*)mxGetPr(mxGetField(callOutput[0],0,"capslock"));
+            alt = (int)*(double*)mxGetPr(mxGetField(callOutput[0],0,"alt"));
+        }
 
-        mexPrintf("c %d (%.1s) k %d shift %d cntr %d caps %d alt %d\n", charcode,
-            charbuff, keycode, shift, control, capslock, alt);
+        // mexPrintf("c %d (%.1s) k %d shift %d cntr %d caps %d alt %d\n", charcode,
+        //     charbuff, keycode, shift, control, capslock, alt);
 
         if (shift)
             modcode = (modcode | ELKMOD_LSHIFT | ELKMOD_RSHIFT);
@@ -217,7 +226,7 @@ INT16 ELCALLBACK get_input_key(InputEvent *key_input)
         if (capslock)
             modcode = (modcode | ELKMOD_CAPS);
 
-        if (charcode>=20 && charcode <=127) {
+        if (charcode>=33 && charcode <=127) {
             key_input->key.key = (char)charcode;
         } else {
             switch (keycode) {
@@ -286,9 +295,9 @@ INT16 ELCALLBACK get_input_key(InputEvent *key_input)
         key_input->key.state = KEYUP;
         key_input->key.type = KEYINPUT_EVENT;
         key_input->type = KEYINPUT_EVENT;
-        mexPrintf("InputEvent->type %d\nInputEvent->key.key %d\nInputEvent->key.modifier %d\n"
-        "InputEvent->key.state %d\nInputEvent->key.type %d\n", key_input->type, key_input->key.key,
-        key_input->key.modifier, key_input->key.state, key_input->key.type);
+        // mexPrintf("InputEvent->type %d\nInputEvent->key.key %d\nInputEvent->key.modifier %d\n"
+        // "InputEvent->key.state %d\nInputEvent->key.type %d\n", key_input->type, key_input->key.key,
+        // key_input->key.modifier, key_input->key.state, key_input->key.type);
         return 1;
     }
 }
@@ -481,12 +490,14 @@ void ELCALLBACK clear_cal_display(void)
  */
 INT16 ELCALLBACK setup_image_display(INT16 width, INT16 height)
 {
+    
     cameraPos[2] = width*2;
     cameraPos[3] = height*2;
-    mgltCamera = mglCreateRGBATexture(width, height);
-    mgltTitle = mglCreateTextTexture("Title");    
+    mgltCamera = mglcCreateRGBATexture(width, height);
+    mgltTitle = mglcCreateTextTexture("Title");    
     mexCallMATLAB(0,NULL,0,NULL,"mglClearScreen");
-    mexCallMATLAB(0,NULL,0,NULL,"mglFlush");        
+    // mexCallMATLAB(0,NULL,0,NULL,"mglFlush");        
+    mglcFlush(mglcDisplayNumber);
     
     return 0;
 }
@@ -499,8 +510,8 @@ INT16 ELCALLBACK setup_image_display(INT16 width, INT16 height)
 void ELCALLBACK exit_image_display(void)
 {
 
-    mglFreeTexture(mgltCamera);
-    mglFreeTexture(mgltTitle);
+    mglcFreeTexture(mgltCamera);
+    mglcFreeTexture(mgltTitle);
     
 }
 
@@ -519,8 +530,9 @@ void ELCALLBACK image_title(INT16 threshold, char *title)
     } else {
         snprintf(cameraTitle, sizeof(cameraTitle), "%s, threshold at %d", threshold);
     }
-    mglFreeTexture(mgltTitle);
-    mgltTitle = mglCreateTextTexture(cameraTitle);
+    // mexPrintf("Camera Title: %s\n", cameraTitle);
+    mglcFreeTexture(mgltTitle);
+    mgltTitle = mglcCreateTextTexture(cameraTitle);
     
 }
 
@@ -540,14 +552,15 @@ void ELCALLBACK set_image_palette(INT16 ncolors, byte r[130], byte g[130], byte 
 
     int i = 0; 
     for(i=0; i<ncolors; i++) 
-    { 
+    {
         UINT32 rf = r[i];
         UINT32 gf = g[i];
         UINT32 bf = b[i];
+        UINT32 alpha = 255;
 #ifdef __LITTLE_ENDIAN__
-        cameraImagePalleteMap[i] = (rf<<16) | (gf<<8) | (bf);
+        cameraImagePalleteMap[i] = (alpha<<24) | (rf<<16) | (gf<<8) | (bf);
 #else
-        cameraImagePalleteMap[i] = (bf<<16) | (gf<<8) | (rf);
+        cameraImagePalleteMap[i] = (rf<<24) | (gf<<16) | (bf<<8) | (alpha);
 #endif
     }
 
@@ -593,30 +606,43 @@ void ELCALLBACK draw_image_line(INT16 width, INT16 line, INT16 totlines, byte *p
     {
         // at this point we have a complete camera image. This may be very small.
         // we might want to enlarge it. For simplicity reasons, we will skip that.
+        mexCallMATLAB(0,NULL,0,NULL,"mglClearScreen");
     
         // center the camera image on the screen
         glBindTexture(GL_TEXTURE_2D, mgltCamera->textureNumber);    
+#ifdef __APPLE__
+        // tell GL that the memory will be handled by us. (apple)
+        glPixelStorei(GL_UNPACK_CLIENT_STORAGE_APPLE,0);
+        // now, try to store the memory in VRAM (apple)
+        glTexParameteri(GL_TEXTURE_RECTANGLE_EXT,GL_TEXTURE_STORAGE_HINT_APPLE,GL_STORAGE_CACHED_APPLE);
+        glTextureRangeAPPLE(GL_TEXTURE_RECTANGLE_EXT,mgltCamera->imageWidth*mgltCamera->imageHeight*BYTEDEPTH,mgltCamera->pixels);
+#endif
         glTexImage2D(GL_TEXTURE_RECTANGLE_EXT,0,GL_RGBA,
             mgltCamera->imageWidth,mgltCamera->imageHeight,0,
             GL_RGBA,TEXTURE_DATATYPE,mgltCamera->pixels);  
                 
-        mglBltTexture(mgltCamera, cameraPos, ALIGNCENTER, ALIGNCENTER);
-        mglBltTexture(mgltTitle, titlePos, ALIGNCENTER, ALIGNCENTER);
-        mexCallMATLAB(0, NULL, 0, NULL,"mglFlush");
+        // mexPrintf("[Camera Texture]");
+        mglcBltTexture(mgltCamera, cameraPos, ALIGNCENTER, ALIGNCENTER);
+        // mexPrintf("[Title Texture]");
+        // mglcBltTexture(mgltTitle, titlePos, ALIGNCENTER, ALIGNCENTER);
+        // mexCallMATLAB(0, NULL, 0, NULL,"mglFlush");
         
         // now we need to draw the cursors.
             
-        // CrossHairInfo crossHairInfo;
-        // memset(&crossHairInfo,0,sizeof(crossHairInfo));
-        // 
-        // crossHairInfo.w = width;
-        // crossHairInfo.h = totlines;
-        // crossHairInfo.drawLozenge = drawLozenge;
-        // crossHairInfo.drawLine = drawLine;
-        // crossHairInfo.getMouseState = getMouseState;
-        // // crossHairInfo.userdata = image; // could be used for gl display num
-        // 
-        // eyelink_draw_cross_hair(&crossHairInfo);
+        CrossHairInfo crossHairInfo;
+        memset(&crossHairInfo,0,sizeof(crossHairInfo));
+        
+        crossHairInfo.w = cameraPos[2];
+        crossHairInfo.h = cameraPos[3];
+        crossHairInfo.drawLozenge = drawLozenge;
+        crossHairInfo.drawLine = drawLine;
+        crossHairInfo.getMouseState = getMouseState;
+        // crossHairInfo.userdata = image; // could be used for gl display num
+        
+        eyelink_draw_cross_hair(&crossHairInfo);
+
+        mglcFlush(mglcDisplayNumber);
+
         
     }
 
@@ -630,9 +656,6 @@ void ELCALLBACK draw_image_line(INT16 width, INT16 line, INT16 totlines, byte *p
 void drawLine(CrossHairInfo *chi, int x1, int y1, int x2, int y2, int cindex)
 {
     mxArray *callInput[6];
-    double *inX1, *inX2;
-    double *inY1, *inY2;
-    double *inSize;
     double *inColor;
 
     callInput[0] = mxCreateDoubleMatrix(1,1,mxREAL);
@@ -641,13 +664,12 @@ void drawLine(CrossHairInfo *chi, int x1, int y1, int x2, int y2, int cindex)
     callInput[3] = mxCreateDoubleMatrix(1,1,mxREAL);
     callInput[4] = mxCreateDoubleMatrix(1,1,mxREAL);
     callInput[5] = mxCreateDoubleMatrix(1,3,mxREAL);
-    *(double*)mxGetPr(callInput[0]) = x1;
-    *(double*)mxGetPr(callInput[1]) = y1;
-    *(double*)mxGetPr(callInput[2]) = x2;
-    *(double*)mxGetPr(callInput[3]) = y2;
-    inSize = (double*)mxGetPr(callInput[4]);
+    *(double*)mxGetPr(callInput[0]) = x1 + cameraPos[0] - cameraPos[2]/2;
+    *(double*)mxGetPr(callInput[1]) = y1 + cameraPos[1] - cameraPos[3]/2;
+    *(double*)mxGetPr(callInput[2]) = x2 + cameraPos[0] - cameraPos[2]/2;
+    *(double*)mxGetPr(callInput[3]) = y2 + cameraPos[1] - cameraPos[3]/2;
+    *(double*)mxGetPr(callInput[4]) = 2;                // Size in pixels
     inColor = (double*)mxGetPr(callInput[5]);
-    *inSize = 2; // in pixels for now
     inColor[0] = 0;
     inColor[1] = 0;
     inColor[2] = 0;
@@ -674,7 +696,7 @@ void drawLine(CrossHairInfo *chi, int x1, int y1, int x2, int y2, int cindex)
     }
 
     // mglLines(x0, y0, x1, y1,size,color,bgcolor)
-    mexCallMATLAB(0,NULL,6,callInput,"mglLines");            
+    mexCallMATLAB(0,NULL,6,callInput,"mglLines2");            
 
 }
 
@@ -687,7 +709,7 @@ void drawLine(CrossHairInfo *chi, int x1, int y1, int x2, int y2, int cindex)
 void drawLozenge(CrossHairInfo *chi, int x, int y, int width, int height, int cindex)
 {
 	// NOT IMPLEMENTED.
-	printf("drawLozenge not implemented. \n");
+    // printf("drawLozenge not implemented. \n");
 }
 
 /*!
@@ -698,7 +720,7 @@ void drawLozenge(CrossHairInfo *chi, int x, int y, int width, int height, int ci
 void getMouseState(CrossHairInfo *chi, int *rx, int *ry, int *rstate)
 {
     // NOT IMPLEMENTED.
-    printf("getMouseState not implemented. \n");
+    // printf("getMouseState not implemented. \n");
 
 //   int x =0;
 //   int y =0;
@@ -721,7 +743,7 @@ void getMouseState(CrossHairInfo *chi, int *rx, int *ry, int *rstate)
     vAlignment = DEFAULT_V_ALIGNMENT;
 */
 
-void mglBltTexture(MGLTexture *texture, int position[4], int hAlignment, int vAlignment)
+void mglcBltTexture(MGLTexture *texture, int position[4], int hAlignment, int vAlignment)
 {
 
     double xPixelsToDevice, yPixelsToDevice, deviceHDirection, deviceVDirection;
@@ -742,7 +764,7 @@ void mglBltTexture(MGLTexture *texture, int position[4], int hAlignment, int vAl
     else
         texture->displayRect[3] = position[3];
     
-    mexPrintf("(mglBltTexture) Display rect = [%0.2f %0.2f %0.2f %0.2f]\n",texture->displayRect[0],texture->displayRect[1],texture->displayRect[2],texture->displayRect[3]);
+    // mexPrintf("(mglcBltTexture) Display rect = [%0.2f %0.2f %0.2f %0.2f]\n",texture->displayRect[0],texture->displayRect[1],texture->displayRect[2],texture->displayRect[3]);
 
     // get the xPixelsToDevice and yPixelsToDevice making sure these are set properly
     if ((xPixelsToDevice == 0) || (yPixelsToDevice == 0)) {
@@ -820,7 +842,7 @@ void mglBltTexture(MGLTexture *texture, int position[4], int hAlignment, int vAl
         texture->displayRect[2] = texture->displayRect[0];
         texture->displayRect[0] = temp;
     }
-    mexPrintf("(mglBltTexture) Display rect = [%0.2f %0.2f %0.2f %0.2f]\n",texture->displayRect[0],texture->displayRect[1],texture->displayRect[2],texture->displayRect[3]);
+    // mexPrintf("(mglcBltTexture) Display rect = [%0.2f %0.2f %0.2f %0.2f]\n",texture->displayRect[0],texture->displayRect[1],texture->displayRect[2],texture->displayRect[3]);
 
     // set blending functions etc.
     glEnable(GL_BLEND);
@@ -927,7 +949,7 @@ void mglBltTexture(MGLTexture *texture, int position[4], int hAlignment, int vAl
     glPopMatrix();
 }
 
-MGLTexture *mglCreateRGBATexture(int width, int height)
+MGLTexture *mglcCreateRGBATexture(int width, int height)
 {
     // we need eventually add parameters to set other elements of the texture
     // array
@@ -953,7 +975,7 @@ MGLTexture *mglCreateRGBATexture(int width, int height)
     texture->vFlip = 0;
     texture->textOverhang = 0;
     texture->isText = 0;
-    texture->rotation = -90;
+    texture->rotation = 0;
     texture->displayRect[0] = 0;
     texture->displayRect[1] = 0;
     texture->displayRect[2] = 0;
@@ -992,9 +1014,9 @@ MGLTexture *mglCreateRGBATexture(int width, int height)
     glBindTexture(GL_TEXTURE_RECTANGLE_EXT, texture->textureNumber);
 
 #ifdef __APPLE__
-  // tell GL that the memory will be handled by us. (apple)
+    // tell GL that the memory will be handled by us. (apple)
     glPixelStorei(GL_UNPACK_CLIENT_STORAGE_APPLE,0);
-  // now, try to store the memory in VRAM (apple)
+    // now, try to store the memory in VRAM (apple)
     glTexParameteri(GL_TEXTURE_RECTANGLE_EXT,GL_TEXTURE_STORAGE_HINT_APPLE,GL_STORAGE_CACHED_APPLE);
     glTextureRangeAPPLE(GL_TEXTURE_RECTANGLE_EXT,texture->imageWidth*texture->imageHeight*BYTEDEPTH,texture->pixels);
 #endif
@@ -1014,13 +1036,14 @@ MGLTexture *mglCreateRGBATexture(int width, int height)
     
 }
 
-void mglFreeTexture(MGLTexture *texture)
+void mglcFreeTexture(MGLTexture *texture)
 {
+    glDeleteTextures(1,&texture->textureNumber);
     free(texture->pixels);
     free(texture);
 }
 
-MGLTexture *mglCreateTextTexture(char *text)
+MGLTexture *mglcCreateTextTexture(char *text)
 {
 
   // get the global variable for the font
@@ -1075,10 +1098,12 @@ MGLTexture *mglCreateTextTexture(char *text)
     // create a texture
     ///////////////////////////
     MGLTexture *texture;
-    texture = mglCreateRGBATexture(pixelsWide, pixelsHigh);
-    free(texture->pixels);
-    texture->pixels = bitmapData;
+    texture = mglcCreateRGBATexture(pixelsHigh,pixelsWide);
+    memcpy(texture->pixels, bitmapData, (BYTEDEPTH*texture->imageWidth*texture->imageHeight));  
     texture->isText = 1;
+    texture->vFlip = mglGetGlobalDouble("fontHFlip");
+    texture->hFlip = mglGetGlobalDouble("fontHFlip");
+    
     
     // WE'LL NEED THIS IF THE DATA ISN'T HANDLED LOCALLY
     // // now place the data into the texture
@@ -1495,6 +1520,121 @@ unsigned char *renderText(const mxArray *inputString, char*fontName, int fontSiz
 }
 
 #endif //__linux__
+
+void mglcFlush(int displayNumber)
+{
+  int fullScreen=1;
+
+  
+//-----------------------------------------------------------------------------------///
+// **************************** mac cocoa specific code  **************************** //
+//-----------------------------------------------------------------------------------///
+#ifdef __APPLE__ 
+#ifdef __cocoa__
+  if (displayNumber >= 0) {
+    if (mglGetGlobalDouble("isCocoaWindow")) {
+      // cocoa, get openGLContext and flush
+      NSOpenGLContext *myOpenGLContext = (NSOpenGLContext*)(unsigned long)mglGetGlobalDouble("GLContext");
+      if (myOpenGLContext)
+	[myOpenGLContext flushBuffer];
+    }
+    else {
+      // get the current context
+      CGLContextObj contextObj = CGLGetCurrentContext();
+      // and flip the double buffered screen
+      // this call waits for vertical blanking
+      CGLFlushDrawable(contextObj); 
+    }
+  }
+#else //__cocoa__
+//-----------------------------------------------------------------------------------///
+// **************************** mac carbon specific code  *************************** //
+//-----------------------------------------------------------------------------------///
+  if (displayNumber > 0) {
+
+    // get the current context
+    CGLContextObj contextObj = CGLGetCurrentContext();
+
+    // and flip the double buffered screen
+    // this call waits for vertical blanking
+    CGLFlushDrawable(contextObj); 
+  }
+  else if (displayNumber == 0) {
+    // run in a window: get agl context
+    AGLContext contextObj=aglGetCurrentContext ();
+
+    if (!contextObj) {
+      printf("(mglFlush) No drawable context found\n");
+    }
+
+    // there seems to be some interaction with the matlab desktop
+    // in which the windowed graphics context crashes. The crash
+    // appears to occur in handeling a FlushAllWindows call. This
+    // causes a EXC_BAD_ACCESS error (something like a seg fault).
+    // I think this is occuring because of some interaction with
+    // multiple threads running--presumably, the window is being
+    // updated by one thread which called FlushAllBuffers and
+    // also by our call (either here, or in ShowWindow or HideWindow).
+    // the multiple accesses make Mac unhappy. 
+    // Don't know how to deal with this problem. I have tried to 
+    // check here that QDDone has finished, but it doesn't seem to make a
+    // difference.
+    // other things were tried too, like checking for events (assuming
+    // that maybe the OS got stuck with events that were never processed
+    // but none of that helped).
+    // The only thing that does seem to help is not closing and opening
+    // the window.
+    //AGLDrawable drawableObj = aglGetDrawable(contextObj);
+    //    QDFlushPortBuffer(drawableObj,NULL);
+    // swap buffers
+    //    if (QDDone(drawableObj))
+    aglSwapBuffers (contextObj);
+    
+    // get an event
+    //    EventRef theEvent;
+    //    EventTargetRef theTarget;
+    //    theTarget = GetEventDispatcherTarget();
+    //    if (ReceiveNextEvent(0,NULL,3/60,true,&theEvent) == noErr) {
+    //      SendEventToEventTarget(theEvent,theTarget);
+    //      ReleaseEvent(theEvent);
+    //    }
+    //    EventRecord theEventRecord;
+    //    EventMask theMask = everyEvent;
+    //    WaitNextEvent(theMask,&theEventRecord,3,nil);
+  }
+#endif//__cocoa__
+#endif//__APPLE__
+//-----------------------------------------------------------------------------------///
+// ****************************** linux specific code  ****************************** //
+//-----------------------------------------------------------------------------------///
+#ifdef __linux__
+
+  int dpyptr=(int)mglGetGlobalDouble("XDisplayPointer");
+  if (dpyptr<=0) return;
+  Display * dpy=(Display *)dpyptr;
+  glXSwapBuffers( dpy, glXGetCurrentDrawable() );
+
+#endif//__linux__
+
+//-----------------------------------------------------------------------------------///
+// **************************** Windows specific code  ****************************** //
+//-----------------------------------------------------------------------------------///
+#ifdef __WINDOWS__
+  unsigned int ref;
+  HDC hDC;
+  HGLRC hRC;
+  
+  // Grab our device and rendering context pointers.
+  ref = (unsigned int)mglGetGlobalDouble("winDeviceContext");
+  hDC = (HDC)ref;
+  ref = (unsigned int)mglGetGlobalDouble("GLContext");
+  hRC = (HGLRC)ref;
+  
+  wglMakeCurrent(hDC, hRC);
+  SwapBuffers(hDC);
+#endif // __WINDOWS__
+}
+
 
 int sub2indM( int row, int col, int height, int elsize ) {
   // return linear index corresponding to (row,col) into row-major array (Matlab-style)

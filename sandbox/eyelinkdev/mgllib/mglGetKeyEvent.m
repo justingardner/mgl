@@ -93,7 +93,7 @@ if mglPrivateListener(1)
         end
     end
 else
-    keyEvent = mglPrivateGetKeyEvent;
+    keyEvent = mglPrivateGetKeyEvent(waitTime);
 end
 
 % convert to array style output if more than one output argument
