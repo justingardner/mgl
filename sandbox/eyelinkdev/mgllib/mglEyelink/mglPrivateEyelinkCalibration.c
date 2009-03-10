@@ -369,7 +369,7 @@ void ELCALLBACK draw_cal_target(INT16 x, INT16 y)
       
       mexCallMATLAB(0, NULL, 4, callInput, "mglGluDisk");            
       //mglGluDisk(xDeg, yDeg, targetSize, targetcolor);
-      mexCallMATLAB(0, NULL, 0, NULL, "mglFlush");
+      mglcFlush(mglcDisplayNumber);
       mexPrintf("mglPrivateEyelinkCalibrate) draw_cal_target");
 }
 
@@ -379,8 +379,8 @@ void ELCALLBACK draw_cal_target(INT16 x, INT16 y)
 void ELCALLBACK erase_cal_target(void)
 {
 	/* erase the last calibration target  */
-    mexCallMATLAB(0, NULL, 0, NULL, "mglClearScreen");
-    mexCallMATLAB(0, NULL, 0, NULL, "mglFlush");
+    mglcClearScreen(NULL);
+    mglcFlush(mglcDisplayNumber);
 }
 
 /*!
@@ -475,8 +475,8 @@ void ELCALLBACK dc_done_beep(INT16 error)
  */
 void ELCALLBACK clear_cal_display(void)
 {
-    mexCallMATLAB(0, NULL, 0, NULL, "mglClearScreen");
-    mexCallMATLAB(0, NULL, 0, NULL, "mglFlush");
+    mglcClearScreen(NULL);
+    mglcFlush(mglcDisplayNumber);
    
 }
 
@@ -494,9 +494,8 @@ INT16 ELCALLBACK setup_image_display(INT16 width, INT16 height)
     cameraPos[2] = width*2;
     cameraPos[3] = height*2;
     mgltCamera = mglcCreateRGBATexture(width, height);
-    mgltTitle = mglcCreateTextTexture("Title");    
-    mexCallMATLAB(0,NULL,0,NULL,"mglClearScreen");
-    // mexCallMATLAB(0,NULL,0,NULL,"mglFlush");        
+    // mgltTitle = mglcCreateTextTexture("Title");    
+    mglcClearScreen(NULL);
     mglcFlush(mglcDisplayNumber);
     
     return 0;
@@ -511,7 +510,7 @@ void ELCALLBACK exit_image_display(void)
 {
 
     mglcFreeTexture(mgltCamera);
-    mglcFreeTexture(mgltTitle);
+    // mglcFreeTexture(mgltTitle);
     
 }
 
@@ -531,8 +530,8 @@ void ELCALLBACK image_title(INT16 threshold, char *title)
         snprintf(cameraTitle, sizeof(cameraTitle), "%s, threshold at %d", threshold);
     }
     // mexPrintf("Camera Title: %s\n", cameraTitle);
-    mglcFreeTexture(mgltTitle);
-    mgltTitle = mglcCreateTextTexture(cameraTitle);
+    // mglcFreeTexture(mgltTitle);
+    // mgltTitle = mglcCreateTextTexture(cameraTitle);
     
 }
 
@@ -606,17 +605,18 @@ void ELCALLBACK draw_image_line(INT16 width, INT16 line, INT16 totlines, byte *p
     {
         // at this point we have a complete camera image. This may be very small.
         // we might want to enlarge it. For simplicity reasons, we will skip that.
-        mexCallMATLAB(0,NULL,0,NULL,"mglClearScreen");
-    
+
+        mglcClearScreen(NULL);
+
         // center the camera image on the screen
         glBindTexture(GL_TEXTURE_2D, mgltCamera->textureNumber);    
-#ifdef __APPLE__
-        // tell GL that the memory will be handled by us. (apple)
-        glPixelStorei(GL_UNPACK_CLIENT_STORAGE_APPLE,0);
-        // now, try to store the memory in VRAM (apple)
-        glTexParameteri(GL_TEXTURE_RECTANGLE_EXT,GL_TEXTURE_STORAGE_HINT_APPLE,GL_STORAGE_CACHED_APPLE);
-        glTextureRangeAPPLE(GL_TEXTURE_RECTANGLE_EXT,mgltCamera->imageWidth*mgltCamera->imageHeight*BYTEDEPTH,mgltCamera->pixels);
-#endif
+// #ifdef __APPLE__
+//         // tell GL that the memory will be handled by us. (apple)
+//         glPixelStorei(GL_UNPACK_CLIENT_STORAGE_APPLE,0);
+//         // now, try to store the memory in VRAM (apple)
+//         glTexParameteri(GL_TEXTURE_RECTANGLE_EXT,GL_TEXTURE_STORAGE_HINT_APPLE,GL_STORAGE_CACHED_APPLE);
+//         glTextureRangeAPPLE(GL_TEXTURE_RECTANGLE_EXT,mgltCamera->imageWidth*mgltCamera->imageHeight*BYTEDEPTH,mgltCamera->pixels);
+// #endif
         glTexImage2D(GL_TEXTURE_RECTANGLE_EXT,0,GL_RGBA,
             mgltCamera->imageWidth,mgltCamera->imageHeight,0,
             GL_RGBA,TEXTURE_DATATYPE,mgltCamera->pixels);  
@@ -625,7 +625,8 @@ void ELCALLBACK draw_image_line(INT16 width, INT16 line, INT16 totlines, byte *p
         mglcBltTexture(mgltCamera, cameraPos, ALIGNCENTER, ALIGNCENTER);
         // mexPrintf("[Title Texture]");
         // mglcBltTexture(mgltTitle, titlePos, ALIGNCENTER, ALIGNCENTER);
-        // mexCallMATLAB(0, NULL, 0, NULL,"mglFlush");
+        
+        mexPrintf("F %d\n", mglcFrameNumber++);
         
         // now we need to draw the cursors.
             
@@ -1013,13 +1014,13 @@ MGLTexture *mglcCreateRGBATexture(int width, int height)
   // Support for non-power of two textures
     glBindTexture(GL_TEXTURE_RECTANGLE_EXT, texture->textureNumber);
 
-#ifdef __APPLE__
-    // tell GL that the memory will be handled by us. (apple)
-    glPixelStorei(GL_UNPACK_CLIENT_STORAGE_APPLE,0);
-    // now, try to store the memory in VRAM (apple)
-    glTexParameteri(GL_TEXTURE_RECTANGLE_EXT,GL_TEXTURE_STORAGE_HINT_APPLE,GL_STORAGE_CACHED_APPLE);
-    glTextureRangeAPPLE(GL_TEXTURE_RECTANGLE_EXT,texture->imageWidth*texture->imageHeight*BYTEDEPTH,texture->pixels);
-#endif
+// #ifdef __APPLE__
+//     // tell GL that the memory will be handled by us. (apple)
+//     glPixelStorei(GL_UNPACK_CLIENT_STORAGE_APPLE,0);
+//     // now, try to store the memory in VRAM (apple)
+//     glTexParameteri(GL_TEXTURE_RECTANGLE_EXT,GL_TEXTURE_STORAGE_HINT_APPLE,GL_STORAGE_CACHED_APPLE);
+//     glTextureRangeAPPLE(GL_TEXTURE_RECTANGLE_EXT,texture->imageWidth*texture->imageHeight*BYTEDEPTH,texture->pixels);
+// #endif
 
   // some other stuff
     glTexParameteri(GL_TEXTURE_RECTANGLE_EXT, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -1038,6 +1039,7 @@ MGLTexture *mglcCreateRGBATexture(int width, int height)
 
 void mglcFreeTexture(MGLTexture *texture)
 {
+    mexPrintf("Freeing texture number %d\n", texture->textureNumber);
     glDeleteTextures(1,&texture->textureNumber);
     free(texture->pixels);
     free(texture);
@@ -1520,6 +1522,15 @@ unsigned char *renderText(const mxArray *inputString, char*fontName, int fontSiz
 }
 
 #endif //__linux__
+
+void mglcClearScreen(int *color)
+{
+    if (color!=NULL) {
+        glClearColor(color[0],color[1],color[2],color[3]);    
+    }
+    // now clear to the set color
+    glClear(GL_COLOR_BUFFER_BIT);    
+}
 
 void mglcFlush(int displayNumber)
 {

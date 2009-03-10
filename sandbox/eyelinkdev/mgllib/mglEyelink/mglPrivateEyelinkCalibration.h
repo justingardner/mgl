@@ -117,6 +117,7 @@ MGLTexture *mglcCreateRGBATexture(int width, int height);
 MGLTexture *mglcCreateTextTexture(char *text);
 void mglcFreeTexture(MGLTexture *texture);
 void mglcFlush(int displayNumber);
+void mglcClearScreen(int *color);
 
 unsigned char *renderText(char *cInputString, char*fontName, int fontSize, double *fontColor, double fontRotation, Boolean fontBold, Boolean fontItalic, Boolean fontUnderline, Boolean fontStrikethrough, int *pixelsWide, int *pixelsHigh, Rect *textImageRect);
 
@@ -130,5 +131,6 @@ static int cameraPos[4] = {551, 435, 0, 0};
 static int titlePos[4] = {551, 100, 0, 0};
 static UINT32 cameraImagePalleteMap[130+2]; // Camera image pallete mapping
 static int mglcDisplayNumber;
+static int mglcFrameNumber = 0;
 
 #endif __MGLEYELINK_H
