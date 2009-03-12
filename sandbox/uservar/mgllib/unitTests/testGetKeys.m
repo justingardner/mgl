@@ -24,6 +24,13 @@ while mglGetSecs(startT) < 60
 end
 fprintf(1,'\nFinished collecting data.\n');
 
+keypresses = reshape([mglGetKeysResults.keys], 128, [])';
+if any(any(keypresses(1:60,:),2))
+    fprintf(2,'ERROR: Unexpected key presses found during no-press aquisition.\n');
+end
+if ~any(any(keypresses(61:120,:),2))
+    fprintf(2,'ERROR: No key presses found during key-press aquisition.\n')
+end
 
 % resultN = 1;
 % startT = mglGetSecs;
