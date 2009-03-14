@@ -156,7 +156,7 @@ echo "Error: Did not imbed 'options.sh' code"; exit 1 #imbed options.sh glnxi64 
         mac)
 #----------------------------------------------------------------------------
             CC='gcc'
-            CFLAGS='-x objective-c -fno-common -no-cpp-precomp -fexceptions -I/Library/Frameworks/eyelink_core.framework/Headers -I/Developer/Library/Frameworks/eyelink_core.framework/Headers'
+            CFLAGS='-x objective-c -fno-common -no-cpp-precomp -fexceptions -I/Library/Frameworks/eyelink_core.framework/Headers'
             CLIBS="$MLIBS -lstdc++"
             COPTIMFLAGS='-O3 -DNDEBUG'
             CDEBUGFLAGS='-g'
@@ -183,7 +183,7 @@ echo "Error: Did not imbed 'options.sh' code"; exit 1 #imbed options.sh glnxi64 
 
 #            CC='g++-3.3'
             CC='gcc-4.0'
-            CFLAGS='-x objective-c -fno-common -no-cpp-precomp -fexceptions -arch i386 -pthread -I/Library/Frameworks/eyelink_core.framework/Headers -I/Developer/Library/Frameworks/eyelink_core.framework/Headers'
+            CFLAGS='-x objective-c -fno-common -no-cpp-precomp -fexceptions -arch i386 -pthread -I/Library/Frameworks/eyelink_core.framework/Headers'
             CLIBS="$MLIBS -lstdc++"
             COPTIMFLAGS='-O3 -DNDEBUG'
             CDEBUGFLAGS='-g'
