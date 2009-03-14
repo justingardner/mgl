@@ -379,7 +379,11 @@ function [task myscreen] = initTask(task, myscreen, startSegmentCallback, ...
     else
         task.callback.rand = @blockRandomization;
     end
-
+    if myscreen.eyetracker.init
+        fprintf(2, '(initTask) THIS IS WHERE WE INITIALIZE THE CALLBACKS FOR TRACKING');
+    end
+    
+    
     % initialize the parameters
     task.parameter = feval(task.callback.rand,task.parameter);
 
