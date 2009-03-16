@@ -183,28 +183,32 @@ void ELCALLTYPE close_expt_graphics()
 INT16 ELCALLBACK get_input_key(InputEvent *key_input)
 {
     mxArray *callOutput[1], *tmpOut;
+    UINT16 keycode = 0;    // the key (mgl code)
 
     // get a key event using the get key event.
-    // mglGetKeyEvent()
-    mexCallMATLAB(1,callOutput,0,NULL,"mglGetKeyEvent");            
+    mexCallMATLAB(1,callOutput,0,NULL,"mglGetKeyEvent");
+    // return 0;
+    // mexCallMATLAB(1,callOutput,0,NULL,"mglGetKeys");
     if (mxIsEmpty(callOutput[0])) {
-        return 0;        
+    // if (!(keycode = mglcGetKeys())) {
+        // mexPrintf("Empty Key Event\n");
+        return 0;
     }
     else {
         // parse key and place in *key_input
         UINT16 charcode = 0, modcode = 0; // the key (ascii)
-        UINT16 keycode = 0;    // the key (mgl code)
         char *charbuff;
         // get modifiers
         int shift = 0, control = 0, command = 0, alt = 0, capslock = 0;
-
         // get the key event
         charbuff = mxArrayToString(mxGetField(callOutput[0],0,"charCode"));
+        // charbuff = keycodeToChar(keycode);
         if (charbuff!=NULL)
             charcode = (UINT16)charbuff[0];
         else
             charcode = 0;
         mxFree(charbuff);
+            // free(charbuff);
         keycode = (UINT16)*(double*)mxGetPr(mxGetField(callOutput[0],0,"keyCode"));
         tmpOut = mxGetField(callOutput[0],0,"shift");
         if (tmpOut!=NULL) {
@@ -214,8 +218,8 @@ INT16 ELCALLBACK get_input_key(InputEvent *key_input)
             alt = (int)*(double*)mxGetPr(mxGetField(callOutput[0],0,"alt"));
         }
 
-        // mexPrintf("c %d (%.1s) k %d shift %d cntr %d caps %d alt %d\n", charcode,
-        //     charbuff, keycode, shift, control, capslock, alt);
+        mexPrintf("c %d (%.1s) k %d shift %d cntr %d caps %d alt %d\n", charcode,
+            charbuff, keycode, shift, control, capslock, alt);
 
         if (shift)
             modcode = (modcode | ELKMOD_LSHIFT | ELKMOD_RSHIFT);
@@ -1645,6 +1649,253 @@ void mglcFlush(int displayNumber)
   SwapBuffers(hDC);
 #endif // __WINDOWS__
 }
+
+// =========================
+// = New Get Keys Function =
+// =========================
+int mglcGetKeys()
+{
+    int i,n,displayKey;
+
+//-----------------------------------------------------------------------------------///
+// ******************************* mac specific code  ******************************* //
+//-----------------------------------------------------------------------------------///
+#ifdef __APPLE__
+    int longNum;int bitNum;int logicalNum = 0;
+  //  get the status of the keyboard
+    KeyMap theKeys;
+    GetKeys(theKeys);
+    unsigned char *keybytes;
+    short k;
+    keybytes = (unsigned char *) theKeys;
+
+    i = 0;
+    while (i < 128) {
+        k=(short)i;
+        if ((keybytes[k>>3] & (1 << (k&7))) != 0) {
+            return i+1;
+        }
+        i++;
+    }
+    return 0;
+#endif//__APPLE__
+
+//-----------------------------------------------------------------------------------///
+// ****************************** linux specific code  ****************************** //
+//-----------------------------------------------------------------------------------///
+#ifdef __linux__
+    Display * dpy;
+    int dpyptr=(int)mglGetGlobalDouble("XDisplayPointer");
+    if (dpyptr<=0) {
+    // open a dummy display
+        dpy=XOpenDisplay(0);
+    } else {
+        dpy=(Display *)dpyptr;
+    }
+    char keys_return[32];
+
+    XQueryKeymap(dpy, keys_return);
+
+    if (!returnAllKeys) {
+    // figure out how many elements are desired
+        n = mxGetN(prhs[0]);
+    // and create an output matrix
+        plhs[0] = mxCreateDoubleMatrix(1,n,mxREAL);
+        outptr = mxGetPr(plhs[0]);
+    // now go through and get each key
+        for (i=0; i<n; i++) {
+            displayKey = (int)*(inptr+i)-1; // input is 1-offset
+            if ((displayKey < 0) || (displayKey > 256)) {
+                mexPrintf("(mglGetKeys) Key %i out of range 1:256",displayKey);
+                return;
+            }
+            int keypos=(int) floor(displayKey/8);
+            int keyshift=displayKey%8;
+
+            *(outptr+i) = (double) (( keys_return[keypos] >> keyshift) & 0x1);
+        }
+    } else {
+        plhs[0] = mxCreateLogicalMatrix(1,256);
+        mxLogical *loutptr = mxGetLogicals(plhs[0]);
+
+        for (int n=0; n<32; n++) {
+            for (int m=0; m<8; m++) {
+                *(loutptr+n*8+m) = (double) (( keys_return[n] >> m ) & 0x1);
+            }
+        }
+        if (verbose) {
+            mexPrintf("(mglGetKeys) Keystate = ");
+            for (int n=0; n<32; n++) {
+                for (int m=0; m<8; m++) {
+                    mexPrintf("%i ", ( keys_return[n] >> m ) & 0x1 );
+                }
+            }
+            mexPrintf("\n");
+        }
+    }
+
+    if (dpyptr<=0) {
+        XCloseDisplay(dpy);
+    }
+
+
+
+#endif 
+}
+
+//-----------------------------------------------------------------------------------///
+// **************************** mac cocoa specific code  **************************** //
+//-----------------------------------------------------------------------------------///
+#ifdef __APPLE__
+#ifdef __cocoa__
+///////////////////////
+//   keycodeToChar   //
+///////////////////////
+char *keycodeToChar(UInt16 keycode)
+{
+  UInt32 keyboard_type = 0;
+  const void *chr_data = NULL;
+  UInt32 deadKeyState = 0;
+  UniCharCount maxStringLength = 8, actualStringLength;
+  UniChar unicodeString = malloc(sizeof(UniChar)*8);
+
+  // get the current keyboard "layout input source"
+  TISInputSourceRef currentKeyLayoutRef = TISCopyCurrentKeyboardLayoutInputSource();
+  // and the keyboard type
+  keyboard_type = LMGetKbdType ();
+  // now get the unicode key layout data
+  if (currentKeyLayoutRef) {
+    CFDataRef currentKeyLayoutDataRef = (CFDataRef )TISGetInputSourceProperty(currentKeyLayoutRef,kTISPropertyUnicodeKeyLayoutData);
+    if (currentKeyLayoutDataRef) 
+      chr_data = CFDataGetBytePtr(currentKeyLayoutDataRef);
+    else
+      mexPrintf("(mglCharToKeycode) Could not get UnicodeKeyLayoutData\n");
+  };
+
+    // get the keycode using UCKeyTranslate
+    UCKeyTranslate(chr_data,keycode-1,kUCKeyActionDown,0,keyboard_type,0,&deadKeyState,maxStringLength,&actualStringLength,unicodeString);
+    
+  }
+  return ((char*)unicodeString);
+
+}
+//-----------------------------------------------------------------------------------///
+// **************************** mac carbon specific code  *************************** //
+//-----------------------------------------------------------------------------------///
+#else //__cocoa__
+///////////////////////
+//   keycodeToChar   //
+///////////////////////
+char *keycodeToChar(UInt16 keycode)
+{
+
+  /*
+    Converts a virtual key code to a character code based on a 'KCHR' resource.
+
+        UInt32 KeyTranslate (
+        const void * transData,
+        UInt16 keycode,
+        UInt32 * state
+        );
+
+    Parameters
+
+        transData
+
+        A pointer to the 'KCHR' resource that you want the KeyTranslate function to use when converting the key code to a character code. 
+        keycode
+
+        A 16-bit value that your application should set so that bits 0?6 contain the virtual key code and bit 7 contains either 1 to indicate an up stroke or 0 to indicate a down stroke of the key. Bits 8?15 have the same interpretation as the high byte of the modifiers field of the event structure and should be set according to the needs of your application. 
+        state
+
+        A pointer to a value that your application should set to 0 the first time it calls KeyTranslate or any time your application calls KeyTranslate with a different 'KCHR' resource. Thereafter, your application should pass the same value in the state parameter as KeyTranslate returned in the previous call. 
+
+        Return Value
+        Discussion
+
+        The KeyTranslate function returns a 32-bit value that gives the character code for the virtual key code specified by the keycode parameter.
+
+        The KeyTranslate function returns the values that correspond to one or possibly two characters that are generated by the specified virtual key code. For example, a given virtual key code might correspond to an alphabetic character with a separate accent character. For example, when the user presses Option-E followed by N, you can map this through the KeyTranslate function using the U.S. 'KCHR' resource to produce ?n, which KeyTranslate returns as two characters in the bytes labeled Character code 1 and Character code 2. If KeyTranslate returns only one character code, it is always in the byte labeled Character code 2. However, your application should always check both bytes labeled Character code 1 and Character code 2 for possible values that map to the virtual key code.
+
+   */
+
+    void *kchr;
+    UInt32 state=0;
+    KeyboardLayoutRef layout;
+
+    if (KLGetCurrentKeyboardLayout(&layout) != noErr) {
+        mexPrintf("Error retrieving current layout\n");
+        return;
+    }
+
+  //  if (KLGetKeyboardLayoutProperty(layout, kKLKCHRData, const_cast<const void**>(&kchr)) != noErr) {
+    if (KLGetKeyboardLayoutProperty(layout, kKLKCHRData, (const void **) (&kchr)) != noErr) {
+        mexPrintf("Couldn't load active keyboard layout\n");
+        return;
+    }
+
+    int bullshitFromSystem=1;
+    const void * bullshitFromSystemptr=(void *)&bullshitFromSystem;
+    if (KLGetKeyboardLayoutProperty(layout, kKLKind, (&bullshitFromSystemptr)) != noErr) {
+        mexPrintf("Couldn't load active keyboard layout\n");
+        return;
+    }
+
+    char *c = malloc(sizeof(char)*2);
+    c[1]=0;
+
+    UInt32 charcode=KeyTranslate( kchr, keycode-1, &state );
+
+    // get byte corresponding to character
+    c[0] = (char) (charcode);
+
+    return (c);
+}
+#endif//__cocoa__
+#endif//__APPLE__
+
+//-----------------------------------------------------------------------------------///
+// ****************************** linux specific code  ****************************** //
+//-----------------------------------------------------------------------------------///
+#ifdef __linux__
+///////////////////////
+//   keycodeToChar   //
+///////////////////////
+mxArray *keycodeToChar(const mxArray *arrayOfKeycodes)
+{
+  
+  // Compare the beautiful simplicity of the following code with the Mac horrors above. 
+  // Amazing considering that X was developed *before* Apple's API. 
+
+  int nkeys,i;
+  Display * dpy;
+
+  // init the output array
+  nkeys=mxGetNumberOfElements(arrayOfKeycodes);
+  mxArray *out=mxCreateCellMatrix(1,nkeys);
+
+
+  int dpyptr=(int)mglGetGlobalDouble("XDisplayPointer");
+  if (dpyptr<=0) {
+    // open a dummy display
+    dpy=XOpenDisplay(0);
+  } else {
+    dpy=(Display *)dpyptr;
+  }
+  
+  for (i=0; i<nkeys; i++) {
+    KeySym keysym=XKeycodeToKeysym(dpy, (int)*(mxGetPr(arrayOfKeycodes)+i)-1, 0);// remove 1-offset  
+    if (keysym!=NoSymbol) 
+      mxSetCell(out, i, mxCreateString( XKeysymToString(keysym)));
+  }
+
+  if (dpyptr<=0) {
+    XCloseDisplay(dpy);
+  }
+  
+  return(out);
+}
+#endif //__linux__
 
 
 int sub2indM( int row, int col, int height, int elsize ) {

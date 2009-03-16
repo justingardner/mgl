@@ -25,8 +25,12 @@
 %
 function [keyEvent when charCode] = mglGetKeyEvent(waitTime,getAllEvents)
 
-if nargin == 0,waitTime = [];end
-if nargin == 1,getAllEvents = 0;end
+    if nargin == 0
+        waitTime = [];
+    end
+    if nargin == 1
+        getAllEvents = 0;
+    end
   
 % get all key events
 if (nargin == 2) && getAllEvents

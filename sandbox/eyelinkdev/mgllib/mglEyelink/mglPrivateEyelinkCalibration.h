@@ -118,6 +118,9 @@ MGLTexture *mglcCreateTextTexture(char *text);
 void mglcFreeTexture(MGLTexture *texture);
 void mglcFlush(int displayNumber);
 void mglcClearScreen(int *color);
+int mglcGetKeys();
+char *keycodeToChar(UInt16 keycode);
+
 
 unsigned char *renderText(char *cInputString, char*fontName, int fontSize, double *fontColor, double fontRotation, Boolean fontBold, Boolean fontItalic, Boolean fontUnderline, Boolean fontStrikethrough, int *pixelsWide, int *pixelsHigh, Rect *textImageRect);
 

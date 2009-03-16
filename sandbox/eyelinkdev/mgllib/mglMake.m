@@ -20,7 +20,7 @@ function retval = mglMake(rebuild, varargin)
         help mglMake
         return
     end
-    doOrDoNot = 0;
+
     % interpret rebuild argument
     if ~exist('rebuild','var')
         rebuild=0;
@@ -33,9 +33,6 @@ function retval = mglMake(rebuild, varargin)
         elseif isequal(rebuild,'cocoa')
             varargin = {'-D__cocoa__', varargin};
             rebuild = 1;
-        elseif isequal(upper(rebuild), 'DOORDONOT')
-            rebuild = 0;
-            doOrDoNot = 1;
         elseif ischar(rebuild) && isequal(rebuild(1), '-')
             varargin = {rebuild, varargin{:}};
             rebuild=0;
@@ -115,17 +112,13 @@ function retval = mglMake(rebuild, varargin)
                     command = [command sprintf('%s',sourcefile(i).name)];
                     % display the mex command
                     disp(command);
-                    % now run it, optinally catching an errors
-                    if doOrDoNot
+                    % now run it, catching an errors
+                    try
                         eval(command);
-                    else
-                        try
-                            eval(command);
-                        catch err
-                            disp(['Error compiling ' sourcefile(i).name]);
-                            disp(err.message);
-                            disp(err.identifier);
-                        end
+                    catch err
+                        disp(['Error compiling ' sourcefile(i).name]);
+                        disp(err.message);
+                        disp(err.identifier);
                     end
                 else
                     disp(sprintf('%s is up to date',sourcefile(i).name));

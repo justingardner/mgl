@@ -1,6 +1,7 @@
 % needed for video test
 mglOpen()
 mglScreenCoordinates()
+
 % open the link
 % calls mglPrivateEyelinkOpen, default ip is '100.1.1.1', default conntype is 0
 mglEyelinkOpen('100.1.1.1', 0);
@@ -15,7 +16,7 @@ mglPrivateEyelinkCMDPrintF('file_sample_data = RIGHT,GAZE,AREA,GAZERES,STATUS');
 mglPrivateEyelinkCMDPrintF('sample_rate = 500');
 
 % get a key even listener
-mglListener(1);
+mglListener('init');
 
 % run the calibration
 mglPrivateEyelinkCalibration
@@ -45,7 +46,7 @@ mglPrivateEyelinkCalibration
 % mglPrivateEyelinkEDFGetFile('foo.edf');
 
 % get a key even listener
-mglListener(0);
+mglListener('quit');
 
 % close the link
 mglPrivateEyelinkClose();
