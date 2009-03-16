@@ -264,7 +264,7 @@ function [task, myscreen tnum] = updateTrial(task, myscreen, tnum)
         myscreen = writeTrace(task{tnum}.thistrial.thisseg,task{tnum}.segmentTrace,myscreen,1);
         
         % call segment start callback
-        if myscreen.eyetracker.init
+        if myscreen.eyetracker.init && isfield(myscreen.eyetracker.callback, 'startSegment')
             %% call eyetracker trial callback
             [task{tnum} myscreen] = feval(myscreen.eyetracker.callback.startSegment,task{tnum},myscreen);
         end
@@ -356,7 +356,7 @@ function [task myscreen] = initBlock(task,myscreen)
     if isfield(task.callback,'startBlock')
         [task myscreen] = feval(task.callback.startBlock,task,myscreen);
     end
-    if myscreen.eyetracker.init && isfield(myscreen.eyetracker.callback.startBlock)
+    if myscreen.eyetracker.init && isfield(myscreen.eyetracker.callback, 'startBlock')
         %% call eyetracker block callback
         [task{tnum} myscreen] = feval(myscreen.eyetracker.callback.startBlock,task{tnum},myscreen);
     end
@@ -446,7 +446,7 @@ function [task, myscreen] = initTrial(task,myscreen)
     if isfield(task.callback,'startTrial')
         [task myscreen] = feval(task.callback.startTrial,task,myscreen);
     end    
-    if myscreen.eyetracker.init && isfield(myscreen.eyetracker.callback.startTrial)
+    if myscreen.eyetracker.init && isfield(myscreen.eyetracker.callback, 'startTrial')
         %% call eyetracker trial callback
         [task{tnum} myscreen] = feval(myscreen.eyetracker.callback.startTrial,task{tnum},myscreen);
     end

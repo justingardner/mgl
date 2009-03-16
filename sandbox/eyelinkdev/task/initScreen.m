@@ -376,6 +376,7 @@ function myscreen = initScreen(myscreen,randstate)
     % the initEyeTracker function hasn't been run or was unsuccessful
     if ~isfield(myscreen, 'eyetracker') || ~isfield(myscreen.eyetracker, 'init')
         myscreen.eyetracker.init = 0;
+        myscreen.eyetracker.callback = [];
     end
 
     % init stimulus names if it does not exist already
