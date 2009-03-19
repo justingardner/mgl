@@ -50,7 +50,7 @@ while thiskey ~= ESCKEY
   keyEvent = mglGetKeyEvent;
   if ~isempty(keyEvent)
     thiskey = keyEvent.charCode;
-    disp(sprintf('%s %i %i %i',keyEvent.charCode,keyEvent.keyCode,keyEvent.keyboard,keyEvent.when));
+    disp(sprintf('%s %i %i %i',char(keyEvent.charCode),keyEvent.keyCode,keyEvent.keyboard,keyEvent.when));
     lastkey = thiskey;
   end
 end
