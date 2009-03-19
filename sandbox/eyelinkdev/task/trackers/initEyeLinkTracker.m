@@ -40,5 +40,6 @@ function [myscreen] = initEyeLinkEyeTracker(myscreen, tracker)
     mglPrivateEyelinkCMDPrintF('sample_rate = 500');
 
     myscreen.eyetracker.callback.getposition = @mglEyelinkCallbackGetPosition;
+    myscreen.eyetracker.init = 1;
     
 end

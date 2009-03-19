@@ -1973,6 +1973,7 @@ char *keycodeToChar(UInt16 keycode)
 // ****************************** linux specific code  ****************************** //
 //-----------------------------------------------------------------------------------///
 #ifdef __linux__
+
 ///////////////////////
 //   keycodeToChar   //
 ///////////////////////
@@ -2027,78 +2028,3 @@ int sub2ind( int row, int col, int height, int elsize ) {
   // return linear index corresponding to (row,col) into Matlab array
     return ( row*elsize + col*height*elsize );
 }
-
-
-#ifdef __eventtap__
-void setupGeyKeyCallback()
-{
-
-
-    NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
-    CGKeyCode keycode;
-    double timestamp;
-    CGEventType type;
-
-    CGEventRef event;
-    CGEventMask        eventMask;
-    CFRunLoopSourceRef runLoopSource;
-    int keyboardType;
-
-    if (!AXAPIEnabled()) {
-        mexPrintf("(mglPrivateEyelinkCalibrate) **WARNING** To get keyboard events, you must have the Accessibility API enabled. From System Preferences open Universal Access and make sure that \"Enable access for assistive devices\" is checked **WARNING **\n");
-    }
-
-
-
-  // Create an event tap. We are interested in key presses and mouse presses
-    eventMask = ((1 << kCGEventKeyDown) | (1 << kCGEventKeyUp));
-    // gEventTap = CGEventTapCreate(kCGSessionEventTap, kCGHeadInsertEventTap, kCGEventTapOptionListenOnly, eventMask, myCGEventCallback, NULL);
-    gEventTap = CGEventTapCreate(kCGSessionEventTap, kCGHeadInsertEventTap, kCGEventTapOptionDefault, eventMask, myCGEventCallback, NULL);
-
-  // see if it was created properly
-    if (!gEventTap) {
-        mexPrintf("(mglPrivateEyelinkCalibrate) Failed to create event tap\n");
-        return;
-    }
-
-  // Create a run loop source.
-    runLoopSource = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, gEventTap, 0);
-
-  // Add to the current run loop.
-    CFRunLoopAddSource(CFRunLoopGetCurrent(), runLoopSource, kCFRunLoopCommonModes);
-
-  // Enable the event tap.
-    CGEventTapEnable(gEventTap, true);
-
-  // see if it is enable
-    if (!CGEventTapIsEnabled(gEventTap)) {
-        mexPrintf("(mglPrivateEyelinkCalibrate) Failed to enable event tap\n");
-        return;
-    }
-
-
-  // set up run loop
-    // CFRunLoopRun();
-
-}
-
-////////////////////////
-//   event callback   //
-////////////////////////
-CGEventRef myCGEventCallback(CGEventTapProxy proxy, CGEventType type, CGEventRef event, void *refcon)
-{
-  // check for keyboard event
-    if (type == kCGEventKeyDown) {
-        eventKeyCode = (CGKeyCode)CGEventGetIntegerValueField(event, kCGKeyboardEventKeycode)+1;
-        eventKeyFlags = (double)CGEventGetFlags(event);
-        keyDownEvent = 1;
-    }
-    else if (type == kCGEventKeyUp) {
-
-    }
-
-  // return the event for normal OS processing
-    return event;
-}
-
-#endif

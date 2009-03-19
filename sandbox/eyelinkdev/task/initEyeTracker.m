@@ -48,5 +48,8 @@ function [myscreen] = initEyeTracker(myscreen, tracker)
             fprintf(2, '(initEyeTracker) Unknown eye-tracker specified.\n');
         end
     end
+    if ~myscreen.eyetracker.init
+        error('Attempt to initialize eye tracker failed.');
+    end
     
 end
