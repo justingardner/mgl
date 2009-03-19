@@ -16,7 +16,7 @@ mglPrivateEyelinkCMDPrintF('file_sample_data = RIGHT,GAZE,AREA,GAZERES,STATUS');
 mglPrivateEyelinkCMDPrintF('sample_rate = 500');
 
 % get a key even listener
-mglListener('init');
+% mglListener('init');
 
 % run the calibration
 mglPrivateEyelinkCalibration
@@ -46,7 +46,7 @@ mglPrivateEyelinkCalibration
 % mglPrivateEyelinkEDFGetFile('foo.edf');
 
 % get a key even listener
-mglListener('quit');
+% mglListener('quit');
 
 % close the link
 mglPrivateEyelinkClose();

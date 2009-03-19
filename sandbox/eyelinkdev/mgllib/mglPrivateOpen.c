@@ -178,7 +178,7 @@ unsigned long cocoaOpen(double *displayNumber, int *screenWidth, int *screenHeig
   NSWindow *myWindow;
   NSOpenGLContext *myOpenGLContext;
 
-  // get status of global variable that sets wether to display
+  // get status of global variable that sets whether to display
   // verbose information
   int verbose = (int)mglGetGlobalDouble("verbose");
 

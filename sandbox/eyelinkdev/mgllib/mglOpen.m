@@ -73,6 +73,7 @@ if ~openDisplay && ~isempty(whichScreen) && (whichScreen >= 1)
   end
 end
 
+oldVerboseState = mglGetParam('verbose');
 mglSetParam('verbose',1);
 if ~openDisplay
   % default to showing that cocoa is not running
@@ -138,7 +139,7 @@ if ~openDisplay
   mglClearScreen(0);
   mglFlush;
 end
-mglSetParam('verbose',0);
+mglSetParam('verbose',oldVerboseState);
 
 % round down to remove any decimal alpha request
 whichScreen = floor(whichScreen);
