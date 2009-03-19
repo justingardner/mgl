@@ -70,6 +70,26 @@
 #define XY 1
 #define YX 0
 
+#ifdef __eventtap__
+
+////////////////////////
+//   define section   //
+////////////////////////
+#define TRUE 1
+#define FALSE 0
+#define INIT 1
+#define GETKEYEVENT 2
+#define GETMOUSEEVENT 3
+#define QUIT 0
+#define GETKEYS 4
+#define GETALLKEYEVENTS 5
+#define GETALLMOUSEEVENTS 6
+#define EATKEYS 7
+#define MAXEATKEYS 256
+#define MAXKEYCODES 128
+
+#endif
+
 // ===========
 // = Structs =
 // ===========
@@ -86,6 +106,13 @@ typedef struct MGLTexture {
   double displayRect[4];
   double rotation;
 } MGLTexture;
+
+typedef struct MGLKeyEvent {
+    INT16 charCode;
+    INT16 keyCode;
+    INT16 keyboard;
+    INT16 when;
+} MGLKeyEvent;
 
 // ================
 // = Declarations =
@@ -120,7 +147,9 @@ void mglcFlush(int displayNumber);
 void mglcClearScreen(int *color);
 int mglcGetKeys();
 char *keycodeToChar(UInt16 keycode);
-
+void setupGeyKeyCallback();
+CGEventRef myCGEventCallback(CGEventTapProxy proxy, CGEventType type, CGEventRef event, void *refcon);
+INT16 mglcGetKeyEvent(MGLKeyEvent *mglKey);
 
 unsigned char *renderText(char *cInputString, char*fontName, int fontSize, double *fontColor, double fontRotation, Boolean fontBold, Boolean fontItalic, Boolean fontUnderline, Boolean fontStrikethrough, int *pixelsWide, int *pixelsHigh, Rect *textImageRect);
 
@@ -135,5 +164,11 @@ static int titlePos[4] = {551, 100, 0, 0};
 static UINT32 cameraImagePalleteMap[130+2]; // Camera image pallete mapping
 static int mglcDisplayNumber;
 static int mglcFrameNumber = 0;
+
+static CFMachPortRef gEventTap;
+
+static int keyDownEvent = 0;
+static int eventKeyCode = 0;
+static CGEventFlags eventKeyFlags;
 
 #endif __MGLEYELINK_H

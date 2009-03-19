@@ -1,17 +1,17 @@
 #ifdef documentation
 =========================================================================
-program: mglPrivateEyelinkCalibration.c
-by:      eric dewitt and eli merriam
-date:    02/08/09
-copyright: (c) 2006 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
-purpose: Sets the eyetracker into setup mode for calibration, validation
-         and drift correction. Allows for mgl based (local) calibration 
-         and eyelink software (remote, on eyelink computer) based setup.
-         Local setup allows for self calibration. Wrapper handles keyboard.
-         You must specify display location for the camera graphics.
-usage:   mglPrivateEyelinkCalibration([display_num])
+    program: mglPrivateEyelinkCalibration.c
+    by:      eric dewitt and eli merriam
+    date:    02/08/09
+    copyright: (c) 2006 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
+    purpose: Sets the eyetracker into setup mode for calibration, validation
+    and drift correction. Allows for mgl based (local) calibration 
+    and eyelink software (remote, on eyelink computer) based setup.
+    Local setup allows for self calibration. Wrapper handles keyboard.
+    You must specify display location for the camera graphics.
+    usage:   mglPrivateEyelinkCalibration([display_num])
 
-=========================================================================
+    =========================================================================
 #endif
 
 /////////////////////////
@@ -23,7 +23,7 @@ usage:   mglPrivateEyelinkCalibration([display_num])
 //   main   //
 //////////////
 
-void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
+    void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
     if (nrhs>2) /* What arguments should this take? */
     {
@@ -48,7 +48,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     if (nrhs==2) {
         // get default mode for this round
     }
-    
+
     // initialize the callbacks
     init_expt_graphics();
 
@@ -67,156 +67,172 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
 
 /*!
-  This is an optional function to get information 
-  on video driver and current mode use this to determine 
-  if in proper mode for experiment.
+This is an optional function to get information 
+    on video driver and current mode use this to determine 
+    if in proper mode for experiment.
 
-  @param[out] di  A valid pointer to DISPLAYINFO is passed in to return values.
-  @remark The prototype of this function can be changed to match one's need or
-  if it is not necessary, one can choose not to implement this function also.
+    @param[out] di  A valid pointer to DISPLAYINFO is passed in to return values.
+    @remark The prototype of this function can be changed to match one's need or
+    if it is not necessary, one can choose not to implement this function also.
 
  */
-void ELCALLTYPE get_display_information(DISPLAYINFO *di)
+    void ELCALLTYPE get_display_information(DISPLAYINFO *di)
 {
   /*
-  1. detect the current display mode
-  2. fill in values into di
+    1. detect the current display mode
+        2. fill in values into di
   */
-  memset(di,0, sizeof(DISPLAYINFO)); // clear everything to 0
-  
-  if (mglIsGlobal("screenWidth")) {
-      di->width = (int)mglGetGlobalDouble("screenWidth");
-  } else {
-      mexErrMsgTxt("MGL must be initialised.");
-  }
-  
-  if (mglIsGlobal("screenHeight")) {
-      di->height = (int)mglGetGlobalDouble("screenHeight");
-  } else {
-      mexErrMsgTxt("MGL must be initialised.");
-  }
+        memset(di,0, sizeof(DISPLAYINFO)); // clear everything to 0
 
-  if (mglIsGlobal("bitDepth")) {
-      di->bits = (int)mglGetGlobalDouble("bitDepth");
-  } else {
-      mexErrMsgTxt("MGL must be initialised.");
-  }
+    if (mglIsGlobal("screenWidth")) {
+        di->width = (int)mglGetGlobalDouble("screenWidth");
+    } else {
+        mexErrMsgTxt("MGL must be initialised.");
+    }
 
-  if (mglIsGlobal("frameRate")) {
-      di->refresh = (int)mglGetGlobalDouble("frameRate");
-  } else {
-      mexErrMsgTxt("MGL must be initialised.");
-  }
-  
+    if (mglIsGlobal("screenHeight")) {
+        di->height = (int)mglGetGlobalDouble("screenHeight");
+    } else {
+        mexErrMsgTxt("MGL must be initialised.");
+    }
+
+    if (mglIsGlobal("bitDepth")) {
+        di->bits = (int)mglGetGlobalDouble("bitDepth");
+    } else {
+        mexErrMsgTxt("MGL must be initialised.");
+    }
+
+    if (mglIsGlobal("frameRate")) {
+        di->refresh = (int)mglGetGlobalDouble("frameRate");
+    } else {
+        mexErrMsgTxt("MGL must be initialised.");
+    }
+
 }
 
 /*!
 
-  This is an optional function to initialze graphics and calibration system.
-  Although, this is optional, one should do the innerds of this function
-  elsewhere in a proper manner.
-  
-   @remark The prototype of this function can be modified to suit ones needs.
-  Eg. The init_expt_graphics of eyelink_core_graphics.dll takes in 2
-  parameters.
-  
+This is an optional function to initialze graphics and calibration system.
+    Although, this is optional, one should do the innerds of this function
+    elsewhere in a proper manner.
+
+    @remark The prototype of this function can be modified to suit ones needs.
+    Eg. The init_expt_graphics of eyelink_core_graphics.dll takes in 2
+    parameters.
+
 */
-INT16 ELCALLTYPE init_expt_graphics()
+    INT16 ELCALLTYPE init_expt_graphics()
 {
-  HOOKFCNS fcns;
-  memset(&fcns,0,sizeof(fcns)); /* clear the memory */
+    HOOKFCNS fcns;
+    memset(&fcns,0,sizeof(fcns)); /* clear the memory */
 
   /* setup the values for HOOKFCNS */
-  fcns.setup_cal_display_hook = setup_cal_display;
-  fcns.exit_cal_display_hook  = exit_cal_display;
-  fcns.setup_image_display_hook = setup_image_display;
-  fcns.image_title_hook       = image_title;
-  fcns.draw_image_line_hook   = draw_image_line;
-  fcns.set_image_palette_hook = set_image_palette;
-  fcns.exit_image_display_hook= exit_image_display;
-  fcns.clear_cal_display_hook = clear_cal_display;
-  fcns.erase_cal_target_hook  = erase_cal_target;
-  fcns.draw_cal_target_hook   = draw_cal_target;
-  fcns.cal_target_beep_hook   = cal_target_beep;
-  fcns.cal_done_beep_hook     = cal_done_beep;
-  fcns.dc_done_beep_hook      = dc_done_beep;
-  fcns.dc_target_beep_hook    = dc_target_beep;
-  fcns.get_input_key_hook     = get_input_key;   
+    fcns.setup_cal_display_hook = setup_cal_display;
+    fcns.exit_cal_display_hook  = exit_cal_display;
+    fcns.setup_image_display_hook = setup_image_display;
+    fcns.image_title_hook       = image_title;
+    fcns.draw_image_line_hook   = draw_image_line;
+    fcns.set_image_palette_hook = set_image_palette;
+    fcns.exit_image_display_hook= exit_image_display;
+    fcns.clear_cal_display_hook = clear_cal_display;
+    fcns.erase_cal_target_hook  = erase_cal_target;
+    fcns.draw_cal_target_hook   = draw_cal_target;
+    fcns.cal_target_beep_hook   = cal_target_beep;
+    fcns.cal_done_beep_hook     = cal_done_beep;
+    fcns.dc_done_beep_hook      = dc_done_beep;
+    fcns.dc_target_beep_hook    = dc_target_beep;
+    fcns.get_input_key_hook     = get_input_key;   
 
 
   /* register the call back functions with eyelink_core library */
-  setup_graphic_hook_functions(&fcns);
+    setup_graphic_hook_functions(&fcns);
 
   /* register the write image function */
   // set_write_image_hook(writeImage,0);
 
   /*
-  	1. initalize graphics
-  	2. if graphics initalization suceeds, return 0 otherewise return 1.
+    1. initalize graphics
+        2. if graphics initalization suceeds, return 0 otherewise return 1.
   */
 
-  return 0;
+        setupGeyKeyCallback();
+
+    return 0;
 }
 
 /*!
-  This is an optional function to properly close and release any resources
-  that are not required beyond calibration needs.
-  @remark the prototype of this function can be modified to suit ones need.
+This is an optional function to properly close and release any resources
+    that are not required beyond calibration needs.
+    @remark the prototype of this function can be modified to suit ones need.
  */
-void ELCALLTYPE close_expt_graphics()
+    void ELCALLTYPE close_expt_graphics()
 {
-	
+
 }
 
 
 /*!
-	This is called to check for keyboard input. 
-	In this function:
-	\arg check if there are any input events
-	\arg if there are input events, fill key_input and return 1.
-		 otherwise return 0. If 1 is returned this will be called
-	     again to check for more events.
-	@param[out] key_input  fill in the InputEvent structure to return
-		 key,modifier values.
-	@return if there is a key, return 1 otherwise return 0.
+This is called to check for keyboard input. 
+    In this function:
+\arg check if there are any input events
+    \arg if there are input events, fill key_input and return 1.
+    otherwise return 0. If 1 is returned this will be called
+    again to check for more events.
+    @param[out] key_input  fill in the InputEvent structure to return
+    key,modifier values.
+    @return if there is a key, return 1 otherwise return 0.
 */
-INT16 ELCALLBACK get_input_key(InputEvent *key_input)
+    INT16 ELCALLBACK get_input_key(InputEvent *key_input)
 {
-    mxArray *callOutput[1], *tmpOut;
+    MGLKeyEvent keyEvent;
+    
+    // mxArray *callOutput[1], *tmpOut;
     UINT16 keycode = 0;    // the key (mgl code)
-
+    
     // get a key event using the get key event.
-    mexCallMATLAB(1,callOutput,0,NULL,"mglGetKeyEvent");
+    // mexCallMATLAB(1,callOutput,0,NULL,"mglGetKeyEvent");
     // return 0;
     // mexCallMATLAB(1,callOutput,0,NULL,"mglGetKeys");
-    if (mxIsEmpty(callOutput[0])) {
+    // if (mxIsEmpty(callOutput[0])) {
     // if (!(keycode = mglcGetKeys())) {
+    // if (!keyDownEvent) {
+    if (!mglcGetKeyEvent(&keyEvent)) {
         // mexPrintf("Empty Key Event\n");
         return 0;
     }
     else {
         // parse key and place in *key_input
         UINT16 charcode = 0, modcode = 0; // the key (ascii)
-        char *charbuff;
+        // char *charbuff;
+        char charbuff = ' ';
         // get modifiers
         int shift = 0, control = 0, command = 0, alt = 0, capslock = 0;
         // get the key event
-        charbuff = mxArrayToString(mxGetField(callOutput[0],0,"charCode"));
+        // keycode = eventKeyCode;
+        // charbuff = mxArrayToString(mxGetField(callOutput[0],0,"charCode"));
         // charbuff = keycodeToChar(keycode);
-        if (charbuff!=NULL)
-            charcode = (UINT16)charbuff[0];
-        else
-            charcode = 0;
-        mxFree(charbuff);
+        // if (charbuff!=NULL)
+        //     charcode = (UINT16)charbuff[0];
+        // else
+        //     charcode = 0;
+        // mxFree(charbuff);
             // free(charbuff);
-        keycode = (UINT16)*(double*)mxGetPr(mxGetField(callOutput[0],0,"keyCode"));
-        tmpOut = mxGetField(callOutput[0],0,"shift");
-        if (tmpOut!=NULL) {
-            shift = (int)*(double*)mxGetPr(tmpOut);
-            control = (int)*(double*)mxGetPr(mxGetField(callOutput[0],0,"control"));
-            capslock = (int)*(double*)mxGetPr(mxGetField(callOutput[0],0,"capslock"));
-            alt = (int)*(double*)mxGetPr(mxGetField(callOutput[0],0,"alt"));
-        }
+        // keycode = (UINT16)*(double*)mxGetPr(mxGetField(callOutput[0],0,"keyCode"));
+        // tmpOut = mxGetField(callOutput[0],0,"shift");
+        // if (tmpOut!=NULL) {
+        //     shift = (int)*(double*)mxGetPr(tmpOut);
+        //     control = (int)*(double*)mxGetPr(mxGetField(callOutput[0],0,"control"));
+        //     capslock = (int)*(double*)mxGetPr(mxGetField(callOutput[0],0,"capslock"));
+        //     alt = (int)*(double*)mxGetPr(mxGetField(callOutput[0],0,"alt"));
+        // }
+        // shift = (eventKeyFlags&kCGEventFlagMaskShift) ? 1:0;
+        // control = (eventKeyFlags&kCGEventFlagMaskControl) ? 1:0;
+        // alt = (eventKeyFlags&kCGEventFlagMaskAlternate) ? 1:0;
+// (eventKeyFlags&kCGEventFlagMaskCommand) ? 1:0;
+        // shift = (eventKeyFlags&kCGEventFlagMaskAlphaShift) ? 1:0;
+        
+        charcode = keyEvent.charCode;
+        keycode = keyEvent.keyCode;
 
         mexPrintf("c %d (%.1s) k %d shift %d cntr %d caps %d alt %d\n", charcode,
             charbuff, keycode, shift, control, capslock, alt);
@@ -302,99 +318,100 @@ INT16 ELCALLBACK get_input_key(InputEvent *key_input)
         // mexPrintf("InputEvent->type %d\nInputEvent->key.key %d\nInputEvent->key.modifier %d\n"
         // "InputEvent->key.state %d\nInputEvent->key.type %d\n", key_input->type, key_input->key.key,
         // key_input->key.modifier, key_input->key.state, key_input->key.type);
+        keyDownEvent = 0;
         return 1;
     }
 }
 
 /*!
-	This function provides support to writing images to disk. Upon calls to el_bitmap_save_and_backdrop or
-	el_bitmap_save this function is requested to do the write operaiton in the preferred format.
+This function provides support to writing images to disk. Upon calls to el_bitmap_save_and_backdrop or
+    el_bitmap_save this function is requested to do the write operaiton in the preferred format.
 
-	@param[in] outfilename Name of the file to be saved.
-	@param[in] format  format to be saved as.
-	@param[in] bitmap bitmap data to be saved.
-	@return if successful, return 0.
+    @param[in] outfilename Name of the file to be saved.
+    @param[in] format  format to be saved as.
+    @param[in] bitmap bitmap data to be saved.
+    @return if successful, return 0.
 */
-int ELCALLBACK writeImage(char *outfilename, IMAGETYPE format, EYEBITMAP *bitmap)
+    int ELCALLBACK writeImage(char *outfilename, IMAGETYPE format, EYEBITMAP *bitmap)
 {
 
     return 0;
- 
+
 }
 
 /*! 
-	Setup the calibration display. This function called before any
-	calibration routines are called.
+Setup the calibration display. This function called before any
+    calibration routines are called.
 */
-INT16 ELCALLBACK setup_cal_display(void)
+    INT16 ELCALLBACK setup_cal_display(void)
 {
-  return 0;
+    return 0;
 }
 
 /*!
-  This is called to release any resources that are not required beyond calibration.
-  Beyond this call, no calibration functions will be called.
+This is called to release any resources that are not required beyond calibration.
+    Beyond this call, no calibration functions will be called.
  */
-void ELCALLBACK exit_cal_display(void)
+    void ELCALLBACK exit_cal_display(void)
 {
 
 }
 
 /*!
-  This function is responsible for the drawing of the target for calibration,validation
-  and drift correct at the given coordinate.
-  @param x x coordinate of the target.
-  @param y y coordinate of the target.
-  @remark The x and y are relative to what is sent to the tracker for the command screen_pixel_coords.
+This function is responsible for the drawing of the target for calibration,validation
+    and drift correct at the given coordinate.
+    @param x x coordinate of the target.
+    @param y y coordinate of the target.
+    @remark The x and y are relative to what is sent to the tracker for the command screen_pixel_coords.
  */
-void ELCALLBACK draw_cal_target(INT16 x, INT16 y)
+    void ELCALLBACK draw_cal_target(INT16 x, INT16 y)
 {    
-      mxArray *callInput[4];
-      double *inX;
-      double *inY;
-      double *inSize;
-      double *inColor;
-      
-      callInput[0] = mxCreateDoubleMatrix(1,1,mxREAL);
-      callInput[1] = mxCreateDoubleMatrix(1,1,mxREAL);
-      callInput[2] = mxCreateDoubleMatrix(1,1,mxREAL);
-      callInput[3] = mxCreateDoubleMatrix(1,3,mxREAL);
-      inX = (double*)mxGetPr(callInput[0]);
-      inY = (double*)mxGetPr(callInput[1]);
-      inSize = (double*)mxGetPr(callInput[2]);
-      inColor = (double*)mxGetPr(callInput[3]);
-      *inX = (double)x;
-      *inY = (double)y;
-      *inSize = 20; // in pixels for now
-      inColor[0] = 0.7; // red
-      inColor[1] = 0.7; // green
-      inColor[2] = 0.7; // blue
-      
-      
-      mexCallMATLAB(0, NULL, 4, callInput, "mglGluDisk");            
+    mxArray *callInput[4];
+    double *inX;
+    double *inY;
+    double *inSize;
+    double *inColor;
+
+    callInput[0] = mxCreateDoubleMatrix(1,1,mxREAL);
+    callInput[1] = mxCreateDoubleMatrix(1,1,mxREAL);
+    callInput[2] = mxCreateDoubleMatrix(1,1,mxREAL);
+    callInput[3] = mxCreateDoubleMatrix(1,3,mxREAL);
+    inX = (double*)mxGetPr(callInput[0]);
+    inY = (double*)mxGetPr(callInput[1]);
+    inSize = (double*)mxGetPr(callInput[2]);
+    inColor = (double*)mxGetPr(callInput[3]);
+    *inX = (double)x;
+    *inY = (double)y;
+    *inSize = 20; // in pixels for now
+    inColor[0] = 0.7; // red
+    inColor[1] = 0.7; // green
+    inColor[2] = 0.7; // blue
+
+
+    mexCallMATLAB(0, NULL, 4, callInput, "mglGluDisk");            
       //mglGluDisk(xDeg, yDeg, targetSize, targetcolor);
-      mglcFlush(mglcDisplayNumber);
-      mexPrintf("mglPrivateEyelinkCalibrate) draw_cal_target");
+    mglcFlush(mglcDisplayNumber);
+    mexPrintf("mglPrivateEyelinkCalibrate) draw_cal_target");
 }
 
 /*!
-	This function is responsible for erasing the target that was drawn by the last call to draw_cal_target.
+This function is responsible for erasing the target that was drawn by the last call to draw_cal_target.
 */
-void ELCALLBACK erase_cal_target(void)
+    void ELCALLBACK erase_cal_target(void)
 {
-	/* erase the last calibration target  */
+    /* erase the last calibration target  */
     mglcClearScreen(NULL);
     mglcFlush(mglcDisplayNumber);
 }
 
 /*!
-	In most cases on can implement all four (cal_target_beep,cal_done_beep,dc_target_beep,dc_done_beep)
-	beep callbacks using just one function.  
-	
-	This function is responsible for selecting and playing the audio clip.
-	@param sound sound id to play.
+In most cases on can implement all four (cal_target_beep,cal_done_beep,dc_target_beep,dc_done_beep)
+    beep callbacks using just one function.  
+
+    This function is responsible for selecting and playing the audio clip.
+    @param sound sound id to play.
  */
-void ELCALLBACK  cal_sound(INT16 sound)
+    void ELCALLBACK  cal_sound(INT16 sound)
 {
     char *wave =NULL;
     switch(sound) // select the appropriate sound to play
@@ -427,105 +444,105 @@ void ELCALLBACK  cal_sound(INT16 sound)
 }
 
 /*!
- This function is called to signal new target.
+This function is called to signal new target.
  */
-void ELCALLBACK cal_target_beep(void)
+    void ELCALLBACK cal_target_beep(void)
 {
-	cal_sound(CAL_TARG_BEEP);
+    cal_sound(CAL_TARG_BEEP);
 }
 
 /*!
-  This function is called to signal end of calibration.
-  @param error if non zero, then the calibration has error.
+This function is called to signal end of calibration.
+    @param error if non zero, then the calibration has error.
  */
-void ELCALLBACK cal_done_beep(INT16 error)
+    void ELCALLBACK cal_done_beep(INT16 error)
 {
-if(error)
+    if(error)
     {
-      cal_sound(CAL_ERR_BEEP);
+        cal_sound(CAL_ERR_BEEP);
     }
-  else
+    else
     {
-      cal_sound(CAL_GOOD_BEEP);
+        cal_sound(CAL_GOOD_BEEP);
     }
 }
 
 /*!
-  This function is called to signal a new drift correct target.
+This function is called to signal a new drift correct target.
  */
-void ELCALLBACK dc_target_beep(void)
+    void ELCALLBACK dc_target_beep(void)
 {
-	cal_sound(DC_TARG_BEEP);
+    cal_sound(DC_TARG_BEEP);
 }
 
 /*
-  This function is called to singnal the end of drift correct. 
-  @param error if non zero, then the drift correction failed.
+This function is called to singnal the end of drift correct. 
+    @param error if non zero, then the drift correction failed.
  */
-void ELCALLBACK dc_done_beep(INT16 error)
+    void ELCALLBACK dc_done_beep(INT16 error)
 {
- if(error)
+    if(error)
     {
-      cal_sound(DC_ERR_BEEP);
+        cal_sound(DC_ERR_BEEP);
     }
-  else
+    else
     {
-      cal_sound(DC_GOOD_BEEP);
+        cal_sound(DC_GOOD_BEEP);
     }
 }
 
 /*
-  Called to clear the display.
+Called to clear the display.
  */
-void ELCALLBACK clear_cal_display(void)
+    void ELCALLBACK clear_cal_display(void)
 {
     mglcClearScreen(NULL);
     mglcFlush(mglcDisplayNumber);
-   
+
 }
 
 /*!
-	This function is responsible for initializing any resources that are 
-	required for camera setup.
-	
-	@param width width of the source image to expect.
-	@param height height of the source image to expect.
-	@return -1 if failed,  0 otherwise.
+This function is responsible for initializing any resources that are 
+    required for camera setup.
+
+    @param width width of the source image to expect.
+    @param height height of the source image to expect.
+    @return -1 if failed,  0 otherwise.
  */
-INT16 ELCALLBACK setup_image_display(INT16 width, INT16 height)
+    INT16 ELCALLBACK setup_image_display(INT16 width, INT16 height)
 {
-    
+
     cameraPos[2] = width*2;
     cameraPos[3] = height*2;
     mgltCamera = mglcCreateRGBATexture(width, height);
     // mgltTitle = mglcCreateTextTexture("Title");    
     mglcClearScreen(NULL);
     mglcFlush(mglcDisplayNumber);
-    
+
     return 0;
 }
 
 /*!
-	This is called to notify that all camera setup things are complete.  Any
-	resources that are allocated in setup_image_display can be released in this
-	function.
+This is called to notify that all camera setup things are complete.  Any
+    resources that are allocated in setup_image_display can be released in this
+    function.
 */
-void ELCALLBACK exit_image_display(void)
+    void ELCALLBACK exit_image_display(void)
 {
 
     mglcFreeTexture(mgltCamera);
     // mglcFreeTexture(mgltTitle);
-    
+
 }
 
 /*!
-  This function is called to update any image title change.
-  @param threshold if -1 the entire tile is in the title string
-				   otherwise, the threshold of the current image.
-  @param title     if threshold is -1, the title contains the whole title 
-				   for the image. Otherwise only the camera name is given.
+This function is called to update any image title change.
+    @param threshold if -1 the entire tile is in the title string
+    otherwise, the threshold of the current image.
+    @param title     if threshold is -1, the title contains the whole title 
+    for the image. Otherwise only the camera name is given.
  */
-void ELCALLBACK image_title(INT16 threshold, char *title)
+    void ELCALLBACK image_title(INT16 threshold, char *title)
 {
 
     if (threshold == -1){
@@ -536,21 +553,21 @@ void ELCALLBACK image_title(INT16 threshold, char *title)
     // mexPrintf("Camera Title: %s\n", cameraTitle);
     // mglcFreeTexture(mgltTitle);
     // mgltTitle = mglcCreateTextTexture(cameraTitle);
-    
+
 }
 
 /*!
-	This function is called after setup_image_display and before the first call to 
-	draw_image_line. This is responsible to setup the palettes to display the camera
-	image.
+This function is called after setup_image_display and before the first call to 
+    draw_image_line. This is responsible to setup the palettes to display the camera
+    image.
 
     @param ncolors number of colors in the palette.
-	@param r       red component of rgb.
-	@param g       blue component of rgb.
-	@param b       green component of rgb.
-	
+    @param r       red component of rgb.
+    @param g       blue component of rgb.
+    @param b       green component of rgb.
+
 */
-void ELCALLBACK set_image_palette(INT16 ncolors, byte r[130], byte g[130], byte b[130])
+    void ELCALLBACK set_image_palette(INT16 ncolors, byte r[130], byte g[130], byte b[130])
 {
 
     int i = 0; 
@@ -570,37 +587,37 @@ void ELCALLBACK set_image_palette(INT16 ncolors, byte r[130], byte g[130], byte 
 }
 
 /*!
-	This function is called to supply the image line by line from top to bottom.
-	@param width  width of the picture. Essentially, number of bytes in \c pixels.
-	@param line   current line of the image
-	@param totlines total number of lines in the image. This will always equal the height of the image.
-	@param pixels pixel data.
+This function is called to supply the image line by line from top to bottom.
+    @param width  width of the picture. Essentially, number of bytes in \c pixels.
+    @param line   current line of the image
+    @param totlines total number of lines in the image. This will always equal the height of the image.
+    @param pixels pixel data.
 
     Eg. Say we want to extract pixel at position (20,20) and print it out as rgb values.  
 
-	@code
+    @code
     if(line == 19) // y = 20
-	{
-		byte pix = pixels[19];
-		// Note the r,g,b arrays come from the call to set_image_palette
-		printf("RGB %d %d %d\n",r[pix],g[pix],b[pix]); 
-	}
-	@endcode
-
-	@remark certain display draw the image up side down. eg. GDI.
-*/
-void ELCALLBACK draw_image_line(INT16 width, INT16 line, INT16 totlines, byte *pixels)
 {
-    
+    byte pix = pixels[19];
+        // Note the r,g,b arrays come from the call to set_image_palette
+    printf("RGB %d %d %d\n",r[pix],g[pix],b[pix]); 
+}
+    @endcode
+
+@remark certain display draw the image up side down. eg. GDI.
+*/
+    void ELCALLBACK draw_image_line(INT16 width, INT16 line, INT16 totlines, byte *pixels)
+{
+
     short i;
     UINT32 *currentLine;    // we will write rgba at once as a packed pixel
     byte *p = pixels;       // a packed rgba lookup
-    
+
     // mexPrintf("(mglPrivateEyelinkCalibrate) width %d, line %d, height %d\n", width, line, totlines);
-    
+
     // get the beginning of the current line
     currentLine = (UINT32*)(((GLubyte*)(mgltCamera->pixels))+((line-1)*sizeof(GLubyte)*BYTEDEPTH*width));
-    
+
     for(i=0; i<width; i++)
     {
         *currentLine++ = cameraImagePalleteMap[*p++]; // copy the line to image
@@ -624,41 +641,41 @@ void ELCALLBACK draw_image_line(INT16 width, INT16 line, INT16 totlines, byte *p
         glTexImage2D(GL_TEXTURE_RECTANGLE_EXT,0,GL_RGBA,
             mgltCamera->imageWidth,mgltCamera->imageHeight,0,
             GL_RGBA,TEXTURE_DATATYPE,mgltCamera->pixels);  
-                
+
         // mexPrintf("[Camera Texture]");
         mglcBltTexture(mgltCamera, cameraPos, ALIGNCENTER, ALIGNCENTER);
         // mexPrintf("[Title Texture]");
         // mglcBltTexture(mgltTitle, titlePos, ALIGNCENTER, ALIGNCENTER);
-        
+
         mexPrintf("F %d\n", mglcFrameNumber++);
-        
+
         // now we need to draw the cursors.
-            
+
         CrossHairInfo crossHairInfo;
         memset(&crossHairInfo,0,sizeof(crossHairInfo));
-        
+
         crossHairInfo.w = cameraPos[2];
         crossHairInfo.h = cameraPos[3];
         crossHairInfo.drawLozenge = drawLozenge;
         crossHairInfo.drawLine = drawLine;
         crossHairInfo.getMouseState = getMouseState;
         // crossHairInfo.userdata = image; // could be used for gl display num
-        
+
         eyelink_draw_cross_hair(&crossHairInfo);
 
         mglcFlush(mglcDisplayNumber);
 
-        
+
     }
 
 }
 
 
 /*!
-	@ingroup cam_example
-	draws a line from (x1,y1) to (x2,y2) - required for all tracker versions.
+@ingroup cam_example
+    draws a line from (x1,y1) to (x2,y2) - required for all tracker versions.
 */
-void drawLine(CrossHairInfo *chi, int x1, int y1, int x2, int y2, int cindex)
+    void drawLine(CrossHairInfo *chi, int x1, int y1, int x2, int y2, int cindex)
 {
     mxArray *callInput[6];
     double *inColor;
@@ -706,23 +723,23 @@ void drawLine(CrossHairInfo *chi, int x1, int y1, int x2, int y2, int cindex)
 }
 
 /*!
-	@ingroup cam_example
-	draws shap that has semi-circle on either side and connected by lines.
-	Bounded by x,y,width,height. x,y may be negative.
-	@remark This is only needed for EL1000.	
+@ingroup cam_example
+    draws shap that has semi-circle on either side and connected by lines.
+    Bounded by x,y,width,height. x,y may be negative.
+    @remark This is only needed for EL1000.	
 */
-void drawLozenge(CrossHairInfo *chi, int x, int y, int width, int height, int cindex)
+    void drawLozenge(CrossHairInfo *chi, int x, int y, int width, int height, int cindex)
 {
-	// NOT IMPLEMENTED.
+    // NOT IMPLEMENTED.
     // printf("drawLozenge not implemented. \n");
 }
 
 /*!
-	@ingroup cam_example
-	Returns the current mouse position and its state.
-	@remark This is only needed for EL1000.	
+@ingroup cam_example
+    Returns the current mouse position and its state.
+    @remark This is only needed for EL1000.	
 */
-void getMouseState(CrossHairInfo *chi, int *rx, int *ry, int *rstate)
+    void getMouseState(CrossHairInfo *chi, int *rx, int *ry, int *rstate)
 {
     // NOT IMPLEMENTED.
     // printf("getMouseState not implemented. \n");
@@ -743,9 +760,9 @@ void getMouseState(CrossHairInfo *chi, int *rx, int *ry, int *rstate)
 
 /*
     // declare some variables for dealing with alignment
-    int hAlignment, vAlignment;
-    hAlignment = DEFAULT_H_ALIGNMENT;
-    vAlignment = DEFAULT_V_ALIGNMENT;
+int hAlignment, vAlignment;
+hAlignment = DEFAULT_H_ALIGNMENT;
+vAlignment = DEFAULT_V_ALIGNMENT;
 */
 
 void mglcBltTexture(MGLTexture *texture, int position[4], int hAlignment, int vAlignment)
@@ -757,7 +774,7 @@ void mglcBltTexture(MGLTexture *texture, int position[4], int hAlignment, int vA
     yPixelsToDevice = mglGetGlobalDouble("yPixelsToDevice");
     deviceHDirection = mglGetGlobalDouble("deviceHDirection");
     deviceVDirection = mglGetGlobalDouble("deviceVDirection");
-    
+
     texture->displayRect[0] = position[0];
     texture->displayRect[1] = position[1];
     if (position[2] == 0)
@@ -768,7 +785,7 @@ void mglcBltTexture(MGLTexture *texture, int position[4], int hAlignment, int vA
         texture->displayRect[3] = texture->imageHeight*yPixelsToDevice;
     else
         texture->displayRect[3] = position[3];
-    
+
     // mexPrintf("(mglcBltTexture) Display rect = [%0.2f %0.2f %0.2f %0.2f]\n",texture->displayRect[0],texture->displayRect[1],texture->displayRect[2],texture->displayRect[3]);
 
     // get the xPixelsToDevice and yPixelsToDevice making sure these are set properly
@@ -963,14 +980,14 @@ MGLTexture *mglcCreateRGBATexture(int width, int height)
     int i,j;
     double xPixelsToDevice, yPixelsToDevice, deviceHDirection, deviceVDirection;
     MGLTexture *texture;
-    
+
     texture = (MGLTexture*)malloc(sizeof(MGLTexture));
 
     xPixelsToDevice = mglGetGlobalDouble("xPixelsToDevice");
     yPixelsToDevice = mglGetGlobalDouble("yPixelsToDevice");
     deviceHDirection = mglGetGlobalDouble("deviceHDirection");
     deviceVDirection = mglGetGlobalDouble("deviceVDirection");
-    
+
     glGenTextures(1, &(texture->textureNumber));
     texture->pixels = (GLubyte*)malloc(width*height*sizeof(GLubyte)*BYTEDEPTH);
     texture->imageWidth = width;
@@ -1038,7 +1055,7 @@ MGLTexture *mglcCreateRGBATexture(int width, int height)
 
 #endif// GL_TEXTURE_RECTANGLE_EXT
     return(texture);
-    
+
 }
 
 void mglcFreeTexture(MGLTexture *texture)
@@ -1109,8 +1126,8 @@ MGLTexture *mglcCreateTextTexture(char *text)
     texture->isText = 1;
     texture->vFlip = mglGetGlobalDouble("fontHFlip");
     texture->hFlip = mglGetGlobalDouble("fontHFlip");
-    
-    
+
+
     // WE'LL NEED THIS IF THE DATA ISN'T HANDLED LOCALLY
     // // now place the data into the texture
     glBindTexture(GL_TEXTURE_2D, texture->textureNumber);    
@@ -1257,7 +1274,7 @@ unsigned char *renderText(char *cInputString, char*fontName, int fontSize, doubl
     // if (mxIsUint16(inputString)) 
     //     verify_noerr( ATSUSetTextPointerLocation(layout,(UniChar*)mxGetData(inputString),kATSUFromTextBeginning, kATSUToTextEnd, mxGetN(inputString)));
     // else
-        verify_noerr( ATSUSetTextPointerLocation(layout,text,kATSUFromTextBeginning, kATSUToTextEnd, length) );
+    verify_noerr( ATSUSetTextPointerLocation(layout,text,kATSUFromTextBeginning, kATSUToTextEnd, length) );
 
   // Now we tie the two necessary objects, the layout and the style, together
     verify_noerr( ATSUSetRunStyle(layout, style, kATSUFromTextBeginning, kATSUToTextEnd) );
@@ -1538,49 +1555,49 @@ void mglcClearScreen(int *color)
 
 void mglcFlush(int displayNumber)
 {
-  int fullScreen=1;
+    int fullScreen=1;
 
-  
+
 //-----------------------------------------------------------------------------------///
 // **************************** mac cocoa specific code  **************************** //
 //-----------------------------------------------------------------------------------///
 #ifdef __APPLE__ 
 #ifdef __cocoa__
-  if (displayNumber >= 0) {
-    if (mglGetGlobalDouble("isCocoaWindow")) {
+    if (displayNumber >= 0) {
+        if (mglGetGlobalDouble("isCocoaWindow")) {
       // cocoa, get openGLContext and flush
-      NSOpenGLContext *myOpenGLContext = (NSOpenGLContext*)(unsigned long)mglGetGlobalDouble("GLContext");
-      if (myOpenGLContext)
-	[myOpenGLContext flushBuffer];
-    }
-    else {
+            NSOpenGLContext *myOpenGLContext = (NSOpenGLContext*)(unsigned long)mglGetGlobalDouble("GLContext");
+            if (myOpenGLContext)
+                [myOpenGLContext flushBuffer];
+        }
+        else {
       // get the current context
-      CGLContextObj contextObj = CGLGetCurrentContext();
+            CGLContextObj contextObj = CGLGetCurrentContext();
       // and flip the double buffered screen
       // this call waits for vertical blanking
-      CGLFlushDrawable(contextObj); 
+            CGLFlushDrawable(contextObj); 
+        }
     }
-  }
 #else //__cocoa__
 //-----------------------------------------------------------------------------------///
 // **************************** mac carbon specific code  *************************** //
 //-----------------------------------------------------------------------------------///
-  if (displayNumber > 0) {
+    if (displayNumber > 0) {
 
     // get the current context
-    CGLContextObj contextObj = CGLGetCurrentContext();
+        CGLContextObj contextObj = CGLGetCurrentContext();
 
     // and flip the double buffered screen
     // this call waits for vertical blanking
-    CGLFlushDrawable(contextObj); 
-  }
-  else if (displayNumber == 0) {
-    // run in a window: get agl context
-    AGLContext contextObj=aglGetCurrentContext ();
-
-    if (!contextObj) {
-      printf("(mglFlush) No drawable context found\n");
+        CGLFlushDrawable(contextObj); 
     }
+    else if (displayNumber == 0) {
+    // run in a window: get agl context
+        AGLContext contextObj=aglGetCurrentContext ();
+
+        if (!contextObj) {
+            printf("(mglFlush) No drawable context found\n");
+        }
 
     // there seems to be some interaction with the matlab desktop
     // in which the windowed graphics context crashes. The crash
@@ -1603,8 +1620,8 @@ void mglcFlush(int displayNumber)
     //    QDFlushPortBuffer(drawableObj,NULL);
     // swap buffers
     //    if (QDDone(drawableObj))
-    aglSwapBuffers (contextObj);
-    
+        aglSwapBuffers (contextObj);
+
     // get an event
     //    EventRef theEvent;
     //    EventTargetRef theTarget;
@@ -1616,7 +1633,7 @@ void mglcFlush(int displayNumber)
     //    EventRecord theEventRecord;
     //    EventMask theMask = everyEvent;
     //    WaitNextEvent(theMask,&theEventRecord,3,nil);
-  }
+    }
 #endif//__cocoa__
 #endif//__APPLE__
 //-----------------------------------------------------------------------------------///
@@ -1624,10 +1641,10 @@ void mglcFlush(int displayNumber)
 //-----------------------------------------------------------------------------------///
 #ifdef __linux__
 
-  int dpyptr=(int)mglGetGlobalDouble("XDisplayPointer");
-  if (dpyptr<=0) return;
-  Display * dpy=(Display *)dpyptr;
-  glXSwapBuffers( dpy, glXGetCurrentDrawable() );
+    int dpyptr=(int)mglGetGlobalDouble("XDisplayPointer");
+    if (dpyptr<=0) return;
+    Display * dpy=(Display *)dpyptr;
+    glXSwapBuffers( dpy, glXGetCurrentDrawable() );
 
 #endif//__linux__
 
@@ -1635,18 +1652,18 @@ void mglcFlush(int displayNumber)
 // **************************** Windows specific code  ****************************** //
 //-----------------------------------------------------------------------------------///
 #ifdef __WINDOWS__
-  unsigned int ref;
-  HDC hDC;
-  HGLRC hRC;
-  
+    unsigned int ref;
+    HDC hDC;
+    HGLRC hRC;
+
   // Grab our device and rendering context pointers.
-  ref = (unsigned int)mglGetGlobalDouble("winDeviceContext");
-  hDC = (HDC)ref;
-  ref = (unsigned int)mglGetGlobalDouble("GLContext");
-  hRC = (HGLRC)ref;
-  
-  wglMakeCurrent(hDC, hRC);
-  SwapBuffers(hDC);
+    ref = (unsigned int)mglGetGlobalDouble("winDeviceContext");
+    hDC = (HDC)ref;
+    ref = (unsigned int)mglGetGlobalDouble("GLContext");
+    hRC = (HGLRC)ref;
+
+    wglMakeCurrent(hDC, hRC);
+    SwapBuffers(hDC);
 #endif // __WINDOWS__
 }
 
@@ -1743,6 +1760,104 @@ int mglcGetKeys()
 #endif 
 }
 
+
+#ifdef __linux__
+#include <sys/time.h>
+#endif
+
+INT16 mglcGetKeyEvent(MGLKeyEvent *mglKey)
+{
+
+  // declare variables
+    double waittime = 0.0;
+//-----------------------------------------------------------------------------------///
+// **************************** mac cocoa specific code  **************************** //
+//-----------------------------------------------------------------------------------///
+#ifdef __APPLE__
+#ifdef __cocoa__
+  // 64 bit version not implemented
+  mexPrintf("(mglcGetKeyEvent) 64bit version not implemented\n");
+  return;
+//-----------------------------------------------------------------------------------///
+// **************************** mac carbon specific code  *************************** //
+//-----------------------------------------------------------------------------------///
+#else //__cocoa__
+  // get next event on queue
+  UInt32 waitTicks = (UInt32) round(waittime * 60.15);
+  EventRecord theEvent;
+  EventMask theMask = keyDownMask;
+
+  // either return immediately or wait till we get an event
+  Boolean result;
+  if (waitTicks)
+    result=WaitNextEvent(theMask,&theEvent, waitTicks,nil);
+  else
+    result=GetNextEvent(theMask,&theEvent);
+  
+  if (!result) {
+      return 0;
+  }
+  else {
+      FlushEvents (theMask, 0);
+      // set the output variables
+      mglKey->charCode = (INT16)(theEvent.message & charCodeMask);
+      mglKey->keyCode = (INT16)((theEvent.message & keyCodeMask)>>8);
+      mglKey->keyboard = (INT16)(theEvent.message>>16);
+      mglKey->when = (INT16)theEvent.when;
+      return 1;
+  }
+#endif//__cocoa__
+#endif//__APPLE__
+//-----------------------------------------------------------------------------------///
+// ****************************** linux specific code  ****************************** //
+//-----------------------------------------------------------------------------------///
+#ifdef __linux__
+  
+  int dpyptr=(int)mglGetGlobalDouble("XDisplayPointer");
+  if (dpyptr<=0) {
+    if (verbose) mexPrintf("No display found!\n");
+    return;
+  }
+  Display * dpy=(Display *)dpyptr;
+  int winptr=(int) mglGetGlobalDouble("XWindowPointer");
+  Window win = *(Window *)winptr;
+  XEvent event;
+
+  Bool keyPressed=false;
+  if (waittime>0.0) {
+    struct timeval tp;
+    struct timezone tz;
+
+    double currtime=0.0;
+
+    gettimeofday( &tp, &tz );
+    double starttime= (double) tp.tv_sec + (double) tp.tv_usec * 0.000001;
+
+    do {
+      //      keyPressed=XCheckTypedWindowEvent(dpy, win, KeyPress, &event);
+      keyPressed=XCheckTypedEvent(dpy, KeyPress, &event);
+      gettimeofday( &tp, &tz );
+      currtime= (double) tp.tv_sec + (double) tp.tv_usec * 0.000001 - starttime;
+    } while ( !keyPressed && currtime<waittime );
+    
+  } else {
+    //    keyPressed=XCheckTypedWindowEvent(dpy, win, KeyPress, &event);
+    keyPressed=XCheckTypedEvent(dpy, KeyPress, &event);
+  }
+  
+  if ( keyPressed ) {
+    // set the fields
+    plhs[0] = makeOutputStructure(&outptrCharCode,&outptrKeyCode,&outptrKeyboard,&outptrWhen);
+    *outptrCharCode = (double)*(XKeysymToString(XKeycodeToKeysym(dpy, event.xkey.keycode, 0))); // always returns first entry of keycode list
+    *outptrKeyCode = (double)event.xkey.keycode;
+    *outptrKeyboard = (double)event.xkey.state; // contains information about keyboard
+    *outptrWhen = (double)event.xkey.time*0.001;
+    
+  } else {
+    plhs[0] = mxCreateDoubleMatrix(0,0,mxREAL);
+  }
+#endif //__linux__
+}
 //-----------------------------------------------------------------------------------///
 // **************************** mac cocoa specific code  **************************** //
 //-----------------------------------------------------------------------------------///
@@ -1753,30 +1868,30 @@ int mglcGetKeys()
 ///////////////////////
 char *keycodeToChar(UInt16 keycode)
 {
-  UInt32 keyboard_type = 0;
-  const void *chr_data = NULL;
-  UInt32 deadKeyState = 0;
-  UniCharCount maxStringLength = 8, actualStringLength;
-  UniChar unicodeString = malloc(sizeof(UniChar)*8);
+    UInt32 keyboard_type = 0;
+    const void *chr_data = NULL;
+    UInt32 deadKeyState = 0;
+    UniCharCount maxStringLength = 8, actualStringLength;
+    UniChar unicodeString = malloc(sizeof(UniChar)*8);
 
   // get the current keyboard "layout input source"
-  TISInputSourceRef currentKeyLayoutRef = TISCopyCurrentKeyboardLayoutInputSource();
+    TISInputSourceRef currentKeyLayoutRef = TISCopyCurrentKeyboardLayoutInputSource();
   // and the keyboard type
-  keyboard_type = LMGetKbdType ();
+    keyboard_type = LMGetKbdType ();
   // now get the unicode key layout data
-  if (currentKeyLayoutRef) {
-    CFDataRef currentKeyLayoutDataRef = (CFDataRef )TISGetInputSourceProperty(currentKeyLayoutRef,kTISPropertyUnicodeKeyLayoutData);
-    if (currentKeyLayoutDataRef) 
-      chr_data = CFDataGetBytePtr(currentKeyLayoutDataRef);
-    else
-      mexPrintf("(mglCharToKeycode) Could not get UnicodeKeyLayoutData\n");
-  };
+    if (currentKeyLayoutRef) {
+        CFDataRef currentKeyLayoutDataRef = (CFDataRef )TISGetInputSourceProperty(currentKeyLayoutRef,kTISPropertyUnicodeKeyLayoutData);
+        if (currentKeyLayoutDataRef) 
+            chr_data = CFDataGetBytePtr(currentKeyLayoutDataRef);
+        else
+            mexPrintf("(mglCharToKeycode) Could not get UnicodeKeyLayoutData\n");
+    };
 
     // get the keycode using UCKeyTranslate
     UCKeyTranslate(chr_data,keycode-1,kUCKeyActionDown,0,keyboard_type,0,&deadKeyState,maxStringLength,&actualStringLength,unicodeString);
-    
-  }
-  return ((char*)unicodeString);
+
+}
+return ((char*)unicodeString);
 
 }
 //-----------------------------------------------------------------------------------///
@@ -1819,7 +1934,7 @@ char *keycodeToChar(UInt16 keycode)
 
    */
 
-    void *kchr;
+        void *kchr;
     UInt32 state=0;
     KeyboardLayoutRef layout;
 
@@ -1863,37 +1978,37 @@ char *keycodeToChar(UInt16 keycode)
 ///////////////////////
 mxArray *keycodeToChar(const mxArray *arrayOfKeycodes)
 {
-  
+
   // Compare the beautiful simplicity of the following code with the Mac horrors above. 
   // Amazing considering that X was developed *before* Apple's API. 
 
-  int nkeys,i;
-  Display * dpy;
+    int nkeys,i;
+    Display * dpy;
 
   // init the output array
-  nkeys=mxGetNumberOfElements(arrayOfKeycodes);
-  mxArray *out=mxCreateCellMatrix(1,nkeys);
+    nkeys=mxGetNumberOfElements(arrayOfKeycodes);
+    mxArray *out=mxCreateCellMatrix(1,nkeys);
 
 
-  int dpyptr=(int)mglGetGlobalDouble("XDisplayPointer");
-  if (dpyptr<=0) {
+    int dpyptr=(int)mglGetGlobalDouble("XDisplayPointer");
+    if (dpyptr<=0) {
     // open a dummy display
-    dpy=XOpenDisplay(0);
-  } else {
-    dpy=(Display *)dpyptr;
-  }
-  
-  for (i=0; i<nkeys; i++) {
-    KeySym keysym=XKeycodeToKeysym(dpy, (int)*(mxGetPr(arrayOfKeycodes)+i)-1, 0);// remove 1-offset  
-    if (keysym!=NoSymbol) 
-      mxSetCell(out, i, mxCreateString( XKeysymToString(keysym)));
-  }
+        dpy=XOpenDisplay(0);
+    } else {
+        dpy=(Display *)dpyptr;
+    }
 
-  if (dpyptr<=0) {
-    XCloseDisplay(dpy);
-  }
-  
-  return(out);
+    for (i=0; i<nkeys; i++) {
+        KeySym keysym=XKeycodeToKeysym(dpy, (int)*(mxGetPr(arrayOfKeycodes)+i)-1, 0);// remove 1-offset  
+        if (keysym!=NoSymbol) 
+            mxSetCell(out, i, mxCreateString( XKeysymToString(keysym)));
+    }
+
+    if (dpyptr<=0) {
+        XCloseDisplay(dpy);
+    }
+
+    return(out);
 }
 #endif //__linux__
 
@@ -1910,5 +2025,80 @@ int sub2indC( int row, int col, int width, int elsize ) {
 
 int sub2ind( int row, int col, int height, int elsize ) {
   // return linear index corresponding to (row,col) into Matlab array
-  return ( row*elsize + col*height*elsize );
+    return ( row*elsize + col*height*elsize );
 }
+
+
+#ifdef __eventtap__
+void setupGeyKeyCallback()
+{
+
+
+    NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+    CGKeyCode keycode;
+    double timestamp;
+    CGEventType type;
+
+    CGEventRef event;
+    CGEventMask        eventMask;
+    CFRunLoopSourceRef runLoopSource;
+    int keyboardType;
+
+    if (!AXAPIEnabled()) {
+        mexPrintf("(mglPrivateEyelinkCalibrate) **WARNING** To get keyboard events, you must have the Accessibility API enabled. From System Preferences open Universal Access and make sure that \"Enable access for assistive devices\" is checked **WARNING **\n");
+    }
+
+
+
+  // Create an event tap. We are interested in key presses and mouse presses
+    eventMask = ((1 << kCGEventKeyDown) | (1 << kCGEventKeyUp));
+    // gEventTap = CGEventTapCreate(kCGSessionEventTap, kCGHeadInsertEventTap, kCGEventTapOptionListenOnly, eventMask, myCGEventCallback, NULL);
+    gEventTap = CGEventTapCreate(kCGSessionEventTap, kCGHeadInsertEventTap, kCGEventTapOptionDefault, eventMask, myCGEventCallback, NULL);
+
+  // see if it was created properly
+    if (!gEventTap) {
+        mexPrintf("(mglPrivateEyelinkCalibrate) Failed to create event tap\n");
+        return;
+    }
+
+  // Create a run loop source.
+    runLoopSource = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, gEventTap, 0);
+
+  // Add to the current run loop.
+    CFRunLoopAddSource(CFRunLoopGetCurrent(), runLoopSource, kCFRunLoopCommonModes);
+
+  // Enable the event tap.
+    CGEventTapEnable(gEventTap, true);
+
+  // see if it is enable
+    if (!CGEventTapIsEnabled(gEventTap)) {
+        mexPrintf("(mglPrivateEyelinkCalibrate) Failed to enable event tap\n");
+        return;
+    }
+
+
+  // set up run loop
+    // CFRunLoopRun();
+
+}
+
+////////////////////////
+//   event callback   //
+////////////////////////
+CGEventRef myCGEventCallback(CGEventTapProxy proxy, CGEventType type, CGEventRef event, void *refcon)
+{
+  // check for keyboard event
+    if (type == kCGEventKeyDown) {
+        eventKeyCode = (CGKeyCode)CGEventGetIntegerValueField(event, kCGKeyboardEventKeycode)+1;
+        eventKeyFlags = (double)CGEventGetFlags(event);
+        keyDownEvent = 1;
+    }
+    else if (type == kCGEventKeyUp) {
+
+    }
+
+  // return the event for normal OS processing
+    return event;
+}
+
+#endif
