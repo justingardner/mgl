@@ -1,5 +1,5 @@
 #include "mgl.h"
-#include <CarbonEvents.h>
+// #include <CarbonEvents.h>
 
 ////////////////////////
 //   define section   //
@@ -37,6 +37,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
                                     1, eventTypes,
                                     NULL, NULL);
 
+    
 }
 
 pascal OSStatus KeyboardHandler (EventHandlerCallRef  nextHandler,
@@ -44,5 +45,16 @@ pascal OSStatus KeyboardHandler (EventHandlerCallRef  nextHandler,
                                  void*                userData)
 {
     
+    UInt32 keyPressed;
     
+    OSStatus result;
+    
+    GetEventParameter(event, kEventParamKeyCode, typeUInt32, NULL,
+        sizeof(UInt32), NULL, &keyPressed);
+    
+    mexPrintf("Received key %i", keyPressed);
+    
+    result = eventNotHandledErr;
+    
+    return result;
 }                                 
