@@ -42,7 +42,7 @@ TODO: write mglEyelinkEDFEndTrial [task?]
 		
 TODO: write a function to get return values for commands?
 	c.f. trackedEye = Eyelink('EyeAvailable');
-    
+     INT16 eyelink_read_reply (char FARTYPE buf)
 
 ---
 

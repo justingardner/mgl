@@ -155,7 +155,7 @@ This is an optional function to initialze graphics and calibration system.
         2. if graphics initalization suceeds, return 0 otherewise return 1.
   */
 
-        setupGeyKeyCallback();
+        // setupGeyKeyCallback();
 
     return 0;
 }
@@ -184,32 +184,26 @@ This is called to check for keyboard input.
 */
     INT16 ELCALLBACK get_input_key(InputEvent *key_input)
 {
-    MGLKeyEvent keyEvent;
     
-    // mxArray *callOutput[1], *tmpOut;
     UINT16 keycode = 0;    // the key (mgl code)
     
     // get a key event using the get key event.
-    // mexCallMATLAB(1,callOutput,0,NULL,"mglGetKeyEvent");
-    // return 0;
-    // mexCallMATLAB(1,callOutput,0,NULL,"mglGetKeys");
-    // if (mxIsEmpty(callOutput[0])) {
-    // if (!(keycode = mglcGetKeys())) {
-    // if (!keyDownEvent) {
-    if (!mglcGetKeyEvent(&keyEvent)) {
-        // mexPrintf("Empty Key Event\n");
+    if (!(keycode = mglcGetKeys())) {
+        eventKeyCode = 0;
         return 0;
     }
     else {
+        if (eventKeyCode == keycode) {
+            return 0;
+        }
+        eventKeyCode = keycode;
         // parse key and place in *key_input
         UINT16 charcode = 0, modcode = 0; // the key (ascii)
         // char *charbuff;
-        char charbuff = ' ';
+        // char charbuff = ' ';
         // get modifiers
         int shift = 0, control = 0, command = 0, alt = 0, capslock = 0;
         // get the key event
-        // keycode = eventKeyCode;
-        // charbuff = mxArrayToString(mxGetField(callOutput[0],0,"charCode"));
         // charbuff = keycodeToChar(keycode);
         // if (charbuff!=NULL)
         //     charcode = (UINT16)charbuff[0];
@@ -217,34 +211,26 @@ This is called to check for keyboard input.
         //     charcode = 0;
         // mxFree(charbuff);
             // free(charbuff);
-        // keycode = (UINT16)*(double*)mxGetPr(mxGetField(callOutput[0],0,"keyCode"));
-        // tmpOut = mxGetField(callOutput[0],0,"shift");
         // if (tmpOut!=NULL) {
         //     shift = (int)*(double*)mxGetPr(tmpOut);
         //     control = (int)*(double*)mxGetPr(mxGetField(callOutput[0],0,"control"));
         //     capslock = (int)*(double*)mxGetPr(mxGetField(callOutput[0],0,"capslock"));
         //     alt = (int)*(double*)mxGetPr(mxGetField(callOutput[0],0,"alt"));
         // }
-        // shift = (eventKeyFlags&kCGEventFlagMaskShift) ? 1:0;
-        // control = (eventKeyFlags&kCGEventFlagMaskControl) ? 1:0;
-        // alt = (eventKeyFlags&kCGEventFlagMaskAlternate) ? 1:0;
-// (eventKeyFlags&kCGEventFlagMaskCommand) ? 1:0;
-        // shift = (eventKeyFlags&kCGEventFlagMaskAlphaShift) ? 1:0;
-        
-        charcode = keyEvent.charCode;
-        keycode = keyEvent.keyCode;
+        charcode = (UINT16)*keycodeToChar(keycode);
+        // mexPrintf("c %d (%.1s) k %d shift %d cntr %d caps %d alt %d\n", charcode,
+        //     charbuff, keycode, shift, control, capslock, alt);
+        // mexPrintf("c %d k %d shift %d cntr %d caps %d alt %d\n", charcode,
+        //     keycode, shift, control, capslock, alt);
 
-        mexPrintf("c %d (%.1s) k %d shift %d cntr %d caps %d alt %d\n", charcode,
-            charbuff, keycode, shift, control, capslock, alt);
-
-        if (shift)
-            modcode = (modcode | ELKMOD_LSHIFT | ELKMOD_RSHIFT);
-        if (control)
-            modcode = (modcode | ELKMOD_LCTRL | ELKMOD_RCTRL);
-        if (alt)
-            modcode = (modcode | ELKMOD_LALT | ELKMOD_RALT);
-        if (capslock)
-            modcode = (modcode | ELKMOD_CAPS);
+        // if (shift)
+        //     modcode = (modcode | ELKMOD_LSHIFT | ELKMOD_RSHIFT);
+        // if (control)
+        //     modcode = (modcode | ELKMOD_LCTRL | ELKMOD_RCTRL);
+        // if (alt)
+        //     modcode = (modcode | ELKMOD_LALT | ELKMOD_RALT);
+        // if (capslock)
+        //     modcode = (modcode | ELKMOD_CAPS);
 
         if (charcode>=33 && charcode <=127) {
             key_input->key.key = (char)charcode;
@@ -318,7 +304,6 @@ This is called to check for keyboard input.
         // mexPrintf("InputEvent->type %d\nInputEvent->key.key %d\nInputEvent->key.modifier %d\n"
         // "InputEvent->key.state %d\nInputEvent->key.type %d\n", key_input->type, key_input->key.key,
         // key_input->key.modifier, key_input->key.state, key_input->key.type);
-        keyDownEvent = 0;
         return 1;
     }
 }
@@ -352,7 +337,7 @@ Setup the calibration display. This function called before any
 This is called to release any resources that are not required beyond calibration.
     Beyond this call, no calibration functions will be called.
  */
-    void ELCALLBACK exit_cal_display(void)
+void ELCALLBACK exit_cal_display(void)
 {
 
 }
@@ -364,8 +349,9 @@ This function is responsible for the drawing of the target for calibration,valid
     @param y y coordinate of the target.
     @remark The x and y are relative to what is sent to the tracker for the command screen_pixel_coords.
  */
-    void ELCALLBACK draw_cal_target(INT16 x, INT16 y)
+void ELCALLBACK draw_cal_target(INT16 x, INT16 y)
 {    
+    // mexPrintf("(mglPrivateEyelinkCalibrate) call to draw_cal_target(%i,%i)\n",x,y);
     mxArray *callInput[4];
     double *inX;
     double *inY;
@@ -382,16 +368,21 @@ This function is responsible for the drawing of the target for calibration,valid
     inColor = (double*)mxGetPr(callInput[3]);
     *inX = (double)x;
     *inY = (double)y;
-    *inSize = 20; // in pixels for now
-    inColor[0] = 0.7; // red
-    inColor[1] = 0.7; // green
-    inColor[2] = 0.7; // blue
 
 
+    *inSize = 5; // in pixels for now
+    inColor[0] = 0.8; // red
+    inColor[1] = 0.8; // green
+    inColor[2] = 0.8; // blue
+    // mglGluDisk(xDeg, yDeg, targetSize, targetcolor);
     mexCallMATLAB(0, NULL, 4, callInput, "mglGluDisk");            
-      //mglGluDisk(xDeg, yDeg, targetSize, targetcolor);
+    *inSize = 2; // in pixels for now
+    inColor[0] = 1.0; // red
+    inColor[1] = 0.0; // green
+    inColor[2] = 0.0; // blue
+    mexCallMATLAB(0, NULL, 4, callInput, "mglGluDisk");            
     mglcFlush(mglcDisplayNumber);
-    mexPrintf("mglPrivateEyelinkCalibrate) draw_cal_target");
+    // mexPrintf("mglPrivateEyelinkCalibrate) mglGluDisk at (%g,%g) with size %g.\n", *inX, *inY, *inSize);
 }
 
 /*!
@@ -647,7 +638,7 @@ This function is called to supply the image line by line from top to bottom.
         // mexPrintf("[Title Texture]");
         // mglcBltTexture(mgltTitle, titlePos, ALIGNCENTER, ALIGNCENTER);
 
-        mexPrintf("F %d\n", mglcFrameNumber++);
+        // mexPrintf("F %d\n", mglcFrameNumber++aa);
 
         // now we need to draw the cursors.
 
