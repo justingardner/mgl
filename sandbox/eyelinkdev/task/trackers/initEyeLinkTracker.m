@@ -26,20 +26,17 @@ function [myscreen] = initEyeLinkEyeTracker(myscreen, tracker)
 % along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
     mglEyelinkOpen('100.1.1.1', 0);
+    mglEyelinkCMDPrintF('screen_pixel_coords = 0 0 %d %d', mglGetParam('deviceWidth'), mglGetParam('deviceHeight')); 
+    mglEyelinkCMDPrintF('calibration_type = HV9');
+    mglEyelinkCMDPrintF('file_event_filter = RIGHT,FIXATION,SACCADE,BLINK,MESSAGE,BUTTON'); 
+    mglEyelinkCMDPrintF('file_sample_data = RIGHT,GAZE,AREA,GAZERES,STATUS'); 
+    mglEyelinkCMDPrintF('sample_rate = 500');
 
-    %mglPrivateEyelinkSendCommand
-
-    % set up some variables
-    mglPrivateEyelinkCMDPrintF('screen_pixel_coords = 0 0 %d %d',  ...
-        mglGetParam('deviceWidth'), mglGetParam('deviceHeight')); 
-    mglPrivateEyelinkCMDPrintF('calibration_type = HV9');
-    mglPrivateEyelinkCMDPrintF(
-        'file_event_filter = RIGHT,FIXATION,SACCADE,BLINK,MESSAGE,BUTTON');
-    mglPrivateEyelinkCMDPrintF(
-        'file_sample_data = RIGHT,GAZE,AREA,GAZERES,STATUS');
-    mglPrivateEyelinkCMDPrintF('sample_rate = 500');
-
-    myscreen.eyetracker.callback.getposition = @mglEyelinkCallbackGetPosition;
+    myscreen.eyetracker.callback.getposition    = @mglEyelinkCallbackGetPosition;
+    % myscreen.eyetracker.callback.nextTask       = @mglEyelinkCallbackNextTask;
+    % myscreen.eyetracker.callback.startBlock     = @mglEyelinkCallbackStartBlock;
+    myscreen.eyetracker.callback.startTrial     = @mglEyelinkCallbackStartTrial;
+    % myscreen.eyetracker.callback.startSegment   = @mglEyelinkCallbackStartSegment;
     myscreen.eyetracker.init = 1;
     
 end
