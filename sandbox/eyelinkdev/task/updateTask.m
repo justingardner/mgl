@@ -454,7 +454,7 @@ function [task, myscreen] = initTrial(task,myscreen)
     end    
     if myscreen.eyetracker.init && isfield(myscreen.eyetracker.callback, 'startTrial')
         %% call eyetracker trial callback
-        [task{tnum} myscreen] = feval(myscreen.eyetracker.callback.startTrial,task{tnum},myscreen);
+        [task myscreen] = feval(myscreen.eyetracker.callback.startTrial,task,myscreen);
     end
 
     % the trial is no longer waiting to start

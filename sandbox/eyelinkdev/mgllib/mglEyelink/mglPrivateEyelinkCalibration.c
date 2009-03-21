@@ -1863,8 +1863,8 @@ char *keycodeToChar(UInt16 keycode)
     const void *chr_data = NULL;
     UInt32 deadKeyState = 0;
     UniCharCount maxStringLength = 8, actualStringLength;
-    UniChar unicodeString = malloc(sizeof(UniChar)*8);
-
+    UniChar *unicodeString = malloc(sizeof(UniChar)*8);
+    
   // get the current keyboard "layout input source"
     TISInputSourceRef currentKeyLayoutRef = TISCopyCurrentKeyboardLayoutInputSource();
   // and the keyboard type
@@ -1880,9 +1880,8 @@ char *keycodeToChar(UInt16 keycode)
 
     // get the keycode using UCKeyTranslate
     UCKeyTranslate(chr_data,keycode-1,kUCKeyActionDown,0,keyboard_type,0,&deadKeyState,maxStringLength,&actualStringLength,unicodeString);
-
-}
-return ((char*)unicodeString);
+    
+    return ((char*)unicodeString);
 
 }
 //-----------------------------------------------------------------------------------///

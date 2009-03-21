@@ -1,12 +1,12 @@
-function [myscreen] = initEyeLinkEyeTracker(myscreen, tracker)
-% initEyeTracker - initializes a the myscreen and tracker for use
+function [myscreen] = initEyeLinkEyeTracker(myscreen, conntype)
+% initEyeLinkEyeTracker - initializes a the myscreen and tracker for use
 %
 %
 
-% initEyeTracker.m
+% initEyeLinkEyeTracker.m
 %
-%        $Id: initEyeTracker.m 203 2007-03-19 15:41:00Z justin $
-%      usage: myscreen = initEyeTracker(myscreen, [tracker])
+%        $Id: initEyeLinkEyeTracker.m 203 2007-03-19 15:41:00Z justin $
+%      usage: myscreen = initEyeLinkEyeTracker(myscreen, [tracker])
 %         by: eric dewitt
 %       date: 2009-03-10
 %  copyright: (c) 2006 Justin Gardner (GPL see mgl/COPYING)
@@ -25,7 +25,18 @@ function [myscreen] = initEyeLinkEyeTracker(myscreen, tracker)
 % You should have received a copy of the GNU General Public License
 % along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-    mglEyelinkOpen('100.1.1.1', 0);
+    if nargin < 2 || conntype == 0
+        conntype = 0;
+        myscreen.eyetracker.dummymode = 0;
+        fprintf('(initEyeLinkEyeTracker) Initializing Eyelink eye tracker.\n');
+    elseif conntype == 1
+        fprintf('(initEyeLinkEyeTracker) Initializing Eyelink in dummy mode.\n');
+        myscreen.eyetracker.dummymode = 1;
+    else
+        error('(initEyeLinkEyeTracker) Unknown connection type.\n');
+    end
+        
+    mglEyelinkOpen('100.1.1.1', conntype);
     mglEyelinkCMDPrintF('screen_pixel_coords = 0 0 %d %d', mglGetParam('deviceWidth'), mglGetParam('deviceHeight')); 
     mglEyelinkCMDPrintF('calibration_type = HV9');
     mglEyelinkCMDPrintF('file_event_filter = RIGHT,FIXATION,SACCADE,BLINK,MESSAGE,BUTTON'); 

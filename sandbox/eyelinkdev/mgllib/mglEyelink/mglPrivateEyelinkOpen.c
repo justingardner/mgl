@@ -76,7 +76,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         }
     }
 
-    if(open_eyelink_connection(0)) {
+    if(open_eyelink_connection(trackerconntype)) {
         /* abort if we can't open link*/
         mexErrMsgTxt("Connection failed: could not establish a link.\n");
     } else {

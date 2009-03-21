@@ -1,4 +1,4 @@
-function [myscreen] = initEyeTracker(myscreen, tracker)
+function [myscreen] = initEyeTracker(myscreen, varargin)
 % initEyeTracker - initializes a the myscreen and tracker for use
 %
 %
@@ -26,16 +26,21 @@ function [myscreen] = initEyeTracker(myscreen, tracker)
 % along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
     initializer = [];
-    if ~any(nargin==[1 2])
+    if nargin<1
         help initEyeTracker;
-    elseif nargin<2
-        if isfield(myscreen, 'eyeTrackerType')
-            initializer = sprintf('init%sEyeTracker', myscreen.eyeTracker);
-        else
-            fprintf(2, '(initEyeTracker) No eye-tracker specified in myscreen.\n');
+    elseif nargin >= 2
+        myscreen.eyeTrackerType = varargin{1};
+    elseif ~isfield(myscreen, 'eyeTrackerType')
+        fprintf(2, '(initEyeTracker) No eye-tracker specified in myscreen.\n');
+    end
+    initializer = sprintf('init%sEyeTracker', myscreen.eyeTrackerType);
+    
+    %% handle optional arguments for specific trackers
+    if nargin > 2
+        varargin = varargin{2:end};
+        if ~iscell(varargin)
+            varargin = {varargin};
         end
-    else
-        initializer = sprintf('init%sTracker', tracker);
     end
     
     %% check to see if we have a valid eyetracker (that we know about)
@@ -43,7 +48,11 @@ function [myscreen] = initEyeTracker(myscreen, tracker)
         fprintf(2,'(initEyeTracker) No tracker specified, proceeding without eyetracker\n');
     else
         if exist(initializer)
-            eval(sprintf('myscreen = %s(myscreen);', initializer));
+            if nargin>2
+                eval(sprintf('myscreen = %s(myscreen, varargin{:});', initializer));
+            else
+                eval(sprintf('myscreen = %s(myscreen);', initializer));
+            end
         else
             fprintf(2, '(initEyeTracker) Unknown eye-tracker specified.\n');
         end

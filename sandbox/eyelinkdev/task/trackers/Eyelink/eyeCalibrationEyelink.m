@@ -25,6 +25,10 @@ function [myscreen] = eyeCalibrationEyelink(myscreen)
 % You should have received a copy of the GNU General Public License
 % along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-    mglPrivateEyelinkCalibration;
-
+    if ~myscreen.eyetracker.dummymode
+        fprintf(2,'(eyeCalibrationEyelink) Calibrating Eyelink.\n');
+        mglPrivateEyelinkCalibration;
+    else
+        fprintf(2,'(eyeCalibrationEyelink) Skipping calibration in dummy mode.\n');
+    end
 end

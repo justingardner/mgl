@@ -64,7 +64,8 @@ function retval = mglMake(rebuild, varargin)
 
     % clear the MGL global
     clear global MGL;
-
+    
+    lastPath = pwd;
     % make sure we have the mgl.h file--this will make
     % sure we are in the correct directory
     hfile = dir('mgl.h');
@@ -126,6 +127,7 @@ function retval = mglMake(rebuild, varargin)
             end
         end
     end
+    cd(lastPath);
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
