@@ -27,7 +27,12 @@ function [myscreen] = eyeCalibrationEyelink(myscreen)
 
     if ~myscreen.eyetracker.dummymode
         fprintf(2,'(eyeCalibrationEyelink) Calibrating Eyelink.\n');
+        inScreenCoord = mglGetParam('screenCoordinates');
+        mglScreenCoordinates();
         mglPrivateEyelinkCalibration;
+        if ~inScreenCoord
+            mglVisualAngleCoordinates(myscreen.displayDistance, myscreen.displaySize);
+        end
     else
         fprintf(2,'(eyeCalibrationEyelink) Skipping calibration in dummy mode.\n');
     end

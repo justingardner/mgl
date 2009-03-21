@@ -50,10 +50,12 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     
     int result;
     
-    if(result = receive_data_file(our_file_name, our_file_name, 0)) {
+    if (result = receive_data_file(our_file_name, our_file_name, 0)) {
         if (result == FILE_CANT_OPEN || result == FILE_XFER_ABORTED) {
             mexErrMsgTxt("File transfer error.");    
         }
+    } else {
+        mexPrintf("\n.");
     }
     
 }

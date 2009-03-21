@@ -10,7 +10,7 @@ mglEyelinkOpen('100.1.1.1', 0);
 %mglPrivateEyelinkSendCommand
 
 % set up some variables
-mglEyelinkCMDPrintF('screen_pixel_coords = 0 0 %d %d', mglGetParam('deviceWidth'), mglGetParam('deviceHeight')); 
+mglEyelinkCMDPrintF('screen_pixel_coords = 0 0 %d %d', mglGetParam('screenWidth'), mglGetParam('screenHeight')); 
 mglEyelinkCMDPrintF('calibration_type = HV9');
 mglEyelinkCMDPrintF('file_event_filter = RIGHT,FIXATION,SACCADE,BLINK,MESSAGE,BUTTON'); 
 mglEyelinkCMDPrintF('file_sample_data = RIGHT,GAZE,AREA,GAZERES,STATUS'); 

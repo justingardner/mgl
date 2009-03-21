@@ -44,6 +44,8 @@ TODO: write a function to get return values for commands?
 	c.f. trackedEye = Eyelink('EyeAvailable');
      INT16 eyelink_read_reply (char FARTYPE buf)
 
+TODO: fix mglPrivateEyelinkGetEDF to save to a path (or in non Private)
+
 ---
 
 26.4.2.8 INT16 eyelink_cal_result (void) 
