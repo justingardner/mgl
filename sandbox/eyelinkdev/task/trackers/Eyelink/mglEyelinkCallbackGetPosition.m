@@ -13,6 +13,6 @@ function [task myscreen] = mglEyelinkCallbackGetPosition(task, myscreen)
 %     purpose: open a link connection to an SR Research Eylink
 %
 
-    myscreen.eyetracker.eyepos = mglPrivateEyelinkGetCurrentSample();
+    myscreen.eyetracker.eyepos = mglEyelinkGetCurrentEyePos();
     
 end

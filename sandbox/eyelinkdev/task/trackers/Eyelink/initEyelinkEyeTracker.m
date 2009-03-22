@@ -65,7 +65,7 @@ function [myscreen] = initEyeLinkEyeTracker(myscreen, conntype)
     % TODO: allow sample rate to be specified in myscreen.eyetracker
     mglEyelinkCMDPrintF('sample_rate = 500');
 
-    myscreen.eyetracker.callback.getposition    = @mglEyelinkCallbackGetPosition;
+    myscreen.eyetracker.callback.getPosition    = @mglEyelinkCallbackGetPosition;
     % myscreen.eyetracker.callback.nextTask       = @mglEyelinkCallbackNextTask;
     % myscreen.eyetracker.callback.startBlock     = @mglEyelinkCallbackStartBlock;
     myscreen.eyetracker.callback.startTrial     = @mglEyelinkCallbackStartTrial;

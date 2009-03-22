@@ -44,7 +44,7 @@ function [myscreen task] = tickScreen(myscreen,task)
 
     if myscreen.eyetracker.init && isfield(myscreen.eyetracker.callback, 'getPosition')
        %% get eye position 
-       [task{tnum} myscreen] = feval(myscreen.eyetracker.callback.getPosition,task{tnum},myscreen);
+       [task myscreen] = feval(myscreen.eyetracker.callback.getPosition,task,myscreen);
     end
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%
