@@ -1,10 +1,7 @@
 function [task myscreen] = mglEyelinkCallbackStartTrial(task, myscreen)
-% mglEyelinkCallbackStartTrial - Assigns eye position to myscreen
+% mglEyelinkCallbackStartTrial - 
 %
-% Usage: mglEyelinkCallbackStartTrial(IP, conntype)
-%   IP - the ip address of the eyelink eye tracker, defaults to 100.1.1.1
-%   conntype - the connection type: 0 opens a direct link, 1 initializes a
-%              dummy connection
+% Usage: mglEyelinkCallbackStartTrial(task, myscreen)
 
 %     program: mglEyelinkCallbackStartTrial.m
 %          by: eric dewitt
