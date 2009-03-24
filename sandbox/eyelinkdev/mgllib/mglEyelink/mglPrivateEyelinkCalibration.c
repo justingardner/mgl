@@ -523,6 +523,10 @@ This is called to notify that all camera setup things are complete.  Any
 
     mglcFreeTexture(mgltCamera);
     // mglcFreeTexture(mgltTitle);
+    mglcClearScreen(NULL);
+    mglcFlush(mglcDisplayNumber);
+    mglcClearScreen(NULL);
+    mglcFlush(mglcDisplayNumber);
 
 }
 

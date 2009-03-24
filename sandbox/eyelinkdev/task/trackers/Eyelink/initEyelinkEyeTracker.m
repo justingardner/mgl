@@ -70,6 +70,27 @@ function [myscreen] = initEyeLinkEyeTracker(myscreen, conntype)
     % myscreen.eyetracker.callback.startBlock     = @mglEyelinkCallbackStartBlock;
     myscreen.eyetracker.callback.startTrial     = @mglEyelinkCallbackStartTrial;
     myscreen.eyetracker.callback.startSegment   = @mglEyelinkCallbackStartSegment;
+    myscreen.eyetracker.callback.saveEyeData    = @mglEyelinkCallbackSaveData;
+    myscreen.eyetracker.callback.endTracking    = @mglEyelinkCallbackCloseTracker;
+    
+    % if save then get file
+    if myscreen.eyetracker.savedata
+        %% TODO: this is a hack and should be improved
+        global gNumSaves;
+        % update the numsaves variable
+        if (isempty(gNumSaves))
+          stimnamenum = 1;
+        else
+          stimnamenum = gNumSaves+1;
+        end
+        % get filename
+        thedate = [datestr(now,'yy') datestr(now,'mm') datestr(now,'dd')];
+        myscreen.eyetracker.datafilename = sprintf('%s%02i',thedate,stimnamenum);
+    
+        % get a data file
+        mglPrivateEyelinkOpenEDF(sprintf('%s.edf', myscreen.eyetracker.datafilename));
+    end
+    
     myscreen.eyetracker.init = 1;
     
 end

@@ -21,10 +21,13 @@ function myscreen = endTask(myscreen,task)
 
     % compute traces and save data
     myscreen = endScreen(myscreen);
-    saveStimData(myscreen,task);
     if myscreen.eyetracker.init
-        %% call eyetracker data save function
+        if myscreen.eyetracker.savedata
+            [task, myscreen] = feval(myscreen.eyetracker.callback.saveEyeData,task,myscreen);
+        end
+        feval(myscreen.eyetracker.callback.endTracking,task,myscreen);
     end
+    saveStimData(myscreen,task);
 
     mydisp(sprintf('End task\n'));
     % we are done

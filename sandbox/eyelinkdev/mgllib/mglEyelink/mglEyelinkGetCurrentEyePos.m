@@ -7,7 +7,7 @@ function [pos] = mglEyelinkGetCurrentEyePos(devicecord)
     pos = mglPrivateEyelinkGetCurrentSample();
     if ~isempty(pos) && devicecord
         pos(1) = (pos(1)-(mglGetParam('screenWidth')/2))*mglGetParam('xPixelsToDevice');
-        pos(2) = (pos(2)-(mglGetParam('screenHeight')/2))*mglGetParam('yPixelsToDevice');
+        pos(2) = ((mglGetParam('screenHeight')/2)-pos(2))*mglGetParam('yPixelsToDevice');
     end
     
 end
