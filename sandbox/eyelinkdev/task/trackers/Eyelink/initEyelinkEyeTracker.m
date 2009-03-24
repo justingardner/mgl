@@ -73,8 +73,8 @@ function [myscreen] = initEyeLinkEyeTracker(myscreen, conntype)
     myscreen.eyetracker.callback.saveEyeData    = @mglEyelinkCallbackSaveData;
     myscreen.eyetracker.callback.endTracking    = @mglEyelinkCallbackCloseTracker;
     
-    % if save then get file
-    if myscreen.eyetracker.savedata
+    % if save then get file, default to saving
+    if ~isfield(myscreen.eyetracker, 'savedata') || myscreen.eyetracker.savedata
         %% TODO: this is a hack and should be improved
         global gNumSaves;
         % update the numsaves variable
