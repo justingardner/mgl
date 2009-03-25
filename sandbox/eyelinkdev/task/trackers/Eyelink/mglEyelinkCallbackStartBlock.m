@@ -14,7 +14,8 @@ function [task myscreen] = mglEyelinkCallbackStartBlock(task, myscreen)
         mglEyelinkRecordingStop();
     end
     if (task.collectEyeData)
-        mglEyelinkRecordingStart(myscreen.eyetracker.data);
+        keyboard;
+        mglPrivateEyelinkRecordingStart(myscreen.eyetracker.data);
     end
     
     mglEyelinkEDFPrintF('MGL BEGIN BLOCK %i', task.blocknum);

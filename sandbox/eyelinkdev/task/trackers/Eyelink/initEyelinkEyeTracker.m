@@ -46,7 +46,7 @@ function [myscreen] = initEyeLinkEyeTracker(myscreen, conntype)
     % proceeding clockwise (all physical values are in mm)
     mglEyelinkCMDPrintF('screen_phys_coords = %6.2f, %6.2f, %6.2f, %6.2f', ...
         -(myscreen.displaySize(1)/2)*10, (myscreen.displaySize(2)/2)*10, ...
-         (myscreen.displaySize(1)/2)*10, -(myscreen.displaySize(2)/2))*10;
+         (myscreen.displaySize(1)/2)*10, -(myscreen.displaySize(2)/2)*10);
     % distance between the eye and the top and bottom center of the display
     % (to allow for angled displays)
     mglEyelinkCMDPrintF('screen_distance = %6.2f, %6.2f', ...
@@ -78,7 +78,7 @@ function [myscreen] = initEyeLinkEyeTracker(myscreen, conntype)
     %% TODO: this is a hack and should be improved
     if ~isfield(myscreen.eyetracker, 'savedata') || myscreen.eyetracker.savedata
         if isfield(myscreen.eyetracker, 'data')
-            myscreen.eyetracker.data = myscreen.eyetracker.data | [1 0 1 1];
+            myscreen.eyetracker.data = myscreen.eyetracker.data | [0 0 1 1];
         else
             myscreen.eyetracker.data = [1 0 1 1];
         end
