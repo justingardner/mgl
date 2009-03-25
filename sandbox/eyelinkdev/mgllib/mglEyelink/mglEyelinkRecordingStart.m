@@ -29,8 +29,7 @@ function mglEyelinkRecordingStart(varargin)
             else
                 error('(mglEyelinkRecordingStart) Incorrect arguments.');
             end
-        else
-            error('(mglEyelinkRecordingStart) Incorrect arguments.');
         end
     end
+    mglPrivateEyelinkRecordingStart(recordingState);
 end
