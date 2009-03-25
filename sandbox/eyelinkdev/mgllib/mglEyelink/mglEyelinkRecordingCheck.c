@@ -27,7 +27,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     
     if (nrhs>0) /* What arguments should this take? */
     {
-        usageError("mglEyelinkCheckRecording");
+        usageError("mglEyelinkRecordingCheck");
         return;
     }
     double *plhsData;
