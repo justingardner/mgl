@@ -37,7 +37,7 @@ function [task, myscreen, tnum] = updateTask(task,myscreen,tnum)
             return
         end
         % otherwise init a new block and continue on
-        [task{tnum} myscreen] = initBlock(task{tnum},myscreen);
+        [task{tnum} myscreen] = initBlock(task{tnum},myscreen,tnum);
     end
 
     % if we have finished how many trials were called for go to next task
@@ -71,12 +71,9 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function [task, myscreen tnum] = updateTrial(task, myscreen, tnum)
 
-    % set the phase num of the trial
-    task{tnum}.thistrial.thisphase = tnum;
-
     if task{tnum}.thistrial.waitingToInit
         % init the trial
-        [task{tnum} myscreen] = initTrial(task{tnum},myscreen);
+        [task{tnum} myscreen] = initTrial(task{tnum},myscreen,tnum);
     end
 
     % get globals
@@ -333,7 +330,7 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % init block
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function [task myscreen] = initBlock(task,myscreen)
+function [task myscreen] = initBlock(task,myscreen,phase)
 
     % start up a new block
     % select a randomization of trial parameters
@@ -368,22 +365,24 @@ function [task myscreen] = initBlock(task,myscreen)
     end
     if myscreen.eyetracker.init && isfield(myscreen.eyetracker.callback, 'startBlock')
         %% call eyetracker block callback
-        [task{tnum} myscreen] = feval(myscreen.eyetracker.callback.startBlock,task{tnum},myscreen);
+        [task myscreen] = feval(myscreen.eyetracker.callback.startBlock,task,myscreen);
     end
 
-
     % set up start time to tell routines to init trial properly
-    [task myscreen] = initTrial(task,myscreen);
+    [task myscreen] = initTrial(task,myscreen,phase);
 
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % init trial
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function [task, myscreen] = initTrial(task,myscreen)
+function [task, myscreen] = initTrial(task,myscreen,phase)
 
     % keep lasttrial information
     task.lasttrial = task.thistrial;
+
+    % set the phase num of the trial
+    task.thistrial.thisphase = phase;
 
     % set the segment number
     task.thistrial.thisseg = 1;
