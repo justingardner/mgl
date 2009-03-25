@@ -32,7 +32,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     }
 
     close_eyelink_connection();
-    close_eyelink_system();
+    // I don't believe we need this.
+    // close_eyelink_system();
     mexPrintf("(mglPrivateEyelinkClose) MGL Eyelink tracker link closed.\n");
     
 }
