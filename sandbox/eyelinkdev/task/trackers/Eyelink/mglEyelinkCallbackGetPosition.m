@@ -14,8 +14,5 @@ function [task myscreen] = mglEyelinkCallbackSaveData(task, myscreen)
 %
 
     myscreen.eyetracker.eyepos = mglEyelinkGetCurrentEyePos();
-    if isempty(myscreen.eyetracker.eyepos)
-        myscreen.eyetracker.eyepos = [NaN NaN];
-    end
     
 end

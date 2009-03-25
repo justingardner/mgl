@@ -84,12 +84,13 @@ function [task myscreen] = initTask(task, myscreen, startSegmentCallback, ...
     'parameterCode', ...
     'private', ...
     'randVars', ...
-    'fudgeLastVolume'};
+    'fudgeLastVolume', ...
+    'collectEyeData'};
 
     taskFieldnames = fieldnames(task);
     for i = 1:length(taskFieldnames)
         matches = find(strcmp(upper(taskFieldnames{i}),upper(knownFieldnames)));
-        if  matches &	~any(strcmp(taskFieldnames{i},knownFieldnames))
+        if  matches & ~any(strcmp(taskFieldnames{i},knownFieldnames))
             disp(sprintf('(initTask) task.%s is miscapitalized. Changed to task.%s.',taskFieldnames{i},knownFieldnames{matches}));
             fieldval = eval(sprintf('task.%s',taskFieldnames{i}));
             task = rmfield(task,taskFieldnames{i});
@@ -368,6 +369,10 @@ function [task myscreen] = initTask(task, myscreen, startSegmentCallback, ...
         task.callback.rand = @blockRandomization;
     end
     if myscreen.eyetracker.init
+        % default to assuming collecting data
+        if ~isfield(task, 'collectEyeData')
+            task.collectEyeData = 1;
+        end
         fprintf(2, '(initTask) THIS IS WHERE WE INITIALIZE THE CALLBACKS FOR TRACKING');        
     end
     

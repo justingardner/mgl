@@ -13,6 +13,6 @@ function [task myscreen] = mglEyelinkCallbackNextTask(task, myscreen)
 %     purpose: open a link connection to an SR Research Eylink
 %
 
-    mglEyelinkEDFPrintF('NEW TASK');
+    mglEyelinkEDFPrintF('MGL NEXT PHASE');
     
 end

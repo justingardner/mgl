@@ -56,28 +56,58 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     if(eyelink_newest_float_sample(NULL)>0) // check for new sample update 
     { 
         ALLF_DATA evt; // buffer to hold sample and event data 
-        float x, y; // gaze position 
+        float x, y, ex, ey, px, py, pa, rx, ry; // gaze position 
+        UINT32 time;
+        
         
         eyelink_newest_float_sample(&evt); // get the sample 
         x = evt.fs.gx[eye_used]; // yes: get gaze position from sample 
-        y = evt.fs.gy[eye_used]; 
-
+        y = evt.fs.gy[eye_used];
+        ex = evt.fs.hx[eye_used];
+        ey = evt.fs.hy[eye_used];
+        px = evt.fs.px[eye_used];
+        py = evt.fs.py[eye_used];
+        pa = evt.fs.pa[eye_used];
+        time = evt.fs.time;
+        rx = evt.fs.rx;
+        ry = evt.fs.ry;
+        
         double *plhsData;
-        plhs[0] = mxCreateDoubleMatrix(1,2,mxREAL);
+        plhs[0] = mxCreateDoubleMatrix(1,10,mxREAL);
         plhsData = mxGetPr(plhs[0]);
-
+        
         // make sure pupil is present 
-        if(x!=MISSING_DATA && y!=MISSING_DATA && evt.fs.pa[eye_used]>0) 
-        {            
+        if(x!=MISSING_DATA)
             plhsData[0] = (double)x;
-            plhsData[1] = (double)y;
-        } 
-        else 
-        {
-            // sample exists but has no pupil so we return NaN
+        else
             plhsData[0] = mxGetNaN();
+        if(y!=MISSING_DATA)
+            plhsData[1] = (double)y;
+        else 
             plhsData[1] = mxGetNaN();
-        }
+        if(ex!=MISSING_DATA)
+            plhsData[2] = (double)ex;
+        else 
+            plhsData[2] = mxGetNaN();
+        if(ey!=MISSING_DATA)
+            plhsData[3] = (double)ey;
+        else 
+            plhsData[3] = mxGetNaN();
+        if(px!=MISSING_DATA)
+            plhsData[4] = (double)px;
+        else 
+            plhsData[4] = mxGetNaN();
+        if(py!=MISSING_DATA)
+            plhsData[5] = (double)py;
+        else 
+            plhsData[5] = mxGetNaN();
+        if(!pa>0)
+            plhsData[6] = (double)pa;
+        else 
+            plhsData[6] = mxGetNaN();
+        plhsData[7] = (double)time;
+        plhsData[8] = (double)rx;
+        plhsData[9] = (double)ry;
     } else {
         // Return empty array?
         mwSize ndim = 2;

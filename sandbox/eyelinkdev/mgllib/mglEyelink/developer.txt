@@ -39,7 +39,10 @@ TODO: write mglEyelinkEDFStartTrial [task?]
 TODO: write mglEyelinkEDFEndTrial [task?]
 		this funciton writes:
 		TRIAL_OK
-		
+TODO: write mglEyelinkDoDriftCorrect
+	
+TODO: write mglEyelinkIsConnected
+	
 TODO: write a function to get return values for commands?
 	c.f. trackedEye = Eyelink('EyeAvailable');
      INT16 eyelink_read_reply (char FARTYPE buf)

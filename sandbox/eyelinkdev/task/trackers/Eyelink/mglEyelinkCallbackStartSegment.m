@@ -10,6 +10,6 @@ function [task myscreen] = mglEyelinkCallbackStartSegment(task, myscreen)
 %     purpose: open a link connection to an SR Research Eylink
 %
 
-    mglEyelinkEDFPrintF(sprintf('BEGIN SEGMENT %i'), task.thistrial.thisseg);
+    mglEyelinkEDFPrintF('MGL BEGIN SEGMENT %i', task.thistrial.thisseg);
     
 end

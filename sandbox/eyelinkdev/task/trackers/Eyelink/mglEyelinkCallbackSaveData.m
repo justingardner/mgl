@@ -13,19 +13,21 @@ function [task myscreen] = mglEyelinkCallbackSaveData(task, myscreen)
 %     purpose: open a link connection to an SR Research Eylink
 %
 
+    if (~mglEyelinkRecordingCheck())
+        %% if we are recording, stop
+        mglEyelinkRecordingStop();
+    end
+    
     % close the datafile
     mglEyelinkCMDPrintF('close_data_file');
-
+    
     % go offline
     mglPrivateEyelinkGoOffline();
-
+    
     % transfer the datafile
     curdir = pwd;
     cd(myscreen.datadir);
     mglPrivateEyelinkEDFGetFile(sprintf('%s.edf', myscreen.eyetracker.datafilename));
     cd(curdir);
-    
-    % close the link
-    mglPrivateEyelinkClose();
-    
+        
 end

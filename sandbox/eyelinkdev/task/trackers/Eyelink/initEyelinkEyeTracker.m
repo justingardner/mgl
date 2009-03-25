@@ -43,15 +43,15 @@ function [myscreen] = initEyeLinkEyeTracker(myscreen, conntype)
     mglEyelinkCMDPrintF('screen_pixel_coords = 0, 0, %d, %d',...
         mglGetParam('screenWidth'), mglGetParam('screenHeight'));
     % physical size from center, starting with center to left edge dist,
-    % proceeding clockwise
+    % proceeding clockwise (all physical values are in mm)
     mglEyelinkCMDPrintF('screen_phys_coords = %6.2f, %6.2f, %6.2f, %6.2f', ...
-        -(myscreen.displaySize(1)/2), (myscreen.displaySize(2)/2), ...
-         (myscreen.displaySize(1)/2), -(myscreen.displaySize(2)/2));
+        -(myscreen.displaySize(1)/2)*10, (myscreen.displaySize(2)/2)*10, ...
+         (myscreen.displaySize(1)/2)*10, -(myscreen.displaySize(2)/2))*10;
     % distance between the eye and the top and bottom center of the display
     % (to allow for angled displays)
     mglEyelinkCMDPrintF('screen_distance = %6.2f, %6.2f', ...
-        (myscreen.displayDistance^2 + (myscreen.displaySize(2)/2)^2)^0.5,...
-        (myscreen.displayDistance^2 + (myscreen.displaySize(2)/2)^2)^0.5);
+        ((myscreen.displayDistance^2 + (myscreen.displaySize(2)/2)^2)^0.5)*10,...
+        ((myscreen.displayDistance^2 + (myscreen.displaySize(2)/2)^2)^0.5)*10);
     % select calibration type
     % TODO: allow calibration type to be specified in myscreen.eyetracker
     mglEyelinkCMDPrintF('calibration_type = HV9');
@@ -66,16 +66,22 @@ function [myscreen] = initEyeLinkEyeTracker(myscreen, conntype)
     mglEyelinkCMDPrintF('sample_rate = 500');
 
     myscreen.eyetracker.callback.getPosition    = @mglEyelinkCallbackGetPosition;
-    % myscreen.eyetracker.callback.nextTask       = @mglEyelinkCallbackNextTask;
-    % myscreen.eyetracker.callback.startBlock     = @mglEyelinkCallbackStartBlock;
-    myscreen.eyetracker.callback.startTrial     = @mglEyelinkCallbackStartTrial;
+    myscreen.eyetracker.callback.nextTask       = @mglEyelinkCallbackNextTask;
+    myscreen.eyetracker.callback.startBlock     = @mglEyelinkCallbackStartBlock;
+    myscreen.eyetracker.callback.startTrial     = @mglEyelinkCallbackTrialStart;
+    myscreen.eyetracker.callback.endTrial       = @mglEyelinkCallbackTrialEnd;
     myscreen.eyetracker.callback.startSegment   = @mglEyelinkCallbackStartSegment;
     myscreen.eyetracker.callback.saveEyeData    = @mglEyelinkCallbackSaveData;
     myscreen.eyetracker.callback.endTracking    = @mglEyelinkCallbackCloseTracker;
     
     % if save then get file, default to saving
+    %% TODO: this is a hack and should be improved
     if ~isfield(myscreen.eyetracker, 'savedata') || myscreen.eyetracker.savedata
-        %% TODO: this is a hack and should be improved
+        if isfield(myscreen.eyetracker, 'data')
+            myscreen.eyetracker.data = myscreen.eyetracker.data | [1 0 1 1];
+        else
+            myscreen.eyetracker.data = [1 0 1 1];
+        end
         global gNumSaves;
         % update the numsaves variable
         if (isempty(gNumSaves))
@@ -89,6 +95,11 @@ function [myscreen] = initEyeLinkEyeTracker(myscreen, conntype)
     
         % get a data file
         mglPrivateEyelinkOpenEDF(sprintf('%s.edf', myscreen.eyetracker.datafilename));
+        % Basic data file info
+        mglEyelinkEDFPrintF('DISPLAY_COORDS 0 0 %d %d',...
+            mglGetParam('screenWidth'), mglGetParam('screenHeight'));
+        mglEyelinkEDFPrintF('FRAMERATE %f4.2', 1/mglGetParam('frameRate'));
+        
     end
     
     myscreen.eyetracker.init = 1;

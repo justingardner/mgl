@@ -250,6 +250,10 @@ function [task, myscreen tnum] = updateTrial(task, myscreen, tnum)
             if isfield(task{tnum}.callback,'endTrial')
                 [task{tnum} myscreen]= feval(task{tnum}.callback.endTrial,task{tnum},myscreen);
             end
+            if myscreen.eyetracker.init && isfield(myscreen.eyetracker.callback, 'endTrial')
+                %% call eyetracker endTrial callback
+                [task{tnum} myscreen] = feval(myscreen.eyetracker.callback.endTrial,task{tnum},myscreen);
+            end
             % update the trial number
             task{tnum}.blockTrialnum = task{tnum}.blockTrialnum + 1;
             task{tnum}.trialnum = task{tnum}.trialnum+1;
@@ -334,7 +338,7 @@ function [task myscreen] = initBlock(task,myscreen)
     % start up a new block
     % select a randomization of trial parameters
     task.blocknum = task.blocknum+1;
-
+    
     % set the randstate here. This is so that the randomization that
     % happens here is independent of other uses of the rand variable
     % that way if you want to recreate the order of trials, you
