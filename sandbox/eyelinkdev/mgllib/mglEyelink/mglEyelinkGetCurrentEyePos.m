@@ -1,7 +1,7 @@
 function [pos] = mglEyelinkGetCurrentEyePos(devicecord)
 
     if nargin < 1
-        devicecord = 0;
+        devicecord = 1;
     end
     
     sample = mglPrivateEyelinkGetCurrentSample();

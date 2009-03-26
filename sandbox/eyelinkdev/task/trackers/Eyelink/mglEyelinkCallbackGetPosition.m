@@ -13,6 +13,6 @@ function [task myscreen] = mglEyelinkCallbackSaveData(task, myscreen)
 %     purpose: open a link connection to an SR Research Eylink
 %
 
-    myscreen.eyetracker.eyepos = mglEyelinkGetCurrentEyePos();
+    myscreen.eyetracker.eyepos = mglEyelinkGetCurrentEyePos(1); % in device coords
     
 end
