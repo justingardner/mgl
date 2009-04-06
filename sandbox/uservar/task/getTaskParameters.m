@@ -82,8 +82,7 @@ function experiment = getTaskParameters(myscreen,task)
                     if thisseg == 1
                         tnum = tnum+1;
                         if tnum > task{phaseNum}.numTrials
-                            fprintf('Recorded trace events past end of last trial.\n');
-                            return
+                            error('Recorded trace events past end of last trial.\n');
                         end 
                         experiment(phaseNum).nTrials = tnum;
                         % get the time that the experiment starts
@@ -102,9 +101,9 @@ function experiment = getTaskParameters(myscreen,task)
                         end
                         % save the block num and trial num
                         experiment(phaseNum).blockNum(tnum) ...
-                        = blockNum;
+                            = blockNum;
                         experiment(phaseNum).blockTrialNum(tnum) ...
-                        = blockTrialNum;
+                            = blockTrialNum;
                         % and initalize other parameters
                         experiment(phaseNum).trials(tnum).response = [];
                         experiment(phaseNum).trials(tnum).responseVolume = [];

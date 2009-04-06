@@ -118,23 +118,32 @@ function myscreen = initScreen(myscreen,randstate)
     %%%%%%%%%%%%%%%%%
     % defaults if they have not been set
     %%%%%%%%%%%%%%%%%
-    if ~isfield(myscreen,'autoCloseScreen'),myscreen.autoCloseScreen = 1;
+    if ~isfield(myscreen,'autoCloseScreen')
+        myscreen.autoCloseScreen = 1;
     end
-    if ~isfield(myscreen,'screenNumber'),myscreen.screenNumber = [];
+    if ~isfield(myscreen,'screenNumber')
+        myscreen.screenNumber = [];
     end
-    if ~isfield(myscreen,'screenWidth'),myscreen.screenWidth = [];
+    if ~isfield(myscreen,'screenWidth')
+        myscreen.screenWidth = [];
     end
-    if ~isfield(myscreen,'screenHeight'),myscreen.screenHeight = [];
+    if ~isfield(myscreen,'screenHeight')
+        myscreen.screenHeight = [];
     end
-    if ~isfield(myscreen,'framesPerSecond'),myscreen.framesPerSecond = 60;
+    if ~isfield(myscreen,'framesPerSecond')
+        myscreen.framesPerSecond = 60;
     end
-    if ~isfield(myscreen,'saveData'),myscreen.saveData = -1;
+    if ~isfield(myscreen,'saveData')
+        myscreen.saveData = -1;
     end
-    if ~isfield(myscreen,'displayDistance'),myscreen.displayDistance = 57;
+    if ~isfield(myscreen,'displayDistance')
+        myscreen.displayDistance = 57;
     end
-    if ~isfield(myscreen,'displaySize'),myscreen.displaySize = [31 23];
+    if ~isfield(myscreen,'displaySize')
+        myscreen.displaySize = [31 23];
     end
-    if ~isfield(myscreen,'flipHV'),myscreen.flipHV = [0 0];
+    if ~isfield(myscreen,'flipHV')
+        myscreen.flipHV = [0 0];
     end
 
     % remember curent path

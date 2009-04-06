@@ -19,6 +19,8 @@ function myscreen = taskTemplate
     
     % initalize the screen
     myscreen.screenParams{1} = {'yoyodyne.cns.nyu.edu',[],2,1280,1024,57,[31 23],60,1,0,1.8,''};
+    myscreen.screenParams{2} = ...
+        {'sibeling.local',[],0,800,600,38.5,[17.5 13.5],60,1,1,1.8,'',[0 0]};
     myscreen = initScreen(myscreen);
     
     task{1}.waitForBacktick = 1;
@@ -31,17 +33,36 @@ function myscreen = taskTemplate
     task{1}.segquant = [0 1.5 0];
     % fix: enter the parameter of your choice
     task{1}.parameter.myParameter = [0 30 90];
+    task{1}.parameter.myArrayParam = [1 2 3; 4 5 6];
     task{1}.random = 1;
     
-    task{1}.randVars.uniform.deltaOR = [-5 5]; % second orientation is + or - 5 degrees
-
-    task{1}.userVars.userEV = []; % a parameter that the task will fill in as we go
+    % task{1}.randVars.block.distract = [1 2 3 4];
+    % task{1}.randVars.uniform.deltaOR = [-5 5]; % second orientation is + or - 5 degrees
+    
+    % task{1}.segmentVars.alpha = []; % a parameter that the task will fill in as we go
+    % task{1}.taskVars.beta = 1:20;
+    % 
+    % task{1}.parameter.foo1.type = 'task'
+    % task{1}.parameter.foo1.value = 1:10
+    % task{1}.parameter.foo1.random = 'none'
+    % task{1}.parameter.foo2.type = 'block'
+    % task{1}.parameter.foo2.value = 1:10
+    % task{1}.parameter.foo2.random = 'cross'
+    % task{1}.parameter.foo2.type = 'block'
+    % task{1}.parameter.foo2.value = 1:10
+    % task{1}.parameter.foo2.random = 'uniform'
+    % task{1}.parameter.foo3.type = 'segment'
+    % task{1}.parameter.foo3.value = 1:10
+    % task{1}.parameter.foo3.random = 'none'
+    % task{1}.parameter.foo4.type = 'user'
+    % task{1}.parameter.foo4.value = 1:10
+    % task{1}.parameter.foo4.random = 'none'
     
     % initialize the task
     for phaseNum = 1:length(task)
         [task{phaseNum} myscreen] = initTask(task{phaseNum},myscreen,@stimStartSegmentCallback,@stimDrawStimulusCallback);
     end
-
+    
     % init the stimulus
     global stimulus;
     myscreen = initStimulus('stimulus',myscreen);
@@ -64,6 +85,7 @@ function myscreen = taskTemplate
         [task myscreen phaseNum] = updateTask(task,myscreen,phaseNum);
         % flip screen
         myscreen = tickScreen(myscreen,task);
+        keyboard
     end
 
     % if we got here, we are at the end of the experiment

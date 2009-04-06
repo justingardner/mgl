@@ -158,7 +158,7 @@ function [task myscreen] = initTask(task, myscreen, startSegmentCallback, ...
         error(sprintf('(initTask) task.segmin not smaller than task.segmax\n'));
         return
     end
-
+    
     % keep the task randstate. Note that initScreen initializes the
     % state of the random generator to a random value (set by clock)
     % each time, guaranteeing a different random sequence. 
@@ -251,7 +251,7 @@ function [task myscreen] = initTask(task, myscreen, startSegmentCallback, ...
             end
         end
     end
-
+    
     % now go through all of our variables and make a list of names
     % and store how long they are
     randVarNames = fieldnames(task.randVars);
@@ -271,7 +271,60 @@ function [task myscreen] = initTask(task, myscreen, startSegmentCallback, ...
             end      
         end
     end
-
+    
+    % this is an experimental and temporary version of userVars
+    if isfield(task, 'userVars')
+        parameterTypes = {'task', 'block','segment'};
+    
+        % the current initialization is modeled loosely after the randVars
+        % initialization to help with future unification.
+        task.userVarNum = 0;
+        task.taskVarNum = 0;
+        task.blockVarNum = 0;
+        task.segVarNum = 0;
+    
+        % userVars are intended as a replacedment or paramter down the road
+        % randomization is not implemented and will be merged in from parameter
+        % and randVars in the future. currently, userVars allows variables that are
+        % either simply availible as in non-ransom parameters, or they are specified
+        % as empty and then are provided as NaN filled parameters or arrays which are
+        % stored on trial close
+        userVarNames = fieldnames(task.userVars);
+        for nVar = 1:length(randVarNames)
+            task.userVarNum = task.userVarNum + 1;
+            task.userVars.names_{task.userVarNum} = randVarNames{nVar};
+            if ~isfield(task.userVars.(userVarNames{nVar}), 'type')
+                task.userVars.(userVarNames{nVar}).type = 'task';
+            end
+            if ~isfield(task.userVars.(userVarNames{nVar}), 'value')
+                task.userVars.(userVarNames{nVar}).values = [];
+            end
+            switch task.userVars.(userVarNames{nVar}).type
+                case {'task'}
+                    task.taskVarNum = task.taskVarNum + 1;
+                    task.taskVars.(userVarNames{nVar}) = task.userVars.(userVarNames{nVar}).value;
+                    if isempty(task.taskVars.(userVarNames{nVar}))
+                        task.taskVars.(userVarNames{nVar}) = NaN;
+                    end
+                case {'block'}
+                    task.blockVarNum = task.blockVarNum + 1;
+                    task.blockVars.(userVarNames{nVar}) = task.userVars.(userVarNames{nVar}).value;
+                    % empty block vars are initialized per block
+                case {'segment'}
+                    task.segVarNum = task.segVarNum + 1;
+                    task.segVars.(userVarNames{nVar}) = task.userVars.(userVarNames{nVar}).value;
+                    if size(task.segVars.(userVarNames{nVar}),2) ~= task.numsegs || ...
+                        ~isempty(task.segVars.(userVarNames{nVar}))
+                        error('(initTask) Segment variables must be either [NxNumSegs] or [],');
+                    end
+                    % empty block vars are initialized per block, and have dim 
+                    % [block.trialnum, segmentnum]
+            end
+        end 
+    end % if isfield(task, 'userVars')
+    
+    
+    
     % check get response
     if ~isfield(task,'getResponse')
         task.getResponse = [];
@@ -384,8 +437,8 @@ function [task myscreen] = initTask(task, myscreen, startSegmentCallback, ...
     end
     
     
-    % initialize the parameters
-    task.parameter = feval(task.callback.rand,task.parameter);
+    % initialize the parameters I think this is now redundant with updateTask
+    % task.parameter = feval(task.callback.rand,task.parameter);
 
     % get calling name
     if ~isfield(task,'taskFilename')

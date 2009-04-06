@@ -290,11 +290,10 @@ function [task, myscreen tnum] = updateTrial(task, myscreen, tnum)
         if (any(buttons) && (~isequal(buttons,task{tnum}.thistrial.buttonState)))
             % set the button state to pass
             task{tnum}.thistrial.buttonState = buttons;
-            task{tnum}.thistrial.whichButton = find(buttons);
-            task{tnum}.thistrial.whichButton = task{tnum}.thistrial.whichButton(1);
+            task{tnum}.thistrial.whichButton = find(buttons, 1);
             % get the time of the button press
-            whichKeyCode = find(myscreen.keyboard.nums(task{tnum}.thistrial.whichButton)==myscreen.keyCodes);
-            responseTime = myscreen.keyTimes(whichKeyCode(1));
+            whichKeyCode = find(myscreen.keyboard.nums(task{tnum}.thistrial.whichButton)==myscreen.keyCodes,1);
+            responseTime = myscreen.keyTimes(whichKeyCode);
             % write out an event
             myscreen = writeTrace(task{tnum}.thistrial.whichButton,task{tnum}.responseTrace,myscreen,1,responseTime);
             % get reaction time
@@ -317,7 +316,6 @@ function [task, myscreen tnum] = updateTrial(task, myscreen, tnum)
     if myscreen.flushMode >= 0
         [task{tnum} myscreen] = feval(task{tnum}.callback.screenUpdate,task{tnum},myscreen);
     end
-
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -344,7 +342,25 @@ function [task myscreen] = initBlock(task,myscreen)
     else
         task.block(task.blocknum) = feval(task.callback.rand,task.parameter,[]);
     end
-
+    
+    % we pad all user variables to have NaNs to fill out the lencth of the current
+    % block. This is experimental
+    for nUserVar = 1:task.userVars.n_
+        % if is empty, this var is going to be added by the user
+        % if it is a signleton, it is a constant
+        % if it is a vector, it is to be 
+        
+        
+        
+        % if task.trialnum + task.block(task.blocknum).trialn > task.userVars.varlen_(nUserVar)
+        %     task.userVars.(task.userVars.names_{nUserVar})(...
+        %         task.userVars.varlen_(nUserVar)+1:task.trialnum + task.block(task.blocknum).trialn) = ...
+        %         repmat(task.userVars.(task.userVars.names_{nUserVar})(end), ...
+        %             numel(task.userVars.varlen_(nUserVar)+1:task.trialnum + task.block(task.blocknum).trialn), 1);
+        %     task.userVars.varlen_(nUserVar) = task.trialnum + task.block(task.blocknum).trialn;
+        % elseif isempty(task.userVars.(task.userVars.names_{nUserVar}))
+    end
+    
     % now keep the randstate
     task.randstate.blockState = rand(task.randstate.type);
     rand(task.randstate.type,randstate);
@@ -356,15 +372,15 @@ function [task myscreen] = initBlock(task,myscreen)
     if isfield(task.callback,'startBlock')
         [task myscreen] = feval(task.callback.startBlock,task,myscreen);
     end
-    if myscreen.eyetracker.init && isfield(myscreen.eyetracker.callback.startBlock)
-        %% call eyetracker block callback
-        [task{tnum} myscreen] = feval(myscreen.eyetracker.callback.startBlock,task{tnum},myscreen);
+ 	if myscreen.eyetracker.init && isfield(myscreen.eyetracker.callback.startBlock)
+    % set up start time to tell routines to init trial properly
+    [task myscreen] = initTrial(task,myscreen);
+
     end
 
 
     % set up start time to tell routines to init trial properly
     [task myscreen] = initTrial(task,myscreen);
-
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -374,51 +390,43 @@ function [task, myscreen] = initTrial(task,myscreen)
 
     % keep lasttrial information
     task.lasttrial = task.thistrial;
-
+    
     % set the segment number
     task.thistrial.thisseg = 1;
     task.thistrial.gotResponse = 0;
-
+    
     % restart segment clock
     task.thistrial.segstart = -inf;
-
-    % start trial time
-    %if (task.timeInTicks)
-    %  task.thistrial.trialstart = myscreen.tick;
-    %elseif (task.timeInVols)
-    %  task.thistrial.trialstart = myscreen.volnum;
-    %else
-    %end
-
+    
     % set up start volume for checking for backticks
     task.thistrial.startvolnum = myscreen.volnum;
-
+    
     % set the segment length
     segminlen = task.segmin;
     segmaxlen = task.segmax;
-
+    
     % set the random state
     randstate = rand(task.randstate.type);
     rand(task.randstate.type,task.randstate.trialState);
-
+    
     % for time in ticks and vols, we want an integer value
     if (task.timeInTicks || task.timeInVols)
         task.thistrial.seglen = segminlen + floor(rand(1,numel(segmaxlen)).*(segmaxlen-segminlen+1));
     else
         task.thistrial.seglen = segminlen + rand(1,numel(segmaxlen)).*(segmaxlen-segminlen);
-
+        
         % deal with the segment quantization, if segquant is set to
         % zero there is no effect, otherwise we will round segment
         % lengths to something evenly divisible by segquant
         task.thistrial.seglen(task.segquant~=0) = round((task.thistrial.seglen(task.segquant~=0)-task.segmin(task.segquant~=0))./task.segquant(task.segquant~=0)).*task.segquant(task.segquant~=0)+task.segmin(task.segquant~=0);
-
+        
     end
-
+    
     % remember the status of the random number generator
     task.randstate.trialState = rand(task.randstate.type);
     % and reset it to what it was before this call
     rand(task.randstate.type,randstate);
-
+    
     % see if we need to wait for backtick
     if task.waitForBacktick && (task.blocknum == 1) && (task.blockTrialnum == 1)
         task.thistrial.waitForBacktick = 1;
@@ -428,24 +436,28 @@ function [task, myscreen] = initTrial(task,myscreen)
         % trial will start right awway
         task.thistrial.waitForBacktick = 0;
     end
-
+    
     % set the button states to zero
-    task.thistrial.buttonState = [0 0];
-
+    task.thistrial.buttonState = [0 0]; %% why is this length 2?
+    
     % get trial parameters
     for i = 1:task.parameter.n_
         eval(sprintf('task.thistrial.%s = task.block(task.blocknum).parameter.%s(:,task.blockTrialnum);',task.parameter.names_{i},task.parameter.names_{i}));
     end
-
+    
     % get randomization parameters
     for i = 1:task.randVars.n_
         eval(sprintf('task.thistrial.%s = task.randVars.%s(mod(task.trialnum-1,task.randVars.varlen_(%i))+1);',task.randVars.names_{i},task.randVars.names_{i},i));
     end
-
-    % call the init trial callback
-    if isfield(task.callback,'startTrial')
+    
+    % get user parameters
+    for i = 1:task.userVars.n_
+        eval(sprintf('task.thistrial.%s = task.userVars.%s(mod(task.trialnum-1,task.userVars.varlen_(%i))+1);',task.userVars.names_{i},task.userVars.names_{i},i));
+    end
+    
         [task myscreen] = feval(task.callback.startTrial,task,myscreen);
-    end    
+    end
+
     if myscreen.eyetracker.init && isfield(myscreen.eyetracker.callback.startTrial)
         %% call eyetracker trial callback
         [task{tnum} myscreen] = feval(myscreen.eyetracker.callback.startTrial,task{tnum},myscreen);
