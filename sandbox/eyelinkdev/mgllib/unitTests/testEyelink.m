@@ -25,7 +25,7 @@ mglPrivateEyelinkOpenEDF('foo.edf');
 % eyemsg_printf("DISPLAY_COORDS %ld %ld %ld %ld", dispinfo.left, dispinfo.top, dispinfo.right, dispinfo.bottom); 
 % eyemsg_printf("FRAMERATE %1.2f Hz.", dispinfo.refresh);
 % start recording
-mglPrivateEyelinkStartRecording([1 1 1 1]);
+mglPrivateEyelinkRecordingStart([1 1 1 1]);
 
 % write some messages to the EDF file
 mglEyelinkEDFPrintF('this is my message')
@@ -37,7 +37,7 @@ for nSample = 1:300
 end
 
 % stop recording
-mglEyelinkStopRecording();
+mglEyelinkRecordingStop();
 
 % close the datafile
 mglEyelinkCMDPrintF('close_data_file');
