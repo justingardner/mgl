@@ -7,7 +7,7 @@
 %  copyright: (c) 2006 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
 %    purpose: Begin drawing to stencil. Until mglStencilCreateEnd
 %             is called, all drawing operations will also draw
-%             to the stencil. Check mglGetParam('stencilBits') to see how
+%             to the stencil. Check MGL.stencilBits to see how
 %             many stencil planes there are. If invert is set
 %             to one, then the inverse stencil is made
 %

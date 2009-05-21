@@ -7,7 +7,7 @@ function [coords,direction,lifetime]=dotMotionFrame(coords,direction,lifetime,st
 %  pointwise parameters direction and lifetime.
 %  If timeSinceLastUpdate isn't specified, will uupdate corresponding to one screen refresh.
 %  If displayParams is not specified, will use parameters in
-%  global variable
+%  MGL variable
 % 
 % INPUTS:
 % Per-point parameters:
@@ -41,13 +41,13 @@ function [coords,direction,lifetime]=dotMotionFrame(coords,direction,lifetime,st
 %  direction:    current direction of incoherently moving points 
 %  lifetime:     remaining lifetime of points in frames at end of frame
 
+global MGL
 if (~exist('displayParams','var') | isempty(displayParams))
-  deviceRect = mglGetParam('deviceRect');
-  xrange=deviceRect(3)-deviceRect(1);
-  yrange=deviceRect(4)-deviceRect(2);
-  xoffs=deviceRect(1);
-  yoffs=deviceRect(2);
-  dist=stimParams.speed/mglGetParam('frameRate');
+  xrange=MGL.deviceRect(3)-MGL.deviceRect(1);
+  yrange=MGL.deviceRect(4)-MGL.deviceRect(2);
+  xoffs=MGL.deviceRect(1);
+  yoffs=MGL.deviceRect(2);
+  dist=stimParams.speed/MGL.frameRate;
 elseif (isfield(displayParams,'deviceRect'))
   xrange=displayParams.deviceRect(3)-displayParams.deviceRect(1);
   yrange=displayParams.deviceRect(4)-displayParams.deviceRect(2);
@@ -65,7 +65,7 @@ end
 lifetimedec=1;
 if (exist('timeSinceLastUpdate','var') & ~isempty(timeSinceLastUpdate))
   dist=stimParams.speed*timeSinceLastUpdate;
-  lifetimdec=max([round(timeSinceLastUpdate*mglGetParam('frameRate')) 1]);
+  lifetimdec=max([round(timeSinceLastUpdate*MGL.frameRate) 1]);
 end
 
 if (isfield(stimParams,'annulus'))

@@ -23,75 +23,31 @@ $Id$
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
   int displayNumber;
-
+  WindowRef wr;
+	
   if (nrhs != 0) {
     usageError("mglSwitchDisplay");
     return;
   }
-
+	
   displayNumber = (int)mglGetGlobalDouble("displayNumber");
-
-//-----------------------------------------------------------------------------------///
-// **************************** mac cocoa specific code  **************************** //
-//-----------------------------------------------------------------------------------///
-#ifdef __APPLE__
-#ifdef __cocoa__
-  // If displayNumber > 0, then it's a CGL window.
-  if (displayNumber >= 0) {
-    if (mglGetGlobalDouble("isCocoaWindow")) {
-      // switch the cocoa openGLContext
-      NSOpenGLContext *myOpenGLContext = (NSOpenGLContext*)(unsigned long)mglGetGlobalDouble("GLContext");
-      [myOpenGLContext makeCurrentContext];
-    }
-    else {
-      // switch the CGL context
-      CGLContextObj contextObj;
-      contextObj = (CGLContextObj)(unsigned long)mglGetGlobalDouble("GLContext");
-      CGLSetCurrentContext(contextObj);
-    }
-  }
-//-----------------------------------------------------------------------------------///
-// **************************** mac carbon specific code  *************************** //
-//-----------------------------------------------------------------------------------///
-#else //__cocoa__
-
+	
   // If displayNumber > 0, then it's a CGL window.
   if (displayNumber > 0) {
     CGLContextObj contextObj;
-    contextObj = (CGLContextObj)(unsigned long)mglGetGlobalDouble("GLContext");
+    unsigned int c;
+		
+    c = (unsigned int)mglGetGlobalDouble("context");
+    contextObj = (CGLContextObj)c;
+		
     CGLSetCurrentContext(contextObj);
   }
   else {
     AGLContext contextObj;
-    contextObj = (AGLContext)(unsigned int)mglGetGlobalDouble("GLContext");
+    unsigned int c;
+		
+    c = (unsigned int)mglGetGlobalDouble("context");
+    contextObj = (AGLContext)c;
     aglSetCurrentContext(contextObj);
   }
-#endif//__cocoa__
-#endif//__APPLE__
-//-----------------------------------------------------------------------------------///
-// ****************************** linux specific code  ****************************** //
-//-----------------------------------------------------------------------------------///
-#ifdef __linux__
-  mexPrintf("(mglPrivateSwitchDisplay) Not implemented\n");
-#endif //__linux__
-
-//-----------------------------------------------------------------------------------///
-// ****************************** Windows specific code  **************************** //
-//-----------------------------------------------------------------------------------///
-#ifdef __WINDOWS__
-unsigned int ref;
-HGLRC hRC;
-HDC hDC;
-
-// Grab the rendering and device contexts.
-ref = (unsigned int)mglGetGlobalDouble("GLContext");
-hRC = (HGLRC)ref;
-ref = (unsigned int)mglGetGlobalDouble("winDeviceContext");
-hDC = (HDC)ref;
-
-// Make the rendering context current.
-if (wglMakeCurrent(hDC, hRC) == FALSE) {
-  mexPrintf("(mglPrivateSwithDisplay) Failed to make the rendering context current.\n");
-}
-#endif // __WINDOWS__
 }

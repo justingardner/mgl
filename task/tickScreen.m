@@ -5,7 +5,7 @@
 %         by: justin gardner
 %       date: 12/10/04
 %  copyright: (c) 2006 Justin Gardner (GPL see mgl/COPYING)
-%    purpose: flip screen and update counter - for mgl
+%    purpose: flip screen and update counter - for MGL
 %
 function [myscreen task] = tickScreen(myscreen,task)
 
@@ -13,12 +13,7 @@ function [myscreen task] = tickScreen(myscreen,task)
 % get back tick status
 %%%%%%%%%%%%%%%%%%%%%%%%%%%
 % read the keyboar backtick
-%thistick = mglGetKeys(myscreen.keyboard.backtick);
-
-% get all pending keyboard events
-[myscreen.keyCodes myscreen.keyTimes] = mglGetKeyEvent([],1);
-
-thistick = any(myscreen.keyboard.backtick == myscreen.keyCodes);
+thistick = mglGetKeys(myscreen.keyboard.backtick);
 
 % read the TTL pulse (comment out to prevent reading digital port)
 %ttltick = readDigPort;
@@ -74,7 +69,7 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%
 % check for esc key
 %%%%%%%%%%%%%%%%%%%%%%%%%%%
-if any(myscreen.keyCodes == myscreen.keyboard.esc);
+if mglGetKeys(myscreen.keyboard.esc)
   myscreen.userHitEsc = 1;
 end
 
@@ -86,15 +81,18 @@ myscreen.tick = myscreen.tick + 1;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%
 % if called for pause on space bar
 %%%%%%%%%%%%%%%%%%%%%%%%%%%
-if (myscreen.allowpause && any(myscreen.keyCodes == myscreen.keyboard.space)) || myscreen.paused
+if (myscreen.allowpause && mglGetKeys(myscreen.keyboard.space)) || myscreen.paused
   startPause = mglGetSecs;
   disp(sprintf('PAUSED: hit SPACE to advance a frame RETURN to continue'));
-  keyCodes = [];
-  % then check for return or space
-  while isempty(intersect(keyCodes,[myscreen.keyboard.return myscreen.keyboard.space]))
-    [keyCodes keyTimes] = mglGetKeyEvent([],1);
+  % wait till space bar is no loner down
+  while mglGetKeys(myscreen.keyboard.space)
   end
-  if any(keyCodes == myscreen.keyboard.space),myscreen.paused = 1;else,myscreen.paused = 0;end
+  keys = 0;
+  % then check for return or space
+  while ~any(keys)
+    keys = mglGetKeys([myscreen.keyboard.return myscreen.keyboard.space]);
+  end
+  if keys(2),myscreen.paused = 1;else,myscreen.paused = 0;end
   % fix task times
   task = pauseTask(task,mglGetSecs(startPause));
   myscreen.fliptime = mglGetSecs;

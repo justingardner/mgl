@@ -19,41 +19,24 @@ if ~any(nargin == [0 1])
   return
 end
 
-% interpret rebuild argument
-useCarbon = 0;useCocoa = 0;
-if ~exist('rebuild','var')
-  rebuild = 0;
-elseif isequal(rebuild,'carbon')
-  useCarbon = 1;
-  useCocoa = 0;
-  rebuild = 1;
-elseif isequal(rebuild,'cocoa')
-  useCocoa = 1;
-  useCarbon = 0;
-  rebuild = 1;
+if ~exist('rebuild','var'),rebuild = 0;end
+
+% remove all mex files if called for
+if rebuild
+  delete(sprintf('*.%s',mexext));
 end
-
-% if we find the mglPrivateListener, then shut it down
-% to avoid crashing
-if exist('mglPrivateListener')==3,mglPrivateListener(0);end
-if exist('mglPrivatePostEvent')==3,mglPrivatePostEvent(0);end
-
-% close all open displays
-mglSwitchDisplay(-1);
-
-% clear the MGL global
-clear global MGL;
 
 % make sure we have the mgl.h file--this will make
 % sure we are in the correct directory
 hfile = dir('mgl.h');
-if isempty(hfile)
+if (length(hfile) == 0)
   % try to switch to the diretory where mglOpen lives
-  mgldir = mglGetParam('mgllibDir');
+  mgldir = fileparts(which('mglOpen'));
   if ~isempty(mgldir)
     cd(mgldir);
     hfile = dir('mgl.h');
   else
+    disp(sprintf('(mglMake) Could not find source files'));
     return
   end
 end
@@ -69,18 +52,9 @@ for i = 1:length(mgldir)
     % mex the file if either there is no mexfile or
     % the date of the mexfile is older than the date of the source file
     if (rebuild || length(mexfile)<1) || (datenum(mgldir(i).date) > datenum(mexfile(1).date)) || (datenum(hfile(1).date) > datenum(mexfile(1).date))
-      if useCarbon
-	command = sprintf('mex -D__carbon__ %s',mgldir(i).name);
-      elseif useCocoa
-	command = sprintf('mex -D__cocoa__ %s',mgldir(i).name);
-      else
-	command = sprintf('mex %s',mgldir(i).name);
-      end
-      % display the mex command
-      disp(command);
-      % now run it, catching an errors
+      disp(sprintf('mex %s',mgldir(i).name));
       try
-	eval(command);
+	eval(sprintf('mex %s',mgldir(i).name));
       catch
 	disp(['Error compiling ' mgldir(i).name]);
       end
@@ -100,10 +74,10 @@ if ~any(nargin == [1 2])
   return
 end
 % dot delimits end
-if exist('delimiter', 'var')~=1,delimiter='.';end
+if exist('delimiter')~=1,delimiter='.';,end
 
 retval = filename;
 dotloc = findstr(filename,delimiter);
-if ~isempty(dotloc)
+if length(dotloc) > 0
   retval = filename(1:dotloc(length(dotloc))-1);
 end

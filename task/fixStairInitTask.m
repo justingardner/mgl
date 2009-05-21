@@ -56,7 +56,10 @@ if ~isfield(fixStimulus,'pos') fixStimulus.pos = [0 0]; end
 % create a fixation task
 task{1}.seglen = [fixStimulus.interTime fixStimulus.stimTime fixStimulus.interTime fixStimulus.stimTime fixStimulus.interTime fixStimulus.responseTime];
 task{1}.getResponse = [0 0 0 0 0 1];
-[task{1} myscreen] = addTraces(task{1}, myscreen, 'segment', 'phase', 'response')
+task{1}.segmentTrace = myscreen.stimtrace;
+task{1}.phaseTrace = myscreen.stimtrace+1;
+task{1}.responseTrace = myscreen.stimtrace+2;
+myscreen.stimtrace = myscreen.stimtrace+3;
 
 % init the staircase
 fixStimulus.staircase = upDownStaircase(fixStimulus.stairUp,fixStimulus.stairDown,fixStimulus.threshold,fixStimulus.stairStepSize,fixStimulus.stairUseLevitt);

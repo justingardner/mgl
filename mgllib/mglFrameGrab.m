@@ -18,10 +18,11 @@
 %mglOpen();
 %mglScreenCoordinates;
 %mglClearScreen([0 0 0]);
-%mglPoints2(mglGetParam('screenWidth')*rand(5000,1),mglGetParam('screenHeight')*rand(5000,1));
-%mglPolygon([0 0 mglGetParam('screenWidth') mglGetParam('screenWidth')],[mglGetParam('screenHeight')/3 mglGetParam('screenHeight')*2/3 mglGetParam('screenHeight')*2/3 mglGetParam('screenHeight')/3],0);
+%global MGL;
+%mglPoints2(MGL.screenWidth*rand(5000,1),MGL.screenHeight*rand(5000,1));
+%mglPolygon([0 0 MGL.screenWidth MGL.screenWidth],[MGL.screenHeight/3 MGL.screenHeight*2/3 MGL.screenHeight*2/3 MGL.screenHeight/3],0);
 % mglTextSet('Helvetica',32,[1 1 1]);
-%mglTextDraw('Frame Grab',[mglGetParam('screenWidth')/2 mglGetParam('screenHeight')/2]);
+%mglTextDraw('Frame Grab',[MGL.screenWidth/2 MGL.screenHeight/2]);
 %frame = mglFrameGrab;
 %imagesc(mean(frame,3)');colormap('gray')
 %mglFlush

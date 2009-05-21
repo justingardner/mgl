@@ -14,6 +14,27 @@ $Id$
 //   include section   //
 /////////////////////////
 #include "mgl.h"
+#ifdef __linux__
+#include <sys/time.h>
+#endif
+
+///////////////////
+//   functions   //
+///////////////////
+#ifdef __APPLE__
+double ConvertMicrosecondsToDouble(UnsignedWidePtr microsecondsValue)
+{ 
+  double twoPower32 = 4294967296.0; 
+  double doubleValue; 
+  
+  double upperHalf = (double)microsecondsValue->hi; 
+  double lowerHalf = (double)microsecondsValue->lo; 
+  
+  doubleValue = (upperHalf * twoPower32) + lowerHalf; 
+  return doubleValue;
+}
+#endif
+
 
 //////////////
 //   main   //
@@ -26,42 +47,24 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   if (nrhs>0) 
     reftime = *(double*)mxGetPr(prhs[0]);
   
-//-----------------------------------------------------------------------------------///
-// ****************************** linux specific code  ****************************** //
-//-----------------------------------------------------------------------------------///
 #ifdef __linux__
   struct timeval tp;
   struct timezone tz;
 
   gettimeofday( &tp, &tz );
   currtime= (double) tp.tv_sec + (double) tp.tv_usec * 0.000001;
-#endif//__linux__
+#endif
 
-//-----------------------------------------------------------------------------------///
-// ******************************* mac specific code  ******************************* //
-//-----------------------------------------------------------------------------------///
 #ifdef __APPLE__
-  // get current time
   UnsignedWide currentTime; 
   Microseconds(&currentTime); 
 
-  // convert microseconds to double
-  double twoPower32 = 4294967296.0; 
-  double doubleValue; 
-  
-  double upperHalf = (double)currentTime.hi; 
-  double lowerHalf = (double)currentTime.lo; 
-  doubleValue = (upperHalf * twoPower32) + lowerHalf; 
-  currtime = 0.000001*doubleValue;
-#endif//__APPLE__
-//-----------------------------------------------------------------------------------///
-// ***************************** end os-specific code  ****************************** //
-//-----------------------------------------------------------------------------------///
+  currtime = 0.000001*ConvertMicrosecondsToDouble(&currentTime); 
+#endif
 
-  // get time relative to reference time
   currtime -= reftime;
 
-  // and return as a matlab double
   plhs[0] = mxCreateDoubleMatrix(1,1,mxREAL);
   *mxGetPr(plhs[0]) = currtime;
+
 }

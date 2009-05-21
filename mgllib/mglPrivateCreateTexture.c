@@ -116,10 +116,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   if (imageType == 1) {
     for(i = 0; i < imageHeight; i++) { //rows
       for(j = 0; j < imageWidth; j++,c+=BYTEDEPTH) { //cols
-        imageFormatted[c+0] = (GLubyte)imageData[sub2ind( i, j, imageHeight, 1 )];
-        imageFormatted[c+1] = (GLubyte)imageData[sub2ind( i, j, imageHeight, 1 )];
-        imageFormatted[c+2] = (GLubyte)imageData[sub2ind( i, j, imageHeight, 1 )];
-        imageFormatted[c+3] = (GLubyte)255;
+	imageFormatted[c+0] = (GLubyte)imageData[sub2ind( i, j, imageHeight, 1 )];
+	imageFormatted[c+1] = (GLubyte)imageData[sub2ind( i, j, imageHeight, 1 )];
+	imageFormatted[c+2] = (GLubyte)imageData[sub2ind( i, j, imageHeight, 1 )];
+	imageFormatted[c+3] = (GLubyte)255;
+
       }
     }
   }
@@ -140,10 +141,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   else if (imageType == 4) {
     for(i = 0; i < imageHeight; i++) {
       for(j = 0; j < imageWidth;j++,c+=BYTEDEPTH) {
-        imageFormatted[c+0] = (GLubyte)imageData[sub2ind( i, j, imageHeight, 1 )];
-        imageFormatted[c+1] = (GLubyte)imageData[sub2ind( i, j, imageHeight, 1 )+imageWidth*imageHeight];
-        imageFormatted[c+2] = (GLubyte)imageData[sub2ind( i, j, imageHeight, 1 )+imageWidth*imageHeight*2];
-        imageFormatted[c+3] = (GLubyte)imageData[sub2ind( i, j, imageHeight, 1 )+imageWidth*imageHeight*3];
+	imageFormatted[c+0] = (GLubyte)imageData[sub2ind( i, j, imageHeight, 1 )];
+	imageFormatted[c+1] = (GLubyte)imageData[sub2ind( i, j, imageHeight, 1 )+imageWidth*imageHeight];
+	imageFormatted[c+2] = (GLubyte)imageData[sub2ind( i, j, imageHeight, 1 )+imageWidth*imageHeight*2];
+	imageFormatted[c+3] = (GLubyte)imageData[sub2ind( i, j, imageHeight, 1 )+imageWidth*imageHeight*3];
       }
     }
   }
@@ -182,7 +183,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   // now place the data into the texture
   glTexImage2D(GL_TEXTURE_2D,0,4,po2Width,po2Height,0,GL_RGBA,TEXTURE_DATATYPE,imageFormatted);
 
-#else// GL_TEXTURE_RECTANGLE_EXT
+#else
   // Support for non-power of two textures
   glBindTexture(GL_TEXTURE_RECTANGLE_EXT, textureNumber);
 
@@ -204,7 +205,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   // now place the data into the texture
   glTexImage2D(GL_TEXTURE_RECTANGLE_EXT,0,GL_RGBA,imageWidth,imageHeight,0,GL_RGBA,TEXTURE_DATATYPE,imageFormatted);
   
-#endif// GL_TEXTURE_RECTANGLE_EXT
+#endif 
   
   // error status checking commented out, since it just returns
   // a number that doesn't mean anything to the user.
@@ -263,4 +264,5 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     outptr = (double*)mxGetPr(mxGetField(plhs[0],0,"imageHeight"));
     *outptr = (double)imageHeight;
   }
+
 }

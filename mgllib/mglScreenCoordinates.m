@@ -16,16 +16,14 @@ if ~any(nargin == [0])
   return
 end
 
-if mglGetParam('displayNumber') == -1
+global MGL;
+
+if ~isfield(MGL,'displayNumber') || (MGL.displayNumber < 0)
   disp(sprintf('(mglVisualAngleCoordinates) No open display'));
   return
 end
 
-% remember old settings
-oldDeviceHDirection = mglGetParam('deviceHDirection');
-oldDeviceVDirection = mglGetParam('deviceVDirection');
-oldXDeviceToPixels = mglGetParam('xDeviceToPixels');
-oldYDeviceToPixels = mglGetParam('yDeviceToPixels');
+oldMGL = MGL;
 
 % set the transforms to identity
 mglTransform('GL_MODELVIEW','glLoadIdentity');
@@ -33,28 +31,28 @@ mglTransform('GL_PROJECTION','glLoadIdentity')
 mglTransform('GL_TEXTURE','glLoadIdentity')
 
 % now set them for screen coordinates
-mglTransform('GL_MODELVIEW','glScale',2.0/mglGetParam('screenWidth'),-2.0/mglGetParam('screenHeight'),1);
-mglTransform('GL_MODELVIEW','glTranslate',-mglGetParam('screenWidth')/2.0,-mglGetParam('screenHeight')/2.0,0.0);
+mglTransform('GL_MODELVIEW','glScale',2.0/MGL.screenWidth,-2.0/MGL.screenHeight,1);
+mglTransform('GL_MODELVIEW','glTranslate',-MGL.screenWidth/2.0,-MGL.screenHeight/2.0,0.0);
 
 % set the globals appropriately
-mglSetParam('xDeviceToPixels',1.0);
-mglSetParam('yDeviceToPixels',1.0);
-mglSetParam('xPixelsToDevice',1.0);
-mglSetParam('yPixelsToDevice',1.0);
-mglSetParam('deviceCoords','screenCoordinates');
-mglSetParam('deviceRect',[0 0 mglGetParam('screenWidth') mglGetParam('screenHeight')]);
-mglSetParam('deviceWidth',mglGetParam('screenWidth'));
-mglSetParam('deviceHeight',mglGetParam('screenHeight'));
-mglSetParam('screenCoordinates',1);
-mglSetParam('deviceHDirection',1);
-mglSetParam('deviceVDirection',-1);
+MGL.xDeviceToPixels = 1.0;
+MGL.yDeviceToPixels = 1.0;
+MGL.xPixelsToDevice = 1.0;
+MGL.yPixelsToDevice = 1.0;
+MGL.deviceCoords = 'screenCoordinates';
+MGL.deviceRect = [0 0 MGL.screenWidth MGL.screenHeight];
+MGL.deviceWidth = MGL.screenWidth;
+MGL.deviceHeight = MGL.screenHeight;
+MGL.screenCoordinates = 1;
+MGL.deviceHDirection = 1;
+MGL.deviceVDirection = -1;
 
 % check to see if textures need to be recreated
-if (mglGetParam('numTextures') > 0) && ...
-      (oldDeviceHDirection ~= mglGetParam('deviceHDirection')) && ...
-      (oldDeviceVDirection ~= mglGetParam('deviceVDirection')) && ...
-      (oldXDeviceToPixels ~= mglGetParam('xDeviceToPixels')) && ...
-      (oldYDeviceToPixels ~= mglGetParam('yDeviceToPixels'))
+if (MGL.numTextures > 0) && ...
+      (oldMGL.deviceHDirection ~= MGL.deviceHDirection) && ...
+      (oldMGL.deviceVDirection ~= MGL.deviceVDirection) && ...
+      (oldMGL.xDeviceToPixels ~= MGL.xDeviceToPixels) && ...
+      (oldMGL.yDeviceToPixels ~= MGL.yDeviceToPixels)
   disp(sprintf('(mglVisualAngleCoordinates) All previously created textures will need to be reoptimized with mglReoptimizeTexture'));
 end
 

@@ -27,7 +27,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   //  CGLContextObj contextObj = CGLGetCurrentContext();
   double *x, *y, *size, color[4];
   int i, n, nsize;
-  int nslices = 60; // default angular resolution
+  int nslices = 30; // default angular resolution
   int nloops = 10; // default radial resolution
 
   GLUquadricObj	  *diskQuadric;

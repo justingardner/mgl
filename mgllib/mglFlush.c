@@ -28,33 +28,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     return;
   }
 
-  // get the display number
-  double displayNumber = mglGetGlobalDouble("displayNumber");
   
-//-----------------------------------------------------------------------------------///
-// **************************** mac cocoa specific code  **************************** //
-//-----------------------------------------------------------------------------------///
 #ifdef __APPLE__ 
-#ifdef __cocoa__
-  if (displayNumber >= 0) {
-    if (mglGetGlobalDouble("isCocoaWindow")) {
-      // cocoa, get openGLContext and flush
-      NSOpenGLContext *myOpenGLContext = (NSOpenGLContext*)(unsigned long)mglGetGlobalDouble("GLContext");
-      if (myOpenGLContext)
-	[myOpenGLContext flushBuffer];
-    }
-    else {
-      // get the current context
-      CGLContextObj contextObj = CGLGetCurrentContext();
-      // and flip the double buffered screen
-      // this call waits for vertical blanking
-      CGLFlushDrawable(contextObj); 
-    }
-  }
-#else //__cocoa__
-//-----------------------------------------------------------------------------------///
-// **************************** mac carbon specific code  *************************** //
-//-----------------------------------------------------------------------------------///
+  double displayNumber = mglGetGlobalDouble("displayNumber");
+
   if (displayNumber > 0) {
 
     // get the current context
@@ -69,7 +46,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     AGLContext contextObj=aglGetCurrentContext ();
 
     if (!contextObj) {
-      printf("(mglFlush) No drawable context found\n");
+      printf("warning: no drawable context found\n");
     }
 
     // there seems to be some interaction with the matlab desktop
@@ -107,11 +84,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     //    EventMask theMask = everyEvent;
     //    WaitNextEvent(theMask,&theEventRecord,3,nil);
   }
-#endif//__cocoa__
-#endif//__APPLE__
-//-----------------------------------------------------------------------------------///
-// ****************************** linux specific code  ****************************** //
-//-----------------------------------------------------------------------------------///
+
+#endif
+
 #ifdef __linux__
 
   int dpyptr=(int)mglGetGlobalDouble("XDisplayPointer");
@@ -119,23 +94,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   Display * dpy=(Display *)dpyptr;
   glXSwapBuffers( dpy, glXGetCurrentDrawable() );
 
-#endif//__linux__
+#endif
 
-//-----------------------------------------------------------------------------------///
-// **************************** Windows specific code  ****************************** //
-//-----------------------------------------------------------------------------------///
-#ifdef __WINDOWS__
-  unsigned int ref;
-  HDC hDC;
-  HGLRC hRC;
-  
-  // Grab our device and rendering context pointers.
-  ref = (unsigned int)mglGetGlobalDouble("winDeviceContext");
-  hDC = (HDC)ref;
-  ref = (unsigned int)mglGetGlobalDouble("GLContext");
-  hRC = (HGLRC)ref;
-  
-  wglMakeCurrent(hDC, hRC);
-  SwapBuffers(hDC);
-#endif // __WINDOWS__
 }

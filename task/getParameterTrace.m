@@ -5,7 +5,7 @@
 %       date: 02/05/07
 %    purpose: creates a parameter trace from a saved
 %             myscreen variable
-%       e.g.: myscreen.traces(task.myParameter1Trace,:) = getParameterTrace(myscreen,task,'myParameter1');
+%       e.g.: myscreen.traces(myscreen.stimtrace,:) = getParameterTrace(myscreen,task,'myParameter1');
 %
 function trace = getParameterTrace(myscreen,task,varname,usenum,segnum)
 

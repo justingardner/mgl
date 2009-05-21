@@ -20,11 +20,8 @@ function texture = mglCreateTexture(image,axes)
 % create the texture
 if nargin == 2
   texture = mglPrivateCreateTexture(image,axes);
-elseif nargin == 1
-  texture = mglPrivateCreateTexture(image);
 else
-  help mglCreateTexture;
-  return
+  texture = mglPrivateCreateTexture(image);
 end
 
 % add some fields that are only used by mglText.c
@@ -40,14 +37,17 @@ else
   textureAxes = 0;
 end
 
+% MGL global
+global MGL;
+
 % set all the params into a single array for quick access
 % note that this also keeps the device to pixel transforms
 % which _could_ change if you change coordinates
 texture.allParams = [texture.textureNumber texture.imageWidth ...
 		    texture.imageHeight textureAxes ...
-		    texture.hFlip texture.vFlip 0 0 mglGetParam('xPixelsToDevice') ...
-		    mglGetParam('yPixelsToDevice') mglGetParam('deviceHDirection') ...
-		    mglGetParam('deviceVDirection') mglGetParam('verbose')];
+		    texture.hFlip texture.vFlip 0 0 MGL.xPixelsToDevice ...
+		    MGL.yPixelsToDevice MGL.deviceHDirection ...
+		    MGL.deviceVDirection MGL.verbose];
 
 % increment the texture count
-mglSetParam('numTextures',mglGetParam('numTextures')+1);
+MGL.numTextures = MGL.numTextures+1;

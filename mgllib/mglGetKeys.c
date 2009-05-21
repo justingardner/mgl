@@ -37,9 +37,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   }
   int verbose = mglGetGlobalDouble("verbose");
 
-//-----------------------------------------------------------------------------------///
-// ******************************* mac specific code  ******************************* //
-//-----------------------------------------------------------------------------------///
 #ifdef __APPLE__
   int longNum;int bitNum;int logicalNum = 0;
   //  get the status of the keyboard
@@ -88,11 +85,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   }
 
 
-#endif//__APPLE__
-
-//-----------------------------------------------------------------------------------///
-// ****************************** linux specific code  ****************************** //
-//-----------------------------------------------------------------------------------///
+#endif
 #ifdef __linux__
   Display * dpy;
   int dpyptr=(int)mglGetGlobalDouble("XDisplayPointer");

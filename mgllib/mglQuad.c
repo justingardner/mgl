@@ -50,25 +50,25 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     
     if (mxGetM(prhs[0]) != 4)
     {
-        mexPrintf ("(mglQuad) vX does not have 4 rows\n");
+        mexPrintf ("(mglQuad) UHOH: vX does not have 4 rows\n");
         return;
     }
 
     if (mxGetM(prhs[1]) != 4)
     {
-        mexPrintf ("(mglQuad) vY does not have 4 rows\n");
+        mexPrintf ("(mglQuad) UHOH: vY does not have 4 rows\n");
         return;
     }
 
     if (mxGetM(prhs[2]) != 3)
     {
-        mexPrintf ("(mglQuad) rgbColors does not have 3 rows\n");
+        mexPrintf ("(mglQuad) UHOH: rgbColors does not have 3 rows\n");
         return;
     }
     
     if ( (mxGetN(prhs[0])+mxGetN(prhs[1])+mxGetN(prhs[2])) != mxGetN(prhs[0])*3 )
     {
-        mexPrintf ("(mglQuad) input args differ in number of columns \n", n);
+        mexPrintf ("(mglQuad) UHOH: input args differ in number of columns \n", n);
         return;
     }
 

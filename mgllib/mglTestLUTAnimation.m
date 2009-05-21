@@ -24,8 +24,11 @@ mglScreenCoordinates;
 % get the current gammaTable
 gammaTable = mglGetGammaTable;
 
+% get global variable
+global MGL;
+
 % make a whole screen grating
-[xMesh yMesh] = meshgrid(1:mglGetParam('screenWidth'),1:mglGetParam('screenHeight'));
+[xMesh yMesh] = meshgrid(1:MGL.screenWidth,1:MGL.screenHeight);
 ang = 75/180*pi;
 f = 0.03*2*pi;
 a=cos(ang)*f;
@@ -47,11 +50,11 @@ mglBltTexture(gratingTexture,[0 0],-1,-1);mglFlush;
 numsec = 5;
 starttime = mglGetSecs;
 % now do the animation
-for i = 1:mglGetParam('frameRate')*numsec
+for i = 1:MGL.frameRate*numsec
   % now create a lut that looks into the gamma tables to
   % set the phase values in the bitmap to a sine wave grating
   % first get the phase values for this frame
-  phaseValues = circshift((0:255)',4*round(255*(i/mglGetParam('frameRate'))))';
+  phaseValues = circshift((0:255)',4*round(255*(i/MGL.frameRate)))';
   % convert those phase values into intensity values
   intensityValues = sin(2*pi*phaseValues/255);
   % convert these into values that can reference the LUT
@@ -70,4 +73,4 @@ mglClose;
 % check how long it ran for
 disp(sprintf('Ran for: %0.8f sec Intended: %0.8f sec',endtime-starttime,numsec));
 disp(sprintf('Difference from intended: %0.8f ms',1000*((endtime-starttime)-numsec)));
-disp(sprintf('Number of frames lost: %i/%i (%0.2f%%)',round(((endtime-starttime)-numsec)*mglGetParam('frameRate')),numsec*mglGetParam('frameRate'),100*(((endtime-starttime)-numsec)*mglGetParam('frameRate'))/(mglGetParam('frameRate')*numsec)));
+disp(sprintf('Number of frames lost: %i/%i (%0.2f%%)',round(((endtime-starttime)-numsec)*MGL.frameRate),numsec*MGL.frameRate,100*(((endtime-starttime)-numsec)*MGL.frameRate)/(MGL.frameRate*numsec)));

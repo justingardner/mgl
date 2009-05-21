@@ -1,5 +1,5 @@
-function keycode=mglCharToKeycode(keyname,returnAllMatches)
-% keycode=mglCharToKeycode(keyname,<returnAllMatches>)
+function keycode=mglCharToKeycode(keyname)
+% keycode=mglCharToKeycode(keyname)
 %
 % Returns the keycodes of a (list of) keynames
 % 
@@ -13,15 +13,10 @@ function keycode=mglCharToKeycode(keyname,returnAllMatches)
 %           mglCharToKeycode({'Escape','F1'}) etc.
 %           On Macs, this is not possible; instead, test for 
 %           the keycode and name of a key using the mglShowKey function.
-% returnAllMatches: (default 0) If set to 1, then returns all matches
-%          this makes the output a cell array rather than a vector
-%          array. This is useful for if a key has multiple matches,
-%          like for instance the number keys.
 %           
 % OUTPUT 
 % keycode : vector of integer keycodes for each keyname entry
 %           e.g. for the above example, keyname=[44 43 11] (on Linux)
-%           (if returnAllMatches=1 then returns a cell array)
 % 
 % The keycodes match those used by mglGetKeys and mglGetKeyEvent
 %

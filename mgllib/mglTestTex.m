@@ -9,6 +9,9 @@
 %
 function retval = mglTestTex(screenNumber)
 
+% get MGL global
+global MGL;
+
 % check arguments
 if ~any(nargin == [0 1])
   help mglTestTex
@@ -26,7 +29,7 @@ mglVisualAngleCoordinates(57,[40 30]);
 mglClearScreen(0.5);mglFlush;
 mglClearScreen;mglFlush;
 
-if ismac
+if (strcmp(lower(computer),'mac'))
   % display wait text
   mglTextSet('Helvetica',32,[1 1 1],0,0,0,0,0,0,0);
   mglTextDraw('Calculating textures (0% done)',[0 0]);mglFlush;
@@ -43,7 +46,7 @@ nsteps = 30;
 for i = 1:nsteps;
   % display percent done
   mglClearScreen;
-  if ismac
+  if (strcmp(lower(computer),'mac'))
     mglTextDraw(sprintf('Calculating textures (%0.0f%% done)',99*i/nsteps),[0 0]);
   else
     msg=sprintf('Calculating textures (%i percent done)',round(99*i/nsteps));
@@ -51,11 +54,11 @@ for i = 1:nsteps;
   end
   mglFlush;
   % calculate grating and gaussian window
-  m = mglMakeGrating(texWidth,texHeight,0.8,0,i*360/nsteps);
-  win = mglMakeGaussian(texWidth,texHeight,texWidth/7,texHeight/7);
+  m = makeGrating(texWidth,texHeight,0.8,0,i*360/nsteps);
+  win = makeGaussian(texWidth,texHeight,texWidth/7,texHeight/7);
   % now create and RGB + alpha image with the gaussian window
   % as the alpha channel
-  if ismac
+  if (strcmp(lower(computer),'mac'))
     m = 255*(m+1)/2;
     m4(:,:,1) = m;
     m4(:,:,2) = m;
@@ -85,7 +88,7 @@ texPos(:,2) = texPos(:,2)*(texHeight/2+2);
 % this is the main display loop
 numsec = 5;
 starttime = mglGetSecs;
-for i = 1:mglGetParam('frameRate')*numsec
+for i = 1:MGL.frameRate*numsec
   % calculate next phase step to display
   thisPhase = mod(i,nsteps)+1;
   thisPhase2 = mod(nsteps-i,nsteps)+1;
@@ -95,7 +98,7 @@ for i = 1:mglGetParam('frameRate')*numsec
   % and display four gabor patches
   mglBltTexture(tex([thisPhase thisPhase2 thisPhase thisPhase2]),texPos,0,0,[0 45 90 135]);
   % and the rotating one at the center
-  mglBltTexture(tex(1),[0 0 6 6],0,0,360*i/(mglGetParam('frameRate')*numsec));
+  mglBltTexture(tex(1),[0 0],0,0,360*i/(MGL.frameRate*numsec));
   %disp(sprintf('mglBltTexture: %f',(mglGetSecs-startBlt)*1000));
   % flush buffers
   mglFlush;
@@ -108,7 +111,7 @@ mglClose;
 % check how long it ran for
 disp(sprintf('Ran for: %0.8f sec Intended: %0.8f sec',endtime-starttime,numsec));
 disp(sprintf('Difference from intended: %0.8f ms',1000*((endtime-starttime)-numsec)));
-disp(sprintf('Number of frames lost: %i/%i (%0.2f%%)',round(((endtime-starttime)-numsec)*mglGetParam('frameRate')),numsec*mglGetParam('frameRate'),100*(((endtime-starttime)-numsec)*mglGetParam('frameRate'))/(mglGetParam('frameRate')*numsec)));
+disp(sprintf('Number of frames lost: %i/%i (%0.2f%%)',round(((endtime-starttime)-numsec)*MGL.frameRate),numsec*MGL.frameRate,100*(((endtime-starttime)-numsec)*MGL.frameRate)/(MGL.frameRate*numsec)));
 
 
 

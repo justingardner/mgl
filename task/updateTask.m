@@ -86,6 +86,7 @@ if task{tnum}.thistrial.segstart == -inf
   end
   % write out appropriate trace
   myscreen = writeTrace(1,task{tnum}.segmentTrace,myscreen,1);
+  myscreen = taskWriteTrace(task{tnum},myscreen);
   % restart segment clock and continue on
   % as if the segment just started
   if task{tnum}.timeInTicks
@@ -253,6 +254,7 @@ if (segover)
   task{tnum} = resetSegmentClock(task{tnum},myscreen);
   % write out appropriate trace
   myscreen = writeTrace(task{tnum}.thistrial.thisseg,task{tnum}.segmentTrace,myscreen,1);
+  myscreen = taskWriteTrace(task{tnum},myscreen);
   % call segment start callback
   [task{tnum} myscreen] = feval(task{tnum}.callback.startSegment,task{tnum},myscreen);
   % if this segment is set to getResponse(2), then it means that we 
@@ -271,16 +273,15 @@ end
 % if we have to collect observer response, then look for that
 if (task{tnum}.getResponse(task{tnum}.thistrial.thisseg))
   % get keyboard state
-  buttons = ismember(myscreen.keyboard.nums,myscreen.keyCodes);
+  buttons = mglGetKeys(myscreen.keyboard.nums);
   % if a button was pressed, then record response
   if (any(buttons) && (~isequal(buttons,task{tnum}.thistrial.buttonState)))
+    % get the time of the button press
+    responseTime = mglGetSecs;
     % set the button state to pass
     task{tnum}.thistrial.buttonState = buttons;
     task{tnum}.thistrial.whichButton = find(buttons);
     task{tnum}.thistrial.whichButton = task{tnum}.thistrial.whichButton(1);
-    % get the time of the button press
-    whichKeyCode = find(myscreen.keyboard.nums(task{tnum}.thistrial.whichButton)==myscreen.keyCodes);
-    responseTime = myscreen.keyTimes(whichKeyCode(1));
     % write out an event
     myscreen = writeTrace(task{tnum}.thistrial.whichButton,task{tnum}.responseTrace,myscreen,1,responseTime);
     % get reaction time
@@ -409,6 +410,11 @@ end
 % set the button states to zero
 task.thistrial.buttonState = [0 0];
 
+% call the init trial callback
+if isfield(task.callback,'startTrial')
+  [task myscreen] = feval(task.callback.startTrial,task,myscreen);
+end
+
 % get trial parameters
 for i = 1:task.parameter.n_
   eval(sprintf('task.thistrial.%s = task.block(task.blocknum).parameter.%s(:,task.blockTrialnum);',task.parameter.names_{i},task.parameter.names_{i}));
@@ -417,11 +423,6 @@ end
 % get randomization parameters
 for i = 1:task.randVars.n_
   eval(sprintf('task.thistrial.%s = task.randVars.%s(mod(task.trialnum-1,task.randVars.varlen_(%i))+1);',task.randVars.names_{i},task.randVars.names_{i},i));
-end
-
-% call the init trial callback
-if isfield(task.callback,'startTrial')
-  [task myscreen] = feval(task.callback.startTrial,task,myscreen);
 end
 
 % the trial is no longer waiting to start
@@ -449,4 +450,28 @@ end
 % get start of segment in real seconds
 task.thistrial.segStartSeconds = mglGetSecs;
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% write trace if called for
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function myscreen = taskWriteTrace(task,myscreen)
+
+% write trace if called for
+if (isfield(task.writeTrace{task.thistrial.thisseg},'tracenum'))
+  % write out all the trace variables called for
+  thisWriteTrace = task.writeTrace{task.thistrial.thisseg};
+  for i = 1:length(thisWriteTrace.tracenum)
+    tracenum = thisWriteTrace.tracenum(i)-1+myscreen.stimtrace;
+    % get the value of the called for parameter
+    paramval = eval(sprintf('task.thistrial.%s(%i)',thisWriteTrace.tracevar{i},thisWriteTrace.tracerow(i)));
+    if (thisWriteTrace.usenum(i))
+      % find parameter number
+      paramval = eval(sprintf('find(paramval == %s(%i,:))',thisWriteTrace.original{i},thisWriteTrace.tracerow(i)));
+    end
+    eval(sprintf('myscreen = writeTrace(paramval,thisWriteTrace.tracenum(i)-1+myscreen.stimtrace,myscreen,1);',thisWriteTrace.tracevar{i},thisWriteTrace.tracerow(i)));
+  end
+else
+  for i = 1:task.numstimtraces
+    myscreen = writeTrace(0,myscreen.stimtrace+i-1,myscreen);
+  end
+end
 

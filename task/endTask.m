@@ -16,9 +16,6 @@ if ~any(nargin == [2])
   return
 end
 
-% quit keyboard listener
-mglListener('quit');
-
 % compute traces and save data
 myscreen = endScreen(myscreen);
 saveStimData(myscreen,task);

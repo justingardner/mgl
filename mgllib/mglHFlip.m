@@ -23,7 +23,9 @@ if ~any(nargin == [0])
   return
 end
 
-if mglGetParam('displayNumber') == -1
+global MGL;
+
+if ~isfield(MGL,'displayNumber') || (MGL.displayNumber < 0)
   disp(sprintf('(mglHFlip) No open display'));
   return
 end

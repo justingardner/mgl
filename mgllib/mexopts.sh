@@ -155,8 +155,8 @@ echo "Error: Did not imbed 'options.sh' code"; exit 1 #imbed options.sh glnxi64 
             ;;
         mac)
 #----------------------------------------------------------------------------
-            CC='gcc'
-            CFLAGS='-x objective-c -fno-common -no-cpp-precomp -fexceptions'
+            CC='gcc-3.3'
+            CFLAGS='-fno-common -no-cpp-precomp -fexceptions'
             CLIBS="$MLIBS -lstdc++"
             COPTIMFLAGS='-O3 -DNDEBUG'
             CDEBUGFLAGS='-g'
@@ -171,7 +171,7 @@ echo "Error: Did not imbed 'options.sh' code"; exit 1 #imbed options.sh glnxi64 
 #
             LD="$CC"
             LDEXTENSION='.mexmac'
-            LDFLAGS="-bundle -Wl,-flat_namespace -undefined suppress -Wl,-exported_symbols_list,$TMW_ROOT/extern/lib/$Arch/$MAPFILE -framework agl -framework Carbon -framework CoreServices -framework Cocoa"
+            LDFLAGS="-bundle -Wl,-flat_namespace -undefined suppress -Wl,-exported_symbols_list,$TMW_ROOT/extern/lib/$Arch/$MAPFILE -framework agl -framework Carbon -framework CoreServices"
             LDOPTIMFLAGS='-O'
             LDDEBUGFLAGS='-g'
 #
@@ -182,8 +182,8 @@ echo "Error: Did not imbed 'options.sh' code"; exit 1 #imbed options.sh glnxi64 
 #----------------------------------------------------------------------------
 
 #            CC='g++-3.3'
-            CC='gcc-4.0'
-            CFLAGS='-x objective-c -fno-common -no-cpp-precomp -fexceptions -arch i386 -pthread'
+           CC='gcc-4.0'
+            CFLAGS='-fno-common -no-cpp-precomp -fexceptions -arch i386'
             CLIBS="$MLIBS -lstdc++"
             COPTIMFLAGS='-O3 -DNDEBUG'
             CDEBUGFLAGS='-g'
@@ -205,65 +205,12 @@ echo "Error: Did not imbed 'options.sh' code"; exit 1 #imbed options.sh glnxi64 
 #
             LD="$CC"
             LDEXTENSION='.mexmaci'
-            LDFLAGS="-bundle -Wl,-flat_namespace -undefined suppress -Wl,-exported_symbols_list,$TMW_ROOT/extern/lib/$Arch/$MAPFILE -framework agl -framework Carbon -framework Cocoa -framework CoreServices -framework QTKit -pthread"
+            LDFLAGS="-bundle -Wl,-flat_namespace -undefined suppress -Wl,-exported_symbols_list,$TMW_ROOT/extern/lib/$Arch/$MAPFILE -framework agl -framework Carbon"
             LDOPTIMFLAGS='-O'
             LDDEBUGFLAGS='-g'
 #
             POSTLINK_CMDS=':'
 #----------------------------------------------------------------------------
-            ;;
-        maci64)
-#----------------------------------------------------------------------------
-            # StorageVersion: 1.0
-            # CkeyName: GNU C
-            # CkeyManufacturer: GNU
-            # CkeyLanguage: C
-            # CkeyVersion:
-           CC='gcc'
-#            CC='g++-4.0'
-            SDKROOT='/Developer/SDKs/MacOSX10.5.sdk'
-            MACOSX_DEPLOYMENT_TARGET='10.5'
-            ARCHS='x86_64'
-            CFLAGS="-x objective-c -fno-common -no-cpp-precomp -arch $ARCHS -isysroot $SDKROOT -mmacosx-version-min=$MACOSX_DEPLOYMENT_TARGET -pthread"
-            CFLAGS="$CFLAGS  -fexceptions"
-            CLIBS="$MLIBS"
-            COPTIMFLAGS='-O2 -DNDEBUG'
-            CDEBUGFLAGS='-g'
-#
-            CLIBS="$CLIBS -lstdc++"
-            # C++keyName: GNU C++
-            # C++keyManufacturer: GNU
-            # C++keyLanguage: C++
-            # C++keyVersion: 
-            CXX=g++-4.0
-            CXXFLAGS="-fno-common -no-cpp-precomp -fexceptions -arch $ARCHS -isysroot $SDKROOT -mmacosx-version-min=$MACOSX_DEPLOYMENT_TARGET"
-            CXXLIBS="$MLIBS -lstdc++"
-            CXXOPTIMFLAGS='-O2 -DNDEBUG'
-            CXXDEBUGFLAGS='-g'
-#
-            # FortrankeyName: GNU Fortran
-            # FortrankeyManufacturer: GNU
-            # FortrankeyLanguage: Fortran
-            # FortrankeyVersion: 
-            FC='gfortran'
-            FFLAGS='-fexceptions'
-            FFLAGS='-m64'
-            FC_LIBDIR=`$FC -print-file-name=libgfortran.dylib 2>&1 | sed -n '1s/\/*libgfortran\.dylib//p'`
-            FC_LIBDIR2=`$FC -print-file-name=libgfortranbegin.a 2>&1 | sed -n '1s/\/*libgfortranbegin\.a//p'`
-            FLIBS="$MLIBS -L$FC_LIBDIR -lgfortran -L$FC_LIBDIR2 -lgfortranbegin"
-            FOPTIMFLAGS='-O'
-            FDEBUGFLAGS='-g'
-#
-            LD="$CC"
-            LDEXTENSION='.mexmaci64'
-            LDFLAGS="-Wl,-twolevel_namespace -undefined error -arch $ARCHS -Wl,-syslibroot,$SDKROOT -mmacosx-version-min=$MACOSX_DEPLOYMENT_TARGET"
-            LDFLAGS="$LDFLAGS -bundle -Wl,-exported_symbols_list,$TMW_ROOT/extern/lib/$Arch/$MAPFILE  -framework agl -framework Carbon -framework Cocoa -framework CoreServices -framework openGL -pthread -framework QTKit"
-            LDOPTIMFLAGS='-O'
-            LDDEBUGFLAGS='-g'
-#
-            POSTLINK_CMDS=':'
-#----------------------------------------------------------------------------
-            ;;
     esac
 #############################################################################
 #

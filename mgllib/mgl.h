@@ -49,21 +49,6 @@
 // OS-specific includes
 /////////////////////////
 #ifdef __APPLE__
-//  on 64bit, default to compiling cocoa, unless overridden
-#ifdef __x86_64__
-#ifndef __carbon__
-#ifndef __cocoa__
-#define __cocoa__
-#endif // ifndef __cocoa__
-#endif // ifndef __carbon__
-#else //__x86_64__
-// for 32bit
-#ifndef __carbon__
-#define __cocoa__
-#endif // ifndef __carbon__
-#endif // ifdef __x86_64__
-
-#define __eventtap__
 #include <OpenGL/OpenGL.h>
 #include <OpenGL/gl.h>
 #include <OpenGL/glext.h>
@@ -72,15 +57,7 @@
 #include <Carbon/Carbon.h>
 #include <CoreServices/CoreServices.h>
 #include <AGL/agl.h>
-
-// Cocoa specific imports.
-#ifdef __cocoa__
-#import <Foundation/Foundation.h>
-#import <Appkit/Appkit.h>
-#import <QTKit/QTKit.h>
 #endif
-
-#endif // __APPLE__
 
 #ifdef __linux__
 #include <stdlib.h>
@@ -92,23 +69,6 @@
 #include <GL/glu.h>
 #include <X11/extensions/sync.h>
 #include <X11/extensions/xf86vmode.h>
-#include <sys/time.h>
-#endif
-
-#ifdef __WINDOWS__
-#include <windows.h>
-#include <GL\gl.h>
-#include <GL\glu.h>
-//#include <GL\glaux.h>
-#include <math.h>
-
-// Make sure that these extensions are defined.
-#ifndef GL_TEXTURE_RECTANGLE_EXT
-#define GL_TEXTURE_RECTANGLE_EXT 0x84F5
-#endif
-#ifndef GL_CLAMP_TO_EDGE
-#define GL_CLAMP_TO_EDGE 0x812F
-#endif
 #endif
 
 
@@ -116,7 +76,7 @@
 //   define section   //
 ////////////////////////
 #define MGL_GLOBAL_NAME "MGL"
-#define MGL_VERSION 2.0
+#define MGL_VERSION 1.0
 
 #ifndef mwIndex
 #define mwIndex int
@@ -129,6 +89,7 @@
 #define kCGColorSpaceGenericRGB kCGColorSpaceUserRGB
 #endif
 #endif
+
 
 ///////////////////////////////
 //   function declatations   //
@@ -182,7 +143,7 @@ int mglIsWindowOpen()
 {
   // check global variable for whether display number exisits
   // or if it is set to -1
-  if ((mglIsGlobal("displayNumber")==-1) || (mglGetGlobalDouble("displayNumber") == -1)) 
+  if (!mglIsGlobal("displayNumber") || (mglGetGlobalDouble("displayNumber") == -1)) 
     return 0;
   else
     return 1;
@@ -217,8 +178,6 @@ void mglCreateGlobal(void)
 //////////////////////////
 int mglIsGlobal(char *field)
 {
-  mxArray *MGL, *tmp;
-  int ifield;
   
   // check if MGL exists in global workspace - if not return right away
   if ((mexGetVariablePtr("global", MGL_GLOBAL_NAME) == NULL)){
@@ -226,10 +185,12 @@ int mglIsGlobal(char *field)
     return -1;
   }
   // now get the variable
-  MGL = mexGetVariable("global",MGL_GLOBAL_NAME);
+  mxArray *MGL = mexGetVariable("global",MGL_GLOBAL_NAME);
   
   // get value field by number (via name)
-  
+  mxArray *tmp;
+  int ifield; 
+
   // if MGL is not struct array then there is trouble
   if ( mxGetClassID(MGL) != mxSTRUCT_CLASS){
     mexPrintf("(mglIsGlobal) MGL variable is not a struct array.\n");
@@ -270,36 +231,30 @@ int mglIsGlobal(char *field)
 //////////////////////////
 double mglGetGlobalDouble(char *varname)
 {
-  mxArray *MGL, *value;
-  double tmpvalue,
-		 defaultValue = 0.0;;
+  mxArray *MGL = mexGetVariable("global",MGL_GLOBAL_NAME);
   
-  MGL = mexGetVariable("global",MGL_GLOBAL_NAME);
-
-  // default value for when variable has not been set
-  if (strcmp(varname,"displayNumber")==0) defaultValue = -1.0;
-
   // global has not been created
   if ( (mexGetVariablePtr("global", MGL_GLOBAL_NAME) == NULL) || ( mxGetClassID(MGL) != mxSTRUCT_CLASS)) {
     // create the global
     mglCreateGlobal();
     // now create the asked for variable
-    mglSetGlobalDouble(varname,defaultValue);
-    return defaultValue; // initialize new fields with -1
+    mglSetGlobalDouble(varname,0.0);
+    return -1.0; // initialize new fields with -1
   }
 
   // check to see if field exists
   if (mglCheckGlobalField(varname) == 2){
     // if it does return the value
     // suggested change for macintel
+    mxArray *value;
     value = mxGetField(MGL,0,varname);
-    tmpvalue = mxGetScalar(value); 
+    double tmpvalue = mxGetScalar(value); 
     return tmpvalue;
   }
   else {
     // does not exist, set asked for variable
-    mglSetGlobalDouble(varname,defaultValue);
-    return defaultValue;
+    mglSetGlobalDouble(varname,0.0);
+    return 0.0;
   }
 }
 
@@ -330,10 +285,8 @@ mxArray *mglGetGlobalField(char *varname)
 //////////////////////////
 void mglSetGlobalDouble(char *varname,double value)
 {
-  mxArray *MGL, *tmpvalue; 
-  //double *mglFieldPointer;
-  
-  MGL = mexGetVariable("global",MGL_GLOBAL_NAME);
+  mxArray *MGL = mexGetVariable("global",MGL_GLOBAL_NAME);
+  double *mglFieldPointer;
 
   // global has not been created
   // if ((MGL == 0)) { // || (mxGetPr(MGL) == 0)){
@@ -358,6 +311,7 @@ void mglSetGlobalDouble(char *varname,double value)
   
 
   // suggested change for macintel
+  mxArray *tmpvalue;
   tmpvalue = mxCreateDoubleMatrix(1,1,mxREAL);
   *mxGetPr(tmpvalue) = value; // pass value into it.
   mxSetField(MGL,0,varname,tmpvalue);
@@ -482,15 +436,14 @@ int mglCheckGlobalField(char* varname) {
       ds 2006-10-13
 */
 
-	mxArray *MGL, *tmp;
-	int ifield;
-	
   // check if MGL exists in global workspace - if not create it
   if ((mexGetVariablePtr("global", MGL_GLOBAL_NAME) == NULL) ){
     mglCreateGlobal();
   }
   
-  MGL = mexGetVariable("global",MGL_GLOBAL_NAME);
+  mxArray *MGL = mexGetVariable("global",MGL_GLOBAL_NAME);
+  mxArray *tmp;
+  int ifield; 
   
   // check that the global is a struct array
   if ( mxGetClassID(MGL) != mxSTRUCT_CLASS) {

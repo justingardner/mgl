@@ -111,6 +111,7 @@ end % going through segments
 function [task myscreen] = responseCallback(task, myscreen)
 
 global stimulus;
+global MGL;
 
 % make sure the response is a 1 or a 2
 if(or(task.thistrial.whichButton == 1,task.thistrial.whichButton == 2))
@@ -118,10 +119,10 @@ if(or(task.thistrial.whichButton == 1,task.thistrial.whichButton == 2))
   % see if we got a correct or incorrect answer
   if task.thistrial.whichButton == 0.1*(task.thistrial.deltaOR+15) % 1 for CCW, 2 for CW
     % play the correct sound
-    mglPlaySound('Glass');
+    mglPlaySound(find(strcmp(MGL.soundNames,'Glass')));
   else
     % play the incorrect sound
-    mglPlaySound('Basso');
+    mglPlaySound(find(strcmp(MGL.soundNames,'Basso')));
   end  
 
 % move on to the next segment once you get a response
@@ -142,12 +143,12 @@ stimulus.count = 0;
 
 % make the stimulus:
 % calculate an annulus envelope (annulus is in the alpha channel)
-maskOut = 255*(mglMakeGaussian(6,6,3,3)>exp(-1/2));
-maskIn = 255*(mglMakeGaussian(6,6,1,1)>exp(-1/2));
+maskOut = 255*(makeGaussian(6,6,3,3)>exp(-1/2));
+maskIn = 255*(makeGaussian(6,6,1,1)>exp(-1/2));
 annulus = maskOut - maskIn;
 
 % put a grating in the annulus
-tempGrating = 100*(mglMakeGrating(6,6,2.5,0,0));
+tempGrating = 100*(makeGrating(6,6,2.5,0,0));
 grating(:,:,1) = 128 + tempGrating;
 grating(:,:,2) = grating(:,:,1);
 grating(:,:,3) = grating(:,:,1);

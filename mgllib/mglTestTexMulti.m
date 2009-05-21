@@ -26,7 +26,8 @@ if mgl
   mglOpen(screenNumber);
   mglClearScreen;
   mglScreenCoordinates;
-  frameRate = mglGetParam('frameRate');
+  global MGL;
+  frameRate = MGL.frameRate;
 else
   myscreen = initscreen;
   frameRate = 60;
@@ -35,8 +36,8 @@ end
 
 % size of textures in pixels
 if multi
-  xsize = 128;%mglGetParam('screenWidth');
-  ysize = 128;%mglGetParam('screenHeight');
+  xsize = 128;%MGL.screenWidth;
+  ysize = 128;%MGL.screenHeight;
 else
   xsize = 1024;
   ysize = 512;

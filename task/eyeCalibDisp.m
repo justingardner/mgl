@@ -5,11 +5,9 @@
 %         by: justin gardner
 %       date: 12/10/04
 %  copyright: (c) 2006 Justin Gardner (GPL see mgl/COPYING)
-%    purpose: eye calibration - mgl version
+%    purpose: eye calibration - MGL version
 %             stimuli should be defined in visual angle coords
 %
-
-% TODO: make this function generic with respect to the eyetracker used
 function myscreen = eyeCalibDisp(myscreen)
 
 % set the screen background color
@@ -20,18 +18,17 @@ myscreen = tickScreen(myscreen);
 
 if (myscreen.eyecalib.prompt)
   % check for space key
-  disp(sprintf('-----------------------------'));
-  disp(sprintf('Hit SPACE to do eye calibration'));
-  disp(sprintf('ENTER to skip eye calibration'));
-  disp(sprintf('Esc aborts at any time'));
-  disp(sprintf('-----------------------------'));
-  drawnow;
-  keyCodes=[];
-  while ~any(keyCodes==myscreen.keyboard.space)
-    if any(keyCodes == myscreen.keyboard.esc)
+  mydisp(sprintf('-----------------------------\n'));
+  mydisp(sprintf('Hit SPACE to do eye calibration\n'));
+  mydisp(sprintf('ENTER to skip eye calibration\n'));
+  mydisp(sprintf('Esc aborts at any time\n'));
+  mydisp(sprintf('-----------------------------\n'));
+
+  while ~mglGetKeys(myscreen.keyboard.space)
+    if mglGetKeys(myscreen.keyboard.esc)
       return
     end
-    if any(keyCodes == myscreen.keyboard.return)
+    if mglGetKeys(myscreen.keyboard.return)
       % starting experiment, start the eye tracker
       writeDigPort(16,2);
       %myscreen.fishcamp = bitor(myscreen.fishcamp,1);
@@ -40,7 +37,6 @@ if (myscreen.eyecalib.prompt)
       myscreen.fliptime = inf;
       return
     end
-    [keyCodes keyTimes] = mglGetKeyEvent([],1);
   end
 end
 
@@ -67,8 +63,7 @@ for j = 1:myscreen.eyecalib.n
   startTime = mglGetSecs;
   if ~isinf(myscreen.eyecalib.waittime)
     while (myscreen.eyecalib.waittime > (mglGetSecs-startTime));
-      [keyCodes keyTimes] = mglGetKeyEvent([],1);
-      if any(keyCodes==myscreen.keyboard.esc)
+      if mglGetKeys(myscreen.keyboard.esc)
 	mglClearScreen;mglFlush;
 	mglClearScreen;mglFlush;
 	return
@@ -94,8 +89,7 @@ function retval = waitSecsEsc(waitTime,myscreen)
 retval = 1;
 startTime = mglGetSecs;
 while mglGetSecs(startTime) <= waitTime
-  [keyCodes keyTimes] = mglGetKeyEvent([],1);
-  if any(keyCodes==myscreen.keyboard.esc)
+  if mglGetKeys(myscreen.keyboard.esc)
     retval = -1;
     return
   end

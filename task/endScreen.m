@@ -6,7 +6,7 @@
 %       date: 12/21/04
 %  copyright: (c) 2006 Justin Gardner (GPL see mgl/COPYING)
 %
-%    purpose: close screen and clean up - for mgl
+%    purpose: close screen and clean up - for MGL
 %
 function myscreen = endScreen(myscreen)
 
