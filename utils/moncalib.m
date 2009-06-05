@@ -133,7 +133,7 @@ end
 
 if ~justdisplay && ~isempty(portnum)
   disp(sprintf('Starting in 20 seconds'));
-  mglWaitSecs(20);
+  mglWaitSecs(2);
 end
 
 % choose the range of values over which to do the gamma testing
@@ -157,7 +157,7 @@ if ~isfield(calib,'date'),calib.date = datestr(now);end
 if doGamma
   % do the gamma measurements
   if ~isfield(calib,'uncorrected')
-    calib.uncorrected = measureOutput(portnum,testRange,calib.numRepeats);
+    calib.uncorrected = measureOutput(portnum,photometerNum,testRange,calib.numRepeats);
     if isfield(calib,'filename')
       eval(sprintf('save %s calib',calib.filename));
     end
@@ -204,7 +204,7 @@ if doGamma
 
     %and see how well we have done
     if ~isfield(calib,'corrected')
-      calib.corrected = measureOutput(portnum,calib.uncorrected.outputValues,calib.numRepeats,0);
+      calib.corrected = measureOutput(portnum,photometerNum,calib.uncorrected.outputValues,calib.numRepeats,0);
       if isfield(calib,'filename')
 	eval(sprintf('save %s calib',calib.filename));
       end
@@ -221,7 +221,7 @@ if doGamma
 
     %and see how well we have done
     if ~isfield(calib,'tableCorrected')
-      calib.tableCorrected = measureOutput(portnum,calib.uncorrected.outputValues,calib.numRepeats,0);
+      calib.tableCorrected = measureOutput(portnum,photometerNum,calib.uncorrected.outputValues,calib.numRepeats,0);
       if isfield(calib,'filename')
 	eval(sprintf('save %s calib',calib.filename));
       end
@@ -245,7 +245,7 @@ if doBittest
   % test to see how many bits we have in the gamma table
   disp(sprintf('Testing how many bits the gamma table is'));
   if ~isfield(calib.bittest,'data') && ~justdisplay
-    calib.bittest.data = measureOutput(portnum,bitTestRange,calib.bittest.numRepeats);
+    calib.bittest.data = measureOutput(portnum,photometerNum,bitTestRange,calib.bittest.numRepeats);
   end
   if isfield(calib.bittest,'data')
     subplot(1,2,2);
@@ -275,7 +275,7 @@ end
 % function that sets the gamma table to all the values in val
 % and checks the luminance
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function retval = measureOutput(portnum,outputValues,numRepeats,setGamma)
+function retval = measureOutput(portnum,photometerNum,outputValues,numRepeats,setGamma)
 
 global verbose;
 
@@ -304,7 +304,7 @@ for val = outputValues
     gotMeasurement = 0;badMeasurements = 0;
     while ~gotMeasurement
       % get the measurement from the photometer
-      thisMeasuredLuminance(repeatNum) = photometerMeasure(portnum);
+      thisMeasuredLuminance(repeatNum) = photometerMeasure(portnum,photometerNum);
       % check to see if it is a bad measurement
       if isnan(thisMeasuredLuminance(repeatNum))
 	% if it is and, we have already tried three times, then give up
@@ -362,7 +362,7 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%   photometerMeasure   %%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%
-function [luminance x y] = photometerMeasure(portnum,photometerName)
+function [luminance x y] = photometerMeasure(portnum,photometerNum)
 
 % if doing manual input
 if isempty(portnum)
@@ -553,6 +553,8 @@ x=0;y=0; %LS100 does not measure color
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function retval = photometerInitTopcon(portnum)
 
+retval = -1;
+
 clc
 disp(sprintf('First make sure that the topcon has the correct serial port settings, by pushing the [MODE] key for about 2 seconds to enter the function mode. Then push the [ENTER] key four times to set the RS-232C Parameters. The settings should be Baud rate: 9600, Length=8, parity=NONE, Stop bit=1. Use the [CHANGE],[ROTATION] & [ENTER] keys accordingly.'));
 disp(sprintf('\nThen make sure that the data communication method is set to Normal Type. From the function mode (see above) hit [ENTER] five times. It should say:\n\n* CS900 ON/OFF *\n* Normal Type\n')); 
@@ -562,27 +564,52 @@ while ~response
 end
 
 % retrieve any info that is pending from the photometer
-readSerialPort(portnum,1024);
+response = readLineSerialPort(portnum);
+while ~isempty(response)
+  response = readLineSerialPort(portnum);
+end
+
+disp(sprintf('(moncalib:photometerInitTopcon) Sending RM to set photometer into remote mode.'));
+% set to remote mode
+writeSerialPort(portnum,['RM' char(13) char(10)]);
+response = '';
+while isempty(response)
+  response = readLineSerialPort(portnum);
+end
+if ~strcmp(response(1:2),'OK')
+  disp(sprintf('(moncalib:photometerInitTopcon) Got %s, rather than OK. Somethingis wrong',response(1:max(1,end-2))));
+  if ~askuser('Do you still want to continue ')
+    return
+  end
+end
+
 % Don't need the spectral radiance data, so set to D1 data mode
-disp(sprintf('(moncalib:photometerInitTopcon) Sending D1 to photometer to set data output mode to not return spectral radiance data. Expecting OK answer...'));
+disp(sprintf('(moncalib:photometerInitTopcon) Sending D1 to photometer to set data output mode to not return spectral radiance data.'));
 writeSerialPort(portnum,['D1' char(13) char(10)]);
 response = '';
 while isempty(response)
   response = readLineSerialPort(portnum);
 end
 if ~strcmp(response(1:2),'OK')
-  disp(sprintf('(moncalib:photometerInitTopcon) Got %s, rather than OK from TOPCON when trying to set data output mode to D1 (no spectral radiance data)',response));
-  if ~askuser('Do you still want to continue (y/n)? ');
+  disp(sprintf('(moncalib:photometerInitTopcon) Got %s, rather than OK from TOPCON when trying to set data output mode to D1 (no spectral radiance data)',response(1:max(1,end-2))));
+  if ~askuser('Do you still want to continue ');
+    return
   end
 end
+retval = 1;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%   photometerMeasureTopcon   %%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function [luminance x y] = photometerMeasureTopcon(portnum)
 
+luminance = -1;x = 0;y = 0;
 % retrieve any info that is pending from the photometer
-readSerialPort(portnum,1024);
+response = readLineSerialPort(portnum);
+while ~isempty(response)
+  response = readLineSerialPort(portnum);
+end
+
 % now send measurement
 writeSerialPort(portnum,['ST',13,10]);
 
@@ -597,19 +624,31 @@ if ~strcmp(response(1:2),'OK')
 end
 
 % read the measurement
-dataNum = 1;
-str{dataNum} = '';
+values = [];thisline = '';keepReading = 2;
 % keep reading until we get the END signal
-while isempty(str{dataNum}) || ~isequal(str{dataNum}(1:min(end,3)),'END')
+while keepReading
   % try to read the next line of data
-  str{dataNum} = readLineSerialPort(portnum);
-   % if we got something increment the datanum
-   if ~isempty(str{dataNum})
-     dataNum = dataNum+1;
+  thisline = readLineSerialPort(portnum);
+   % if we got something grab it.
+   if ~isempty(thisline)
+     if ~isempty(str2num(thisline))
+       values(end+1) = str2num(thisline);
+     elseif (length(thisline)>=3) && strcmp(thisline(1:3),'END')
+       keepReading = 0;
+     end
    end
 end
 
-keyboard
+if length(values) >= 11
+  disp(sprintf('(moncalib) Measuring field: %i Integral time: %i ms Radiance: %f Wm-^2sr^-1\nLuminance: %f cd/m^2\nX: %f Y: %f Z: %f x: %f y: %f u: %f v: %f',values(1),values(2),values(3),values(4),values(5),values(6),values(7),values(8),values(9),values(10),values(11)));
+  luminance = values(4);
+  x = values(8);
+  y = values(9);
+else
+  disp(sprintf('(moncalib:photometerMeasureTopcon) Uhoh, not enough data values read'));
+end
+
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % init the serial port
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
