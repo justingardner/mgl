@@ -1,7 +1,7 @@
 % testDigPort.m
 %
 %        $Id:$ 
-%      usage: testDigPort()
+%      usage: testDigPort(runlen)
 %         by: justin gardner
 %       date: 06/26/09
 %    purpose: Tests digital read/write functions. This will make all of the digital lines on port 1
@@ -9,10 +9,10 @@
 %             display that in a graph. (try testing this with an LED in one of the lines of port 1 
 %             (put shorter lead of LED into ground)
 %
-function retval = testDigPort()
+function retval = testDigPort(runlen)
 
 % check arguments
-if ~any(nargin == [0])
+if ~any(nargin == [0 1])
   help testDigPort
   return
 end
@@ -26,7 +26,9 @@ readDigPort(readPortNum);
 writeDigPort(0,writePortNum);
 
 % length of time to test for 
-runlen = 5;
+if nargin == 0
+  runlen = 5;
+end
 
 % get the start time
 startTime = mglGetSecs;
@@ -96,7 +98,7 @@ while (mglGetSecs(startTime) < runlen)
   
 end
 
-c = 'bgrcmykw';
+c = 'bgrcmykw';clf;
 % display input
 for i = 1:8
   thisline = bitshift(bitand(readBuffer,(2^(i-1))),-(i-1));
