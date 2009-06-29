@@ -25,16 +25,17 @@
 %             mglRetinotopy('numCycles=10');
 %
 %             The length in secs of a stimulus period 
-%             mglRetinotopy('stimulusPeriod=36');
+%             mglRetinotopy('stimulusPeriod=24');
 % 
 %             The number of steps that the stimulus will move in
 %             one period 
-%             mglRetinotopy('stepsPerCycle',24');
+%             mglRetinotopy('stepsPerCycle',24);
 %
 %             Or instead of stimulusPeriod/stepsPerCycle one can
 %             set the number of volumes per cycle and the
-%             program will synch to backticks (default = 24)
-%             mglRetinotopy('volumesPerCycle=24');
+%             program will synch to backticks (default = 16) This
+%             gives a 24 second cycle time with a TR=1.5 secs
+%             mglRetinotopy('volumesPerCycle=16');
 %
 %             Eye calibration can be absent=0, at the beginning=-1
 %             or at the end =1 (default = -1)
@@ -135,7 +136,7 @@ else
 end
 
 task{2}{1}.numTrials = stimulus.numCycles*stimulus.stepsPerCycle + stimulus.initialHalfCycle*round(stimulus.stepsPerCycle/2);
-task{2}{1} = initTask(task{2}{1},myscreen,@startSegmentCallback,@updateScreenCallback);
+[task{2}{1} myscreen] = initTask(task{2}{1},myscreen,@startSegmentCallback,@updateScreenCallback);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % run the eye calibration
@@ -154,7 +155,7 @@ while (phaseNum <= length(task{2})) && ~myscreen.userHitEsc
   % update the fixation task
   [task{1} myscreen] = updateTask(task{1},myscreen,1);
   % flip screen
-  myscreen = tickScreen(myscreen,task);
+  myscreen = myscreen.tickScreen(myscreen,task);
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
