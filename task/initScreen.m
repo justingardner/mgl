@@ -40,7 +40,7 @@ defaultMonitorGamma = 1.8;
 screenParamsList = {'computerName','displayName','screenNumber',...
 		    'screenWidth','screenHeight','displayDistance',...
 		    'displaySize','framesPerSecond','autoCloseScreen',...
-		    'saveData','monitorGamma','calibFilename','flipHV'};
+		    'saveData','monitorGamma','calibFilename','flipHV','tickScreen','digin'};
 
 % load the screen params file. Note that you can override the default
 % location from mgl/task/mglScreenParams to whatever you like, by 
@@ -70,6 +70,7 @@ end
 % check for passed in screenParams
 if isfield(myscreen,'screenParams')
   screenParams = cat(2,myscreen.screenParams,screenParams);
+  screenParamsFilename = '';
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -112,7 +113,11 @@ if foundComputer
     disp(sprintf('(initScreen) %i: %ix%i(pix) dist:%0.1f (cm) size:%0.1fx%0.1f (cm) %iHz save:%i autoclose:%i flipHV:[%i %i]',myscreen.screenNumber,myscreen.screenWidth,myscreen.screenHeight,myscreen.displayDistance,myscreen.displaySize(1),myscreen.displaySize(2),myscreen.framesPerSecond,myscreen.saveData,myscreen.autoCloseScreen,myscreen.flipHV(1),myscreen.flipHV(2)));
   end
 else
-  disp(sprintf('(initScreen) Could not find computer %s in initScreen',myscreen.computer));
+  if ~isempty(screenParamsFilename)
+    disp(sprintf('(initScreen) Could not find computer %s in screenParams file %s\n',myscreen.computer,screenParamsFilename));
+  else
+    disp(sprintf('(initScreen) Could not find computer %s in myscreen.screenParams\n',myscreen.computer));
+  end
 end
 
 %%%%%%%%%%%%%%%%%
@@ -127,6 +132,7 @@ if ~isfield(myscreen,'saveData'),myscreen.saveData = -1;end
 if ~isfield(myscreen,'displayDistance'),myscreen.displayDistance = 57;end
 if ~isfield(myscreen,'displaySize'),myscreen.displaySize = [31 23];end
 if ~isfield(myscreen,'flipHV'),myscreen.flipHV = [0 0];end
+if ~isfield(myscreen,'digin'),myscreen.digin = [];end
 
 % remember curent path
 myscreen.pwd = pwd;
@@ -262,19 +268,23 @@ if gammaNotSet
   if ~isfield(myscreen,'monitorGamma')
     myscreen.monitorGamma = defaultMonitorGamma;
   end
-  % display what the settings are
-  disp(sprintf('(initScreen) Correcting for monitor gamma of %0.2f',myscreen.monitorGamma));
-  
-  % now get current gamma table
-  gammaTable = mglGetParam('initialGammaTable');
-  % and use linear interpolation to correct the current table to
-  % make it 1/monitor gamma.
-  correctedValues = ((0:1/255:1).^(1/myscreen.monitorGamma));
-  gammaTable.redTable = interp1(0:1/255:1,gammaTable.redTable,correctedValues);
-  gammaTable.greenTable = interp1(0:1/255:1,gammaTable.greenTable,correctedValues);
-  gammaTable.blueTable = interp1(0:1/255:1,gammaTable.blueTable,correctedValues);
-  % and set the table
-  mglSetGammaTable(gammaTable);
+  if isempty(myscreen.monitorGamma)
+    disp(sprintf('(initScreen) Not applying any gamma correction for this monitor'));
+  else
+    % display what the settings are
+    disp(sprintf('(initScreen) Correcting for monitor gamma of %0.2f',myscreen.monitorGamma));
+    
+    % now get current gamma table
+    gammaTable = mglGetParam('initialGammaTable');
+    % and use linear interpolation to correct the current table to
+    % make it 1/monitor gamma.
+    correctedValues = ((0:1/255:1).^(1/myscreen.monitorGamma));
+    gammaTable.redTable = interp1(0:1/255:1,gammaTable.redTable,correctedValues);
+    gammaTable.greenTable = interp1(0:1/255:1,gammaTable.greenTable,correctedValues);
+    gammaTable.blueTable = interp1(0:1/255:1,gammaTable.blueTable,correctedValues);
+    % and set the table
+    mglSetGammaTable(gammaTable);
+  end
 end
 
 % choose color for background
@@ -400,6 +410,46 @@ myscreen.userHitEsc = 0;
 myscreen.flushMode = 0;
 myscreen.makeTraces = 0;
 myscreen.numTasks = 0;
+
+% set the tickScreen callback. This is for general use programs like mglRetinotopy
+% so that we can call them with site specific tickScreens (for reading the acquisition pulses/backticks differently
+% at RIKEN for example.
+if ~isfield(myscreen,'tickScreen')
+  myscreen.tickScreen = @tickScreen;
+elseif isstr(myscreen.tickScreen)
+  % otherwise check if the tickScreen is a function handle. If it is a string, convert
+  if (exist(myscreen.tickScreen) == 2)
+    disp(sprintf('(initScreen) Using %s as a tickScreen function',myscreen.tickScreen));
+    myscreen.tickScreen = str2func(myscreen.tickScreen);
+  else
+    disp(sprintf('(initScreen) UHOH: Could not find %s tickScreen function. Using tickScreen',myscreen.tickScreen));
+    myscreen.tickScreen = @tickScreen;
+  end
+end
+  
+% initialize digital port
+if isfield(myscreen,'digin')  && ~isempty(myscreen.digin)
+  % interpret digin values and then save them with more readable names
+  digin = myscreen.digin;
+  myscreen.digin = [];
+  myscreen.digin.portnum = digin(1);
+  myscreen.digin.acqline = digin(2);
+  myscreen.digin.responseline = digin(3:end);
+  disp(sprintf('(initScreen) Initializing NI digital port %i for reading. Acq line is %i. Subject responses are on lines %s',myscreen.digin.portnum,myscreen.digin.acqline,num2str(myscreen.digin.responseline)));
+  % first close the ports
+  writeDigPort(-1);readDigPort(-1);
+  % then write a 0 to the port and close
+  if writeDigPort(0,myscreen.digin(1)) == 0
+    disp(sprintf('(initScreen) UHOH: writeDigPort on port %i is reporting 0. Has read/writeDigPort been compiled?',myscreen.digin(1)));
+  end
+  % close write port
+  writeDigPort(0,-1);
+  % read the ttl port. 
+  myscreen.ttltick = bitand(bitshift(readDigPort(myscreen.digin.portnum),-myscreen.digin.acqline),1);
+else
+  myscreen.ttltick = [];
+end
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % support function that gets host name using system command
