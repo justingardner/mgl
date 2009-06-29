@@ -44,19 +44,21 @@ if ~isfield(fixStimulus,'stairUseLevitt') fixStimulus.stairUseLevitt = 0; end
 if ~isfield(fixStimulus,'stimColor') fixStimulus.stimColor = [0 1 1]; end
 if ~isfield(fixStimulus,'responseColor') fixStimulus.responseColor = [1 1 0]; end
 if ~isfield(fixStimulus,'interColor') fixStimulus.interColor = [0 1 1]; end
-if ~isfield(fixStimulus,'correctColor') fixStimulus.correctColor = [0 1 0]; end
-if ~isfield(fixStimulus,'incorrectColor') fixStimulus.incorrectColor = [1 0 0]; end
+if ~isfield(fixStimulus,'correctColor') fixStimulus.correctColor = [0 0.8 0]; end
+if ~isfield(fixStimulus,'incorrectColor') fixStimulus.incorrectColor = [0.8 0 0]; end
 if ~isfield(fixStimulus,'traceNum') fixStimulus.traceNum = 5; end
 if ~isfield(fixStimulus,'responseTime') fixStimulus.responseTime = 1; end
-if ~isfield(fixStimulus,'stimTime') fixStimulus.stimTime = 0.2; end
-if ~isfield(fixStimulus,'interTime') fixStimulus.interTime = 0.5; end
+if ~isfield(fixStimulus,'stimTime') fixStimulus.stimTime = 0.4; end
+if ~isfield(fixStimulus,'interTime') fixStimulus.interTime = 0.8; end
 if ~isfield(fixStimulus,'diskSize') fixStimulus.diskSize = 1; end
 if ~isfield(fixStimulus,'pos') fixStimulus.pos = [0 0]; end
+if ~isfield(fixStimulus,'fixWidth') fixStimulus.fixWidth = 1; end
+if ~isfield(fixStimulus,'fixLineWidth') fixStimulus.fixLineWidth = 3; end
 
 % create a fixation task
 task{1}.seglen = [fixStimulus.interTime fixStimulus.stimTime fixStimulus.interTime fixStimulus.stimTime fixStimulus.interTime fixStimulus.responseTime];
 task{1}.getResponse = [0 0 0 0 0 1];
-[task{1} myscreen] = addTraces(task{1}, myscreen, 'segment', 'phase', 'response')
+[task{1} myscreen] = addTraces(task{1}, myscreen, 'segment', 'phase', 'response');
 
 % init the staircase
 fixStimulus.staircase = upDownStaircase(fixStimulus.stairUp,fixStimulus.stairDown,fixStimulus.threshold,fixStimulus.stairStepSize,fixStimulus.stairUseLevitt);
@@ -114,7 +116,7 @@ function [task myscreen] = fixDrawStimulusCallback(task, myscreen)
 global fixStimulus;
 mglGluDisk(fixStimulus.pos(1),fixStimulus.pos(2),fixStimulus.diskSize*[1 1],myscreen.background,60);
 
-mglFixationCross(0.5,1,fixStimulus.thisColor,fixStimulus.pos);
+mglFixationCross(fixStimulus.fixWidth,fixStimulus.fixLineWidth,fixStimulus.thisColor,fixStimulus.pos);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % function that gets called when subject responds
