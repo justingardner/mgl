@@ -12,7 +12,9 @@
 %
 %             Here are the commands it accepts:
 %             
-%             1:'init' Init the digIO thread. You need to run this before anything else will work
+%             1:'init' Init the digIO thread. You need to run this before anything else will work. You
+%                      can optional specify input and output ports which default to 1 and 2 respectively
+%                      mglDigIO('init',inputPortNum,outputPortNum);
 %             2:'digin' Returns all changes on the input digital port
 %             3:'digout' Set the output digital port a time of your choosing. This takes
 %                        2 other values. The time in seconds that you want the digital port
@@ -47,6 +49,7 @@ else
   return
 end
 
+% check for digout command which has three arguments
 if commandNum == 3
   if (nargin ~= 3)
     disp(sprintf('(mglDigIO) DIGOUT command requires a time and a value'));
@@ -58,6 +61,11 @@ if commandNum == 3
   end
   % run the command
   mglPrivateDigIO(commandNum,arg1,arg2);
+% check for init command which can specify input and output ports
+elseif commandNum == 1
+  if nargin > 1,inputPortNum = arg1;else inputPortNum = 2;end
+  if nargin > 2,outputPortNum = arg2;else outputPortNum = 1;end
+  mglPrivateDigIO(commandNum,inputPortNum,outputPortNum);
 else
   % run the command
   retval = mglPrivateDigIO(commandNum);
