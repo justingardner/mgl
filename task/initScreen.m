@@ -37,11 +37,6 @@ defaultMonitorGamma = 1.8;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % database parameters
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%
-screenParamsList = {'computerName','displayName','screenNumber',...
-		    'screenWidth','screenHeight','displayDistance',...
-		    'displaySize','framesPerSecond','autoCloseScreen',...
-		    'saveData','monitorGamma','calibFilename','flipHV','tickScreen','digin'};
-
 % load the screen params file. Note that you can override the default
 % location from mgl/task/mglScreenParams to whatever you like, by 
 % setting mglSetParam('screenParamsFilename')'
@@ -74,20 +69,60 @@ if isfield(myscreen,'screenParams')
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% convert screenParams to new format and validate that the field names are correct
+% and properly captialized
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% list of possible screenParams
+screenParamsList = {'computerName','displayName','screenNumber',...
+		    'screenWidth','screenHeight','displayDistance',...
+		    'displaySize','framesPerSecond','autoCloseScreen',...
+		    'saveData','monitorGamma','calibFilename','flipHV','digin'};
+
+for i = 1:length(screenParams)
+  %% see if we need to convert from cell array to struct -- old version
+  %% was just a cell array of params, new version is a struct with field names
+  if ~isstruct(screenParams{i})
+    thisScreenParams = screenParams{i};
+    screenParams{i} = [];
+    for j = 1:min(length(thisScreenParams),length(screenParamsList))
+      screenParams{i}.(screenParamsList{j}) = thisScreenParams{j};
+    end
+  end
+  % validate fields
+  thisFieldNames = fieldnames(screenParams{i});
+  for j = 1:length(thisFieldNames)
+    % match the field in the screenParamsList (do case insensitive)
+    whichField = find(strcmp(lower(thisFieldNames{j}),lower(screenParamsList)));
+    % if no match, report an error, but continue on
+    if isempty(whichField)
+      disp(sprintf('(initScreen) UHOH! Unrecogonized field %s in screenParams{%i}',thisFieldNames{j},i));
+    else
+      % now remove it from screenParams and then add it back -- this is simply
+      % to insure that the capitilization is correct
+      fieldVal = screenParams{i}.(thisFieldNames{j});
+      screenParams{i} = rmfield(screenParams{i},thisFieldNames{j});
+      screenParams{i}.(screenParamsList{whichField}) = fieldVal;
+    end
+    % check for displayName
+    if ~isfield(screenParams{i},'displayName') screenParams{i}.displayName = '';end
+  end
+end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % find matching database parameters
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 foundComputer = 0;
 for pnum = 1:length(screenParams)
-  if ~isempty(strfind(myscreen.computer,screenParams{pnum}{1}))
+  if ~isempty(strfind(myscreen.computer,screenParams{pnum}.computerName))
     % if no displayName is asked for or no displayname is set in the screenParams
     % then only accept the computer if we haven't already found it
-    if (foundComputer == 0) && (isempty(screenParams{pnum}{2}) || ~isfield(myscreen,'displayname'))
+    if (foundComputer == 0) && (isempty(screenParams{pnum}.displayName) || ~isfield(myscreen,'displayname'))
       foundComputer = pnum;
     % check for matching displayname
-    elseif isfield(myscreen,'displayname') && isstr(myscreen.displayname) && strcmp(myscreen.displayname,screenParams{pnum}{2})
+    elseif isfield(myscreen,'displayname') && isstr(myscreen.displayname) && strcmp(myscreen.displayname,screenParams{pnum}.displayName)
       foundComputer = pnum;
     % check for matching display number
-    elseif isfield(myscreen,'displayname') && isnumeric(myscreen.displayname) && isequal(myscreen.displayname,screenParams{pnum}{3})
+    elseif isfield(myscreen,'displayname') && isnumeric(myscreen.displayname) && isequal(myscreen.displayname,screenParams{pnum}.screenNumber)
       foundComputer = pnum;
     end
   end
@@ -96,18 +131,46 @@ end
 % check to make sure that we have found the computer in the table
 if foundComputer
   % display the match
-  if ~isempty(screenParams{foundComputer}{2})
-    disp(sprintf('(initScreen) Monitor parameters for: %s displayName: %s',screenParams{foundComputer}{1},screenParams{foundComputer}{2}));
+  if ~isempty(screenParams{foundComputer}.displayName)
+    disp(sprintf('(initScreen) Monitor parameters for: %s displayName: %s',screenParams{foundComputer}.computerName,screenParams{foundComputer}.displayName));
   else
-    disp(sprintf('(initScreen) Monitor parameters for: %s',screenParams{foundComputer}{1}));
+    disp(sprintf('(initScreen) Monitor parameters for: %s',screenParams{foundComputer}.computerName));
   end
   % setup all parameters for the monitor (if the settings are
   % already set in myscreen then do nothing)
-  for j = 3:length(screenParams{foundComputer})
-    if ~isfield(myscreen,screenParamsList{j})
-      eval(sprintf('myscreen.%s = screenParams{foundComputer}{%i};',screenParamsList{j},j));
+  screenParamsFieldnames = fieldnames(screenParams{foundComputer});
+  for j = 1:length(screenParamsFieldnames)
+    if ~strcmp(screenParamsFieldnames{j},'computerName') && ~strcmp(screenParamsFieldnames{j},'displayName')  
+      % if the field doesn't already exist in myscreen
+      if ~isfield(myscreen,screenParamsFieldnames{j}) 
+	% then set the field
+	myscreen.(screenParamsFieldnames{j}) = screenParams{foundComputer}.(screenParamsFieldnames{j});
+      end
     end
   end
+end
+
+%%%%%%%%%%%%%%%%%
+% defaults if they have not been set
+%%%%%%%%%%%%%%%%%
+if ~isfield(myscreen,'displayName'),myscreen.displayName = [];end
+if ~isfield(myscreen,'screenNumber'),myscreen.screenNumber = [];end
+if ~isfield(myscreen,'screenWidth'),myscreen.screenWidth = [];end
+if ~isfield(myscreen,'screenHeight'),myscreen.screenHeight = [];end
+if ~isfield(myscreen,'displayDistance'),myscreen.displayDistance = 57;end
+if ~isfield(myscreen,'displaySize'),myscreen.displaySize = [31 23];end
+if ~isfield(myscreen,'framesPerSecond'),myscreen.framesPerSecond = 60;end
+if ~isfield(myscreen,'autoCloseScreen'),myscreen.autoCloseScreen = 1;end
+if ~isfield(myscreen,'saveData'),myscreen.saveData = -1;end
+if ~isfield(myscreen,'flipHV'),myscreen.flipHV = [0 0];end
+if ~isfield(myscreen,'digin'),myscreen.digin = [];end
+if ~isfield(myscreen,'displayName'),myscreen.displayName = [];end
+myscreen.pwd = pwd;
+
+%%%%%%%%%%%%%%%%%
+% print display settings
+%%%%%%%%%%%%%%%%%
+if foundComputer
   % display the settings
   if ~isempty(myscreen.displayDistance) & ~isempty(myscreen.displaySize)
     disp(sprintf('(initScreen) %i: %ix%i(pix) dist:%0.1f (cm) size:%0.1fx%0.1f (cm) %iHz save:%i autoclose:%i flipHV:[%i %i]',myscreen.screenNumber,myscreen.screenWidth,myscreen.screenHeight,myscreen.displayDistance,myscreen.displaySize(1),myscreen.displaySize(2),myscreen.framesPerSecond,myscreen.saveData,myscreen.autoCloseScreen,myscreen.flipHV(1),myscreen.flipHV(2)));
@@ -119,23 +182,6 @@ else
     disp(sprintf('(initScreen) Could not find computer %s in myscreen.screenParams\n',myscreen.computer));
   end
 end
-
-%%%%%%%%%%%%%%%%%
-% defaults if they have not been set
-%%%%%%%%%%%%%%%%%
-if ~isfield(myscreen,'autoCloseScreen'),myscreen.autoCloseScreen = 1;end
-if ~isfield(myscreen,'screenNumber'),myscreen.screenNumber = [];end
-if ~isfield(myscreen,'screenWidth'),myscreen.screenWidth = [];end
-if ~isfield(myscreen,'screenHeight'),myscreen.screenHeight = [];end
-if ~isfield(myscreen,'framesPerSecond'),myscreen.framesPerSecond = 60;end
-if ~isfield(myscreen,'saveData'),myscreen.saveData = -1;end
-if ~isfield(myscreen,'displayDistance'),myscreen.displayDistance = 57;end
-if ~isfield(myscreen,'displaySize'),myscreen.displaySize = [31 23];end
-if ~isfield(myscreen,'flipHV'),myscreen.flipHV = [0 0];end
-if ~isfield(myscreen,'digin'),myscreen.digin = [];end
-
-% remember curent path
-myscreen.pwd = pwd;
 
 % decided where to store data
 if ~isfield(myscreen,'datadir')
@@ -266,7 +312,15 @@ end
 % use the table if we do not have a valid filename
 if gammaNotSet
   if ~isfield(myscreen,'monitorGamma')
-    myscreen.monitorGamma = defaultMonitorGamma;
+    % set the monitorGamma correction to the default, but
+    % only if it is opening up full screen. Otherwise don't set
+    % monitor gamma since if we are opening in a window we are probably
+    % just testing
+    if myscreen.screenNumber ~= 0
+      myscreen.monitorGamma = defaultMonitorGamma;
+    else
+      myscreen.monitorGamma = [];
+    end
   end
   if isempty(myscreen.monitorGamma)
     disp(sprintf('(initScreen) Not applying any gamma correction for this monitor'));
@@ -411,41 +465,38 @@ myscreen.flushMode = 0;
 myscreen.makeTraces = 0;
 myscreen.numTasks = 0;
 
-% set the tickScreen callback. This is for general use programs like mglRetinotopy
-% so that we can call them with site specific tickScreens (for reading the acquisition pulses/backticks differently
-% at RIKEN for example.
-if ~isfield(myscreen,'tickScreen')
-  myscreen.tickScreen = @tickScreen;
-elseif isstr(myscreen.tickScreen)
-  % otherwise check if the tickScreen is a function handle. If it is a string, convert
-  if (exist(myscreen.tickScreen) == 2)
-    disp(sprintf('(initScreen) Using %s as a tickScreen function',myscreen.tickScreen));
-    myscreen.tickScreen = str2func(myscreen.tickScreen);
-  else
-    disp(sprintf('(initScreen) UHOH: Could not find %s tickScreen function. Using tickScreen',myscreen.tickScreen));
-    myscreen.tickScreen = @tickScreen;
-  end
-end
-  
 % initialize digital port
-if isfield(myscreen,'digin')  && ~isempty(myscreen.digin)
-  % interpret digin values and then save them with more readable names
-  digin = myscreen.digin;
-  myscreen.digin = [];
-  myscreen.digin.portnum = digin(1);
-  myscreen.digin.acqline = digin(2);
-  myscreen.digin.responseline = digin(3:end);
-  disp(sprintf('(initScreen) Initializing NI digital port %i for reading. Acq line is %i. Subject responses are on lines %s',myscreen.digin.portnum,myscreen.digin.acqline,num2str(myscreen.digin.responseline)));
-  % first close the ports
-  writeDigPort(-1);readDigPort(-1);
-  % then write a 0 to the port and close
-  if writeDigPort(0,myscreen.digin(1)) == 0
-    disp(sprintf('(initScreen) UHOH: writeDigPort on port %i is reporting 0. Has read/writeDigPort been compiled?',myscreen.digin(1)));
+myscreen.useDigIO = 0;
+if isfield(myscreen,'digin') 
+  if ~isempty(myscreen.digin)
+    myscreen.useDigIO = 1;
+    % validate fields
+    diginValidFields = {'portNum','acqLine','responseLine'};
+    unmatchedFields = ones(1,length(diginValidFields));
+    thisFieldNames = fieldnames(myscreen.digin);
+    for j = 1:length(thisFieldNames)
+      whichField = find(strcmp(lower(thisFieldNames{j}),lower(diginValidFields)));
+      if isempty(whichField)
+	disp(sprintf('(initScreen) UHOH! digin for screen %s has unrecognized fieldname %s',myscreen.computer,thisFieldNames{j}));
+      else
+	% remove and add back to make sure capitalization is accuracte
+	fieldVal = myscreen.digin.(thisFieldNames{j});
+	myscreen.digin = rmfield(myscreen.digin,thisFieldNames{j});
+	myscreen.digin.(diginValidFields{whichField}) = fieldVal;
+      end
+      unmatchedFields(j) = 0;
+    end
+    % add any unmatched fields
+    unmatchedFields = find(unmatchedFields);
+    for j = 1:length(unmatchedFields)
+      myscreen.digin.(diginValidFields{unmatchedFields(j)}) = [];
+    end
+    % make sure there is an acqType field, if not specified then acq
+    % can be either up state or down state
+    if ~isfield(myscreen.digin,'acqType') myscreen.digin.acqType = [0 1]; end
+    if ~isfield(myscreen.digin,'responseType') myscreen.digin.responseType = [0]; end
   end
-  % close write port
-  writeDigPort(0,-1);
-  % read the ttl port. 
-  myscreen.ttltick = bitand(bitshift(readDigPort(myscreen.digin.portnum),-myscreen.digin.acqline),1);
+  mglDigIO('init',myscreen.digin.portNum);
 else
   myscreen.ttltick = [];
 end
