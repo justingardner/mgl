@@ -149,14 +149,14 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       if (count > 0) {
 	int i = 0;
 	// return event as a matlab structure
-	const char *fieldNames[] =  {"type","val","when"};
+	const char *fieldNames[] =  {"type","line","when"};
 	int outDims[2] = {1, 1};
 	plhs[0] = mxCreateStructArray(1,outDims,3,fieldNames);
       
 	mxSetField(plhs[0],0,"type",mxCreateDoubleMatrix(1,count,mxREAL));
 	double *typeOut = (double*)mxGetPr(mxGetField(plhs[0],0,"type"));
-	mxSetField(plhs[0],0,"val",mxCreateDoubleMatrix(1,count,mxREAL));
-	double *valOut = (double*)mxGetPr(mxGetField(plhs[0],0,"val"));
+	mxSetField(plhs[0],0,"line",mxCreateDoubleMatrix(1,count,mxREAL));
+	double *lineOut = (double*)mxGetPr(mxGetField(plhs[0],0,"line"));
 	mxSetField(plhs[0],0,"when",mxCreateDoubleMatrix(1,count,mxREAL));
 	double *whenOut = (double*)mxGetPr(mxGetField(plhs[0],0,"when"));
 	while (count--) {
@@ -165,7 +165,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 	  qEvent = [gDiginEventQueue objectAtIndex:0];
 	  // and get the value and time
 	  typeOut[i] = [qEvent eventType];
-	  valOut[i] = [qEvent val];
+	  lineOut[i] = [qEvent val];
 	  whenOut[i++] = [qEvent time];
 	  // remove it from the queue
 	  [gDiginEventQueue removeObjectAtIndex:0];
