@@ -271,7 +271,7 @@
 
 #            CC='g++-3.3'
             CC='gcc-4.0'
-            CFLAGS='-fno-common -no-cpp-precomp -fexceptions -arch i386 -pthread'
+            CFLAGS='-x objective-c -fno-common -no-cpp-precomp -fexceptions -arch i386 -pthread'
             CLIBS="$MLIBS -lstdc++"
             COPTIMFLAGS='-O3 -DNDEBUG'
             CDEBUGFLAGS='-g'
@@ -293,7 +293,7 @@
 #
             LD="$CC"
             LDEXTENSION='.mexmaci'
-            LDFLAGS="-bundle -Wl,-flat_namespace -undefined suppress -Wl,-exported_symbols_list,$TMW_ROOT/extern/lib/$Arch/$MAPFILE -framework nidaqmxbase -framework nidaqmxbaselv"
+            LDFLAGS="-bundle -Wl,-flat_namespace -undefined suppress -Wl,-exported_symbols_list,$TMW_ROOT/extern/lib/$Arch/$MAPFILE -framework nidaqmxbase -framework nidaqmxbaselv -framework CoreServices"
             LDOPTIMFLAGS='-O'
             LDDEBUGFLAGS='-g'
 #
