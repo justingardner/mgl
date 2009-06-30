@@ -12,34 +12,45 @@ function [myscreen task] = tickScreen(myscreen,task)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%
 % get back tick status
 %%%%%%%%%%%%%%%%%%%%%%%%%%%
-% read the keyboar backtick
-%thistick = mglGetKeys(myscreen.keyboard.backtick);
-
 % get all pending keyboard events
 [myscreen.keyCodes myscreen.keyTimes] = mglGetKeyEvent([],1);
 
-thistick = any(myscreen.keyboard.backtick == myscreen.keyCodes);
+% see if there was a back tick
+thistick = find(myscreen.keyboard.backtick == myscreen.keyCodes);
+if ~isempty(thistick)
+  volTime = myscreen.keyTimes(thistick(1));
+end
 
-% read the TTL pulse (comment out to prevent reading digital port)
-%ttltick = readDigPort;
-%ttltick = (ttltick>0) && (ttltick&1);
-%thistick = ttltick | thistick;
+% read digio pulses if need be
+if myscreen.useDigIO
+  digin = mglDigIO('digin');
+  if ~isempty(digin)
+    % see if there is an acq pulse
+    acqPulse = which(myscreen.digin.acqLine == digin.line);
+    if ~isempty(acqPulse)
+      acqPulse = which(ismember(digin.type(acqPulse),myscreen.digin.acqType));
+      if ~isempty(acqPulse)
+	volTime = digin.time(acqPulse(1));
+      end
+      acqPulse = 1;
+    else
+      acqPulse = 0;
+    end
+    % use either volume or backtick to signal volume acq
+    thistick = ttltick | thistick;
+    % see if one of the response lines has been set 
+    [responsePulse whichResponse] = ismember(digin.line,myscreen.digin.responseLine);
+    responsePulse = ismember(digin.type(responsePulse),myscreen.digin.responseType);
+    myscreen.keyCodes = [myscreen.keyCodes myscreen.keyboard.nums(whichResponse(responsePulse))];
+    myscreen.keyTimes = [myscreen.keyTimes digin.time(responsePulse)];
+  end
+end
 
-% if we are transitioning into a tick down state
-% then this is the beginning of a new volume
+% record volume
 if (thistick)
-  if (myscreen.intick == 0)
-    myscreen = writeTrace(1,1,myscreen);
-    myscreen.intick = 1;
-    myscreen.volnum = myscreen.volnum+1;
-    %fishcamp(1,bitor(myscreen.fishcamp,bin2dec('10')));
-  end
-else
-  if (myscreen.intick)
-    myscreen = writeTrace(0,1,myscreen);
-    myscreen.intick = 0;
-    %fishcamp(1,myscreen.fishcamp);
-  end
+  myscreen = writeTrace(1,1,myscreen,0,volTime);
+  myscreen.volnum = myscreen.volnum+1;
+  disp(sprintf('myscreen.volnum = %i',myscreen.volnum));
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%

@@ -21,6 +21,11 @@ end
 % turn off eye tracker
 writeDigPort(0,2);
 
+% shutdown mglDigIO if it is running
+if myscreen.useDigIO
+  mglDigIO('quit');
+end
+  
 % display tick rate
 if isfield(myscreen,'totalflip')
   disp(sprintf('Average tick rate = %0.6f %0.5fHz effective',myscreen.totalflip/myscreen.totaltick,1/(myscreen.totalflip/myscreen.totaltick)));
