@@ -117,9 +117,19 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       gDigoutEventQueue = [[NSMutableArray alloc] init];
       // set up the event tap
       launchNidaqThread();
+      // set up the nidaq ports
+      if (nrhs >=2) nidaqInputPortNum = mxGetScalar(prhs[1]);
+      if (nrhs >=3) nidaqOutputPortNum = mxGetScalar(prhs[2]);
+      if (nidaqStartTask(nidaqInputPortNum,nidaqOutputPortNum) == 0) {
+	quitNidaqThread();
+	nidaqThreadInstalled = FALSE;
+	mexPrintf("(mglPrivateDigIO) Could not start NIDAQ ports digin: %i and digout: %i\n",nidaqInputPortNum,nidaqOutputPortNum);
+	*mxGetPr(plhs[0]) = 0;
+	return;
+      }
       // and remember that we have an event tap thread running
       nidaqThreadInstalled = TRUE;
-      mexPrintf("(mglPrivateDigIO) Starting digIO thread. End with mglDigIO('quit').\n");
+      mexPrintf("(mglPrivateDigIO) Starting digIO thread digin port: Dev1/port%i digout port: Dev1/port%i. End with mglDigIO('quit').\n",nidaqInputPortNum,nidaqOutputPortNum);
       // started running, return 1
       *mxGetPr(plhs[0]) = 1;
     }
@@ -334,13 +344,6 @@ void launchNidaqThread()
   pthread_attr_destroy(&attr);
   if (threadError != 0)
       mexPrintf("(mglPrivateDigIO) Error could not setup digIO thread: error %i\n",threadError);
-
-  // set up the nidaq ports
-  if (nidaqStartTask(2,1) == 0) {
-    quitNidaqThread();
-  }
-
-
 }
 
 /////////////////////////
