@@ -65,7 +65,7 @@ if commandNum == 3
 elseif commandNum == 1
   if nargin > 1,inputPortNum = arg1;else inputPortNum = 2;end
   if nargin > 2,outputPortNum = arg2;else outputPortNum = 1;end
-  mglPrivateDigIO(commandNum,inputPortNum,outputPortNum);
+  retval = mglPrivateDigIO(commandNum,inputPortNum,outputPortNum);
 else
   % run the command
   retval = mglPrivateDigIO(commandNum);
