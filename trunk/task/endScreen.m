@@ -19,10 +19,11 @@ else
 end
 
 % turn off eye tracker
-writeDigPort(0,2);
+%writeDigPort(0,2);
 
 % shutdown mglDigIO if it is running
 if myscreen.useDigIO
+  disp(sprintf('(endScreen) Closing DIG IO'));
   mglDigIO('quit');
 end
   
