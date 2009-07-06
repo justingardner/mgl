@@ -495,8 +495,8 @@ if isfield(myscreen,'digin')
     % can be either up state or down state
     if ~isfield(myscreen.digin,'acqType') myscreen.digin.acqType = [0 1]; end
     if ~isfield(myscreen.digin,'responseType') myscreen.digin.responseType = [0]; end
+    mglDigIO('init',myscreen.digin.portNum);
   end
-  mglDigIO('init',myscreen.digin.portNum);
 else
   myscreen.ttltick = [];
 end
