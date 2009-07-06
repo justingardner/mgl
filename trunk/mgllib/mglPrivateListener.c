@@ -77,7 +77,7 @@ CGEventRef eatEvent(CGEventRef event, queueEvent *qEvent);
 static CFMachPortRef gEventTap;
 static pthread_mutex_t mut;
 static eventTapInstalled = FALSE;
-static NSAutoreleasePool *gPool;
+static NSAutoreleasePool *gListenerPool;
 static NSMutableArray *gKeyboardEventQueue;
 static NSMutableArray *gMouseEventQueue;
 static double gKeyStatus[MAXKEYCODES];
@@ -130,7 +130,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       // init pthread_mutex
       pthread_mutex_init(&mut,NULL);
       // init the event queue
-      gPool = [[NSAutoreleasePool alloc] init];
+      gListenerPool = [[NSAutoreleasePool alloc] init];
       gKeyboardEventQueue = [[NSMutableArray alloc] init];
       gMouseEventQueue = [[NSMutableArray alloc] init];
       // default to no keys to eat
@@ -405,11 +405,12 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       CFRunLoopStop(CFRunLoopGetCurrent());
 
       // release the event queue
-      [gPool drain];
+      mexPrintf("(mglPrivateListener) FIX FIX FIX: Free event queue here not working\n");
+      //[gListenerPool drain];
 
       // set flag to not installed
       eventTapInstalled = FALSE;
-      
+
       // destroy mutex
       pthread_mutex_destroy(&mut);
 
