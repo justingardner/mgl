@@ -495,12 +495,20 @@ if isfield(myscreen,'digin')
     % can be either up state or down state
     if ~isfield(myscreen.digin,'acqType') myscreen.digin.acqType = [0 1]; end
     if ~isfield(myscreen.digin,'responseType') myscreen.digin.responseType = [0]; end
-    mglDigIO('init',myscreen.digin.portNum);
+    if isempty(mglDigIO('init',myscreen.digin.portNum))
+      disp(sprintf('(initScreen) Failed to open Digitial IO ports. Only using keyboard backticks now!'));
+      myscreen.useDigIO = 0;
+    else
+      % grab any pending events
+      mglDigIO('digin');
+    end
   end
 else
   myscreen.ttltick = [];
 end
 
+% get all pending keyboard events
+mglGetKeyEvent([],1);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % support function that gets host name using system command

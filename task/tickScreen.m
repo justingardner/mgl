@@ -16,9 +16,9 @@ function [myscreen task] = tickScreen(myscreen,task)
 [myscreen.keyCodes myscreen.keyTimes] = mglGetKeyEvent([],1);
 
 % see if there was a back tick
-thistick = find(myscreen.keyboard.backtick == myscreen.keyCodes);
-if ~isempty(thistick)
-  volTime = myscreen.keyTimes(thistick(1));
+keytick = find(myscreen.keyboard.backtick == myscreen.keyCodes);
+if ~isempty(keytick)
+  volTime = myscreen.keyTimes(keytick(1));
 end
 
 % read digio pulses if need be
@@ -26,31 +26,31 @@ if myscreen.useDigIO
   digin = mglDigIO('digin');
   if ~isempty(digin)
     % see if there is an acq pulse
-    acqPulse = which(myscreen.digin.acqLine == digin.line);
+    acqPulse = find(myscreen.digin.acqLine == digin.line);
     if ~isempty(acqPulse)
-      acqPulse = which(ismember(digin.type(acqPulse),myscreen.digin.acqType));
+      acqPulse = find(ismember(digin.type(acqPulse),myscreen.digin.acqType));
       if ~isempty(acqPulse)
-	volTime = digin.time(acqPulse(1));
+	volTime = digin.when(acqPulse(1));
       end
       acqPulse = 1;
     else
       acqPulse = 0;
     end
     % use either volume or backtick to signal volume acq
-    thistick = ttltick | thistick;
+    keytick = acqPulse | ~isempty(keytick);
     % see if one of the response lines has been set 
     [responsePulse whichResponse] = ismember(digin.line,myscreen.digin.responseLine);
     responsePulse = ismember(digin.type(responsePulse),myscreen.digin.responseType);
     myscreen.keyCodes = [myscreen.keyCodes myscreen.keyboard.nums(whichResponse(responsePulse))];
-    myscreen.keyTimes = [myscreen.keyTimes digin.time(responsePulse)];
+    myscreen.keyTimes = [myscreen.keyTimes digin.when(responsePulse)];
   end
 end
 
 % record volume
-if (thistick)
+if (keytick)
   myscreen = writeTrace(1,1,myscreen,0,volTime);
   myscreen.volnum = myscreen.volnum+1;
-  disp(sprintf('myscreen.volnum = %i',myscreen.volnum));
+%  disp(sprintf('myscreen.volnum = %i',myscreen.volnum));
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%
