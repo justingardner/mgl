@@ -15,7 +15,7 @@ if ~any(nargin == [0])
 end
 
 % get the screenParams
-screenParams = mglGetScreenParams;
+screenParams = mglGetScreenParams(0);
 if isempty(screenParams),return,end
 
 % get all field names
@@ -67,7 +67,7 @@ for i = 1:length(paramNames)
     paramsInfo{end+1} = {paramNames{i},paramValues.(paramNames{i}),'group=screenParamsNum','type=numeric','incdec=[-1 1]'};
    case {'autoCloseScreen'}
     paramsInfo{end+1} = {paramNames{i},paramValues.(paramNames{i}),'group=screenParamsNum','type=numeric','incdec=[-1 1]'};
-   case {'displaySize','flipHV'}
+   case {'displaySize','flipHV','diginAcqType','diginResponseType'}
 %    paramsInfo{end+1} = {paramNames{i},paramValues.(paramNames{i}){1},'group=screenParamsNum','type=array'};
     paramsInfo{end+1} = {paramNames{i},paramValues.(paramNames{i}),'type=array','group=screenParamsNum'};
    case {'digin'}

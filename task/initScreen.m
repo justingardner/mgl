@@ -37,30 +37,7 @@ defaultMonitorGamma = 1.8;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % database parameters
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% load the screen params file. Note that you can override the default
-% location from mgl/task/mglScreenParams to whatever you like, by 
-% setting mglSetParam('screenParamsFilename')'
-screenParamsFilename = mglGetParam('screenParamsFilename');
-if isempty(screenParamsFilename)
-  screenParamsFilename = fullfile(mglGetParam('taskdir'),'mglScreenParams');
-end
-% make sure we have a .mat extension
-[pathstr name] = fileparts(screenParamsFilename);
-screenParamsFilename = sprintf('%s.mat',fullfile(pathstr,name));
-% check for file
-if ~isfile(screenParamsFilename)
-  disp(sprintf('(initScreen) UHOH: Could not find screenParams file %s',screenParamsFilename));
-  screenParams = {};
-else
-  % load
-  screenParams = load(screenParamsFilename);
-end
-if isfield(screenParams,'screenParams')
-  screenParams = screenParams.screenParams;
-elseif ~isempty(screenParams)
-  disp(sprintf('(initScreen) UHOH: File %s does not contain screenParams',screenParamsFilename));
-  screenParams = {};
-end
+screenParams = mglGetScreenParams;
 
 % check for passed in screenParams
 if isfield(myscreen,'screenParams')
@@ -469,7 +446,11 @@ myscreen.numTasks = 0;
 myscreen.useDigIO = 0;
 if isfield(myscreen,'digin') 
   if ~isempty(myscreen.digin)
-    myscreen.useDigIO = 1;
+    if isfield(myscreen.digin,'use')
+      myscreen.useDigIO = myscreen.digin.use;
+    else
+      myscreen.useDigIO = 1;
+    end
     % validate fields
     diginValidFields = {'portNum','acqLine','responseLine'};
     unmatchedFields = ones(1,length(diginValidFields));
