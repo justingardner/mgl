@@ -52,8 +52,15 @@ rowArrayVars = {'displaySize','flipHV','diginAcqType','diginResponseType'};
 for i = 1:length(screenParams)
   for j = 1:length(rowArrayVars)
     if isfield(screenParams{i},rowArrayVars{j})
+      % make sure the arrays are oriented properly
       if size(screenParams{i}.(rowArrayVars{j}),1) > 1
 	screenParams{i}.(rowArrayVars{j}) = screenParams{i}.(rowArrayVars{j})';
+      end
+      % now make sure that they are of length two
+      if isempty(screenParams{i}.(rowArrayVars{j}))
+	screenParams{i}.(rowArrayVars{j}) = [0 0];
+      elseif size(screenParams{i}.(rowArrayVars{j}),2) < 2
+	screenParams{i}.(rowArrayVars{j})(end:2) = nan;
       end
     end
   end
@@ -81,7 +88,9 @@ if convertDigFields
 	% get the field that begins with digin and pack into a structure
 	if ~isstruct(screenParams{i}.(paramNames{j}))
 	  paramNames{6} = lower(paramNames{6});
-	  digin.(paramNames{j}(6:end)) = screenParams{i}.(paramNames{j});
+	  val = screenParams{i}.(paramNames{j});
+	  if isstr(val),val = str2num(val);end
+	  digin.(paramNames{j}(6:end)) = val;
 	end
 	% remove the field from screenParams
 	screenParams{i} = rmfield(screenParams{i},paramNames{j});

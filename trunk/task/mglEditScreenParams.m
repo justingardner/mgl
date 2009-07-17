@@ -68,10 +68,9 @@ for i = 1:length(paramNames)
    case {'autoCloseScreen'}
     paramsInfo{end+1} = {paramNames{i},paramValues.(paramNames{i}),'group=screenParamsNum','type=numeric','incdec=[-1 1]'};
    case {'displaySize','flipHV','diginAcqType','diginResponseType'}
-%    paramsInfo{end+1} = {paramNames{i},paramValues.(paramNames{i}){1},'group=screenParamsNum','type=array'};
     paramsInfo{end+1} = {paramNames{i},paramValues.(paramNames{i}),'type=array','group=screenParamsNum'};
    case {'digin'}
-%    paramsInfo{i+1} = {paramNames{i},paramValues.(paramNames{i}),'group=screenParamsNum','type=numeric','incdec=[-1 1]','minmax=[0 inf]'};
+
    otherwise
     if isnumeric(paramValues.(paramNames{i})(1))
       paramsInfo{end+1} = {paramNames{i},paramValues.(paramNames{i}),'group=screenParamsNum','type=numeric'};
