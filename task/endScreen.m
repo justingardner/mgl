@@ -1,7 +1,7 @@
 % endScreen.m
 %
 %        $Id$
-%      usage: endscreen
+%      usage: myscreen = endScreen(myscreen)
 %         by: justin gardner
 %       date: 12/21/04
 %  copyright: (c) 2006 Justin Gardner (GPL see mgl/COPYING)
