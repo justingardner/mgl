@@ -1,10 +1,10 @@
 % mglSetScreenParams.m
 %
 %        $Id:$ 
-%      usage: mglSetScreenParams()
+%      usage: mglSetScreenParams(screenParams)
 %         by: justin gardner
 %       date: 07/17/09
-%    purpose: 
+%    purpose: Save screen params structure
 %
 function retval = mglSetScreenParams(saveScreenParams)
 

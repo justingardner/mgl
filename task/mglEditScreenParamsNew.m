@@ -37,8 +37,9 @@ paramsInfo{end+1} = {'displayName',displayNames,'type=string','group=computerNum
 params = mrParamsDialog(paramsInfo, sprintf('Choose computer/display (you are now on: %s)',hostname));
 if isempty(params),return,end
 
+computerNum = params.computerNum;
 % get parameters for chosen computer
-thisScreenParams = screenParams{params.computerNum};
+thisScreenParams = screenParams{computerNum};
 
 % get some parameters for the screen
 useCustomScreenSettings = 1;
@@ -70,7 +71,10 @@ paramsInfo{end+1} = {'testSettings',0,'type=pushbutton','buttonString=Test setti
 params = mrParamsDialog(paramsInfo,'Set screen parameters');
 if isempty(params),return,end
 
-keyboard
+% convert the params into screenparams
+screenParams{computerNum} = params2screenParams(params);
+mglSetScreenParams(screenParams);
+
 
 %%%%%%%%%%%%%%%%%%%%%%
 %%   TestSettings   %%
@@ -90,10 +94,52 @@ msc.displayName = params.displayName;
 % now call initScreen with these parameters
 msc = initScreen(msc);
 
-% wait a second and then close
-mglWaitSecs(1);
+% display some text on the screen
+mglTextSet('Helvetica',32,[1 1 1 1],0,0,0,0,0,0,0);
+mglTextDraw(sprintf('Testing settings for %s:%s',params.hostname,params.displayName),[0 -5]);
+
+% wait for five seconds
+if thisWaitSecs(15,params)==-1,endScreen(msc);return,end
+
+mglMonitorDims(-1);
+
+% wait for five seconds
+if thisWaitSecs(15,params)==-1,endScreen(msc);return,end
+
+% close screen and return
 endScreen(msc);
 
+%%%%%%%%%%%%%%%%%%%%%%
+%%   thisWaitSecs   %%
+%%%%%%%%%%%%%%%%%%%%%%
+function retval = thisWaitSecs(waitTime,params)
+
+% tell the user what they can do
+mglTextDraw(sprintf('Hit return to continue or ESC to quit.',params.hostname,params.displayName),[0 3.5]);
+mglFlush();
+
+% get start time
+startTime = mglGetSecs;
+
+% now wait in loop here, listineng to see if the user hits esc (abort) or return/space (continue)
+while ((mglGetSecs-startTime) < waitTime)
+  [keyCode when charCode] = mglGetKeyEvent(0,1);
+  if ~isempty(charCode)
+    disp(charCode);
+    % check for return or space
+    if any(keyCode == 37) || any(charCode == ' ')
+      retval = 1;
+      return
+    end
+    % check for ESC
+    if any(keyCode == 54)
+      retval = -1;
+      return
+    end
+  end
+end
+retval = 0;
+return
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%   params2screenParams   %%

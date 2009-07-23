@@ -1,10 +1,13 @@
 % mglMonitorDims.m
 %
-%        $Id:$ 
+%        $Id$ 
 %      usage: mglMonitorDims(<monitor>)
 %         by: justin gardner
 %       date: 01/28/09
-%    purpose: A display showing monitor dimensions in degrees
+%    purpose: A display showing monitor dimensions in degrees.
+%
+%             If monitor is -1, then this just draws to an already open display, does not flush and returns immediately
+%             (for use with mglEditScreenParams)
 %
 function retval = mglMonitorDims(monitor)
 
@@ -15,8 +18,10 @@ if ~any(nargin == [0 1])
 end
 
 if nargin == 0,monitor = [];end
-% init the screen
-initScreen(monitor);
+if ~isequal(monitor,-1)
+  % init the screen
+  initScreen(monitor);
+end
 
 % get monitor resolution
 resolution = mglResolution(mglGetParam('displayNumber'));
@@ -61,21 +66,23 @@ physicalSize = mglGetParam('devicePhysicalSize');
 mglTextDraw(sprintf('[%ix%i pix]',mglGetParam('screenWidth'),mglGetParam('screenHeight')),[-width/2+1 -height/2+2],-1,1);
 mglTextDraw(sprintf('[%0.1fx%0.1f cm]',physicalSize(1),physicalSize(2)),[-width/2+1 -height/2+1],-1,1);
 
-% flush screen
-mglFlush;
+if ~isequal(monitor,-1)
 
-% Close when the user hits a key
-mglListener('init');
-mglGetKeyEvent([],1);
-mglGetMouseEvent([],1);
-disp(sprintf('(mglMonitorDims) Type any key to end'));
-mouseEvent = mglGetMouseEvent;
-while(isempty(mglGetKeyEvent) && (mouseEvent.buttons == 0))
+  % flush screen
+  mglFlush;
+
+  % Close when the user hits a key
+  mglListener('init');
+  mglGetKeyEvent([],1);
+  mglGetMouseEvent([],1);
+  disp(sprintf('(mglMonitorDims) Type any key to end'));
   mouseEvent = mglGetMouseEvent;
+  while(isempty(mglGetKeyEvent) && (mouseEvent.buttons == 0))
+    mouseEvent = mglGetMouseEvent;
+  end
+  mglListener('quit');
+  mglClose;
 end
-mglListener('quit');
-mglClose;
-
 
 
 
