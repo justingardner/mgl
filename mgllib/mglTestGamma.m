@@ -18,22 +18,32 @@ end
 % check for screenNum
 if exist('screenNumber')~=1,screenNumber = [];,end
 
-% display GUI
-mglTestGammaGUI
-
-% make sure the gui is visible before continuing
-if isempty(screenNumber) || (screenNumber ~= 0)
-  uiwait(msgbox('Move mglTestGammaGUI so it will be visible','modal'));
+% screenNumber set to -1 means just to display without opening a screen, used by mglEditScreenParams
+if isequal(screenNumber,-1)
+  displayGUI = 0;
+else
+  displayGUI = 1;
 end
 
-% open up screen
-mglOpen(screenNumber);
-mglDisplayCursor(1);
-mglVisualAngleCoordinates(57,[40 30]);
 
-% change the gamma of the monitor
-thisGamma = 1;
-mglSetGammaTable(0,1,thisGamma,0,1,thisGamma,0,1,thisGamma);
+if displayGUI
+  % display GUI
+  mglTestGammaGUI
+
+  % make sure the gui is visible before continuing
+  if isempty(screenNumber) || (screenNumber ~= 0)
+    uiwait(msgbox('Move mglTestGammaGUI so it will be visible','modal'));
+  end
+
+  % open up screen
+  mglOpen(screenNumber);
+  mglDisplayCursor(1);
+  mglVisualAngleCoordinates(57,[40 30]);
+
+  % change the gamma of the monitor
+  thisGamma = 1;
+  mglSetGammaTable(0,1,thisGamma,0,1,thisGamma,0,1,thisGamma);
+end
 
 % create a background of desired grayscale level
 backgroundColor = 128;
@@ -43,8 +53,8 @@ backgroundTex = mglCreateTexture(backgroundBuffer);
 mglBltTexture(backgroundTex,[0 0]);
 
 % size of textures in degrees
-texWidth = 8;
-texHeight = 8;
+texWidth = 6;
+texHeight = 6;
 
 % get size in pixels
 texWidthPixels = round(texWidth*mglGetParam('xDeviceToPixels'));
@@ -55,12 +65,14 @@ fineGrating(1:texHeightPixels,1:texWidthPixels) = -1;
 fineGrating(:,1:2:texWidthPixels) = 1;
 
 % contrasts to display
-contrasts = [16 32 64];
+contrasts = [16 32 64 127];
 % create the mgl texture, which desired contrast
 for contrastNum = 1:length(contrasts)
   thisFineGrating = fineGrating;
-  thisFineGrating(thisFineGrating==-1) = backgroundColor-contrasts(contrastNum);
-  thisFineGrating(thisFineGrating==1) = backgroundColor+contrasts(contrastNum);
+  negOne = thisFineGrating==-1;
+  posOne = thisFineGrating==1;
+  thisFineGrating(negOne) = backgroundColor-contrasts(contrastNum);
+  thisFineGrating(posOne) = backgroundColor+contrasts(contrastNum);
   fineGratingTex(contrastNum) = mglCreateTexture(thisFineGrating);
 end
 
@@ -73,7 +85,9 @@ for contrastNum = 1:length(contrasts)
 end
 
 % flush the screen  
-mglFlush;
+if displayGUI
+  mglFlush;
+end
 
 % now mgTestGammaGUI takes care of the user interface and
 % closing the screen
