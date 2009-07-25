@@ -36,8 +36,8 @@ paramsInfo{end+1} = {'displayName',displayNames,'type=string','group=computerNum
 % bring up dialog box
 params = mrParamsDialog(paramsInfo, sprintf('Choose computer/display (you are now on: %s)',hostname));
 if isempty(params),return,end
-
 computerNum = params.computerNum;
+
 % get parameters for chosen computer
 thisScreenParams = screenParams{computerNum};
 
@@ -51,6 +51,19 @@ screenHeight = thisScreenParams.screenHeight;
 if isempty(screenHeight),screenHeight = 600;end
 framesPerSecond = thisScreenParams.framesPerSecond;
 if isempty(framesPerSecond),framesPerSecond = 60;end
+
+% see if the calibration options should be enabled or not.
+if strcmp(thisScreenParams.calibType,'Specify particular calibration')
+  enableCalibFilename = 'enable=1';
+else
+  enableCalibFilename = 'enable=0';
+end
+% see if the calibration options should be enabled or not.
+if strcmp(thisScreenParams.calibType,'Specify gamma')
+  enableMonitorGamma = 'enable=1';
+else
+  enableMonitorGamma = 'enable=0';
+end
 
 %set up the paramsInfo
 paramsInfo = {};
@@ -66,12 +79,17 @@ paramsInfo{end+1} = {'displaySize',thisScreenParams.displaySize,'type=array','mi
 paramsInfo{end+1} = {'autoCloseScreen',thisScreenParams.autoCloseScreen,'type=checkbox','Check if you want endScreen to automatically do mglClose at the end of your experiment.'};
 paramsInfo{end+1} = {'flipHorizontal',thisScreenParams.flipHV(1),'type=checkbox','Click if you want initScreen to set the coordinates so that the screen is horizontally flipped. This may be useful if you are viewing the screen through mirrors'};
 paramsInfo{end+1} = {'flipVertical',thisScreenParams.flipHV(2),'type=checkbox','Click if you want initScreen to set the coordinates so that the screen is vertically flipped. This may be useful if you are viewing the screen through mirrors'};
-paramsInfo{end+1} = {'testSettings',0,'type=pushbutton','buttonString=Test settings','callback',@testSettings,'passParams=1'};
+paramsInfo{end+1} = {'saveData',thisScreenParams.saveData,'type=numeric','incdec=[-1 1]','minmax=[-1 inf]','Sets whether you want to save an stim file which stores all the parameters of your experiment. You will probably want to save this file for real experiments, but not when you are just testing your program. So on the desktop computer set it to 0. This can be 1 to always save a data file, 0 not to save data file,n>1 saves a data file only if greater than n number of volumes have been collected)'};
+paramsInfo{end+1} = {'calibType',putOnTopOfList(thisScreenParams.calibType,{'None','Find latest calibration','Specify particular calibration','Gamma 1.8','Gamma 2.2','Specify gamma'}),'Choose how you want to calibrate the monitor. This is for gamma correction of the monitor. Find latest calibration works with calibration files stored by moncalib, and will look for the latest calibration file in the directory task/displays that matches this computer and display name. If you want to specify a particular file then select that option and specify the calibration file in the field below. If you don''t have a calibration file created by moncalib then you might try to correct for a standard gamma value like 1.8 (mac computers) or 2.2 (PC computers). Or a gamma value of your choosing','callback',@calibTypeCallback,'passParams=1'};
+paramsInfo{end+1} = {'calibFilename',thisScreenParams.calibFilename,'Specify the calibration filename. This field is only used if you use Specify particular calibration from above',enableCalibFilename};
+paramsInfo{end+1} = {'monitorGamma',thisScreenParams.monitorGamma,'type=numeric','Specify the monitor gamma. This is only used if you set Specify Gamma above',enableMonitorGamma};
+paramsInfo{end+1} = {'testSettings',0,'type=pushbutton','buttonString=Test settings','callback',@testSettings,'passParams=1','Click to test the monitor settings'};
 
+% display parameter choosing dialog
 params = mrParamsDialog(paramsInfo,'Set screen parameters');
 if isempty(params),return,end
 
-% convert the params into screenparams
+% convert the params into screenparams and save
 screenParams{computerNum} = params2screenParams(params);
 mglSetScreenParams(screenParams);
 
@@ -84,6 +102,26 @@ function val = testSettings(params)
 val = 0;
 
 disp(sprintf('(mglEditScreenParams:testSettings) Testing settings for %s:%s',params.hostname,params.displayName));
+
+% test to see if the screenNumber is valid
+if params.screenNumber > length(mglDescribeDisplays)
+  msgbox(sprintf('(mglEditScreenParams) Screen number %i is out of range for %s: [0 %i]',params.screenNumber,params.hostname,length(mglDescribeDisplays)));
+  return
+end
+
+% check if the screen number is 0 since for that we can't change the dimensions
+if params.screenNumber == 0
+  global mglEditScreenParamsScreenWidth;
+  global mglEditScreenParamsScreenHeight;
+  if ~isempty(mglEditScreenParamsScreenWidth) || ~isempty(mglEditScreenParamsScreenHeight) 
+    if (~isequal(mglEditScreenParamsScreenWidth,params.screenWidth) || ~isequal(mglEditScreenParamsScreenHeight,params.screenHeight))
+      msgbox(sprintf('(mglEditScreenParams) For windowed contexts, you cannot change the width/height of the window after you have opened it once, so this screen will not accurately reflect the current parameters. So, rather than [%i %i], this window will display as [%i %i]. To try the new parameters, you will need to restart matlab. ',params.screenWidth,params.screenHeight,mglEditScreenParamsScreenWidth,mglEditScreenParamsScreenWidth,params.screenHeight));
+    end
+  else
+    mglEditScreenParamsScreenWidth = params.screenWidth;
+    mglEditScreenParamsScreenHeight = params.screenHeight;
+  end
+end
 
 % convert the params returned by the dialog into
 % screen params
@@ -99,12 +137,15 @@ mglTextSet('Helvetica',32,[1 1 1 1],0,0,0,0,0,0,0);
 mglTextDraw(sprintf('Testing settings for %s:%s',params.hostname,params.displayName),[0 -5]);
 
 % wait for five seconds
-if thisWaitSecs(15,params)==-1,endScreen(msc);return,end
+if thisWaitSecs(15,params)<=0,endScreen(msc);return,end
 
+% show the monitor dims
 mglMonitorDims(-1);
+if thisWaitSecs(15,params)<=0,endScreen(msc);return,end
 
-% wait for five seconds
-if thisWaitSecs(15,params)==-1,endScreen(msc);return,end
+% show fine gratings
+mglTestGamma(-1);
+if thisWaitSecs(15,params)<=0,endScreen(msc);return,end
 
 % close screen and return
 endScreen(msc);
@@ -121,7 +162,7 @@ mglFlush();
 % get start time
 startTime = mglGetSecs;
 
-% now wait in loop here, listineng to see if the user hits esc (abort) or return/space (continue)
+% now wait in loop here, listening to see if the user hits esc (abort) or return/space (continue)
 while ((mglGetSecs-startTime) < waitTime)
   [keyCode when charCode] = mglGetKeyEvent(0,1);
   if ~isempty(charCode)
@@ -169,4 +210,29 @@ screenParams.displaySize = params.displaySize;
 screenParams.flipHV = [params.flipHorizontal params.flipVertical];
 screenParams.autoCloseScreen = params.autoCloseScreen;
 
+% get file saving settings
+screenParams.saveData = params.saveData;
+
+% calibration info
+screenParams.calibType = params.calibType;
+screenParams.calibFilename = params.calibFilename;
+screenParams.monitorGamma = params.monitorGamma;
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%   calibTypeCallback   %%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function calibTypeCallback(params)
+
+% this is used to gray out the calibFilename and monitorGamma settins depending
+% on what option the user selects for calibType
+if strcmp(params.calibType,'Specify particular calibration')
+  mrParamsEnable('calibFilename',1);
+else
+  mrParamsEnable('calibFilename',0);
+end
+if strcmp(params.calibType,'Specify gamma')
+  mrParamsEnable('monitorGamma',1);
+else
+  mrParamsEnable('monitorGamma',0);
+end
 
