@@ -56,7 +56,9 @@ for i = 1:length(saveScreenParams)
     saveScreenParams{i} = rmfield(saveScreenParams{i},'digin');
   end
 end
-  
+
+% make sure we have valid parameters
+saveScreenParams = mglValidateScreenParams(saveScreenParams);
 
 % save a backup of the old one
 backupFilename = sprintf('%sBackup',stripext(screenParamsFilename));

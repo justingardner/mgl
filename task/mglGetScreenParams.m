@@ -47,6 +47,9 @@ end
 
 if isempty(screenParams),return,end
 
+% make sure that we have valid parameters
+screenParams = mglValidateScreenParams(screenParams);
+
 % make sure that dispalySize and flipHV are row arrays
 rowArrayVars = {'displaySize','flipHV','diginAcqType','diginResponseType'};
 for i = 1:length(screenParams)

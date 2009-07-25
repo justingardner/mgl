@@ -53,7 +53,7 @@ end
 screenParamsList = {'computerName','displayName','screenNumber',...
 		    'screenWidth','screenHeight','displayDistance',...
 		    'displaySize','framesPerSecond','autoCloseScreen',...
-		    'saveData','monitorGamma','calibFilename','flipHV','digin'};
+		    'saveData','calibType','monitorGamma','calibFilename','flipHV','digin'};
 
 for i = 1:length(screenParams)
   %% see if we need to convert from cell array to struct -- old version
@@ -255,68 +255,70 @@ myscreen.whiteIndex = 255;
 myscreen.grayIndex = 128;
 myscreen.inc = myscreen.whiteIndex - myscreen.grayIndex;
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Gamma correction of monitor
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % but first go and check if we need to load a table
 gammaNotSet = 1;
 
-if isfield(myscreen,'calibFilename') && ~isempty(myscreen.calibFilename)
-  calibFilename = myscreen.calibFilename;
-  % if the user specified a particular name for the calibration file.
-  % this could either be an exact filename, or it could be one of a standard
-  % set i.e. 0001_yoyodyne_LCD2_061013, so we check for those types
-  % if we can't find the exact match
-  if ~isfile(sprintf('%s.mat',calibFilename))
-    calibFilename = getCalibFilename(myscreen,calibFilename);
-  end
-else
-  calibFilename = getCalibFilename(myscreen,myscreen.computer);
-end
-
-if ~isempty(calibFilename)
-  if isfile(sprintf('%s.mat',calibFilename))
-    load(calibFilename);
-    if exist('calib','var') && isfield(calib,'table')
-      myscreen.gammaTable = calib.table;
-      mglSetGammaTable(myscreen.gammaTable);
-      gammaNotSet = 0;
-      [calibPath calibFilename] = fileparts(calibFilename);
-      disp(sprintf('(initScreen) Gamma: Set to table from calibration file %s created on %s',calibFilename,calib.date));
-    end
-  else
-    disp(sprintf('(initScreen) Could not find montior calibration file %s',calibFilename));
-  end
-end
-
-% use the table if we do not have a valid filename
-if gammaNotSet
-  if ~isfield(myscreen,'monitorGamma')
-    % set the monitorGamma correction to the default, but
-    % only if it is opening up full screen. Otherwise don't set
-    % monitor gamma since if we are opening in a window we are probably
-    % just testing
-    if myscreen.screenNumber ~= 0
-      myscreen.monitorGamma = defaultMonitorGamma;
+switch myscreen.calibType
+  case {'None'}
+    disp(sprintf('(initScreen) No gamma correction is being applied'));
+  case {'Specify particular calibration','Find latest calibration'}
+    if strcmp(myscreen.calibType,'Specify particular calibration')
+      calibFilename = myscreen.calibFilename;
+      % if the user specified a particular name for the calibration file.
+      % this could either be an exact filename, or it could be one of a standard
+      % set i.e. 0001_yoyodyne_LCD2_061013, so we check for those types
+      % if we can't find the exact match
+      if ~isfile(sprintf('%s.mat',calibFilename))
+	calibFilename = getCalibFilename(myscreen,calibFilename);
+      end
     else
-      myscreen.monitorGamma = [];
+      calibFilename = getCalibFilename(myscreen,myscreen.computer);
     end
-  end
-  if isempty(myscreen.monitorGamma)
-    disp(sprintf('(initScreen) Not applying any gamma correction for this monitor'));
-  else
-    % display what the settings are
-    disp(sprintf('(initScreen) Correcting for monitor gamma of %0.2f',myscreen.monitorGamma));
+    % no go and try to use that calibration
+    if ~isempty(calibFilename)
+      if isfile(sprintf('%s.mat',calibFilename))
+	load(calibFilename);
+	if exist('calib','var') && isfield(calib,'table')
+	  myscreen.gammaTable = calib.table;
+	  mglSetGammaTable(myscreen.gammaTable);
+	  gammaNotSet = 0;
+	  [calibPath calibFilename] = fileparts(calibFilename);
+	  disp(sprintf('(initScreen) Gamma: Set to table from calibration file %s created on %s',calibFilename,calib.date));
+	end
+      else
+	disp(sprintf('(initScreen) ****Could not find montior calibration file %s***',calibFilename));
+      end
+    end
+  case {'Gamma 1.8','Gamma 2.2','Specify gamma'}
+    if strcmp(myscreen.calibType,'Gamma 1.8')
+      myscreen.monitorGamma = 1.8;
+    elseif strcmp(myscreen.calibType,'Gamma 2.2')
+      myscreen.monitorGamma = 2.2;
+    end
+    if isempty(myscreen.monitorGamma)
+      disp(sprintf('(initScreen) Not applying any gamma correction for this monitor'));
+    else
+      % display what the settings are
+      disp(sprintf('(initScreen) Correcting for monitor gamma of %0.2f',myscreen.monitorGamma));
     
-    % now get current gamma table
-    gammaTable = mglGetParam('initialGammaTable');
-    % and use linear interpolation to correct the current table to
-    % make it 1/monitor gamma.
-    correctedValues = ((0:1/255:1).^(1/myscreen.monitorGamma));
-    gammaTable.redTable = interp1(0:1/255:1,gammaTable.redTable,correctedValues);
-    gammaTable.greenTable = interp1(0:1/255:1,gammaTable.greenTable,correctedValues);
-    gammaTable.blueTable = interp1(0:1/255:1,gammaTable.blueTable,correctedValues);
-    % and set the table
-    mglSetGammaTable(gammaTable);
-  end
+      % now get current gamma table
+      gammaTable = mglGetParam('initialGammaTable');
+      % and use linear interpolation to correct the current table to
+      % make it 1/monitor gamma.
+      correctedValues = ((0:1/255:1).^(1/myscreen.monitorGamma));
+      gammaTable.redTable = interp1(0:1/255:1,gammaTable.redTable,correctedValues);
+      gammaTable.greenTable = interp1(0:1/255:1,gammaTable.greenTable,correctedValues);
+      gammaTable.blueTable = interp1(0:1/255:1,gammaTable.blueTable,correctedValues);
+      % and set the table
+      mglSetGammaTable(gammaTable);
+    end
 end
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Gamma correction of monitor
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % choose color for background
 if isfield(myscreen,'background')
