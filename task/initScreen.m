@@ -37,7 +37,7 @@ defaultMonitorGamma = 1.8;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % database parameters
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%
-screenParams = mglGetScreenParams;
+[screenParams screenParamsFilename] = mglGetScreenParams;
 
 % check for passed in screenParams
 if isfield(myscreen,'screenParams')
