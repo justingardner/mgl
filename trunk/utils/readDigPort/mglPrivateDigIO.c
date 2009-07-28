@@ -186,7 +186,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     else {
       // nidaq not installed just return empty
       plhs[0] = mxCreateDoubleMatrix(0,0,mxREAL);
-      *mxGetPr(plhs[0]) = 0;
     }
 
   }
@@ -243,7 +242,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       pthread_mutex_unlock(&digioMutex);
       // return 1
       plhs[0] = mxCreateDoubleMatrix(1,1,mxREAL);
-      *mxGetPr(plhs[0]) = 0;
+      *mxGetPr(plhs[0]) = 1;
       return;
     }
     else {
