@@ -44,11 +44,14 @@
 %             Start with an initial half cycle that will be thrown
 %             out later (default = 1)
 %             mglRetinotopy('initialHalfCycle=1');
-
+%
+%             Also, you can set wich displayName to use (see mglEditScreenParams)
+%             mglRetinotopy('displayName=projector');
+%
 function myscreen = mglRetinotopy(varargin)
 
 % evaluate the arguments
-eval(evalargs(varargin,0,0,{'wedges','rings','wedgesOrRings','direction','dutyCycle','stepsPerCycle','stimulusPeriod','numCycles','doEyeCalib','initialHalfCycle','volumesPerCycle'}));
+eval(evalargs(varargin,0,0,{'wedges','rings','wedgesOrRings','direction','dutyCycle','stepsPerCycle','stimulusPeriod','numCycles','doEyeCalib','initialHalfCycle','volumesPerCycle','displayName'}));
 
 % setup default arguments
 if exist('wedges','var') && ~isempty(wedges),wedgesOrRings = 1;,end
@@ -61,11 +64,11 @@ if ieNotDefined('stimulusPeriod'),stimulusPeriod = 24;end
 if ieNotDefined('numCycles'),numCycles = 10;end
 if ieNotDefined('doEyeCalib'),doEyeCalib = -1;end
 if ieNotDefined('initialHalfCycle'),initialHalfCycle = 1;end
+if ieNotDefined('displayName'),displayName = 'projector';end
 
 % initalize the screen
-myscreen.autoCloseScreen = 0;
 myscreen.allowpause = 1;
-myscreen.displayname = 'projector';
+myscreen.displayname = displayName;
 myscreen.background = 'gray';
 myscreen = initScreen(myscreen);
 
