@@ -68,6 +68,7 @@ while scanNum <= (params.startType+params.numScans-1)
                            sprintf('doEyeCalib=%i',params.eyeCalibAtEnd), ...
                            sprintf('dutyCycle=%f',params.dutyCycle));
 
+
   % if user is holding down escape then we need to ask them what to do.
   if (mglGetKeys(myscreen.keyboard.esc))
     mglDisplayCursor(1);
