@@ -53,7 +53,7 @@ end
 screenParamsList = {'computerName','displayName','screenNumber',...
 		    'screenWidth','screenHeight','displayDistance',...
 		    'displaySize','framesPerSecond','autoCloseScreen',...
-		    'saveData','calibType','monitorGamma','calibFilename','flipHV','digin'};
+		    'saveData','calibType','monitorGamma','calibFilename','flipHV','digin','hideCursor'};
 
 for i = 1:length(screenParams)
   %% see if we need to convert from cell array to struct -- old version
@@ -463,6 +463,13 @@ end
 
 % get all pending keyboard events
 mglGetKeyEvent([],1);
+
+% hide mouse
+if myscreen.hideCursor
+  mglDisplayCursor(0);
+else
+  mglDisplayCursor(1);
+end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 % check if it is a file

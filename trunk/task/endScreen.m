@@ -42,3 +42,6 @@ if ((nargin == 1) && (isfield(myscreen,'makeTraces')) && (myscreen.makeTraces ==
   myscreen = makeTraces(myscreen);
 end
 
+if myscreen.hideCursor
+  mglDisplayCursor(1);
+end

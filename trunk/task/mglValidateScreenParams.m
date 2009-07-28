@@ -36,6 +36,7 @@ necessaryFields = {'computerName',mglGetHostName;
 		   'calibType',[];
 		   'calibFilename','';
 		   'flipHV',[0 0];
+		   'hideCursor',0;
 		   'diginUse',0;
 		   'diginPortNum',[];
 		   'diginAcqLine',[];
