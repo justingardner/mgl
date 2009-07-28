@@ -29,14 +29,18 @@ if isempty(screenParams),return,end
 hostname = mglGetHostName;
 
 % get the name of the valid computers
-hostnameList = {};displayNames = {};
+hostnameList = {};displayNames = {};computerNum = 1;
 for i = 1:length(screenParams)
   hostnameList{end+1} = screenParams{i}.computerName;
   displayNames{end+1} = screenParams{i}.displayName;
+  if isequal(screenParams{i}.computerName,mglGetHostName)
+    computerNum = i;
+  end
 end
 
+
 % set up params for choosing which computer to edit
-paramsInfo{1} = {'computerNum',1,sprintf('minmax=[1 %i]', length(hostnameList)),'incdec=[-1 1]'};
+paramsInfo{1} = {'computerNum',computerNum,sprintf('minmax=[1 %i]', length(hostnameList)),'incdec=[-1 1]'};
 paramsInfo{end+1} = {'computerName',hostnameList,'type=string','group=computerNum','editable=0'};
 paramsInfo{end+1} = {'displayName',displayNames,'type=string','group=computerNum','editable=0'};
 paramsInfo{end+1} = {'addDisplay',0,'type=pushButton','buttonString=Add Display','callback',@addDisplay,'passParams=1','Add a new display to the list'};
@@ -48,19 +52,15 @@ params = mrParamsDialog(paramsInfo, sprintf('Choose computer/display (you are no
 if isempty(params),return,end
 
 % add this display if asked for
-addingComputer = 0;
 if isequal(params.addDisplay,'add')
   screenParams{end+1} = defaultScreenParams;
-  addingComputer = 1;
 end
 
 % delete computers list
-deleteComputers = 0;
 if isequal(params.deleteDisplay,'delete')
   for i = 1:length(params.computerName)
     screenParams{i}.computerName = params.computerName{i};
   end
-  deleteComputers = 1;
 end
 
 % revert displays
@@ -99,8 +99,8 @@ end
 
 %set up the paramsInfo
 paramsInfo = {};
-paramsInfo{end+1} = {'computerName',thisScreenParams.computerName,sprintf('editable=%i',addingComputer),'The name of the computer for these screen parameters'};
-paramsInfo{end+1} = {'displayName',thisScreenParams.displayName,'editable=1','The display name for these settings. This can be left blank if there is only one display on this computer for which you will be using mgl. If instead there are multiple displays, then you will need screen parameters for each display, and you should name them appropriately. You then call initScreen(displayName) to get the settings for the correct display'};
+paramsInfo{end+1} = {'computerName',thisScreenParams.computerName,'The name of the computer for these screen parameters'};
+paramsInfo{end+1} = {'displayName',thisScreenParams.displayName,'The display name for these settings. This can be left blank if there is only one display on this computer for which you will be using mgl. If instead there are multiple displays, then you will need screen parameters for each display, and you should name them appropriately. You then call initScreen(displayName) to get the settings for the correct display'};
 paramsInfo{end+1} = {'useCustomScreenSettings',useCustomScreenSettings,'type=checkbox','If you leave this unchecked then mgl will open up with default screen settings (i.e. the display will be chosen as the last display in the list and the screenWidth and ScreenHeight will be whatever the current settings are. This is sometimes useful for when you are on a development computer -- rather than the one you are running experiments on'};
 paramsInfo{end+1} = {'screenNumber',screenNumber,'type=numeric','minmax=[0 inf]','incdec=[-1 1]','The screen number to use on this display. 0 is for a windowed contex.','round=1','contingent=useCustomScreenSettings'};
 paramsInfo{end+1} = {'screenWidth',screenWidth,'type=numeric','minmax=[0 inf]','incdec=[-1 1]','round=1','contingent=useCustomScreenSettings','The width in pixels of the screen'};
@@ -111,6 +111,7 @@ paramsInfo{end+1} = {'displaySize',thisScreenParams.displaySize,'type=array','mi
 paramsInfo{end+1} = {'autoCloseScreen',thisScreenParams.autoCloseScreen,'type=checkbox','Check if you want endScreen to automatically do mglClose at the end of your experiment.'};
 paramsInfo{end+1} = {'flipHorizontal',thisScreenParams.flipHV(1),'type=checkbox','Click if you want initScreen to set the coordinates so that the screen is horizontally flipped. This may be useful if you are viewing the screen through mirrors'};
 paramsInfo{end+1} = {'flipVertical',thisScreenParams.flipHV(2),'type=checkbox','Click if you want initScreen to set the coordinates so that the screen is vertically flipped. This may be useful if you are viewing the screen through mirrors'};
+paramsInfo{end+1} = {'hideCursor',thisScreenParams.hideCursor,'type=checkbox','Click if you want initScreen to hide the mouse for this display.'};
 paramsInfo{end+1} = {'saveData',thisScreenParams.saveData,'type=numeric','incdec=[-1 1]','minmax=[-1 inf]','Sets whether you want to save an stim file which stores all the parameters of your experiment. You will probably want to save this file for real experiments, but not when you are just testing your program. So on the desktop computer set it to 0. This can be 1 to always save a data file, 0 not to save data file,n>1 saves a data file only if greater than n number of volumes have been collected)'};
 paramsInfo{end+1} = {'calibType',putOnTopOfList(thisScreenParams.calibType,{'None','Find latest calibration','Specify particular calibration','Gamma 1.8','Gamma 2.2','Specify gamma'}),'Choose how you want to calibrate the monitor. This is for gamma correction of the monitor. Find latest calibration works with calibration files stored by moncalib, and will look for the latest calibration file in the directory task/displays that matches this computer and display name. If you want to specify a particular file then select that option and specify the calibration file in the field below. If you don''t have a calibration file created by moncalib then you might try to correct for a standard gamma value like 1.8 (mac computers) or 2.2 (PC computers). Or a gamma value of your choosing','callback',@calibTypeCallback,'passParams=1'};
 paramsInfo{end+1} = {'calibFilename',thisScreenParams.calibFilename,'Specify the calibration filename. This field is only used if you use Specify particular calibration from above',enableCalibFilename};
@@ -148,6 +149,7 @@ mglSetScreenParams(screenParams);
 %%%%%%%%%%%%%%%%%%%%%%%%%
 function msc = testOpenDisplay(params)
 
+msc = [];
 disp(sprintf('(mglEditScreenParams:testSettings) Testing settings for %s:%s',params.computerName,params.displayName));
 
 % test to see if the screenNumber is valid
@@ -187,7 +189,8 @@ function val = testSettings(params)
 
 val = 0;
 
-msc = testOpenDisplay(params)
+msc = testOpenDisplay(params);
+if isempty(msc),return,end
 
 % display some text on the screen
 mglTextSet('Helvetica',32,[1 1 1 1],0,0,0,0,0,0,0);
@@ -223,6 +226,12 @@ while (mglGetSecs(startTime)<waitTime) && ~msc.userHitEsc
 
   % draw some text
   mglTextDraw(sprintf('volnum: %i',msc.volnum),[0 -3]);
+  if msc.useDigIO
+    digioStr = sprintf('portNum: %i acqLine: %i acqType: %s responseLine: %s responseType: %s',msc.digin.portNum,msc.digin.acqLine,num2str(msc.digin.acqType),num2str(msc.digin.responseLine),num2str(msc.digin.responseType));
+    mglTextDraw(digioStr,[0 -6]);
+  else
+    mglTextDraw(sprintf('Digital I/O is disabled'),[0 -6]);
+  end
   if ~isempty(lastButtons)
     mglTextDraw(sprintf('Last button press: %s at %0.2f',num2str(lastButtons),lastTime),[0 0]);
   end
@@ -380,6 +389,7 @@ screenParams.displayDistance = params.displayDistance;
 screenParams.displaySize = params.displaySize;
 screenParams.flipHV = [params.flipHorizontal params.flipVertical];
 screenParams.autoCloseScreen = params.autoCloseScreen;
+screenParams.hideCursor = params.hideCursor;
 
 % get file saving settings
 screenParams.saveData = params.saveData;
@@ -483,6 +493,7 @@ screenParams.framesPerSecond = displays(end).refreshRate;
 screenParams.displayDistance = 57;
 screenParams.displaySize = [50.8 38.1];
 screenParams.flipHV = [0 0];
+screenParams.hideCursor = 0;
 screenParams.autoCloseScreen = 1;
 
 % get file saving settings
