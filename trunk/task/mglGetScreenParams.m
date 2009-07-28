@@ -6,7 +6,7 @@
 %       date: 07/17/09
 %    purpose: just returns the screenParams
 %
-function screenParams = mglGetScreenParams(convertDigFields)
+function [screenParams screenParamsFilename] = mglGetScreenParams(convertDigFields)
 
 % check arguments
 if ~any(nargin == [0 1])

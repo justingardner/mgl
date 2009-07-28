@@ -6,11 +6,18 @@
 %       date: 07/17/09
 %    purpose: 
 %
-function retval = mglEditScreenParamsNew()
+function retval = mglEditScreenParams()
 
 % check arguments
 if ~any(nargin == [0])
   help mglEditScreenParams
+  return
+end
+
+% check for mrParamsDialog
+if ~exist('mrParamsDialog')
+  disp(sprintf('(mglDoRetinotopy) You must have mrTools in your path to run the GUI for this function.'));
+  disp(sprintf('(mglDoRetinotopy) You can download the mrTools utilties by doing the following from a shell:\n\nsvn checkout http://cbi.nyu.edu/svn/mrToosl/trunk/mrUtilities/MatlabUtilities mrToolsUtilities\n\nand then add the path in matlab:\n\naddpath(''mrToolsUtilities'')'));
   return
 end
 
@@ -30,15 +37,40 @@ end
 
 % set up params for choosing which computer to edit
 paramsInfo{1} = {'computerNum',1,sprintf('minmax=[1 %i]', length(hostnameList)),'incdec=[-1 1]'};
-paramsInfo{end+1} = {'hostname',hostnameList,'type=string','group=computerNum','editable=0'};
+paramsInfo{end+1} = {'computerName',hostnameList,'type=string','group=computerNum','editable=0'};
 paramsInfo{end+1} = {'displayName',displayNames,'type=string','group=computerNum','editable=0'};
+paramsInfo{end+1} = {'addDisplay',0,'type=pushButton','buttonString=Add Display','callback',@addDisplay,'passParams=1','Add a new display to the list'};
+paramsInfo{end+1} = {'deleteDisplay',0,'type=pushButton','buttonString=Delete Display','callback',@deleteDisplay,'passParams=1','Delete this display from the screenParams'};
+paramsInfo{end+1} = {'revertDisplay','','type=pushButton','buttonString=Revert Display','callback',@revertDisplay,'passParams=1','Revert parameters to default parameters for this screen'};
 
 % bring up dialog box
 params = mrParamsDialog(paramsInfo, sprintf('Choose computer/display (you are now on: %s)',hostname));
 if isempty(params),return,end
-computerNum = params.computerNum;
+
+% add this display if asked for
+addingComputer = 0;
+if isequal(params.addDisplay,'add')
+  screenParams{end+1} = defaultScreenParams;
+  addingComputer = 1;
+end
+
+% delete computers list
+deleteComputers = 0;
+if isequal(params.deleteDisplay,'delete')
+  for i = 1:length(params.computerName)
+    screenParams{i}.computerName = params.computerName{i};
+  end
+  deleteComputers = 1;
+end
+
+% revert displays
+revertDisplay = str2num(params.revertDisplay);
+for i = 1:length(revertDisplay)
+  screenParams{revertDisplay(i)} = defaultScreenParams(screenParams{revertDisplay(i)});
+end
 
 % get parameters for chosen computer
+computerNum = params.computerNum;
 thisScreenParams = screenParams{computerNum};
 
 % get some parameters for the screen
@@ -67,8 +99,8 @@ end
 
 %set up the paramsInfo
 paramsInfo = {};
-paramsInfo{end+1} = {'hostname',thisScreenParams.computerName,'editable=0','The name of the computer for these screen parameters'};
-paramsInfo{end+1} = {'displayName',thisScreenParams.displayName,'editable=0','The display name for these settings. This can be left blank if there is only one display on this computer for which you will be using mgl. If instead there are multiple displays, then you will need screen parameters for each display, and you should name them appropriately. You then call initScreen(displayName) to get the settings for the correct display'};
+paramsInfo{end+1} = {'computerName',thisScreenParams.computerName,sprintf('editable=%i',addingComputer),'The name of the computer for these screen parameters'};
+paramsInfo{end+1} = {'displayName',thisScreenParams.displayName,'editable=1','The display name for these settings. This can be left blank if there is only one display on this computer for which you will be using mgl. If instead there are multiple displays, then you will need screen parameters for each display, and you should name them appropriately. You then call initScreen(displayName) to get the settings for the correct display'};
 paramsInfo{end+1} = {'useCustomScreenSettings',useCustomScreenSettings,'type=checkbox','If you leave this unchecked then mgl will open up with default screen settings (i.e. the display will be chosen as the last display in the list and the screenWidth and ScreenHeight will be whatever the current settings are. This is sometimes useful for when you are on a development computer -- rather than the one you are running experiments on'};
 paramsInfo{end+1} = {'screenNumber',screenNumber,'type=numeric','minmax=[0 inf]','incdec=[-1 1]','The screen number to use on this display. 0 is for a windowed contex.','round=1','contingent=useCustomScreenSettings'};
 paramsInfo{end+1} = {'screenWidth',screenWidth,'type=numeric','minmax=[0 inf]','incdec=[-1 1]','round=1','contingent=useCustomScreenSettings','The width in pixels of the screen'};
@@ -93,11 +125,22 @@ paramsInfo{end+1} = {'testDigin',0,'type=pushbutton','buttonString=Test digin','
 paramsInfo{end+1} = {'testSettings',0,'type=pushbutton','buttonString=Test screen params','callback',@testSettings,'passParams=1','Click to test the monitor settings'};
 
 % display parameter choosing dialog
-params = mrParamsDialog(paramsInfo,'Set screen parameters');
-if isempty(params),return,end
+if ~isequal(thisScreenParams.computerName,'DELETE')
+  params = mrParamsDialog(paramsInfo,'Set screen parameters');
+  if isempty(params),return,end
+  screenParams{computerNum} = params2screenParams(params);
+end
 
-% convert the params into screenparams and save
-screenParams{computerNum} = params2screenParams(params);
+% delete scans
+deleteScreenParams = screenParams;
+screenParams = {};
+for i = 1:length(deleteScreenParams)
+  if ~isequal(deleteScreenParams{i}.computerName,'DELETE');
+    screenParams{end+1} = deleteScreenParams{i};
+  end
+end
+
+% save
 mglSetScreenParams(screenParams);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%
@@ -105,11 +148,11 @@ mglSetScreenParams(screenParams);
 %%%%%%%%%%%%%%%%%%%%%%%%%
 function msc = testOpenDisplay(params)
 
-disp(sprintf('(mglEditScreenParams:testSettings) Testing settings for %s:%s',params.hostname,params.displayName));
+disp(sprintf('(mglEditScreenParams:testSettings) Testing settings for %s:%s',params.computerName,params.displayName));
 
 % test to see if the screenNumber is valid
 if params.screenNumber > length(mglDescribeDisplays)
-  msgbox(sprintf('(mglEditScreenParams) Screen number %i is out of range for %s: [0 %i]',params.screenNumber,params.hostname,length(mglDescribeDisplays)));
+  msgbox(sprintf('(mglEditScreenParams) Screen number %i is out of range for %s: [0 %i]',params.screenNumber,params.computerName,length(mglDescribeDisplays)));
   return
 end
 
@@ -130,7 +173,7 @@ end
 % convert the params returned by the dialog into
 % screen params
 msc.screenParams{1} = params2screenParams(params);
-msc.computer = params.hostname;
+msc.computer = params.computerName;
 msc.displayName = params.displayName;
 msc.allowpause = 0;
 
@@ -148,7 +191,7 @@ msc = testOpenDisplay(params)
 
 % display some text on the screen
 mglTextSet('Helvetica',32,[1 1 1 1],0,0,0,0,0,0,0);
-mglTextDraw(sprintf('Testing settings for %s:%s',params.hostname,params.displayName),[0 -5]);
+mglTextDraw(sprintf('Testing settings for %s:%s',params.computerName,params.displayName),[0 -5]);
 
 % wait for five seconds
 if thisWaitSecs(15,params)<=0,endScreen(msc);return,end
@@ -183,7 +226,7 @@ while (mglGetSecs(startTime)<waitTime) && ~msc.userHitEsc
   if ~isempty(lastButtons)
     mglTextDraw(sprintf('Last button press: %s at %0.2f',num2str(lastButtons),lastTime),[0 0]);
   end
-  mglTextDraw(sprintf('Hit ESC to quit.',params.hostname,params.displayName),[0 3.5]);
+  mglTextDraw(sprintf('Hit ESC to quit.',params.computerName,params.displayName),[0 3.5]);
 
   % tick screen
   msc = tickScreen(msc,[]);
@@ -222,7 +265,7 @@ if mglDigIO('init',screenParams.digin.portNum,mod(screenParams.digin.portNum+1,3
   return
 end
 
-disp(sprintf('(mglEditScreenParams:testDigin) Testing settings for %s:%s',params.hostname,params.displayName));
+disp(sprintf('(mglEditScreenParams:testDigin) Testing settings for %s:%s',params.computerName,params.displayName));
 disp(sprintf('(mglEditScreenParams:testDigin) PortNum: %i acqLine: %i acqType: %s responseLine: %s responseType: %s',screenParams.digin.portNum,screenParams.digin.acqLine,num2str(screenParams.digin.acqType),num2str(screenParams.digin.responseLine),num2str(screenParams.digin.responseType)));
 disp(sprintf('(mglEditScreenParams:testDigin) To quit hit ESC'));
 
@@ -284,7 +327,7 @@ if nargin < 3, drawText = 1;end
 
 % tell the user what they can do
 if drawText
-  mglTextDraw(sprintf('Hit return to continue or ESC to quit.',params.hostname,params.displayName),[0 3.5]);
+  mglTextDraw(sprintf('Hit return to continue or ESC to quit.',params.computerName,params.displayName),[0 3.5]);
   mglFlush();
 end
 % get start time
@@ -316,7 +359,7 @@ return
 function screenParams = params2screenParams(params)
 
 % get host/display name
-screenParams.computerName = params.hostname;
+screenParams.computerName = params.computerName;
 screenParams.displayName = params.displayName;
 
 % get screen settings
@@ -350,9 +393,21 @@ screenParams.monitorGamma = params.monitorGamma;
 screenParams.digin.use = params.diginUse;
 screenParams.digin.portNum = params.diginPortNum;
 screenParams.digin.acqLine = params.diginAcqLine;
-screenParams.digin.acqType = str2num(params.diginAcqType);
-screenParams.digin.responseLine = str2num(params.diginResponseLine);
-screenParams.digin.responseType = str2num(params.diginResponseType);
+if ~isempty(params.diginAcqType)
+  screenParams.digin.acqType = str2num(params.diginAcqType);
+else
+  screenParams.digin.acqType = [];
+end
+if ~isempty(params.diginResponseLine) 
+  screenParams.digin.responseLine = str2num(params.diginResponseLine);
+else
+  screenParams.digin.responseLine = [];
+end
+if ~isempty(params.diginResponseType)
+  screenParams.digin.responseType = str2num(params.diginResponseType);
+else
+  screenParams.digin.responseType = [];
+end  
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -373,3 +428,75 @@ else
   mrParamsEnable('monitorGamma',0);
 end
 
+%%%%%%%%%%%%%%%%%%%%
+%%   addDisplay   %%
+%%%%%%%%%%%%%%%%%%%%
+function retval = addDisplay(params)
+
+retval = 'add';
+if ~isequal(params.addDisplay,'add')
+  params.computerName = {params.computerName{:},mglGetHostName};
+  params.displayName = {params.displayName{:},''};
+  params.computerNum = length(params.computerName);
+  mrParamsSet(params);
+end
+
+%%%%%%%%%%%%%%%%%%%%%%%
+%%   deleteDisplay   %%
+%%%%%%%%%%%%%%%%%%%%%%%
+function retval = deleteDisplay(params)
+
+retval = 'delete';
+params.computerName{params.computerNum} = 'DELETE';
+params.displayName{params.computerNum} = 'DELETE';
+mrParamsSet(params);
+
+%%%%%%%%%%%%%%%%%%%%%%%
+%%   revertDisplay   %%
+%%%%%%%%%%%%%%%%%%%%%%%
+function retval = revertDisplay(params)
+
+retval = sprintf('%s %i',params.revertDisplay,params.computerNum);
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%   defaultScreenParams   %%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function screenParams = defaultScreenParams(screenParams)
+
+% get host/display name
+if nargin < 1
+  screenParams.computerName = mglGetHostName;
+  screenParams.displayName = '';
+end
+
+displays = mglDescribeDisplays;
+
+% get screen settings
+params.useCustomScreenSettings = 0;
+screenParams.screenNumber = length(displays);
+screenParams.screenWidth = displays(end).screenSizePixel(1);
+screenParams.screenHeight = displays(end).screenSizePixel(2);
+screenParams.framesPerSecond = displays(end).refreshRate;
+
+% get display settings
+screenParams.displayDistance = 57;
+screenParams.displaySize = [50.8 38.1];
+screenParams.flipHV = [0 0];
+screenParams.autoCloseScreen = 1;
+
+% get file saving settings
+screenParams.saveData = 0;
+
+% calibration info
+screenParams.calibType = 'None';
+screenParams.calibFilename = '';
+screenParams.monitorGamma = [];
+
+% digio
+screenParams.digin.use = 0;
+screenParams.digin.portNum = 2;
+screenParams.digin.acqLine = 0;
+screenParams.digin.acqType = 1;
+screenParams.digin.responseLine = [1 2 3 4 5 6 7];
+screenParams.digin.responseType = 1;
