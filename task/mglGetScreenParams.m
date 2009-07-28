@@ -50,25 +50,6 @@ if isempty(screenParams),return,end
 % make sure that we have valid parameters
 screenParams = mglValidateScreenParams(screenParams);
 
-% make sure that dispalySize and flipHV are row arrays
-rowArrayVars = {'displaySize','flipHV','diginAcqType','diginResponseType'};
-for i = 1:length(screenParams)
-  for j = 1:length(rowArrayVars)
-    if isfield(screenParams{i},rowArrayVars{j})
-      % make sure the arrays are oriented properly
-      if size(screenParams{i}.(rowArrayVars{j}),1) > 1
-	screenParams{i}.(rowArrayVars{j}) = screenParams{i}.(rowArrayVars{j})';
-      end
-      % now make sure that they are of length two
-      if isempty(screenParams{i}.(rowArrayVars{j}))
-	screenParams{i}.(rowArrayVars{j}) = [0 0];
-      elseif size(screenParams{i}.(rowArrayVars{j}),2) < 2
-	screenParams{i}.(rowArrayVars{j})(end:2) = nan;
-      end
-    end
-  end
-end
-
 % set some default values
 defaultValues = {{'diginAcqType',[0 1]},{'diginResponseType',[0 1]}};
 for i = 1:length(screenParams)
@@ -90,10 +71,14 @@ if convertDigFields
       if findstr('digin',paramNames{j}) == 1
 	% get the field that begins with digin and pack into a structure
 	if ~isstruct(screenParams{i}.(paramNames{j}))
-	  paramNames{6} = lower(paramNames{6});
+	  % get the value of the digin field
 	  val = screenParams{i}.(paramNames{j});
 	  if isstr(val),val = str2num(val);end
-	  digin.(paramNames{j}(6:end)) = val;
+	  % get the parameter name for storing in the digin 
+	  % field -- fix capitalization
+	  thisParamName = paramNames{j}(6:end);
+	  thisParamName(1) = lower(thisParamName(1));
+	  digin.(thisParamName) = val;
 	end
 	% remove the field from screenParams
 	screenParams{i} = rmfield(screenParams{i},paramNames{j});

@@ -24,7 +24,7 @@ if exist('myscreen','var') && (isstr(myscreen) || (isnumeric(myscreen) && isscal
 end
 
 % set version number
-myscreen.ver = 1.1;
+myscreen.ver = 2.0;
 
 % get computer name
 if ~isfield(myscreen,'computer')
@@ -447,37 +447,10 @@ myscreen.numTasks = 0;
 % initialize digital port
 myscreen.useDigIO = 0;
 if isfield(myscreen,'digin') 
-  if ~isempty(myscreen.digin)
-    if isfield(myscreen.digin,'use')
-      myscreen.useDigIO = myscreen.digin.use;
-    else
-      myscreen.useDigIO = 1;
-    end
-    % validate fields
-    diginValidFields = {'portNum','acqLine','responseLine'};
-    unmatchedFields = ones(1,length(diginValidFields));
-    thisFieldNames = fieldnames(myscreen.digin);
-    for j = 1:length(thisFieldNames)
-      whichField = find(strcmp(lower(thisFieldNames{j}),lower(diginValidFields)));
-      if isempty(whichField)
-	disp(sprintf('(initScreen) UHOH! digin for screen %s has unrecognized fieldname %s',myscreen.computer,thisFieldNames{j}));
-      else
-	% remove and add back to make sure capitalization is accuracte
-	fieldVal = myscreen.digin.(thisFieldNames{j});
-	myscreen.digin = rmfield(myscreen.digin,thisFieldNames{j});
-	myscreen.digin.(diginValidFields{whichField}) = fieldVal;
-      end
-      unmatchedFields(j) = 0;
-    end
-    % add any unmatched fields
-    unmatchedFields = find(unmatchedFields);
-    for j = 1:length(unmatchedFields)
-      myscreen.digin.(diginValidFields{unmatchedFields(j)}) = [];
-    end
-    % make sure there is an acqType field, if not specified then acq
-    % can be either up state or down state
-    if ~isfield(myscreen.digin,'acqType') myscreen.digin.acqType = [0 1]; end
-    if ~isfield(myscreen.digin,'responseType') myscreen.digin.responseType = [0]; end
+  if ~isempty(myscreen.digin) && isfield(myscreen.digin,'use') && isequal(myscreen.digin.use,1)
+    % we are using digio
+    myscreen.useDigIO = myscreen.digin.use;
+    % try to open the port
     if isempty(mglDigIO('init',myscreen.digin.portNum))
       disp(sprintf('(initScreen) Failed to open Digitial IO ports. Only using keyboard backticks now!'));
       myscreen.useDigIO = 0;
@@ -486,8 +459,6 @@ if isfield(myscreen,'digin')
       mglDigIO('digin');
     end
   end
-else
-  myscreen.ttltick = [];
 end
 
 % get all pending keyboard events
