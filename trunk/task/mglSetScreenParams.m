@@ -44,12 +44,13 @@ end
 if isempty(screenParams),return,end
 
 % now unpack digin fields
-diginFields = {'AcqLine','PortNum','ResponseLine','AcqType','ResponseType','Use'};
+diginFields = {'acqLine','portNum','responseLine','acqType','responseType','use'};
 for i = 1:length(saveScreenParams)
   for j = 1:length(diginFields)
     if isfield(saveScreenParams{i},'digin') && isfield(saveScreenParams{i}.digin,diginFields{j})
-      saveScreenParams{i}.(sprintf('digin%s',diginFields{j})) = ...
-	  saveScreenParams{i}.digin.(diginFields{j});
+      diginFieldName =sprintf('digin%s',diginFields{j});
+      diginFieldName(6) = upper(diginFieldName(6));
+      saveScreenParams{i}.(diginFieldName) = saveScreenParams{i}.digin.(diginFields{j});
     end
   end
   if isfield(saveScreenParams{i},'digin')
@@ -68,5 +69,4 @@ eval(sprintf('save %s screenParams',backupFilename));
 % save the new one
 screenParams = saveScreenParams;
 eval(sprintf('save %s screenParams',screenParamsFilename));
-
 

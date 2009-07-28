@@ -15,7 +15,7 @@ if ~any(nargin == [0])
 end
 
 % get the screenParams
-screenParams = mglGetScreenParams(0);
+screenParams = mglGetScreenParams;
 if isempty(screenParams),return,end
 
 % get the hostname
@@ -83,7 +83,14 @@ paramsInfo{end+1} = {'saveData',thisScreenParams.saveData,'type=numeric','incdec
 paramsInfo{end+1} = {'calibType',putOnTopOfList(thisScreenParams.calibType,{'None','Find latest calibration','Specify particular calibration','Gamma 1.8','Gamma 2.2','Specify gamma'}),'Choose how you want to calibrate the monitor. This is for gamma correction of the monitor. Find latest calibration works with calibration files stored by moncalib, and will look for the latest calibration file in the directory task/displays that matches this computer and display name. If you want to specify a particular file then select that option and specify the calibration file in the field below. If you don''t have a calibration file created by moncalib then you might try to correct for a standard gamma value like 1.8 (mac computers) or 2.2 (PC computers). Or a gamma value of your choosing','callback',@calibTypeCallback,'passParams=1'};
 paramsInfo{end+1} = {'calibFilename',thisScreenParams.calibFilename,'Specify the calibration filename. This field is only used if you use Specify particular calibration from above',enableCalibFilename};
 paramsInfo{end+1} = {'monitorGamma',thisScreenParams.monitorGamma,'type=numeric','Specify the monitor gamma. This is only used if you set Specify Gamma above',enableMonitorGamma};
-paramsInfo{end+1} = {'testSettings',0,'type=pushbutton','buttonString=Test settings','callback',@testSettings,'passParams=1','Click to test the monitor settings'};
+paramsInfo{end+1} = {'diginUse',thisScreenParams.digin.use,'type=checkbox','Click this if you want to use the National Instruments cards digital io for detecting volume acquisitions and subject responses. If you use this, the keyboard will still work (i.e. you can still press backtick and response numbers. This uses the function mglDigIO -- and you will need to make sure that you have compiled mgl/util/mglPrivateDigIO.c'};
+paramsInfo{end+1} = {'diginPortNum',thisScreenParams.digin.portNum,'type=numeric','This is the port that should be used for reading. For NI USB-6501 devices it can be one of 0, 1 or 2','incdec=[-1 1]','minmax=[0 inf]','contingent=diginUse','round=1'};
+paramsInfo{end+1} = {'diginAcqLine',thisScreenParams.digin.acqLine,'type=numeric','This is the line from which to read the acquisition pulse (i.e. the one that occurs every volume','incdec=[-1 1]','minmax=[0 7]','contingent=diginUse','round=1'};
+paramsInfo{end+1} = {'diginAcqType',num2str(thisScreenParams.digin.acqType),'type=string','This is how to interpert the digial signals for the acquisition. If you want to trigger when the signal goes low then set this to 0. If you want trigger when the signal goes high, set this to 1. If you want to trigger when the signal changes state (i.e. either low or high), set to [0 1]','contingent=diginUse'};
+paramsInfo{end+1} = {'diginResponseLine',num2str(thisScreenParams.digin.responseLine),'type=string','This is the lines from which to read the subject responses. If you want to specify line 1 and line 3 for subject response 1 and 2, you would enter [1 3], for instance. You can have up to 7 different lines for subject responses.','minmax=[0 7]','contingent=diginUse','round=1'};
+paramsInfo{end+1} = {'diginResponseType',num2str(thisScreenParams.digin.responseType),'type=string','This is how to interpert the digial signals for the responses. If you want to trigger when the signal goes low then set this to 0. If you want trigger when the signal goes high, set this to 1. If you want to trigger when the signal changes state (i.e. either low or high), set to [0 1]','contingent=diginUse'};
+paramsInfo{end+1} = {'testDigin',0,'type=pushbutton','buttonString=Test digin','callback',@testDigin,'passParams=1','Click to test the digin settings'};
+paramsInfo{end+1} = {'testSettings',0,'type=pushbutton','buttonString=Test screen params','callback',@testSettings,'passParams=1','Click to test the monitor settings'};
 
 % display parameter choosing dialog
 params = mrParamsDialog(paramsInfo,'Set screen parameters');
@@ -93,13 +100,10 @@ if isempty(params),return,end
 screenParams{computerNum} = params2screenParams(params);
 mglSetScreenParams(screenParams);
 
-
-%%%%%%%%%%%%%%%%%%%%%%
-%%   TestSettings   %%
-%%%%%%%%%%%%%%%%%%%%%%
-function val = testSettings(params)
-
-val = 0;
+%%%%%%%%%%%%%%%%%%%%%%%%%
+%%   testOpenDisplay   %%
+%%%%%%%%%%%%%%%%%%%%%%%%%
+function msc = testOpenDisplay(params)
 
 disp(sprintf('(mglEditScreenParams:testSettings) Testing settings for %s:%s',params.hostname,params.displayName));
 
@@ -128,9 +132,19 @@ end
 msc.screenParams{1} = params2screenParams(params);
 msc.computer = params.hostname;
 msc.displayName = params.displayName;
+msc.allowpause = 0;
 
 % now call initScreen with these parameters
 msc = initScreen(msc);
+
+%%%%%%%%%%%%%%%%%%%%%%
+%%   TestSettings   %%
+%%%%%%%%%%%%%%%%%%%%%%
+function val = testSettings(params)
+
+val = 0;
+
+msc = testOpenDisplay(params)
 
 % display some text on the screen
 mglTextSet('Helvetica',32,[1 1 1 1],0,0,0,0,0,0,0);
@@ -147,18 +161,132 @@ if thisWaitSecs(15,params)<=0,endScreen(msc);return,end
 mglTestGamma(-1);
 if thisWaitSecs(15,params)<=0,endScreen(msc);return,end
 
+testTickScreen(30,params,msc);
+
 % close screen and return
 endScreen(msc);
 
 %%%%%%%%%%%%%%%%%%%%%%
+%%   testTickScreen %%
+%%%%%%%%%%%%%%%%%%%%%%
+function retval = testTickScreen(waitTime,params,msc)
+
+startTime = mglGetSecs;
+lastButtons = [];
+while (mglGetSecs(startTime)<waitTime) && ~msc.userHitEsc
+
+  % clear screen
+  mglClearScreen(0);
+
+  % draw some text
+  mglTextDraw(sprintf('volnum: %i',msc.volnum),[0 -3]);
+  if ~isempty(lastButtons)
+    mglTextDraw(sprintf('Last button press: %s at %0.2f',num2str(lastButtons),lastTime),[0 0]);
+  end
+  mglTextDraw(sprintf('Hit ESC to quit.',params.hostname,params.displayName),[0 3.5]);
+
+  % tick screen
+  msc = tickScreen(msc,[]);
+
+  % look for next button press
+  buttons = find(ismember(msc.keyboard.nums,msc.keyCodes));
+  if ~isempty(buttons)
+    lastButtons = buttons;
+    lastTime = msc.keyTimes(1)-startTime;
+  end
+end
+
+%%%%%%%%%%%%%%%%%%%
+%%   testDigin   %%
+%%%%%%%%%%%%%%%%%%%
+function retval = testDigin(params)
+
+retval = 0;
+
+% how long to wait for
+waitTime = 60;
+
+% open screen for textVersion
+screenParams = params2screenParams(params);
+if ~screenParams.digin.use
+  disp(sprintf('(mglEditScreenParams:testDigin) Digin is not being used'));
+  return
+end
+
+% get start time
+startTime = mglGetSecs;
+
+% start digin (set digout port to just be whatever digin is not)
+if mglDigIO('init',screenParams.digin.portNum,mod(screenParams.digin.portNum+1,3)) == 0
+  disp(sprintf('(mglEditScreenParams:testDigin) initScreen failed to initialize digital IO port'));
+  return
+end
+
+disp(sprintf('(mglEditScreenParams:testDigin) Testing settings for %s:%s',params.hostname,params.displayName));
+disp(sprintf('(mglEditScreenParams:testDigin) PortNum: %i acqLine: %i acqType: %s responseLine: %s responseType: %s',screenParams.digin.portNum,screenParams.digin.acqLine,num2str(screenParams.digin.acqType),num2str(screenParams.digin.responseLine),num2str(screenParams.digin.responseType)));
+disp(sprintf('(mglEditScreenParams:testDigin) To quit hit ESC'));
+
+% init keyboard listener and clear events
+mglListener('init');
+  
+% get any pending events
+[keyCode when charCode] = mglGetKeyEvent(0,1);
+
+volNum = 0;volTime = startTime;nums = [];times = [];
+while ((mglGetSecs-startTime) < waitTime)
+  [keyCode when charCode] = mglGetKeyEvent(0,1);
+  if ~isempty(charCode)
+    % check for return or space or ESC
+    if any(keyCode == 37) || any(charCode == ' ') || any(keyCode == 54)
+      retval = 1;
+      disp(sprintf('(mglEditScreenParams:testDigin) End digin test'));
+      mglDigIO('quit');
+      mglListener('quit');
+      return
+    end
+  end
+  % get status of digital ports
+  digin = mglDigIO('digin');
+  if ~isempty(digin)
+    % see if there is an acq pulse
+    acqPulse = find(screenParams.digin.acqLine == digin.line);
+    if ~isempty(acqPulse)
+      acqPulse = find(ismember(digin.type(acqPulse),screenParams.digin.acqType));
+      if ~isempty(acqPulse)
+	volTime = digin.when(acqPulse(1));
+	volNum = volNum+1;
+	disp(sprintf('Volume number: %i Time of last volume: %0.3f',volNum,volTime-startTime));
+      end
+    end
+    % see if one of the response lines has been set 
+    [responsePulse whichResponse] = ismember(digin.line,screenParams.digin.responseLine);
+    responsePulse = ismember(digin.type(responsePulse),screenParams.digin.responseType);
+    nums =  whichResponse(responsePulse);
+    times = digin.when(responsePulse);
+    if ~isempty(nums)
+      disp(sprintf('Response: %s (time: %s)',num2str(nums),num2str(times-startTime)));
+    end
+  end
+end
+
+retval = 1;
+disp(sprintf('(mglEditScreenParams:testDigin) End digin test'));
+mglDigIO('quit');
+mglListener('quit');
+return
+
+%%%%%%%%%%%%%%%%%%%%%%
 %%   thisWaitSecs   %%
 %%%%%%%%%%%%%%%%%%%%%%
-function retval = thisWaitSecs(waitTime,params)
+function retval = thisWaitSecs(waitTime,params,drawText)
+
+if nargin < 3, drawText = 1;end
 
 % tell the user what they can do
-mglTextDraw(sprintf('Hit return to continue or ESC to quit.',params.hostname,params.displayName),[0 3.5]);
-mglFlush();
-
+if drawText
+  mglTextDraw(sprintf('Hit return to continue or ESC to quit.',params.hostname,params.displayName),[0 3.5]);
+  mglFlush();
+end
 % get start time
 startTime = mglGetSecs;
 
@@ -217,6 +345,15 @@ screenParams.saveData = params.saveData;
 screenParams.calibType = params.calibType;
 screenParams.calibFilename = params.calibFilename;
 screenParams.monitorGamma = params.monitorGamma;
+
+% digio
+screenParams.digin.use = params.diginUse;
+screenParams.digin.portNum = params.diginPortNum;
+screenParams.digin.acqLine = params.diginAcqLine;
+screenParams.digin.acqType = str2num(params.diginAcqType);
+screenParams.digin.responseLine = str2num(params.diginResponseLine);
+screenParams.digin.responseType = str2num(params.diginResponseType);
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%   calibTypeCallback   %%
