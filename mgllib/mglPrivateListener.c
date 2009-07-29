@@ -70,7 +70,8 @@ void* setupEventTap(void *data);
 void launchSetupEventTapAsThread();
 CGEventRef myCGEventCallback(CGEventTapProxy proxy, CGEventType type, CGEventRef event, void *refcon);
 CGEventRef eatEvent(CGEventRef event, queueEvent *qEvent);
- 
+void mglPrivateListenerOnExit(void);
+
 ////////////////
 //   globals  //
 ////////////////
@@ -143,6 +144,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       for (i = 0; i < MAXKEYCODES; i++)
 	gKeyStatus[i] = 0;
       mexPrintf("(mglPrivateListener) Starting keyboard and mouse event tap. End with mglListener('quit').\n");
+      // tell matlab to call this function to cleanup properly
+      mexAtExit(mglPrivateListenerOnExit);
       // started running, return 1
       *mxGetPr(plhs[0]) = 1;
     }
@@ -405,8 +408,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       CFRunLoopStop(CFRunLoopGetCurrent());
 
       // release the event queue
-      mexPrintf("(mglPrivateListener) FIX FIX FIX: Free event queue here not working\n");
-      //[gListenerPool drain];
+      //      mexPrintf("(mglPrivateListener) FIX FIX FIX: Free event queue here not working\n");
+      [gListenerPool drain];
 
       // set flag to not installed
       eventTapInstalled = FALSE;
@@ -420,6 +423,17 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   }
   [pool drain];
 
+}
+
+//////////////////////////////////
+//   mglPrivateListenerOnExit   //
+//////////////////////////////////
+void mglPrivateListenerOnExit()
+{
+  // call mglSwitchDisplay with -1 to close all open screens
+  mxArray *callInput =  mxCreateDoubleMatrix(1,1,mxREAL);
+  *(double*)mxGetPr(callInput) = 0;
+  mexCallMATLAB(0,NULL,1,&callInput,"mglListener");
 }
 
 ///////////////////////

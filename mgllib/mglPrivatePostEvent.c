@@ -233,6 +233,7 @@ void quitPostEvent(void)
   }
 }
 
+
 /////////////////////////
 //   eventDispatcher   //
 /////////////////////////

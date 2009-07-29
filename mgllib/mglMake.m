@@ -35,7 +35,7 @@ end
 
 % if we find the mglPrivateListener, then shut it down
 % to avoid crashing
-if exist('mglPrivateListener')==3,mglPrivateListener(0);end
+if exist('mglPrivateListener')==3,mglListener('quit');end
 if exist('mglPrivatePostEvent')==3,mglPrivatePostEvent(0);end
 
 % close all open displays
