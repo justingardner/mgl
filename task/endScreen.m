@@ -18,6 +18,9 @@ else
   mglClearScreen;mglFlush;
 end
 
+% quit keyboard listener
+mglListener('quit');
+
 % turn off eye tracker
 %writeDigPort(0,2);
 

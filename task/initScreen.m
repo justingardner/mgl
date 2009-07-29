@@ -181,6 +181,23 @@ myscreen.matlab.version = matlabVersion;
 myscreen.matlab.majorVersion = str2num(matlabMajorVersion);
 myscreen.matlab.minorVersion = str2num(strtok(matlabVersion,'.'));
 
+% initialize digital port
+myscreen.useDigIO = 0;
+if isfield(myscreen,'digin') 
+  if ~isempty(myscreen.digin) && isfield(myscreen.digin,'use') && isequal(myscreen.digin.use,1)
+    % we are using digio
+    myscreen.useDigIO = myscreen.digin.use;
+    % try to open the port
+    if isequal(mglDigIO('init',myscreen.digin.portNum),0)
+      disp(sprintf('(initScreen) Failed to open Digitial IO ports. Only using keyboard backticks now!'));
+      myscreen.useDigIO = 0;
+    else
+      % grab any pending events
+      mglDigIO('digin');
+    end
+  end
+end
+
 % decide which rand algorithim to use
 if (myscreen.matlab.majorVersion>=7) && (myscreen.matlab.minorVersion>=4)
     myscreen.randstate.type = 'twister';
@@ -443,23 +460,6 @@ myscreen.userHitEsc = 0;
 myscreen.flushMode = 0;
 myscreen.makeTraces = 0;
 myscreen.numTasks = 0;
-
-% initialize digital port
-myscreen.useDigIO = 0;
-if isfield(myscreen,'digin') 
-  if ~isempty(myscreen.digin) && isfield(myscreen.digin,'use') && isequal(myscreen.digin.use,1)
-    % we are using digio
-    myscreen.useDigIO = myscreen.digin.use;
-    % try to open the port
-    if isempty(mglDigIO('init',myscreen.digin.portNum))
-      disp(sprintf('(initScreen) Failed to open Digitial IO ports. Only using keyboard backticks now!'));
-      myscreen.useDigIO = 0;
-    else
-      % grab any pending events
-      mglDigIO('digin');
-    end
-  end
-end
 
 % get all pending keyboard events
 mglGetKeyEvent([],1);
