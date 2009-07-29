@@ -205,6 +205,19 @@ if thisWaitSecs(15,params)<=0,endScreen(msc);return,end
 
 % show fine gratings
 mglTestGamma(-1);
+% show info about gamma
+calibType = sprintf('calibType: ''%s''',msc.calibType);
+switch msc.calibType
+ case {'Specify particular calibration','Find latest calibration'}
+    if isempty(msc.calibFilename)
+      calibType = sprintf('%s (No calibration found)',calibType);
+    else
+      calibType = sprintf('%s calibFilename: %s',calibType,msc.calibFilename);
+    end
+  case {'Gamma 1.8','Gamma 2.2','Specify gamma'}
+    calibType = sprintf('%s monitor gamma: %0.2f',calibType,msc.monitorGamma);
+end
+mglTextDraw(calibType,[0 -6]);
 if thisWaitSecs(15,params)<=0,endScreen(msc);return,end
 
 testTickScreen(30,params,msc);
@@ -270,7 +283,7 @@ startTime = mglGetSecs;
 
 % start digin (set digout port to just be whatever digin is not)
 if mglDigIO('init',screenParams.digin.portNum,mod(screenParams.digin.portNum+1,3)) == 0
-  disp(sprintf('(mglEditScreenParams:testDigin) initScreen failed to initialize digital IO port'));
+  disp(sprintf('(mglEditScreenParams:testDigin) Failed to initialize digital IO port'));
   return
 end
 
