@@ -29,6 +29,8 @@
 function retval = mglDigIO(command,arg1,arg2)
 
 retval = [];
+global mglDigIOWarning
+if isequal(mglDigIOWarning,-1),retval = 0;return,end
 
 % check arguments
 if ~any(nargin == [1 2 3])
@@ -64,9 +66,10 @@ if commandNum == 3
 % check for init command which can specify input and output ports
 elseif commandNum == 1
   % first check if the niddq libraries look like they exist
-  global mglDigIOWarning
   if isempty(mglDigIOWarning) && ~isdir('/Library/Frameworks/nidaqmxbase.framework')
     if strcmp(questdlg('You do not have the directory /Library/Frameworks/nidaqmxbase.framework, which suggests that you do not have the NIDAQ libraries installed. To run mglDigIO, you will need to install NI-DAQmx Base from http://sine.ni.com/nips/cds/view/p/lang/en/nid/14480 and then mglDigIO should work with your NI card. If you think you are getting this warning in error, then hit ''Ignore and run mglDigIO anyway'' and the program will try to run, but will likely crash because the libraries are not installed on your system','NI-DAQmx Base is missing','Cancel','Ignore and run mglDigIO anyway','Cancel'),'Cancel')
+      retval = 0;
+      mglDigIOWarning = -1;
       return;
     end
     mglDigIOWarning = 1;
