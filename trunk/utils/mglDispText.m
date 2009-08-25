@@ -18,7 +18,7 @@ end
 if nargin == 0,whichScreen = [];end
   
 % open the screen
-initScreen(whichScreen);
+msc = initScreen(whichScreen);
 mglTextSet('Helvetica',64,[1 1 1],0,0,0,0,0,0,0);
 
 % set flipping
@@ -57,7 +57,8 @@ while ~isempty(str)
   % get the next line of text
   textnum = mod(textnum,maxlines)+1;
 end
-mglClose;
+
+msc = endScreen(msc);
 		    
 
 
