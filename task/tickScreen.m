@@ -59,7 +59,7 @@ end
 
 % record volume
 if (keytick)
-  myscreen = writeTrace(1,1,myscreen,0,volTime);
+  myscreen = writeTrace(1,1,myscreen,1,volTime);
   myscreen.volnum = myscreen.volnum+1;
 %  disp(sprintf('myscreen.volnum = %i',myscreen.volnum));
 end
