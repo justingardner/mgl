@@ -39,10 +39,21 @@ if myscreen.useDigIO
     % use either volume or backtick to signal volume acq
     keytick = acqPulse | ~isempty(keytick);
     % see if one of the response lines has been set 
-    [responsePulse whichResponse] = ismember(digin.line,myscreen.digin.responseLine);
-    responsePulse = ismember(digin.type(responsePulse),myscreen.digin.responseType);
-    myscreen.keyCodes = [myscreen.keyCodes myscreen.keyboard.nums(whichResponse(responsePulse))];
-    myscreen.keyTimes = [myscreen.keyTimes digin.when(responsePulse)];
+    % first check to see if any digin line matches the response line
+    [isResponse pulseWhich] = ismember(digin.line,myscreen.digin.responseLine);
+    % now get the info for those response lines
+    isResponse = find(isResponse);
+    pulseType = digin.type(isResponse);
+    pulseWhen = digin.when(isResponse);
+    pulseWhich = pulseWhich(isResponse);
+    % now check whether that line has the right response (i.e. is it 0 or 1)
+    isResponse = find(ismember(pulseType,myscreen.digin.responseType));
+    % and get the info for those responses
+    pulseWhich = pulseWhich(isResponse);
+    pulseWhen = pulseWhen(isResponse);
+    % and store as keyCodes and keyTimes
+    myscreen.keyCodes = [myscreen.keyCodes myscreen.keyboard.nums(pulseWhich)];
+    myscreen.keyTimes = [myscreen.keyTimes pulseWhen];
   end
 end
 
