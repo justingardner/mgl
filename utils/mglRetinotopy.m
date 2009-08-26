@@ -79,17 +79,17 @@ global fixStimulus;
 if ~easyFixTask
   % default values
   fixStimulus.diskSize = 0.5;
-  fixStimulus.fixWidth = 0.95;
+  fixStimulus.fixWidth = 1;
   fixStimulus.fixLineWidth = 3;
   fixStimulus.stimTime = 0.4;
   fixStimulus.responseTime = 1;
 else
   % make cross bigger and task slower
   fixStimulus.diskSize = 0.5;
-  fixStimulus.fixWidth = 2;
-  fixStimulus.fixLineWidth = 8;
-  fixStimulus.stimTime = 0.8;
-  fixStimulus.responseTime = 2;
+  fixStimulus.fixWidth = 1+1*easyFixTask;
+  fixStimulus.fixLineWidth = 3+2*easyFixTask;
+  fixStimulus.stimTime = 0.4+0.4*easyFixTask;
+  fixStimulus.responseTime = 1+1*easyFixTask;
 end
 [task{1} myscreen] = fixStairInitTask(myscreen);
 
