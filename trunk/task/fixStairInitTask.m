@@ -54,6 +54,12 @@ if ~isfield(fixStimulus,'diskSize') fixStimulus.diskSize = 1; end
 if ~isfield(fixStimulus,'pos') fixStimulus.pos = [0 0]; end
 if ~isfield(fixStimulus,'fixWidth') fixStimulus.fixWidth = 1; end
 if ~isfield(fixStimulus,'fixLineWidth') fixStimulus.fixLineWidth = 3; end
+if ~isfield(fixStimulus,'trainingMode') fixStimulus.trainingMode = 0;end
+
+% for trainingMode set text
+if fixStimulus.trainingMode
+  mglTextSet('Helvetica',64,[1 1 1],0,0,0,0,0,0,0);
+end
 
 % create a fixation task
 task{1}.seglen = [fixStimulus.interTime fixStimulus.stimTime fixStimulus.interTime fixStimulus.stimTime fixStimulus.interTime fixStimulus.responseTime];
@@ -99,11 +105,24 @@ if ~isempty(whichInterval)
   fixStimulus.thisColor = fixStimulus.stimColor*fixStimulus.thisStrength;
   % write out what the strength is
   myscreen = writeTrace(fixStimulus.thisStrength,fixStimulus.traceNum,myscreen);
+  % training mode text
+  if fixStimulus.trainingMode
+    if whichInterval == 1
+      mglTextDraw('Interval 1',[fixStimulus.pos(1) fixStimulus.pos(2)+fixStimulus.diskSize*2],0,1);
+    else
+      mglTextDraw('Interval 2',[fixStimulus.pos(1) fixStimulus.pos(2)+fixStimulus.diskSize*2],0,1);
+    end
+  end
 % if this is the response interval
 elseif task.thistrial.thisseg == 6
   fixStimulus.thisColor = fixStimulus.responseColor;
+  if fixStimulus.trainingMode
+    mglTextDraw('Which interval was darker (1 or 2)?',[fixStimulus.pos(1) fixStimulus.pos(2)+fixStimulus.diskSize*2],0,1);
+  end
 % if this is the inter stimulus interval
 else
+  % training mode, clear sceen here
+  if fixStimulus.trainingMode,mglClearScreen;end
   fixStimulus.thisColor = fixStimulus.interColor;
   myscreen = writeTrace(0,fixStimulus.traceNum,myscreen);
 end
@@ -130,6 +149,11 @@ response = find(task.thistrial.buttonState) == task.thistrial.sigInterval;
 response = response(1);
 
 if response
+  % for training mode
+  if fixStimulus.trainingMode
+    mglClearScreen;
+    mglTextDraw('Correct!',[fixStimulus.pos(1) fixStimulus.pos(2)+fixStimulus.diskSize*2],0,1);
+  end
   % set to correct fixation color
   fixStimulus.thisColor = fixStimulus.correctColor;
   % set trace to 2 to indicate correct response
@@ -137,6 +161,10 @@ if response
   % and update correct count
   task.correct = task.correct+1;
 else
+  if fixStimulus.trainingMode
+    mglClearScreen;
+    mglTextDraw('Incorrect',[fixStimulus.pos(1) fixStimulus.pos(2)+fixStimulus.diskSize*2],0,1);
+  end
   % set to incorrect fixation color
   fixStimulus.thisColor = fixStimulus.incorrectColor;
   % set trace to -2 to indicate incorrect response
