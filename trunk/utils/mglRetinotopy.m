@@ -51,7 +51,7 @@
 function myscreen = mglRetinotopy(varargin)
 
 % evaluate the arguments
-eval(evalargs(varargin,0,0,{'wedges','rings','wedgesOrRings','direction','dutyCycle','stepsPerCycle','stimulusPeriod','numCycles','doEyeCalib','initialHalfCycle','volumesPerCycle','displayName'}));
+eval(evalargs(varargin,0,0,{'wedges','rings','wedgesOrRings','direction','dutyCycle','stepsPerCycle','stimulusPeriod','numCycles','doEyeCalib','initialHalfCycle','volumesPerCycle','displayName','easyFixTask'}));
 
 % setup default arguments
 if exist('wedges','var') && ~isempty(wedges),wedgesOrRings = 1;,end
@@ -65,6 +65,8 @@ if ieNotDefined('numCycles'),numCycles = 10;end
 if ieNotDefined('doEyeCalib'),doEyeCalib = -1;end
 if ieNotDefined('initialHalfCycle'),initialHalfCycle = 1;end
 if ieNotDefined('displayName'),displayName = 'projector';end
+if ieNotDefined('easyFixTask'),easyFixTask = 1;end
+
 
 % initalize the screen
 myscreen.allowpause = 1;
@@ -72,10 +74,23 @@ myscreen.displayname = displayName;
 myscreen.background = 'gray';
 myscreen = initScreen(myscreen);
 
-
 % set the first task to be the fixation staircase task
 global fixStimulus;
-fixStimulus.diskSize = 0.5;
+if ~easyFixTask
+  % default values
+  fixStimulus.diskSize = 0.5;
+  fixStimulus.fixWidth = 0.95;
+  fixStimulus.fixLineWidth = 3;
+  fixStimulus.stimTime = 0.4;
+  fixStimulus.responseTime = 1;
+else
+  % make cross bigger and task slower
+  fixStimulus.diskSize = 0.5;
+  fixStimulus.fixWidth = 2;
+  fixStimulus.fixLineWidth = 8;
+  fixStimulus.stimTime = 0.8;
+  fixStimulus.responseTime = 2;
+end
 [task{1} myscreen] = fixStairInitTask(myscreen);
 
 % init the stimulus
