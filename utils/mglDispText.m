@@ -37,20 +37,32 @@ maxlines = floor(mglGetParam('screenHeight')/textHeight)-1;
 str = 'start';textnum = 1;
 
 % loop to display text
-while ~isempty(str)
+while 1
   % ask the user what they want to display
-  str = input('Text to display (hit enter to end): ','s');
-  % convert text to texture
-  textTexture(textnum) = mglText(str);
-  % set vertical offset
-  voffset = textHeightDevice;
-  % clear screen
-  mglClearScreen;
-  deviceRect = mglGetParam('deviceRect');
-  % now go through and draw all text lines in memory
-  for i = 1:min(length(textTexture),maxlines)
-    mglBltTexture(textTexture(i),[deviceRect(1) deviceRect(4)-voffset],-1,-1);
-    voffset = voffset+textHeightDevice;
+  str = input('Text to display (type end to end, type clear to clear screen): ','s');
+  % clear the screen
+  if strcmp(str,'clear')
+    for i = 1:length(textTexture)
+      mglDeleteTexture(textTexture(i));
+    end
+    textnum = 0;
+    mglClearScreen;
+  % or draw some more text
+  elseif strcmp(str,'end')
+    break;
+  else
+    % convert text to texture
+    textTexture(textnum) = mglText(str);
+    % set vertical offset
+    voffset = textHeightDevice;
+    % clear screen
+    mglClearScreen;
+    deviceRect = mglGetParam('deviceRect');
+    % now go through and draw all text lines in memory
+    for i = 1:min(length(textTexture),maxlines)
+      mglBltTexture(textTexture(i),[deviceRect(1) deviceRect(4)-voffset],-1,-1);
+      voffset = voffset+textHeightDevice;
+    end
   end
   % and flush screen
   mglFlush;
