@@ -15,11 +15,25 @@ function [task, myscreen, tnum] = updateTask(task,myscreen,tnum)
     if tnum > length(task)
         return
     end
-
+    
     % set the random state
     randstate = rand(myscreen.randstate.type);
     rand(task{tnum}.randstate.type,task{tnum}.randstate.state);
-
+    
+    % if we have finished how many trials were called for go to next task
+    if (task{tnum}.trialnum > task{tnum}.numTrials)
+        tnum = tnum+1;
+        % write out the phase
+        myscreen = writeTrace(tnum,task{tnum-1}.phaseTrace,myscreen);
+        if myscreen.eyetracker.init && isfield(myscreen.eyetracker.callback, 'nextTask') && tnum <= numel(task)
+            [task{tnum} myscreen] = feval(myscreen.eyetracker.callback.nextTask,task{tnum},myscreen);
+        end
+        [task myscreen tnum] = updateTask(task,myscreen,tnum);
+        % reset it to what it was before this call
+        rand(myscreen.randstate.type,randstate);
+        return
+    end
+    
     % check for a new block
     if (task{tnum}.blocknum == 0) || (task{tnum}.blockTrialnum > task{tnum}.block(task{tnum}.blocknum).trialn) 
         % if we have finished how many blocks were called for
@@ -39,31 +53,17 @@ function [task, myscreen, tnum] = updateTask(task,myscreen,tnum)
         % otherwise init a new block and continue on
         [task{tnum} myscreen] = initBlock(task{tnum},myscreen,tnum);
     end
-
-    % if we have finished how many trials were called for go to next task
-    if (task{tnum}.trialnum > task{tnum}.numTrials)
-        tnum = tnum+1;
-        % write out the phase
-        myscreen = writeTrace(tnum,task{tnum-1}.phaseTrace,myscreen);
-        if myscreen.eyetracker.init && isfield(myscreen.eyetracker.callback, 'nextTask') && tnum <= numel(task)
-            [task{tnum} myscreen] = feval(myscreen.eyetracker.callback.nextTask,task{tnum},myscreen);
-        end
-        [task myscreen tnum] = updateTask(task,myscreen,tnum);
-        % reset it to what it was before this call
-        rand(myscreen.randstate.type,randstate);
-        return
-    end
-
+    
     % update trial
     [task myscreen tnum] = updateTrial(task, myscreen, tnum);
-
+    
     % remember the status of the random number generator
     if tnum<=length(task) & isfield(task{tnum},'randstate') 
         task{tnum}.randstate.state = rand(task{tnum}.randstate.type);
     end
     % and reset it to what it was before this call
     rand(myscreen.randstate.type,randstate);
-
+    
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
