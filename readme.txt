@@ -8,7 +8,6 @@ Please refer to the wiki for up to date information.
 
 http://justingardner.net/mgl
 
-
 ****************************************************************************
 How to get started
 ****************************************************************************
