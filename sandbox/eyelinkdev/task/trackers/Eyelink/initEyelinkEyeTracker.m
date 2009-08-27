@@ -82,16 +82,35 @@ function [myscreen] = initEyeLinkEyeTracker(myscreen, conntype)
         else
             myscreen.eyetracker.data = [1 0 1 1];
         end
+        
         global gNumSaves;
-        % update the numsaves variable
-        if (isempty(gNumSaves))
-          stimnamenum = 1;
+        if isempty(gNumSaves)
+            nSaves = 1;
         else
-          stimnamenum = gNumSaves+1;
+            nSaves = gNumSaves+1;
         end
+        %% hack taken from save data - needs ot be fixed
         % get filename
         thedate = [datestr(now,'yy') datestr(now,'mm') datestr(now,'dd')];
-        myscreen.eyetracker.datafilename = sprintf('%s%02i',thedate,stimnamenum);
+        myscreen.eyetracker.datafilename = sprintf('%s%02i',thedate,nSaves);
+        
+        % make sure we don't have an existing file in the directory
+        % that would get overwritten
+        changedName = 0;
+        while(isfile(fullfile(myscreen.datadir,sprintf('%s.mat',myscreen.eyetracker.datafilename))))
+          nSaves = nSaves+1;
+          thedate = [datestr(now,'yy') datestr(now,'mm') datestr(now,'dd')];
+          myscreen.eyetracker.datafilename = sprintf('%s%02i',thedate,nSaves);
+          changedName = 1;
+        end
+        % display name if it changes
+        if changedName
+          disp(sprintf('(initEyeLinkEyeTracker) Changed output file to %s',myscreen.eyetracker.datafilename));
+        end
+        
+        % get filename
+        thedate = [datestr(now,'yy') datestr(now,'mm') datestr(now,'dd')];
+        myscreen.eyetracker.datafilename = sprintf('%s%02i',thedate,nSaves);
     
         % get a data file
         mglPrivateEyelinkOpenEDF(sprintf('%s.edf', myscreen.eyetracker.datafilename));
@@ -104,4 +123,27 @@ function [myscreen] = initEyeLinkEyeTracker(myscreen, conntype)
     
     myscreen.eyetracker.init = 1;
     
+end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+% check if it is a file
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+function retval = isfile(filename)
+
+    if (nargin ~= 1)
+      help isfile;
+      return
+    end
+
+    % open file
+    fid = fopen(filename,'r');
+
+    % check to see if there was an error
+    if (fid ~= -1)
+      fclose(fid);
+      retval = 1;
+    else
+      retval = 0;
+    end
+
 end

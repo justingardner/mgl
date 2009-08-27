@@ -9,17 +9,18 @@
 %  copyright: (c) 2006 Justin Gardner (GPL see mgl/COPYING)
 %
 function myscreen = endTask(myscreen,task)
-
+    
     % check arguments
     if ~any(nargin == [2])
         help endTask
         return
     end
-
+    
     % quit keyboard listener
     mglListener('quit');
-
+    
     % compute traces and save data
+    saveStimData(myscreen,task);
     myscreen = endScreen(myscreen);
     if myscreen.eyetracker.init
         if myscreen.eyetracker.savedata
@@ -27,8 +28,7 @@ function myscreen = endTask(myscreen,task)
         end
         feval(myscreen.eyetracker.callback.endTracking,task,myscreen);
     end
-    saveStimData(myscreen,task);
-
+    
     mydisp(sprintf('End task\n'));
     % we are done
     myscreen.task = task;
@@ -38,7 +38,7 @@ function myscreen = endTask(myscreen,task)
         eval(sprintf('global %s;',myscreen.stimulusNames{stimulusNum}));
         eval(sprintf('myscreen.stimuli{end+1} = %s;',myscreen.stimulusNames{stimulusNum}));
     end
-
+    
     % switch back to current directory
     if isfield(myscreen,'pwd') && isdir(myscreen.pwd)
         cd(myscreen.pwd);
