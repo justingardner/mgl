@@ -9,7 +9,7 @@
 %  copyright: (c) 2006 Justin Gardner (GPL see mgl/COPYING)
 %       e.g.:
 %global myStimulus;
-%[stimulus myscreen] = initStimulus('myStimulus',myscreen);
+%[myscreen] = initStimulus('myStimulus',myscreen);
 %
 function [myscreen] = initStimulus(stimulusName, myscreen)
 
