@@ -94,10 +94,12 @@ function [myscreen] = initEyeLinkEyeTracker(myscreen, conntype)
         thedate = [datestr(now,'yy') datestr(now,'mm') datestr(now,'dd')];
         myscreen.eyetracker.datafilename = sprintf('%s%02i',thedate,nSaves);
         
+        disp(sprintf('(initEyeLinkEyeTracker) Eyelink output file is %s',myscreen.eyetracker.datafilename));
+        
         % make sure we don't have an existing file in the directory
         % that would get overwritten
         changedName = 0;
-        while(isfile(fullfile(myscreen.datadir,sprintf('%s.mat',myscreen.eyetracker.datafilename))))
+        while(isfile(fullfile(myscreen.datadir,sprintf('%s.edf',myscreen.eyetracker.datafilename))))
           nSaves = nSaves+1;
           thedate = [datestr(now,'yy') datestr(now,'mm') datestr(now,'dd')];
           myscreen.eyetracker.datafilename = sprintf('%s%02i',thedate,nSaves);
