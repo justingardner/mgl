@@ -15,6 +15,27 @@ retval = [];
 % get the global
 global MGL
 
+% load the permanent params if they haven't been loaded
+if ~isfield(MGL,'persistentParamsLoaded')
+  % set the field to say that we have tried to load the
+  % persistentParams, after this we will no longer keep
+  % trying to load the persistent params
+  MGL.persistentParamsLoaded = 0;
+  % filename of the persistent param filename
+  persistentParamsFilename = '~/.mglParams.mat';
+  if isfile(persistentParamsFilename)
+    load(persistentParamsFilename);
+    if exist('persistentParams','var')
+      persistentParamNames = fieldnames(persistentParams);
+      for i = 1:length(persistentParams)
+	MGL.(persistentParamNames{i}) = persistentParams.(persistentParamNames{i});
+	% set to remember that we have succeeded
+	MGL.persistentParamsLoaded = 1;
+      end
+    end
+  end
+end
+
 if (nargin ~= 1)
   help mglGetParam;
   disp(sprintf('(mglGetParam) List of all mgl global parameters'));
@@ -53,4 +74,32 @@ else
 end
 
     
+
+% isfile.m
+%
+%      usage: isfile(filename)
+%         by: justin gardner
+%       date: 08/20/03
+%       e.g.: isfile('filename')
+%    purpose: function to check whether file exists
+%
+function [isit permission] = isfile(filename)
+
+isit = 0;permission = [];
+if (nargin ~= 1)
+  help isfile;
+  return
+end
+
+% open file
+fid = fopen(filename,'r');
+
+% check to see if there was an error
+if (fid ~= -1)
+  fclose(fid);
+  [dummy permission] = fileattrib(filename);
+  isit = 1;
+else
+  isit = 0;
+end
 
