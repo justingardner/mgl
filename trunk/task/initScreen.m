@@ -142,6 +142,8 @@ if ~isfield(myscreen,'saveData'),myscreen.saveData = -1;end
 if ~isfield(myscreen,'flipHV'),myscreen.flipHV = [0 0];end
 if ~isfield(myscreen,'digin'),myscreen.digin = [];end
 if ~isfield(myscreen,'displayName'),myscreen.displayName = [];end
+if ~isfield(myscreen,'calibType'),myscreen.calibType = 'None';end
+if ~isfield(myscreen,'hideCursor'),myscreen.hideCursor = 0;end
 myscreen.pwd = pwd;
 
 %%%%%%%%%%%%%%%%%
