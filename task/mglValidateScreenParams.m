@@ -67,7 +67,7 @@ for f = 1:length(thisFieldNames)
   end
 end
 
-if isempty(screenParams.calibType)
+if ~isfield(screenParams,'calibType') || isempty(screenParams.calibType)
   screenParams.calibType = 'Find latest calibration';
   if ~isempty(screenParams.monitorGamma),screenParams.calibType = 'Specify gamma';end
   if ~isempty(screenParams.calibFilename),screenParams.calibType = 'Specify particular calibration';end

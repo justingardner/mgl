@@ -4,7 +4,10 @@
 %      usage: mglSetScreenParams(screenParams)
 %         by: justin gardner
 %       date: 07/17/09
-%    purpose: Save screen params structure
+%    purpose: Save screen params structure. This will get saved 
+%             by default into the file ~/.mglScreenParams.mat
+%             you can reset the location where this info is saved
+%             by setting mglSetParam('screenParamsFilename',yourLocation,1);
 %
 function retval = mglSetScreenParams(saveScreenParams)
 
@@ -17,31 +20,15 @@ end
 % get then name of the screen params filename
 screenParamsFilename = mglGetParam('screenParamsFilename');
 if isempty(screenParamsFilename)
-  screenParamsFilename = fullfile(mglGetParam('taskdir'),'mglScreenParams');
+  % set to store in local directory
+  screenParamsFilename = fullfile('~','.mglScreenParams');
+  mglSetParam('screenParamsFilename',screenParamsFilename,1);
 end
 
 % make sure we have a .mat extension 
-[pathstr name] = fileparts(screenParamsFilename);
-screenParamsFilename = sprintf('%s.mat',fullfile(pathstr,name));
-
-% check for file
-if ~isfile(screenParamsFilename)
-  disp(sprintf('(mglEditScreenParams) UHOH: Could not find screenParams file %s',screenParamsFilename));
-  screenParams = {};
-else
-  % load the file
-  screenParams = load(screenParamsFilename);
+if (length(screenParamsFilename)<3) || ~isequal(screenParamsFilename(end-2:end),'mat')
+  screenParamsFilename = sprintf('%s.mat',screenParamsFilename);
 end
-
-% check to make sure it has the right field
-if isfield(screenParams,'screenParams')
-  screenParams = screenParams.screenParams;
-elseif ~isempty(screenParams)
-  disp(sprintf('(mglEditScreenParams) UHOH: File %s does not contain screenParams',screenParamsFilename));
-  screenParams = {};
-end
-
-if isempty(screenParams),return,end
 
 % now unpack digin fields
 diginFields = {'acqLine','portNum','responseLine','acqType','responseType','use'};
@@ -61,12 +48,35 @@ end
 % make sure we have valid parameters
 saveScreenParams = mglValidateScreenParams(saveScreenParams);
 
-% save a backup of the old one
-backupFilename = sprintf('%sBackup',stripext(screenParamsFilename));
-system(sprintf('rm -f %s',backupFilename));
-eval(sprintf('save %s screenParams',backupFilename));
-
 % save the new one
 screenParams = saveScreenParams;
 eval(sprintf('save %s screenParams',screenParamsFilename));
+
+% isfile.m
+%
+%      usage: isfile(filename)
+%         by: justin gardner
+%       date: 08/20/03
+%       e.g.: isfile('filename')
+%    purpose: function to check whether file exists
+%
+function [isit permission] = isfile(filename)
+
+isit = 0;permission = [];
+if (nargin ~= 1)
+  help isfile;
+  return
+end
+
+% open file
+fid = fopen(filename,'r');
+
+% check to see if there was an error
+if (fid ~= -1)
+  fclose(fid);
+  [dummy permission] = fileattrib(filename);
+  isit = 1;
+else
+  isit = 0;
+end
 
