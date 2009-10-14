@@ -45,6 +45,7 @@ while 1
     for i = 1:length(textTexture)
       mglDeleteTexture(textTexture(i));
     end
+    clear textTexture;
     textnum = 0;
     mglClearScreen;
   % or draw some more text
