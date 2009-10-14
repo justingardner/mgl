@@ -51,7 +51,7 @@
 function myscreen = mglRetinotopy(varargin)
 
 % evaluate the arguments
-eval(evalargs(varargin,0,0,{'wedges','rings','wedgesOrRings','direction','dutyCycle','stepsPerCycle','stimulusPeriod','numCycles','doEyeCalib','initialHalfCycle','volumesPerCycle','displayName','easyFixTask'}));
+eval(evalargs(varargin,0,0,{'wedges','rings','wedgesOrRings','direction','dutyCycle','stepsPerCycle','stimulusPeriod','numCycles','doEyeCalib','initialHalfCycle','volumesPerCycle','displayName','easyFixTask','dispText'}));
 
 % setup default arguments
 if exist('wedges','var') && ~isempty(wedges),wedgesOrRings = 1;,end
@@ -66,6 +66,7 @@ if ieNotDefined('doEyeCalib'),doEyeCalib = -1;end
 if ieNotDefined('initialHalfCycle'),initialHalfCycle = 1;end
 if ieNotDefined('displayName'),displayName = 'projector';end
 if ieNotDefined('easyFixTask'),easyFixTask = 1;end
+if ieNotDefined('dispText'),dispText = '';end
 
 
 % initalize the screen
@@ -160,7 +161,7 @@ task{2}{1}.numTrials = stimulus.numCycles*stimulus.stepsPerCycle + stimulus.init
 % run the eye calibration
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 if (doEyeCalib == -1)
-  myscreen = eyeCalibDisp(myscreen);
+  myscreen = eyeCalibDisp(myscreen,dispText);
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -478,6 +479,9 @@ for i = 1:length(args)
     if ((exist(args{i}(strfind(args{i},'=')+1:end)) ~= 2) && ...
 	~isempty(mrStr2num(args{i}(strfind(args{i},'=')+1:end))))
       evalstr = sprintf('%s%s;',evalstr,args{i});
+    % check for empty i.e. 'varname='
+    elseif (length(strfind(args{i},'=')) == 1) && (strfind(args{i},'=') == length(args{i}))
+      evalstr = sprintf('%s%s[];',evalstr,args{i});
     % same for a quoted string
     elseif args{i}(strfind(args{i},'=')+1)==''''
       evalstr = sprintf('%s%s;',evalstr,args{i});
