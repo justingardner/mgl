@@ -1,22 +1,28 @@
 % eyeCalibDisp.m
 %
 %        $Id$
-%      usage: eyeCalibDisp()
+%      usage: myscreen = eyeCalibDisp(myscreen,<dispText>)
 %         by: justin gardner
 %       date: 12/10/04
 %  copyright: (c) 2006 Justin Gardner (GPL see mgl/COPYING)
-%    purpose: eye calibration - mgl version
-%             stimuli should be defined in visual angle coords
+%    purpose: run eye calibration routine, dispText is optional argument that
+%             will display the passed in text before the eye calibration routinei
 %
 
 % TODO: make this function generic with respect to the eyetracker used
-function myscreen = eyeCalibDisp(myscreen)
+function myscreen = eyeCalibDisp(myscreen,dispText)
 
 % set the screen background color
 if (myscreen.background ~= 0)
   mglClearScreen(myscreen.background);
 end
+% display text if called for
+if (nargin > 1) && isstr(dispText) && ~isempty(dispText)
+  mglTextDraw(dispText,[0 0]);
+end
+% flush screen
 myscreen = tickScreen(myscreen);
+
 
 if (myscreen.eyecalib.prompt)
   % check for space key
@@ -29,6 +35,7 @@ if (myscreen.eyecalib.prompt)
   keyCodes=[];
   while ~any(keyCodes==myscreen.keyboard.space)
     if any(keyCodes == myscreen.keyboard.esc)
+      mglClearScreen;myscreen = tickScreen(myscreen);
       return
     end
     if any(keyCodes == myscreen.keyboard.return)
@@ -37,6 +44,7 @@ if (myscreen.eyecalib.prompt)
       %myscreen.fishcamp = bitor(myscreen.fishcamp,1);
       %fishcamp(1,myscreen.fishcamp);
       % reset fliptime
+      mglClearScreen;myscreen = tickScreen(myscreen);
       myscreen.fliptime = inf;
       return
     end
