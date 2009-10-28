@@ -39,6 +39,7 @@ if (myscreen.eyecalib.prompt)
       return
     end
     if any(keyCodes == myscreen.keyboard.return)
+      mglClearScreen;myscreen = tickScreen(myscreen);
       % starting experiment, start the eye tracker
 %XXX      writeDigPort(16,2);
       %myscreen.fishcamp = bitor(myscreen.fishcamp,1);

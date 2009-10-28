@@ -421,7 +421,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       mexPrintf("(mglPrivateListener) Ending keyboard and mouse event tap\n");
     }
   }
-  [pool drain];
+    //  [pool drain];
 
 }
 
