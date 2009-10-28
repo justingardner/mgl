@@ -412,6 +412,12 @@ int mglGetColor(const mxArray *colorArray, double *color)
 {
   double *colorPtr;
 
+  // check to make sure it is not a cell array
+  if (mxIsCell(colorArray)) {
+    mexPrintf("(mglGetColor) Color input should be [g], [r g b] or [r g b a] not a cell array\n");
+    return 0;
+  }
+      
   switch (mxGetN(colorArray)) {
     // if the argument is a single number
     // then set to that level of gray

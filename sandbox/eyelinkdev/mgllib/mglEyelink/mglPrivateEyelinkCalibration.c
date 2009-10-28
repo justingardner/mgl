@@ -537,13 +537,14 @@ This function is called to update any image title change.
     @param title     if threshold is -1, the title contains the whole title 
     for the image. Otherwise only the camera name is given.
  */
-    void ELCALLBACK image_title(INT16 threshold, char *title)
+void ELCALLBACK image_title(INT16 threshold, char *title)
 {
 
     if (threshold == -1){
         snprintf(cameraTitle, sizeof(cameraTitle), "%s", title);
     } else {
-        snprintf(cameraTitle, sizeof(cameraTitle), "%s, threshold at %d", threshold);
+        snprintf(cameraTitle, sizeof(cameraTitle), "%s, threshold at %d", 
+                title, threshold);
     }
     // mexPrintf("Camera Title: %s\n", cameraTitle);
     // mglcFreeTexture(mgltTitle);

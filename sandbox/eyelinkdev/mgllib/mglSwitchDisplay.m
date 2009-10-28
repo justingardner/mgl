@@ -107,6 +107,8 @@ end
 
 % check for close all command
 if displayID == -1
+  mglListener('quit');
+  mglDigIO('quit');
   % then close all the other contexts that are open
   for i = 1:length(MGLALL)
     MGL = MGLALL{i};

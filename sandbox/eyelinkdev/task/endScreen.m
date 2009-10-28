@@ -1,7 +1,7 @@
 % endScreen.m
 %
 %        $Id$
-%      usage: endscreen
+%      usage: myscreen = endScreen(myscreen)
 %         by: justin gardner
 %       date: 12/21/04
 %  copyright: (c) 2006 Justin Gardner (GPL see mgl/COPYING)
@@ -18,9 +18,18 @@ else
   mglClearScreen;mglFlush;
 end
 
-% turn off eye tracker
-writeDigPort(0,2);
+% quit keyboard listener
+mglListener('quit');
 
+% turn off eye tracker
+%writeDigPort(0,2);
+
+% shutdown mglDigIO if it is running
+if myscreen.useDigIO
+  disp(sprintf('(endScreen) Closing DIG IO'));
+  mglDigIO('quit');
+end
+  
 % display tick rate
 if isfield(myscreen,'totalflip')
   disp(sprintf('Average tick rate = %0.6f %0.5fHz effective',myscreen.totalflip/myscreen.totaltick,1/(myscreen.totalflip/myscreen.totaltick)));
@@ -36,3 +45,6 @@ if ((nargin == 1) && (isfield(myscreen,'makeTraces')) && (myscreen.makeTraces ==
   myscreen = makeTraces(myscreen);
 end
 
+if myscreen.hideCursor
+  mglDisplayCursor(1);
+end

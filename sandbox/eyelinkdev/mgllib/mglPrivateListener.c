@@ -70,6 +70,7 @@ void* setupEventTap(void *data);
 void launchSetupEventTapAsThread();
 CGEventRef myCGEventCallback(CGEventTapProxy proxy, CGEventType type, CGEventRef event, void *refcon);
 CGEventRef eatEvent(CGEventRef event, queueEvent *qEvent);
+void mglPrivateListenerOnExit(void);
 
 ////////////////
 //   globals  //
@@ -77,7 +78,7 @@ CGEventRef eatEvent(CGEventRef event, queueEvent *qEvent);
 static CFMachPortRef gEventTap;
 static pthread_mutex_t mut;
 static eventTapInstalled = FALSE;
-static NSAutoreleasePool *gPool;
+static NSAutoreleasePool *gListenerPool;
 static NSMutableArray *gKeyboardEventQueue;
 static NSMutableArray *gMouseEventQueue;
 static double gKeyStatus[MAXKEYCODES];
@@ -131,7 +132,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       // init pthread_mutex
             pthread_mutex_init(&mut,NULL);
       // init the event queue
-            gPool = [[NSAutoreleasePool alloc] init];
+            gListenerPool = [[NSAutoreleasePool alloc] init];
             gKeyboardEventQueue = [[NSMutableArray alloc] init];
             gMouseEventQueue = [[NSMutableArray alloc] init];
       // default to no keys to eat
@@ -144,6 +145,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
             for (i = 0; i < MAXKEYCODES; i++)
                 gKeyStatus[i] = 0;
             mexPrintf("(mglPrivateListener) Starting keyboard and mouse event tap. End with mglListener('quit').\n");
+      // tell matlab to call this function to cleanup properly
+            mexAtExit(mglPrivateListenerOnExit);
       // started running, return 1
             *mxGetPr(plhs[0]) = 1;
         }
@@ -406,7 +409,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
             CFRunLoopStop(CFRunLoopGetCurrent());
 
       // release the event queue
-            [gPool drain];
+      //      mexPrintf("(mglPrivateListener) FIX FIX FIX: Free event queue here not working\n");
+            [gListenerPool drain];
 
       // set flag to not installed
             eventTapInstalled = FALSE;
@@ -418,8 +422,17 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
             mexPrintf("(mglPrivateListener) Ending keyboard and mouse event tap\n");
         }
     }
-    [pool drain];
+}
 
+//////////////////////////////////
+//   mglPrivateListenerOnExit   //
+//////////////////////////////////
+void mglPrivateListenerOnExit()
+{
+  // call mglSwitchDisplay with -1 to close all open screens
+    mxArray *callInput =  mxCreateDoubleMatrix(1,1,mxREAL);
+    *(double*)mxGetPr(callInput) = 0;
+    mexCallMATLAB(0,NULL,1,&callInput,"mglListener");
 }
 
 ///////////////////////

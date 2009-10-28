@@ -224,7 +224,7 @@ myOpenGLView = [[NSOpenGLView alloc] initWithFrame:NSMakeRect(0,0,0,0) pixelForm
 
     // create the window, if we are running desktop, then open a borderless non backing
     // store window because anything else causes problems
-    if (mglGetGlobalDouble("matlabDesktop"))
+    if (1)//(mglGetGlobalDouble("matlabDesktop"))
 myWindow = [[NSWindow alloc] initWithContentRect:contentRect styleMask:NSBorderlessWindowMask backing:NSBackingStoreNonretained defer:false];
     else
 myWindow = [[NSWindow alloc] initWithContentRect:contentRect styleMask:NSTitledWindowMask|NSClosableWindowMask|NSMiniaturizableWindowMask|NSTexturedBackgroundWindowMask backing:NSBackingStoreBuffered defer:false];
