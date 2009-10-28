@@ -20,8 +20,11 @@ function myscreen = endTask(myscreen,task)
     mglListener('quit');
     
     % compute traces and save data
-    saveStimData(myscreen,task);
     myscreen = endScreen(myscreen);
+    % This funciton will check for existing stim files and update the save
+    % number appropriately. This should ensure that the eyelink data will always
+    % matched, as the stim and eyelink will have the same file number.
+    saveStimData(myscreen,task);
     if myscreen.eyetracker.init
         if myscreen.eyetracker.savedata
             [task, myscreen] = feval(myscreen.eyetracker.callback.saveEyeData,task,myscreen);

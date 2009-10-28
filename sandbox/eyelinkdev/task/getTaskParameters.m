@@ -70,165 +70,164 @@ for taskNum = 1:length(allTasks)
       % volume (i.e. the one last recorded by a backtick, then
       % we want to use the following volume as our volume number
       if (eventTime-volTime) > (nextVolTime-eventTime)
-	      volnum = nextVolNum;
+          volnum = nextVolNum;
       end
       % deal with segment trace
       if myscreen.events.tracenum(enum) == task{phaseNum}.segmentTrace
-	% get the segment and the segment time
-	thisseg = myscreen.events.data(enum);
-	segtime = myscreen.events.time(enum);
-	ticknum = myscreen.events.ticknum(enum);
-	% check for new trial
-	if thisseg == 1
-	  tnum = tnum+1;
-	  if tnum > task{phaseNum}.numTrials
-	      fprintf('Recorded trace events past end of last trial.\n');
-	      return
-	  end 
-	  experiment(phaseNum).nTrials = tnum;
-	  % get the time that the experiment starts
-	  % this will only get set for the 1st seg of 1st trial
-	  exptStartTime = min(segtime,exptStartTime);
-	  % now keep the trial time
-	  experiment(phaseNum).trialTime(tnum) = segtime-exptStartTime;
-	  experiment(phaseNum).trialTicknum(tnum) = myscreen.events.ticknum(enum);
-	  experiment(phaseNum).trialVolume(tnum) = volnum;
-	  % get block trial numbers
-	  blockTrialNum = blockTrialNum+1;
-	  % see if we have to go over to the next block
-	  if task{phaseNum}.block(blockNum).trialn < blockTrialNum
-	    blockNum = blockNum + 1;
-	    blockTrialNum = 1;
-	  end
-	  % save the block num and trial num
-	  experiment(phaseNum).blockNum(tnum) ...
-	      = blockNum;
-	  experiment(phaseNum).blockTrialNum(tnum) ...
-	      = blockTrialNum;
-	  % and initalize other parameters
-	  experiment(phaseNum).trials(tnum).response = [];
-	  experiment(phaseNum).trials(tnum).responseVolume = [];
-	  experiment(phaseNum).trials(tnum).reactionTime = [];
-	  experiment(phaseNum).trials(tnum).traces.tracenum = [];
-	  experiment(phaseNum).trials(tnum).traces.val = [];
-	  experiment(phaseNum).trials(tnum).traces.time = [];
-	  if numTraces > 0
-	    experiment(phaseNum).traces(:,tnum) = nan;
-	  end
-	  experiment(phaseNum).response(tnum) = nan;
-	  experiment(phaseNum).responseVolume(tnum) = nan;
-	  experiment(phaseNum).reactionTime(tnum) = nan;
-	  % get all the random parameter
-	  for rnum = 1:task{phaseNum}.randVars.n_
-	    eval(sprintf('experiment(phaseNum).randVars.%s(tnum) = task{phaseNum}.randVars.%s(mod(tnum-1,task{phaseNum}.randVars.varlen_(%i))+1);',task{phaseNum}.randVars.names_{rnum},task{phaseNum}.randVars.names_{rnum},rnum));
-	  end
-	  if isfield(task{phaseNum},'parameterCode')
-	    experiment(phaseNum).parameterCode = task{phaseNum}.parameterCode;
-	  end
-	  % and get all parameters
-	  parameterNames = fieldnames(task{phaseNum}.block(blockNum).parameter);
-	  % and set the values
-	  for pnum = 1:length(parameterNames)
-	    thisParam = task{phaseNum}.block(blockNum).parameter.(parameterNames{pnum});
-	    % if it is an array then it is just a regular parameter
-	    if size(thisParam,1) == 1
-	      eval(sprintf('experiment(phaseNum).parameter.%s(tnum) = thisParam(blockTrialNum);',parameterNames{pnum}));
-	    % otherwise there are multiple values per each trial
-	    else
-	      for paramRowNum = 1:size(thisParam,1)
-		eval(sprintf('experiment(phaseNum).parameter.%s%i(tnum) = thisParam(paramRowNum,blockTrialNum);',parameterNames{pnum},paramRowNum));
-	      end
-	    end
-	  end
-	end
-	
-	% set the segment time for this trial
-	segtime = segtime-exptStartTime;
-	experiment(phaseNum).trials(tnum).segtime(thisseg) = segtime;
-	experiment(phaseNum).trials(tnum).volnum(thisseg) = volnum;
-	experiment(phaseNum).trials(tnum).ticknum(thisseg) = ticknum;
-	% deal with volnum event
+    % get the segment and the segment time
+    thisseg = myscreen.events.data(enum);
+    segtime = myscreen.events.time(enum);
+    ticknum = myscreen.events.ticknum(enum);
+    % check for new trial
+    if thisseg == 1
+      tnum = tnum+1;
+      if tnum > task{phaseNum}.numTrials
+          error('getTaskParameters:Badtrace', 'Recorded trace events past end of last trial.\n');
+      end 
+      experiment(phaseNum).nTrials = tnum;
+      % get the time that the experiment starts
+      % this will only get set for the 1st seg of 1st trial
+      exptStartTime = min(segtime,exptStartTime);
+      % now keep the trial time
+      experiment(phaseNum).trialTime(tnum) = segtime-exptStartTime;
+      experiment(phaseNum).trialTicknum(tnum) = myscreen.events.ticknum(enum);
+      experiment(phaseNum).trialVolume(tnum) = volnum;
+      % get block trial numbers
+      blockTrialNum = blockTrialNum+1;
+      % see if we have to go over to the next block
+      if task{phaseNum}.block(blockNum).trialn < blockTrialNum
+        blockNum = blockNum + 1;
+        blockTrialNum = 1;
+      end
+      % save the block num and trial num
+      experiment(phaseNum).blockNum(tnum) ...
+          = blockNum;
+      experiment(phaseNum).blockTrialNum(tnum) ...
+          = blockTrialNum;
+      % and initalize other parameters
+      experiment(phaseNum).trials(tnum).response = [];
+      experiment(phaseNum).trials(tnum).responseVolume = [];
+      experiment(phaseNum).trials(tnum).reactionTime = [];
+      experiment(phaseNum).trials(tnum).traces.tracenum = [];
+      experiment(phaseNum).trials(tnum).traces.val = [];
+      experiment(phaseNum).trials(tnum).traces.time = [];
+      if numTraces > 0
+        experiment(phaseNum).traces(:,tnum) = nan;
+      end
+      experiment(phaseNum).response(tnum) = nan;
+      experiment(phaseNum).responseVolume(tnum) = nan;
+      experiment(phaseNum).reactionTime(tnum) = nan;
+      % get all the random parameter
+      for rnum = 1:task{phaseNum}.randVars.n_
+        eval(sprintf('experiment(phaseNum).randVars.%s(tnum) = task{phaseNum}.randVars.%s(mod(tnum-1,task{phaseNum}.randVars.varlen_(%i))+1);',task{phaseNum}.randVars.names_{rnum},task{phaseNum}.randVars.names_{rnum},rnum));
+      end
+      if isfield(task{phaseNum},'parameterCode')
+        experiment(phaseNum).parameterCode = task{phaseNum}.parameterCode;
+      end
+      % and get all parameters
+      parameterNames = fieldnames(task{phaseNum}.block(blockNum).parameter);
+      % and set the values
+      for pnum = 1:length(parameterNames)
+        thisParam = task{phaseNum}.block(blockNum).parameter.(parameterNames{pnum});
+        % if it is an array then it is just a regular parameter
+        if size(thisParam,1) == 1
+          eval(sprintf('experiment(phaseNum).parameter.%s(tnum) = thisParam(blockTrialNum);',parameterNames{pnum}));
+        % otherwise there are multiple values per each trial
+        else
+          for paramRowNum = 1:size(thisParam,1)
+        eval(sprintf('experiment(phaseNum).parameter.%s%i(tnum) = thisParam(paramRowNum,blockTrialNum);',parameterNames{pnum},paramRowNum));
+          end
+        end
+      end
+    end
+    
+    % set the segment time for this trial
+    segtime = segtime-exptStartTime;
+    experiment(phaseNum).trials(tnum).segtime(thisseg) = segtime;
+    experiment(phaseNum).trials(tnum).volnum(thisseg) = volnum;
+    experiment(phaseNum).trials(tnum).ticknum(thisseg) = ticknum;
+    % deal with volnum event
       elseif myscreen.events.tracenum(enum) == 1
-	% if data is set to one then it means that we got a backtick
-	% if it is set to zero it means we are coming out of a backtick
-	if myscreen.events.data(enum)
-	  % remember the time of the volume
-	  volTime = myscreen.events.time(enum);
-	  % get the next volume time, by looking for the next volume event
-	  volEvents = find((myscreen.events.tracenum(enum+1:end) == 1) & (myscreen.events.data(enum+1:end) == 1));
-	  % if we have the next volume event get the time
-	  if ~isempty(volEvents)
-	    nextVolEvent = volEvents(1)+enum;
-	    nextVolTime = myscreen.events.time(nextVolEvent);
-	    nextVolNum = myscreen.events.volnum(nextVolEvent)+1;
-	  else
-	    % if we have collected some information about volumeTR
-	    % then we set the final+1 volume to happen one volume
-	    % later. This way events that happen after the last volume
-	    % can be set to have a volume number of nan
-	    if ~isempty(volumeTR(~isnan(volumeTR)))
-	      nextVolTime = volTime+median(volumeTR(~isnan(volumeTR)));
-	    else
-	      nextVolTime = inf;
-	    end
-	    nextVolNum = nan;
-	  end
-	  % keep the amount of time each volume takes
-	  volumeTR(end+1) = nextVolTime-volTime;
-	end
-	% deal with phasenum event
+    % if data is set to one then it means that we got a backtick
+    % if it is set to zero it means we are coming out of a backtick
+    if myscreen.events.data(enum)
+      % remember the time of the volume
+      volTime = myscreen.events.time(enum);
+      % get the next volume time, by looking for the next volume event
+      volEvents = find((myscreen.events.tracenum(enum+1:end) == 1) & (myscreen.events.data(enum+1:end) == 1));
+      % if we have the next volume event get the time
+      if ~isempty(volEvents)
+        nextVolEvent = volEvents(1)+enum;
+        nextVolTime = myscreen.events.time(nextVolEvent);
+        nextVolNum = myscreen.events.volnum(nextVolEvent)+1;
+      else
+        % if we have collected some information about volumeTR
+        % then we set the final+1 volume to happen one volume
+        % later. This way events that happen after the last volume
+        % can be set to have a volume number of nan
+        if ~isempty(volumeTR(~isnan(volumeTR)))
+          nextVolTime = volTime+median(volumeTR(~isnan(volumeTR)));
+        else
+          nextVolTime = inf;
+        end
+        nextVolNum = nan;
+      end
+      % keep the amount of time each volume takes
+      volumeTR(end+1) = nextVolTime-volTime;
+    end
+    % deal with phasenum event
       elseif myscreen.events.tracenum(enum) == task{phaseNum}.phaseTrace
-	phaseNum = myscreen.events.data(enum);
-	if phaseNum <= length(task)
-	  blockNum = 1;
-	  blockTrialNum = 0;
-	  experiment = initPhase(experiment,phaseNum,numTraces);
-	  experiment(phaseNum).nTrials = 1;
-	  tnum = 0;
-	else
-	  break;
-	end
-	% deal with response
+    phaseNum = myscreen.events.data(enum);
+    if phaseNum <= length(task)
+      blockNum = 1;
+      blockTrialNum = 0;
+      experiment = initPhase(experiment,phaseNum,numTraces);
+      experiment(phaseNum).nTrials = 1;
+      tnum = 0;
+    else
+      break;
+    end
+    % deal with response
       elseif myscreen.events.tracenum(enum) == task{phaseNum}.responseTrace
-	whichButton = myscreen.events.data(enum);
-	% make sure this is happening after first trial
-	if tnum
-	  reactionTime = myscreen.events.time(enum)-exptStartTime-segtime;
-	  % save the first response in the response array
-	  if isnan(experiment(phaseNum).response(tnum))
-	    experiment(phaseNum).response(tnum) = whichButton;
-	    experiment(phaseNum).reactionTime(tnum) = reactionTime;
-	    % now see if the response happened closer to this volume 
-	    % or closer to the next volume
-	    responseTime = myscreen.events.time(enum);
-	    experiment(phaseNum).responseVolume(tnum) = volnum;
-	  end
-	  % save all responses in trial
-	  experiment(phaseNum).trials(tnum).response(end+1) = whichButton;
-	  experiment(phaseNum).trials(tnum).reactionTime(end+1) = reactionTime;
-	end
-	% deal with user traces
+    whichButton = myscreen.events.data(enum);
+    % make sure this is happening after first trial
+    if tnum
+      reactionTime = myscreen.events.time(enum)-exptStartTime-segtime;
+      % save the first response in the response array
+      if isnan(experiment(phaseNum).response(tnum))
+        experiment(phaseNum).response(tnum) = whichButton;
+        experiment(phaseNum).reactionTime(tnum) = reactionTime;
+        % now see if the response happened closer to this volume 
+        % or closer to the next volume
+        responseTime = myscreen.events.time(enum);
+        experiment(phaseNum).responseVolume(tnum) = volnum;
+      end
+      % save all responses in trial
+      experiment(phaseNum).trials(tnum).response(end+1) = whichButton;
+      experiment(phaseNum).trials(tnum).reactionTime(end+1) = reactionTime;
+    end
+    % deal with user traces
       elseif myscreen.events.tracenum(enum) >= myscreen.stimtrace
-	tracenum = myscreen.events.tracenum(enum)-myscreen.stimtrace+1;
-	userval = myscreen.events.data(enum);
-	usertime = myscreen.events.time(enum)-exptStartTime;
-	% there is some chance that a user trace can be written
+    tracenum = myscreen.events.tracenum(enum)-myscreen.stimtrace+1;
+    userval = myscreen.events.data(enum);
+    usertime = myscreen.events.time(enum)-exptStartTime;
+    % there is some chance that a user trace can be written
         % before the first trial is started for this task. This
-	% happens if there are multiple tasks and this user
-	% trace belongs to another task. In that case, storing
-	% this variable with this task is not really necessary,
-	% but we do not know that here so we just either save
-	% it if we have a valid trial number or ignore it if not.
-	if (tnum)
-	  % store it if it is the first setting
-	  if isnan(experiment(phaseNum).traces(tracenum,tnum))
-	    experiment(phaseNum).traces(tracenum,tnum) = userval;
-	  end
-	  % put it in trial
-	  experiment(phaseNum).trials(tnum).traces.tracenum(end+1) = tracenum;
-	  experiment(phaseNum).trials(tnum).traces.val(end+1) = userval;
-	  experiment(phaseNum).trials(tnum).traces.time(end+1) = usertime;
-	end
+    % happens if there are multiple tasks and this user
+    % trace belongs to another task. In that case, storing
+    % this variable with this task is not really necessary,
+    % but we do not know that here so we just either save
+    % it if we have a valid trial number or ignore it if not.
+    if (tnum)
+      % store it if it is the first setting
+      if isnan(experiment(phaseNum).traces(tracenum,tnum))
+        experiment(phaseNum).traces(tracenum,tnum) = userval;
+      end
+      % put it in trial
+      experiment(phaseNum).trials(tnum).traces.tracenum(end+1) = tracenum;
+      experiment(phaseNum).trials(tnum).traces.val(end+1) = userval;
+      experiment(phaseNum).trials(tnum).traces.time(end+1) = usertime;
+    end
       end
     end      
   end

@@ -82,7 +82,7 @@ function [myscreen] = initEyeLinkEyeTracker(myscreen, conntype)
         else
             myscreen.eyetracker.data = [1 0 1 1];
         end
-        
+        % we always want this to match the stim file
         global gNumSaves;
         if isempty(gNumSaves)
             nSaves = 1;

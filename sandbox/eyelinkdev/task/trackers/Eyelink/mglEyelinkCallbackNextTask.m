@@ -12,7 +12,15 @@ function [task myscreen] = mglEyelinkCallbackNextTask(task, myscreen)
 %  copyright: (c) 2009,2006 Eric DeWitt, Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
 %     purpose: open a link connection to an SR Research Eylink
 %
-
+    
+    if (~mglEyelinkRecordingCheck())
+        %% if we are recording, stop
+        mglEyelinkRecordingStop();
+    end
+    if (task.collectEyeData)
+        mglPrivateEyelinkRecordingStart(myscreen.eyetracker.data);
+    end
+    
     mglEyelinkEDFPrintF('MGL NEXT PHASE');
     
 end
