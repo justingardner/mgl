@@ -69,6 +69,7 @@ function [task myscreen] = initTask(task, myscreen, startSegmentCallback, ...
     'segmin', ...
     'segmax', ...
     'segquant', ...
+    'segnames', ...
     'synchToVol', ...
     'writeTrace', ...
     'getResponse', ...
@@ -154,7 +155,19 @@ function [task myscreen] = initTask(task, myscreen, startSegmentCallback, ...
         error(sprintf('(initTask) task.segmin not smaller than task.segmax\n'));
         return
     end
-
+    
+    % if we have specified segment names, setup the index
+    if isfield(task, 'segnames') 
+        if numel(task.segnames) ~= task.numsegs
+            error(sprintf('(initTask) task.segnames does not match the number of segments\n'));
+        else
+            for nSeg = 1:task.numsegs
+                task.segndx.(task.segnames{nSeg}) = ...
+                    strmatch(task.segnames{nSeg}, task.segnames);
+            end
+        end
+    end
+    
     % keep the task randstate. Note that initScreen initializes the
     % state of the random generator to a random value (set by clock)
     % each time, guaranteeing a different random sequence. 
@@ -186,10 +199,18 @@ function [task myscreen] = initTask(task, myscreen, startSegmentCallback, ...
     % two different ways of setting them up (either as block or uniform). But it
     % is written in a way to be extensible. (look at the functions blockRandomization
     % and uniformRandomization). All the variable values are precomputed, so you 
-    % have to specify how long to precompute them for. 
-    randTypes = {'block','uniform'};
+    % have to specify how long to precompute them for.
+    % there is an extension to randVars to deal with user calculated (random)
+    % variables that have trial-to-trial dependencies (e.g. a random hazard 
+    % function that depends on user choice). this field uses the calculated
+    % field to setup these variables, which are then made availible as they
+    % are initialized to the user, and then they are saved at the end of each
+    % trial
+    randTypes = {'block','uniform', 'calculated'};
     % compute stuff for random variables
     task.randVars.n_ = 0;
+    task.randVars.calculated_n_ = 0;
+    
     % default to computing a length of 250
     if ~isfield(task.randVars,'len_')
         task.randVars.len_ = 250;
@@ -216,7 +237,7 @@ function [task myscreen] = initTask(task, myscreen, startSegmentCallback, ...
                 thisIsCell = 1;
             end
             for varNum = 1:length(thisRandVar)
-
+                
                 eval(sprintf('vars = %sRandomization(thisRandVar{varNum});',randVarNames{i}));
                 % compute blocks of trials until we have enough
                 varBlock = [];totalTrials = 0;
@@ -240,6 +261,11 @@ function [task myscreen] = initTask(task, myscreen, startSegmentCallback, ...
                         eval(sprintf('task.randVars.%s = [task.randVars.%s varBlock.parameter.%s];',vars.names_{vnum},vars.names_{vnum},vars.names_{vnum}));
                     end
                 end
+            end
+            % we need this to rapidly iterate and copy the calculated vals
+            if strcmp(randVarNames{i},'calculated')
+                task.randVars.calculated_n_ = vars.n_;
+                task.randVars.calculated_names_ = vars.names_;
             end
         end
     end

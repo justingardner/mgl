@@ -2,7 +2,7 @@
 %
 %        $Id$
 %      usage: [task, myscreen, tnum] = updateTask(task,myscreen,tnum)
-%         by: justin gardner
+%         by: justin gardner, eric dewitt
 %       date: 2006-04-27
 %  copyright: (c) 2006 Justin Gardner (GPL see mgl/COPYING)
 %     inputs: stimulus,task,myscreen,tnum
@@ -251,6 +251,17 @@ function [task, myscreen tnum] = updateTrial(task, myscreen, tnum)
                 %% call eyetracker endTrial callback
                 [task{tnum} myscreen] = feval(myscreen.eyetracker.callback.endTrial,task{tnum},myscreen);
             end
+            % if there are calculated random variables, save them
+            if task{tnum}.randVars.calculated_n_
+                for nVar = 1:task{tnum}.randVars.calculated_n_
+                    eval(sprintf('task{tnum}.randVars.%s(task{tnum}.trialnum) = task{tnum}.thistrial.%s;', ...
+                        task{tnum}.randVars.calculated_names_{nVar}, ...
+                        task{tnum}.randVars.calculated_names_{nVar}));
+                end
+            end
+            % we collect the calculated randVars from thistrial and place them
+            % back into the randVar array.
+            % this
             % update the trial number
             task{tnum}.blockTrialnum = task{tnum}.blockTrialnum + 1;
             task{tnum}.trialnum = task{tnum}.trialnum+1;
