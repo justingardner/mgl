@@ -38,5 +38,8 @@ function [myscreen] = calibrateEyeTracker(myscreen)
     else
         fprintf(2, '(calibrateEyeTracker) No eye-tracker has been initialized.\n');
     end
+    
+    % eat any keys that are left around from the calibration
+    mglGetKeyEvent(0,1);
 
 end

@@ -25,12 +25,6 @@ function myscreen = endTask(myscreen,task)
     % number appropriately. This should ensure that the eyelink data will always
     % matched, as the stim and eyelink will have the same file number.
     saveStimData(myscreen,task);
-    if myscreen.eyetracker.init
-        if myscreen.eyetracker.savedata
-            [task, myscreen] = feval(myscreen.eyetracker.callback.saveEyeData,task,myscreen);
-        end
-        feval(myscreen.eyetracker.callback.endTracking,task,myscreen);
-    end
     
     mydisp(sprintf('End task\n'));
     % we are done
