@@ -131,10 +131,161 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   *(double *)mxGetPr(mxGetField(plhs[0],0,"bitDepth")) = (double)bitDepth;
 }
 
-//-----------------------------------------------------------------------------------///
-// ******************************* mac specific code  ******************************* //
-//-----------------------------------------------------------------------------------///
 #ifdef __APPLE__
+#ifdef __cocoa__
+//-----------------------------------------------------------------------------------///
+// **************************** mac cocoa specific code  **************************** //
+//-----------------------------------------------------------------------------------///
+////////////////////////
+//   define section   //
+////////////////////////
+#define kMaxDisplays 8
+
+///////////////////////
+//   getResolution   //
+///////////////////////
+void getResolution(int *displayNumber, int *screenWidth, int *screenHeight, int *frameRate, int *bitDepth)
+{
+  // get all screen array
+  NSArray *screens = [NSScreen screens];
+  // grab the screen in question
+  NSScreen *thisDisplay = [screens objectAtIndex:(*displayNumber-1)];
+  // get the display description
+  NSDictionary *thisDisplayDescription = [thisDisplay deviceDescription];
+  //NSLog(@"test %@",[thisDisplayDescription objectForKey:@"NSDeviceResolution"]);
+  // get the display size
+  NSSize thisDisplaySize = [[thisDisplayDescription objectForKey:@"NSDeviceSize"] sizeValue];
+  *screenWidth = thisDisplaySize.width;
+  *screenHeight = thisDisplaySize.height;
+  // get the bit depth
+  *bitDepth = [[thisDisplayDescription objectForKey:@"NSDeviceBitsPerSample"] integerValue];
+
+  // FIX FIX FIX ok, giving up carbon code to follow here, when I can figure out how to 
+  // write cocoa code above to get bitDepth and frameRate then the code
+  // below can be removed
+  CGDisplayErr displayErrorNum;
+  CGDirectDisplayID displays[kMaxDisplays];
+  CGDirectDisplayID whichDisplay;
+  CGDisplayCount numDisplays;
+  CFDictionaryRef modeInfo;
+
+  // get status of global variable that sets wether to display
+  // verbose information
+  int verbose = (int)mglGetGlobalDouble("verbose");
+
+  // check number of displays
+  displayErrorNum = CGGetActiveDisplayList(kMaxDisplays,displays,&numDisplays);
+  if (displayErrorNum) {
+    mexPrintf("(mglResolution) Cannot get displays (%d)\n", displayErrorNum);
+    return;
+  }
+
+  if (verbose)
+    mexPrintf("(mglResolution) Found %i displays\n",numDisplays);
+
+  // get the display
+  whichDisplay = displays[*displayNumber-1];
+
+  // get the display settings
+  *bitDepth=(int)CGDisplayBitsPerPixel(whichDisplay);
+
+  // and the refresh rate
+  *frameRate = 0;
+  modeInfo = CGDisplayCurrentMode(whichDisplay);
+  if (modeInfo != NULL) {
+    CFNumberRef value = (CFNumberRef)CFDictionaryGetValue(modeInfo, kCGDisplayRefreshRate);
+    if (value != NULL)
+      CFNumberGetValue(value, kCFNumberIntType, frameRate);
+  }
+  // assume 60, if the above fails
+  if (*frameRate == 0) {
+    if (verbose)
+      mexPrintf("(mglResolution) Assuming refresh rate of display %i is 60Hz\n",*displayNumber);
+    *frameRate = 60;
+  }
+
+  if (verbose)
+    mexPrintf("(mglResolution) Current display parameters: screenWidth=%i, screenHeight=%i, frameRate=%i, bitDepth=%i\n",*screenWidth,*screenHeight,*frameRate,*bitDepth);
+}
+///////////////////////
+//   setResolution   //
+///////////////////////
+void setResolution(int *displayNumber, int *screenWidth, int *screenHeight, int *frameRate, int *bitDepth)
+{
+  // FIX FIX FIX this is just the carbon code copied from below
+  CGDisplayErr displayErrorNum;
+  CGDirectDisplayID displays[kMaxDisplays];
+  CGDirectDisplayID whichDisplay;
+  CGDisplayCount numDisplays;
+  CFDictionaryRef modeInfo;
+
+  // get status of global variable that sets wether to display
+  // verbose information
+  int verbose = (int)mglGetGlobalDouble("verbose");
+
+  // check number of displays
+  displayErrorNum = CGGetActiveDisplayList(kMaxDisplays,displays,&numDisplays);
+  if (displayErrorNum) {
+    mexPrintf("(mglResolution) Cannot get displays (%d)\n", displayErrorNum);
+    return;
+  }
+
+  if (verbose)
+    mexPrintf("(mglResolution) Found %i displays\n",numDisplays);
+
+  // get the display
+  whichDisplay = displays[*displayNumber-1];
+
+  // capture the appropriate display
+  //  CGDisplayCapture(whichDisplay);
+
+  // Switch the display mode
+  boolean_t success=false;
+  CGDisplaySwitchToMode(whichDisplay,CGDisplayBestModeForParametersAndRefreshRate(whichDisplay,*bitDepth,*screenWidth,*screenHeight,*frameRate,&success));
+
+  // check to see if it found the right setting
+  if (!success) {
+    mexPrintf("(mglPrivateOpen) Warning: failed to set requested display parameters.\n");
+  }
+
+  // get the display settings
+  *screenWidth=(int)CGDisplayPixelsWide(whichDisplay);
+  *screenHeight=(int)CGDisplayPixelsHigh(whichDisplay);
+  *bitDepth=(int)CGDisplayBitsPerPixel(whichDisplay);
+
+  // and the refresh rate
+  int requestedFrameRate = *frameRate;
+  *frameRate = 0;
+  modeInfo = CGDisplayCurrentMode(whichDisplay);
+  if (modeInfo != NULL) {
+    CFNumberRef value = (CFNumberRef)CFDictionaryGetValue(modeInfo, kCGDisplayRefreshRate);
+    if (value != NULL)
+      CFNumberGetValue(value, kCFNumberIntType, frameRate);
+  }
+  // assume 60, if the above fails
+  if (*frameRate == 0) {
+    if (verbose)
+      mexPrintf("(mglResolution) Assuming refresh rate of display %i has been set to %iHz\n",requestedFrameRate);
+    *frameRate = requestedFrameRate;
+  }
+
+  if (verbose)
+    mexPrintf("(mglResolution) Current display parameters: screenWidth=%i, screenHeight=%i, frameRate=%i, bitDepth=%i\n",*screenWidth,*screenHeight,*frameRate,*bitDepth);
+}
+//////////////////////////////////
+//   getNumDisplaysAndDefault   //
+//////////////////////////////////
+void getNumDisplaysAndDefault(int *numDisplays, int *defaultDisplayNum)
+{
+  // return num displays and default display number
+  *numDisplays = [[NSScreen screens] count];
+  *defaultDisplayNum = *numDisplays;
+}
+
+#else // __cocoa__
+//-----------------------------------------------------------------------------------///
+// **************************** mac carbon specific code  *************************** //
+//-----------------------------------------------------------------------------------///
 ////////////////////////
 //   define section   //
 ////////////////////////
@@ -190,8 +341,8 @@ void getResolution(int *displayNumber, int *screenWidth, int *screenHeight, int 
 
   if (verbose)
     mexPrintf("(mglResolution) Current display parameters: screenWidth=%i, screenHeight=%i, frameRate=%i, bitDepth=%i\n",*screenWidth,*screenHeight,*frameRate,*bitDepth);
-
 }
+
 ///////////////////////
 //   setResolution   //
 ///////////////////////
@@ -287,6 +438,7 @@ void getNumDisplaysAndDefault(int *numDisplays, int *defaultDisplayNum)
     *defaultDisplayNum--;
 }
 #endif //__APPLE__
+#endif //__cocoa__
 
 
 //-----------------------------------------------------------------------------------///
