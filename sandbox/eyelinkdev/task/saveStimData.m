@@ -120,7 +120,6 @@ function retval = saveStimData(myscreen,task)
             if myscreen.eyetracker.savedata
                 [task, myscreen] = feval(myscreen.eyetracker.callback.saveEyeData,task,myscreen);
             end
-            feval(myscreen.eyetracker.callback.endTracking,task,myscreen);
         end
         
     end
