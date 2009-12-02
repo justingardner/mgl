@@ -164,17 +164,8 @@ mglSetParam('deviceVDirection',1);
 mglSetParam('numTextures',0);
 
 % install sounds
-if exist('mglInstallSound') == 3 
-  sounddir = '/System/Library/Sounds/';
-  sounds = dir(fullfile(sounddir,'*.aiff'));
-  for i = 1:length(sounds)
-    soundNum = mglInstallSound(fullfile(sounddir,sounds(i).name));
-    if ~isempty(soundNum)
-      soundNames = mglGetParam('soundNames');
-      [soundPath soundNames{soundNum}] = fileparts(sounds(i).name);
-      mglSetParam('soundNames',soundNames);
-    end
-  end
+if exist('mglInstallSound') == 2 
+  mglInstallSound('/System/Library/Sounds/');
 end
 
 % the displayID (used by mglSwitchDisplay defaults to the display number)

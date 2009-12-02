@@ -559,8 +559,8 @@ unsigned long cglOpen(double *displayNumber, int *screenWidth, int *screenHeight
 
   // set the drawing context
   CGLSetCurrentContext( contextObj ) ;
-  CGLSetFullScreen( contextObj ) ;
-
+  //  CGLSetFullScreen( contextObj ) ;
+  CGLSetFullScreenOnDisplay( contextObj, displayMask );
   // Hide cursor
   CGDisplayHideCursor( kCGDirectMainDisplay ) ;
 
