@@ -104,6 +104,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       outptr[0] = (double)i+1;
     }
   }
+  else {
+    // return sound number
+    plhs[0] = mxCreateDoubleMatrix(0,0,mxREAL);
+  }
+
 }
 
 //-----------------------------------------------------------------------------------///

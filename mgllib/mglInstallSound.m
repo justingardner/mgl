@@ -23,6 +23,7 @@ if nargin > 1
   help mglInstallSound
   return
 end
+soundNum = [];
 
 % clear sounds
 if nargin == 0
@@ -34,17 +35,53 @@ end
 
 % install a whole directory of sounds
 if isdir(soundName)
-  soundDir = dir(fullfile(soundName,'*.aif*'));
+  % make sure the directory name is fully qualified (to do this cd to the directory and get its path). This
+  % prevents sending in things like ~ to the c function
+  currentPath = pwd;
+  cd(soundName);
+  soundPath = pwd;
+  cd(currentPath);
+  % now get all the sounds in that path
+  soundDir = dir(fullfile(soundPath,'*.aif*'));
   for i = 1:length(soundDir)
-    mglInstallSound(fullfile(soundName,soundDir(i).name));
+    mglInstallSound(fullfile(soundPath,soundDir(i).name));
   end
-else
+elseif isfile(soundName)
   % install a sound
   soundNum = mglPrivateInstallSound(soundName);
   if ~isempty(soundNum)
     soundNames = mglGetParam('soundNames');
     [soundPath soundNames{soundNum}] = fileparts(soundName);
     mglSetParam('soundNames',soundNames);
+  else
+    disp(sprintf('(mglInstallSound) Could not install sound %s',soundName));
   end
+else
+  disp(sprintf('(mglInstallSound) Could not find file %s',soundName));
+end
+
+
+%%%%%%%%%%%%%%%%
+%    isfile    %
+%%%%%%%%%%%%%%%%
+function [isit permission] = isfile(filename)
+
+isit = 0;permission = [];
+if (nargin ~= 1)
+  help isfile;
+  return
+end
+if isempty(filename),isit = 0;,return,end
+
+% open file
+fid = fopen(filename,'r');
+
+% check to see if there was an error
+if (fid ~= -1)
+  fclose(fid);
+  [dummy permission] = fileattrib(filename);
+  isit = 1;
+else
+  isit = 0;
 end
 
