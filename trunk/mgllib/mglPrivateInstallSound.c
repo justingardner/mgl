@@ -8,7 +8,7 @@
      purpose: mex function to install system sounds
        usage: mglInstallSound()
 
-$Id$
+$Id: mglInstallSound.c 379 2008-12-31 03:56:53Z justin $
 =========================================================================
 #endif
 

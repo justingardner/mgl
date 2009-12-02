@@ -12,3 +12,39 @@
 %soundNum = mglInstallSound('/System/Library/Sounds/Submarine.aiff');
 %mglPlaySound(soundNum);
 %
+%              or to install a whole directory of sounds
+%
+%              mglInstallSound(soundDirName);
+%
+function soundNum = mglInstallSound(soundName)
+
+% check arguments
+if nargin > 1
+  help mglInstallSound
+  return
+end
+
+% clear sounds
+if nargin == 0
+  mglPrivateInstallSound;
+  mglSetParam('sounds',[]);
+  mglSetParam('soundNames',{});
+  return
+end
+
+% install a whole directory of sounds
+if isdir(soundName)
+  soundDir = dir(fullfile(soundName,'*.aif*'));
+  for i = 1:length(soundDir)
+    mglInstallSound(fullfile(soundName,soundDir(i).name));
+  end
+else
+  % install a sound
+  soundNum = mglPrivateInstallSound(soundName);
+  if ~isempty(soundNum)
+    soundNames = mglGetParam('soundNames');
+    [soundPath soundNames{soundNum}] = fileparts(soundName);
+    mglSetParam('soundNames',soundNames);
+  end
+end
+
