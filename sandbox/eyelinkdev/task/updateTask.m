@@ -58,12 +58,9 @@ function [task, myscreen, tnum] = updateTask(task,myscreen,tnum)
     [task myscreen tnum] = updateTrial(task, myscreen, tnum);
     
     % remember the status of the random number generator
-    %%%% the following if statement is redundent with the one above
-    %%%% and the requiremet that the task be passed through initTask
-    % if tnum<=length(task) & isfield(task{tnum},'randstate') 
+    if tnum<=length(task) & isfield(task{tnum},'randstate') 
         task{tnum}.randstate.state = rand(task{tnum}.randstate.type);
-    % end
-    % and reset it to what it was before this call
+    end
     rand(myscreen.randstate.type,randstate);
     
 end
@@ -273,9 +270,9 @@ function [task, myscreen tnum] = updateTrial(task, myscreen, tnum)
             % now we have to update the task
             [task myscreen tnum] = updateTask(task,myscreen,tnum);
             % make sure that random number generator is in correct state
-            % if tnum<=length(task) & isfield(task{tnum},'randstate') 
+            if tnum<=length(task) & isfield(task{tnum},'randstate') 
                 rand(task{tnum}.randstate.type,task{tnum}.randstate.state);
-            % end
+            end
             return
         end
         % restart segment clock
