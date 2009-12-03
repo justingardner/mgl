@@ -32,8 +32,6 @@ end
 if ~isempty(mglGetParam('sounds'))
   % uninstall sounds
   mglInstallSound;
-  mglSetParam('sounds',[]);
-  mglSetParam('soundNames',{});
 end
   
 % free any existing movies

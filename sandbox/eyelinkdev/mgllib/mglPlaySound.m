@@ -8,9 +8,11 @@ function mglPlaySound(soundNum)
 %  copyright: (c) 2007 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
 %    purpose: Plays a system sound. After calling mglOpen, all of
 %             the system sounds will be installed and you can play
-%             a specific one as follows
+%             a specific one as follows.
 %mglOpen;
 %mglPlaySound('Submarine');
+%
+%             If you want to play your own sound, see mglInstallSound
 %
 
 % check mglPlaySound

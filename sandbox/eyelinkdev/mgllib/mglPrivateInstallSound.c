@@ -8,7 +8,7 @@
      purpose: mex function to install system sounds
        usage: mglInstallSound()
 
-$Id$
+$Id: mglInstallSound.c 379 2008-12-31 03:56:53Z justin $
 =========================================================================
 #endif
 
@@ -104,6 +104,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       outptr[0] = (double)i+1;
     }
   }
+  else {
+    // return sound number
+    plhs[0] = mxCreateDoubleMatrix(0,0,mxREAL);
+  }
+
 }
 
 //-----------------------------------------------------------------------------------///
