@@ -58,9 +58,11 @@ function [task, myscreen, tnum] = updateTask(task,myscreen,tnum)
     [task myscreen tnum] = updateTrial(task, myscreen, tnum);
     
     % remember the status of the random number generator
-    if tnum<=length(task) & isfield(task{tnum},'randstate') 
+    %%%% the following if statement is redundent with the one above
+    %%%% and the requiremet that the task be passed through initTask
+    % if tnum<=length(task) & isfield(task{tnum},'randstate') 
         task{tnum}.randstate.state = rand(task{tnum}.randstate.type);
-    end
+    % end
     % and reset it to what it was before this call
     rand(myscreen.randstate.type,randstate);
     
@@ -70,15 +72,15 @@ end
 % update trial
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function [task, myscreen tnum] = updateTrial(task, myscreen, tnum)
-
+    
     if task{tnum}.thistrial.waitingToInit
         % init the trial
         [task{tnum} myscreen] = initTrial(task{tnum},myscreen,tnum);
     end
-
+    
     % get globals
     global stimulus;
-
+    
     % see if we are waiting for backtick
     if task{tnum}.thistrial.segstart == -inf
         if task{tnum}.thistrial.waitForBacktick
@@ -118,7 +120,7 @@ function [task, myscreen tnum] = updateTrial(task, myscreen, tnum)
             %% call eyetracker segment callback
             [task{tnum} myscreen] = feval(myscreen.eyetracker.callback.startSegment,task{tnum},myscreen);
         end
-
+        
         % if this segment is set to getResponse(2), then it means that we 
         % are getting response and shutting down flipping of the screen
         % so that we can get better response time for reaction time tasks
@@ -131,10 +133,10 @@ function [task, myscreen tnum] = updateTrial(task, myscreen, tnum)
             myscreen.flushMode = 1;
         end
     end
-
+    
     % check to see if we have gone over segment time
     segover = 0;
-
+    
     % check end of segment in ticks
     if task{tnum}.timeInTicks == 1
         if (myscreen.tick - task{tnum}.thistrial.segstart) >= task{tnum}.thistrial.seglen(task{tnum}.thistrial.thisseg)
@@ -166,7 +168,7 @@ function [task, myscreen tnum] = updateTrial(task, myscreen, tnum)
             end
         end
     end
-
+    
     % there are situations in which for the trial in the sequence
     % we are waiting for a volume to end the trial, but will enver
     % get one since the scan is over. Yet, we still want to end the
@@ -232,7 +234,7 @@ function [task, myscreen tnum] = updateTrial(task, myscreen, tnum)
             end
         end
     end
-
+    
     % update the segment if necessary
     if (segover)
         % reset flush mode if we just finished a reactionTime response interval
@@ -271,9 +273,9 @@ function [task, myscreen tnum] = updateTrial(task, myscreen, tnum)
             % now we have to update the task
             [task myscreen tnum] = updateTask(task,myscreen,tnum);
             % make sure that random number generator is in correct state
-            if tnum<=length(task) & isfield(task{tnum},'randstate') 
+            % if tnum<=length(task) & isfield(task{tnum},'randstate') 
                 rand(task{tnum}.randstate.type,task{tnum}.randstate.state);
-            end
+            % end
             return
         end
         % restart segment clock
@@ -299,7 +301,7 @@ function [task, myscreen tnum] = updateTrial(task, myscreen, tnum)
             myscreen.flushMode = -1;
         end
     end
-
+    
     % if we have to collect observer response, then look for that
     if (task{tnum}.getResponse(task{tnum}.thistrial.thisseg))
         % get keyboard state
@@ -330,7 +332,7 @@ function [task, myscreen tnum] = updateTrial(task, myscreen, tnum)
         % remember the current button state
         task{tnum}.thistrial.buttonState = buttons;
     end
-
+    
     % update the stimuli, but only if we are actually updating the screen
     if myscreen.flushMode >= 0
         [task{tnum} myscreen] = feval(task{tnum}.callback.screenUpdate,task{tnum},myscreen);
@@ -342,7 +344,7 @@ end
 % init block
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function [task myscreen] = initBlock(task,myscreen,phase)
-
+    
     % start up a new block
     % select a randomization of trial parameters
     task.blocknum = task.blocknum+1;
@@ -353,7 +355,7 @@ function [task myscreen] = initBlock(task,myscreen,phase)
     % can reset the rand state in initTask from the one that is saved
     randstate = rand(task.randstate.type);
     rand(task.randstate.type,task.randstate.blockState);
-
+    
     % update the parameter order for this block
     % using the randomization callback, if this
     % pass previous block if it is available
@@ -362,14 +364,14 @@ function [task myscreen] = initBlock(task,myscreen,phase)
     else
         task.block(task.blocknum) = feval(task.callback.rand,task.parameter,[]);
     end
-
+    
     % now keep the randstate
     task.randstate.blockState = rand(task.randstate.type);
     rand(task.randstate.type,randstate);
-
+    
     % set the initial trial
     task.blockTrialnum = 1;
-
+    
     % call the init block callback
     if isfield(task.callback,'startBlock')
         [task myscreen] = feval(task.callback.startBlock,task,myscreen);
@@ -378,30 +380,30 @@ function [task myscreen] = initBlock(task,myscreen,phase)
         %% call eyetracker block callback
         [task myscreen] = feval(myscreen.eyetracker.callback.startBlock,task,myscreen);
     end
-
+    
     % set up start time to tell routines to init trial properly
     [task myscreen] = initTrial(task,myscreen,phase);
-
+    
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % init trial
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function [task, myscreen] = initTrial(task,myscreen,phase)
-
+    
     % keep lasttrial information
     task.lasttrial = task.thistrial;
-
+    
     % set the phase num of the trial
     task.thistrial.thisphase = phase;
-
+    
     % set the segment number
     task.thistrial.thisseg = 1;
     task.thistrial.gotResponse = 0;
-
+    
     % restart segment clock
     task.thistrial.segstart = -inf;
-
+    
     % start trial time
     %if (task.timeInTicks)
     %  task.thistrial.trialstart = myscreen.tick;
@@ -409,36 +411,36 @@ function [task, myscreen] = initTrial(task,myscreen,phase)
     %  task.thistrial.trialstart = myscreen.volnum;
     %else
     %end
-
+    
     % set up start volume for checking for backticks
     task.thistrial.startvolnum = myscreen.volnum;
-
+    
     % set the segment length
     segminlen = task.segmin;
     segmaxlen = task.segmax;
-
+    
     % set the random state
     randstate = rand(task.randstate.type);
     rand(task.randstate.type,task.randstate.trialState);
-
+    
     % for time in ticks and vols, we want an integer value
     if (task.timeInTicks || task.timeInVols)
         task.thistrial.seglen = segminlen + floor(rand(1,numel(segmaxlen)).*(segmaxlen-segminlen+1));
     else
         task.thistrial.seglen = segminlen + rand(1,numel(segmaxlen)).*(segmaxlen-segminlen);
-
+        
         % deal with the segment quantization, if segquant is set to
         % zero there is no effect, otherwise we will round segment
         % lengths to something evenly divisible by segquant
         task.thistrial.seglen(task.segquant~=0) = round((task.thistrial.seglen(task.segquant~=0)-task.segmin(task.segquant~=0))./task.segquant(task.segquant~=0)).*task.segquant(task.segquant~=0)+task.segmin(task.segquant~=0);
-
+        
     end
-
+    
     % remember the status of the random number generator
     task.randstate.trialState = rand(task.randstate.type);
     % and reset it to what it was before this call
     rand(task.randstate.type,randstate);
-
+    
     % see if we need to wait for backtick
     if task.waitForBacktick && (task.blocknum == 1) && (task.blockTrialnum == 1)
         task.thistrial.waitForBacktick = 1;
@@ -448,20 +450,20 @@ function [task, myscreen] = initTrial(task,myscreen,phase)
         % trial will start right awway
         task.thistrial.waitForBacktick = 0;
     end
-
+    
     % set the button states to zero
     task.thistrial.buttonState = [0 0];
-
+    
     % get trial parameters
     for i = 1:task.parameter.n_
         eval(sprintf('task.thistrial.%s = task.block(task.blocknum).parameter.%s(:,task.blockTrialnum);',task.parameter.names_{i},task.parameter.names_{i}));
     end
-
+    
     % get randomization parameters
     for i = 1:task.randVars.n_
         eval(sprintf('task.thistrial.%s = task.randVars.%s(mod(task.trialnum-1,task.randVars.varlen_(%i))+1);',task.randVars.names_{i},task.randVars.names_{i},i));
     end
-
+    
     % call the init trial callback
     if isfield(task.callback,'startTrial')
         [task myscreen] = feval(task.callback.startTrial,task,myscreen);
@@ -470,10 +472,10 @@ function [task, myscreen] = initTrial(task,myscreen,phase)
         %% call eyetracker trial callback
         [task myscreen] = feval(myscreen.eyetracker.callback.startTrial,task,myscreen);
     end
-
+    
     % the trial is no longer waiting to start
     task.thistrial.waitingToInit = 0;
-
+    
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -483,11 +485,11 @@ function task = resetSegmentClock(task,myscreen)
 
     % reset the synch volume
     task.thistrial.synchVol = -1;
-
+    
     % get amount of time already used, including and
     % discrepancy left over from last trial
     usedtime = sum(task.thistrial.seglen(1:(task.thistrial.thisseg-1)));
-
+    
     % restart segment clock, if we are using seconds, then fix
     % any time discrepancy
     if ~(task.timeInVols || task.timeInTicks)
@@ -497,5 +499,5 @@ function task = resetSegmentClock(task,myscreen)
     end
     % get start of segment in real seconds
     task.thistrial.segStartSeconds = mglGetSecs;
-
+    
 end
