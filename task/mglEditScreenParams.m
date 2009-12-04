@@ -225,6 +225,7 @@ if thisWaitSecs(15,params)<=0,endScreen(msc);return,end
 testTickScreen(30,params,msc);
 
 % close screen and return
+msc.autoCloseScreen = 1;
 endScreen(msc);
 
 %%%%%%%%%%%%%%%%%%%%%%
