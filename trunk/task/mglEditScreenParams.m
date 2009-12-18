@@ -110,6 +110,7 @@ paramsInfo{end+1} = {'screenHeight',screenHeight,'type=numeric','minmax=[0 inf]'
 paramsInfo{end+1} = {'framesPerSecond',framesPerSecond,'type=numeric','minmax=[0 inf]','incdec=[-1 1]','round=1','contingent=useCustomScreenSettings','Refresh rate of monitor'};
 paramsInfo{end+1} = {'displayDistance',thisScreenParams.displayDistance,'type=numeric','minmax=[0 inf]','incdec=[-1 1]','Distance in cm to the display from the eyes. This is used for figuring out how many pixels correspond to a degree of visual angle'};
 paramsInfo{end+1} = {'displaySize',thisScreenParams.displaySize,'type=array','minmax=[0 inf]','Width and height of display in cm. This is used for figuring out how many pixels correspond to a degree of visual angle'};
+paramsInfo{end+1} = {'displayPos',thisScreenParams.displayPos,'type=array','minmax=[0 inf]','This is only relevant if you are using a windowed context (e.g. screenNumber=0). It will set the position of the display in pixels where 0,0 is the bottom left corner of your display.'};
 paramsInfo{end+1} = {'autoCloseScreen',thisScreenParams.autoCloseScreen,'type=checkbox','Check if you want endScreen to automatically do mglClose at the end of your experiment.'};
 paramsInfo{end+1} = {'flipHorizontal',thisScreenParams.flipHV(1),'type=checkbox','Click if you want initScreen to set the coordinates so that the screen is horizontally flipped. This may be useful if you are viewing the screen through mirrors'};
 paramsInfo{end+1} = {'flipVertical',thisScreenParams.flipHV(2),'type=checkbox','Click if you want initScreen to set the coordinates so that the screen is vertically flipped. This may be useful if you are viewing the screen through mirrors'};
@@ -166,7 +167,9 @@ if params.screenNumber == 0
   global mglEditScreenParamsScreenHeight;
   if ~isempty(mglEditScreenParamsScreenWidth) || ~isempty(mglEditScreenParamsScreenHeight) 
     if (~isequal(mglEditScreenParamsScreenWidth,params.screenWidth) || ~isequal(mglEditScreenParamsScreenHeight,params.screenHeight))
-      msgbox(sprintf('(mglEditScreenParams) For windowed contexts, you cannot change the width/height of the window after you have opened it once, so this screen will not accurately reflect the current parameters. So, rather than [%i %i], this window will display as [%i %i]. To try the new parameters, you will need to restart matlab. ',params.screenWidth,params.screenHeight,mglEditScreenParamsScreenWidth,mglEditScreenParamsScreenWidth,params.screenHeight));
+      % Warning for windowed contexts (if we set mglPrivateClose.c to close the context, we don't need this) - but 
+      % need to check the stability of that.
+      %      msgbox(sprintf('(mglEditScreenParams) For windowed contexts, you cannot change the width/height of the window after you have opened it once, so this screen will not accurately reflect the current parameters. So, rather than [%i %i], this window will display as [%i %i]. To try the new parameters, you will need to restart matlab. ',params.screenWidth,params.screenHeight,mglEditScreenParamsScreenWidth,mglEditScreenParamsScreenWidth));
     end
   else
     mglEditScreenParamsScreenWidth = params.screenWidth;
@@ -209,17 +212,19 @@ if thisWaitSecs(15,params)<=0,endScreen(msc);return,end
 mglTestGamma(-1);
 % show info about gamma
 calibType = sprintf('calibType: ''%s''',msc.calibType);
+calibType2 = '';
 switch msc.calibType
  case {'Specify particular calibration','Find latest calibration'}
     if isempty(msc.calibFilename)
-      calibType = sprintf('%s (No calibration found)',calibType);
+      calibType2 = sprintf('No calibration found');
     else
-      calibType = sprintf('%s calibFilename: %s',calibType,msc.calibFilename);
+      calibType2 = sprintf('calibFilename: %s',msc.calibFilename);
     end
   case {'Gamma 1.8','Gamma 2.2','Specify gamma'}
-    calibType = sprintf('%s monitor gamma: %0.2f',calibType,msc.monitorGamma);
+    calibType2 = sprintf('monitor gamma: %0.2f',msc.monitorGamma);
 end
 mglTextDraw(calibType,[0 -6]);
+mglTextDraw(calibType2,[0 -12]);
 if thisWaitSecs(15,params)<=0,endScreen(msc);return,end
 
 testTickScreen(30,params,msc);
@@ -403,6 +408,7 @@ end
 % get display settings
 screenParams.displayDistance = params.displayDistance;
 screenParams.displaySize = params.displaySize;
+screenParams.displayPos = params.displayPos;
 screenParams.flipHV = [params.flipHorizontal params.flipVertical];
 screenParams.autoCloseScreen = params.autoCloseScreen;
 screenParams.hideCursor = params.hideCursor;
@@ -508,6 +514,7 @@ screenParams.framesPerSecond = displays(end).refreshRate;
 % get display settings
 screenParams.displayDistance = 57;
 screenParams.displaySize = [50.8 38.1];
+screenParams.displayPos = [0 0];
 screenParams.flipHV = [0 0];
 screenParams.hideCursor = 0;
 screenParams.autoCloseScreen = 1;

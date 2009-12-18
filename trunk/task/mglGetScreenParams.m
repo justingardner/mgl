@@ -52,7 +52,7 @@ if isempty(screenParams),return,end
 screenParams = mglValidateScreenParams(screenParams);
 
 % set some default values
-defaultValues = {{'diginAcqType',[0 1]},{'diginResponseType',[0 1]}};
+defaultValues = {{'diginAcqType',[0 1]},{'diginResponseType',[0 1]},{'displayPos',[0 0]}};
 for i = 1:length(screenParams)
   for j = 1:length(defaultValues)
     if ~isfield(screenParams{i},defaultValues{j}{1})

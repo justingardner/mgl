@@ -29,6 +29,7 @@ necessaryFields = {'computerName',mglGetHostName;
 		   'screenHeight',[];
 		   'displayDistance',57;
 		   'displaySize',[16 12];
+		   'displayPos',[0 0];
 		   'framesPerSecond',60;
 		   'autoCloseScreen',0;
 		   'saveData',50;
