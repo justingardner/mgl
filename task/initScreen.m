@@ -51,7 +51,7 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % list of possible screenParams
 screenParamsList = {'computerName','displayName','screenNumber',...
-		    'screenWidth','screenHeight','displayDistance',...
+		    'screenWidth','screenHeight','displayDistance','displayPos',...
 		    'displaySize','framesPerSecond','autoCloseScreen',...
 		    'saveData','calibType','monitorGamma','calibFilename','flipHV','digin','hideCursor'};
 
@@ -136,6 +136,7 @@ if ~isfield(myscreen,'screenWidth'),myscreen.screenWidth = [];end
 if ~isfield(myscreen,'screenHeight'),myscreen.screenHeight = [];end
 if ~isfield(myscreen,'displayDistance'),myscreen.displayDistance = 57;end
 if ~isfield(myscreen,'displaySize'),myscreen.displaySize = [31 23];end
+if ~isfield(myscreen,'displayPos'),myscreen.displayPos = [0 0];end
 if ~isfield(myscreen,'framesPerSecond'),myscreen.framesPerSecond = 60;end
 if ~isfield(myscreen,'autoCloseScreen'),myscreen.autoCloseScreen = 1;end
 if ~isfield(myscreen,'saveData'),myscreen.saveData = -1;end
@@ -238,6 +239,12 @@ myscreen.paused = 0;
 if ~isempty(myscreen.screenNumber)
   % setting with specified screenNumber
   mglOpen(myscreen.screenNumber, myscreen.screenWidth, myscreen.screenHeight, myscreen.framesPerSecond);
+  % move the screen if it is a windowed context, and displayPos has been set.
+  if myscreen.screenNumber == 0
+    if length(myscreen.displayPos) == 2
+      mglMoveWindow(myscreen.displayPos(1),myscreen.displayPos(2)+myscreen.screenHeight);
+    end
+  end
 else
   % otherwise open a default window
   mglOpen;
@@ -306,6 +313,7 @@ switch myscreen.calibType
 	  gammaNotSet = 0;
 	  [calibPath calibFilename] = fileparts(calibFilename);
 	  disp(sprintf('(initScreen) Gamma: Set to table from calibration file %s created on %s',calibFilename,calib.date));
+	  myscreen.calibFilename = calibFilename;
 	end
       else
 	disp(sprintf('(initScreen) ****Could not find montior calibration file %s***',calibFilename));
