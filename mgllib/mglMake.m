@@ -9,6 +9,10 @@
 %             dates to see whether it should rebuild. With
 %             rebuild set to 1 removes all mex files for
 %             the current platform and ebuilds
+%
+%             If rebuild is set to 2, it rebuilds all without shutting down
+%             mglprivateListener and mglPrivatePostEvent which is useful
+%             in the even that these functions are mangled on your computer
 %    
 %
 function retval = mglMake(rebuild)
@@ -35,8 +39,10 @@ end
 
 % if we find the mglPrivateListener, then shut it down
 % to avoid crashing
-if exist('mglPrivateListener')==3,mglListener('quit');end
-if exist('mglPrivatePostEvent')==3,mglPrivatePostEvent(0);end
+if rebuild < 2
+  if exist('mglPrivateListener')==3,mglListener('quit');end
+  if exist('mglPrivatePostEvent')==3,mglPrivatePostEvent(0);end
+end
 
 % close all open displays
 mglSwitchDisplay(-1);
