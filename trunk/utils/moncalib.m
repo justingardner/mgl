@@ -40,6 +40,9 @@ if ~any(nargin == [0 1 2 3])
   return
 end
 
+global gSerialPortFun
+gSerialPortFun = 'comm';
+
 global verbose;
 verbose = 1;
 doGamma = 1;
@@ -562,6 +565,7 @@ response = 0;
 while ~response
   response = askuser('Are you ready');
 end
+disp(sprintf('If the program hangs after this, you may want to try again after rebooting the computer'));
 
 % retrieve any info that is pending from the photometer
 response = readLineSerialPort(portnum);
@@ -648,11 +652,135 @@ else
   disp(sprintf('(moncalib:photometerMeasureTopcon) Uhoh, not enough data values read'));
 end
 
+%%%%%%%%%%%%%%%%%%%%%%%
+%    initSeriaPort    %
+%%%%%%%%%%%%%%%%%%%%%%%
+function portnum = initSerialPort
+
+global gSerialPortFun
+if strcmp(gSerialPortFun,'comm')
+  portnum = initSerialPortUsingComm;
+elseif strcmp(gSerialPortFun,'serial')
+  portnum = initSerialPortUsingSerial;
+else
+  disp(sprintf('(moncalib:initSerialPort) Unknown serial device program %s',gSerialPortFun));
+  portnum = 0;
+end
+  
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% close the serial port
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function closeSerialPort(portnum)
+
+global gSerialPortFun
+if strcmp(gSerialPortFun,'comm')
+  closeSerialPortUsingComm(portnum);
+elseif strcmp(gSerialPortFun,'serial')
+  closeSerialPortUsingSerial(portnum);
+else
+  disp(sprintf('(moncalib:closeSerialPort) Unknown serial device program %s',gSerialPortFun));
+end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% write to the serial port
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function writeSerialPort(portnum, str)
+
+global gSerialPortFun
+if strcmp(gSerialPortFun,'comm')
+  writeSerialPortUsingComm(portnum,str);
+elseif strcmp(gSerialPortFun,'serial')
+  writeSerialPortUsingSerial(portnum,str);
+else
+  disp(sprintf('(moncalib:writeSerialPort) Unknown serial device program %s',gSerialPortFun));
+end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% read from the serial port
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function str = readSerialPort(portnum, numbytes)
+
+global gSerialPortFun
+if strcmp(gSerialPortFun,'comm')
+  str = readSerialPortUsingComm(portnum,numbytes);
+elseif strcmp(gSerialPortFun,'serial')
+  str = readSerialPortUsingSerial(portnum,numbytes);
+else
+  disp(sprintf('(moncalib:readSerialPort) Unknown serial device program %s',gSerialPortFun));
+end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% read one line (ending in 0xA) from the serial port
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function str = readLineSerialPort(portnum)
+
+global gSerialPortFun
+if strcmp(gSerialPortFun,'comm')
+  str = readSerialPortUsingComm(portnum,numbytes);
+elseif strcmp(gSerialPortFun,'serial')
+  str = readSerialPortUsingSerial(portnum,numbytes);
+else
+  disp(sprintf('(moncalib:readSerialPort) Unknown serial device program %s',gSerialPortFun));
+end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%    initSeriaPortUsingSerial    %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function portnum = initSerialPortUsingSerial
+
+portnum = 0;
+
+% display all serial devices
+serialDev = dir('/dev/tty.*');
+nSerialDev = length(serialDev);
+for i = 1:nSerialDev
+  disp(sprintf('%i: %s', i,serialDev(i).name));
+end
+serialDevNum = getnum('Choose a serial device (0 to quit)',0:length(serialDev));
+if serialDevNum == 0,return,end
+
+% try to open the device
+s = serial(fullfile('/dev',serialDev(serialDevNum).name));
+set(s,'BaudRate',9600);
+set(s,'Parity','none');
+set(s,'StopBits',1);
+fopen(s);
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% close the serial port
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function closeSerialPortUsingSerial(portnum)
+
+if portnum
+  fclose(portnum);
+end
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% write to the serial port
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function writeSerialPortUsingSerial(portnum, str)
+
+fprintf(portnum,str);
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% read from the serial port
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function str = readSerialPortUsingSerial(portnum, numbytes)
+
+str = char(fread(portnum,numbytes));
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% read one line (ending in 0xA) from the serial port
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function str = readLineSerialPortUsingSerial(portnum)
+
+str = fgetl(portnum);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % init the serial port
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function portnum = initSerialPort
+function portnum = initSerialPortUsingComm
 
 clc
 portnum = 0;
@@ -705,7 +833,7 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % close the serial port
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function closeSerialPort(portnum)
+function closeSerialPortUsingComm(portnum)
 
 if portnum
   comm('close',portnum);
@@ -715,21 +843,21 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % write to the serial port
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function writeSerialPort(portnum, str)
+function writeSerialPortUsingComm(portnum, str)
 
 comm('write',portnum,str);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % read from the serial port
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function str = readSerialPort(portnum, numbytes)
+function str = readSerialPortUsingComm(portnum, numbytes)
 
 str = char(comm('read',portnum,numbytes))';
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % read one line (ending in 0xA) from the serial port
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function str = readLineSerialPort(portnum)
+function str = readLineSerialPortUsingComm(portnum)
 
 str = comm('readl',portnum);
 
