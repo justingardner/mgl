@@ -42,6 +42,7 @@ end
 
 global gSerialPortFun
 gSerialPortFun = 'comm';
+%gSerialPortFun = 'serial';
 
 global verbose;
 verbose = 1;
@@ -716,9 +717,9 @@ function str = readLineSerialPort(portnum)
 
 global gSerialPortFun
 if strcmp(gSerialPortFun,'comm')
-  str = readSerialPortUsingComm(portnum,numbytes);
+  str = readLineSerialPortUsingComm(portnum);
 elseif strcmp(gSerialPortFun,'serial')
-  str = readSerialPortUsingSerial(portnum,numbytes);
+  str = readLineSerialPortUsingSerial(portnum);
 else
   disp(sprintf('(moncalib:readSerialPort) Unknown serial device program %s',gSerialPortFun));
 end
@@ -744,8 +745,9 @@ s = serial(fullfile('/dev',serialDev(serialDevNum).name));
 set(s,'BaudRate',9600);
 set(s,'Parity','none');
 set(s,'StopBits',1);
+fclose(s);
 fopen(s);
-
+portnum = s;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % close the serial port
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
