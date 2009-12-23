@@ -1,12 +1,12 @@
 % writeDigPort.m
 %
 %        $Id$
-%      usage: retval = writeDigPort(val);
+%      usage: retval = writeDigPort(portNum,val);
 %         by: justin gardner
 %       date: 09/21/06
 %    purpose: write an ouput to the National Instruments board
 %  copyright: (c) 2006 Justin Gardner (GPL see mgl/COPYING)
-%             portNum defaults to 2, to write from Dev1/port1.
+%             portNum defaults to 2, to write from Dev1/port2.
 %             The first time you read it needs to open the port to 
 %             the NI device which can take some time. Subsequent calls
 %             will be faster. Note that you can only open one port at
