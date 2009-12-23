@@ -1,15 +1,18 @@
 % mglEatKeys.m
 %
-%        $Id:$
+%        $Id$
 %      usage: mglEatKeys(keyCodes)
 %         by: justin gardner
 %       date: 1/29/09
 %  copyright: (c) 2009 Justin Gardner (GPL see mgl/COPYING)
 %    purpose: starts eating keypresses (i.e. the sent in keycodes
-%             will no longer be sent to the application). keyCodes
-%             can also be a char array or the myscreen variable. Note
-%             that if you press any key that is not being eaten, then
-%             key eating will stop.
+%             will no longer be sent to the terminal window. This can be
+%             useful if you don't want to fill your text buffer with extraneous
+%             keyboard backticks and subject responses).
+%             keyCodes can also be a char array or the myscreen variable (if the 
+%             myscreen variable it will eat all keys that initScreen is using for
+%             backticks and response keys). Note that if you press any key that
+%             is not being eaten, then key eating will stop.
 %
 function mglEatKeys(keyCodes)
 

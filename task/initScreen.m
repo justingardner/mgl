@@ -51,9 +51,10 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % list of possible screenParams
 screenParamsList = {'computerName','displayName','screenNumber',...
-		    'screenWidth','screenHeight','displayDistance','displayPos',...
+		    'screenWidth','screenHeight','displayDistance'...
 		    'displaySize','framesPerSecond','autoCloseScreen',...
-		    'saveData','calibType','monitorGamma','calibFilename','flipHV','digin','hideCursor'};
+		    'saveData','calibType','monitorGamma','calibFilename','flipHV',...
+		    'digin','hideCursor','displayPos','backtickChar','responseKeys','eatKeys'};
 
 for i = 1:length(screenParams)
   %% see if we need to convert from cell array to struct -- old version
@@ -145,6 +146,10 @@ if ~isfield(myscreen,'digin'),myscreen.digin = [];end
 if ~isfield(myscreen,'displayName'),myscreen.displayName = [];end
 if ~isfield(myscreen,'calibType'),myscreen.calibType = 'None';end
 if ~isfield(myscreen,'hideCursor'),myscreen.hideCursor = 0;end
+if ~isfield(myscreen,'backtickChar'),myscreen.backtickChar = '`';end
+if ~isfield(myscreen,'responseKeys'),myscreen.responseKeys = {'1' '2' '3' '4' '5' '6' '7' '8' '9' '0'};end
+if ~isfield(myscreen,'eatKeys'),myscreen.eatKeys = 0;end
+
 myscreen.pwd = pwd;
 
 %%%%%%%%%%%%%%%%%
@@ -153,7 +158,7 @@ myscreen.pwd = pwd;
 if foundComputer
   % display the settings
   if ~isempty(myscreen.displayDistance) & ~isempty(myscreen.displaySize)
-    disp(sprintf('(initScreen) %i: %ix%i(pix) dist:%0.1f (cm) size:%0.1fx%0.1f (cm) %iHz save:%i autoclose:%i flipHV:[%i %i]',myscreen.screenNumber,myscreen.screenWidth,myscreen.screenHeight,myscreen.displayDistance,myscreen.displaySize(1),myscreen.displaySize(2),myscreen.framesPerSecond,myscreen.saveData,myscreen.autoCloseScreen,myscreen.flipHV(1),myscreen.flipHV(2)));
+    disp(sprintf('(initScreen) %0.1f: %ix%i(pix) dist:%0.1f (cm) size:%0.1fx%0.1f (cm) %iHz save:%i autoclose:%i flipHV:[%i %i]',myscreen.screenNumber,myscreen.screenWidth,myscreen.screenHeight,myscreen.displayDistance,myscreen.displaySize(1),myscreen.displaySize(2),myscreen.framesPerSecond,myscreen.saveData,myscreen.autoCloseScreen,myscreen.flipHV(1),myscreen.flipHV(2)));
   end
 else
   if ~isempty(screenParamsFilename)
@@ -240,7 +245,7 @@ if ~isempty(myscreen.screenNumber)
   % setting with specified screenNumber
   mglOpen(myscreen.screenNumber, myscreen.screenWidth, myscreen.screenHeight, myscreen.framesPerSecond);
   % move the screen if it is a windowed context, and displayPos has been set.
-  if myscreen.screenNumber == 0
+  if myscreen.screenNumber < 1
     if length(myscreen.displayPos) == 2
       mglMoveWindow(myscreen.displayPos(1),myscreen.displayPos(2)+myscreen.screenHeight);
     end
@@ -388,9 +393,29 @@ myscreen.dropThreshold = 1.05;
 myscreen.keyboard.esc = 54;
 myscreen.keyboard.return = 37;
 myscreen.keyboard.space = mglCharToKeycode({' '});
-myscreen.keyboard.backtick = mglCharToKeycode({'`'});
+% check if the backtick character is a number, then it means
+% that it should be interpreted as a keycode otherwise
+% it is a character
+if isnumeric(myscreen.backtickChar)
+  myscreen.keyboard.backtick = myscreen.backtickChar;
+else
+  myscreen.keyboard.backtick = mglCharToKeycode({myscreen.backtickChar});
+end
+% get the response keys
 if ~isfield(myscreen.keyboard,'nums')
-  myscreen.keyboard.nums = mglCharToKeycode({'1' '2' '3' '4' '5' '6' '7' '8' '9' '0'});
+  % go through the settings, converting any characters to keyCodes
+  for i = 1:length(myscreen.responseKeys)
+    if isnumeric(myscreen.responseKeys{i})
+      keyCode = myscreen.responseKeys{i};
+    else
+      keyCode = mglCharToKeycode({myscreen.responseKeys{i}});
+    end
+    myscreen.keyboard.nums(i) = keyCode;
+  end
+end
+if myscreen.eatKeys
+  disp(sprintf('(initScreen) Eating keys'));
+  mglEatKeys(myscreen);
 end
 myscreen.keyCodes = [];
 myscreen.keyTimes = [];

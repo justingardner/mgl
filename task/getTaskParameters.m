@@ -1,6 +1,6 @@
 % getTaskParameters.m
 %
-%      usage: myscreen = getTaskParameters(myscreen,task)
+%      usage: exp = getTaskParameters(myscreen,task)
 %         by: justin gardner
 %       date: 01/27/07
 %    purpose: get the task parameters, reaction times etc,
