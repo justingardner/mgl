@@ -10,6 +10,14 @@
 %
 function myscreen = endScreen(myscreen)
 
+if nargin == 0
+  disp(sprintf('(endScreen) No myscreen variable passed in, just closing screen and shutting down listeners'));
+  mglClose;
+  mglListener('quit');
+  mglDigIO('quit');
+  mglDisplayCursor(1);
+  return
+end
 % close screen
 if (myscreen.autoCloseScreen)
   mglClose;

@@ -63,6 +63,20 @@ else
       disp(sprintf('(mglGetParam) Could not find mgllib directory'));
     end
   end
+  % special case for the location of mglutilsDir
+  if any(strcmp(lower(paramName),{'mgldigiodir','mgldigio','digio'}))
+    retval = fileparts(which('mglDigIO'));
+    if isempty(retval)
+      disp(sprintf('(mglGetParam) Could not find mgl/utils directory'));
+    end
+  end
+  % special case for the location of mglutilsDir
+  if any(strcmp(lower(paramName),{'mglutilsdir','mglutils'}))
+    retval = fileparts(which('mglDoRetinotopy'));
+    if isempty(retval)
+      disp(sprintf('(mglGetParam) Could not find mgl/utils directory'));
+    end
+  end
   % special case for the location of mgl/task dir
   if any(strcmp(lower(paramName),{'taskdir','task','mgltaskdir','mgltask'}))
     retval = fileparts(which('initTask'));

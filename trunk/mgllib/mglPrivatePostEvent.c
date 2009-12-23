@@ -200,8 +200,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     // return argument set to 0
     plhs[0] = mxCreateDoubleMatrix(1,1,mxREAL);
     *mxGetPr(plhs[0]) = 0;
+
     // quit
     quitPostEvent();
+    return;
   }
   [pool drain];
 
