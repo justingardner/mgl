@@ -14,7 +14,7 @@
 %             frame -- you can grab movie frames with mglMovie(m,'getFrame');
 %
 %             To init the movie, you open with a filename, and an optional position
-%             array and save the returned structure.
+%             array [x y width height] and save the returned structure.
 %
 %             m = mglMovie('movie.mov');
 %
