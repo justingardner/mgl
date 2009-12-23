@@ -258,7 +258,7 @@ void* eventDispatcher(void *data)
 	  [gEventQueue removeAllObjects];
 	  // release the event queue
 	  [gEventQueue release];
-	  [gPool drain];
+	  //[gPool drain];
 	  // destroy mutex
 	  pthread_mutex_destroy(&mut);
 	  return NULL;
