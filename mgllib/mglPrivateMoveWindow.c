@@ -34,8 +34,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 //-----------------------------------------------------------------------------------///
 #ifdef __APPLE__
 #ifdef __cocoa__
+  NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
   NSWindow *myWindow = (NSWindow*)(unsigned long)mglGetGlobalDouble("cocoaWindowPointer");
   [myWindow setFrameTopLeftPoint:NSMakePoint((float)left,(float)top)];
+  [pool drain];
 //-----------------------------------------------------------------------------------///
 // **************************** mac carbon specific code  *************************** //
 //-----------------------------------------------------------------------------------///

@@ -113,7 +113,7 @@ void cocoaClose(displayNumber,verbose)
 
   // close the window. Note that we just orderOut (or make invisible) for now,
   // since there is some problem with actually closing and reopening
-#if 0
+#if 1
   if (verbose) mexPrintf("(mglPrivateClose) Releasing cocoa window\n");
   [[myWindow contentView] clearGLContext];
   [myWindow close];
