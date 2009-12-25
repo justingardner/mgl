@@ -137,6 +137,9 @@ end
 
 if ~isfield(task,'synchToVol')
   task.synchToVol = zeros(1,length(task.segmin));
+elseif length(task.synchToVol) < length(task.segmin)
+  % if sycnhToVol is not long enough, pad it out with 0s
+  task.synchToVol(end+1:length(task.segmin)) = 0;
 end
 
 % just warn if user has a writeTrace field. It is no longer necessary
