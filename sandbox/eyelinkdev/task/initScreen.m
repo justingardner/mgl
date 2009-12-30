@@ -43,6 +43,7 @@ function myscreen = initScreen(myscreen,randstate)
     if isfield(myscreen,'screenParams')
         screenParams = cat(2,myscreen.screenParams,screenParams);
         screenParamsFilename = '';
+        rmfield(myscreen,'screenParams');
     end
 
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -67,6 +68,7 @@ function myscreen = initScreen(myscreen,randstate)
             end
         end
         % validate fields
+        %% Souldn't this be in the mglValidateScreenParams?
         thisFieldNames = fieldnames(screenParams{i});
         for j = 1:length(thisFieldNames)
             % match the field in the screenParamsList (do case insensitive)
