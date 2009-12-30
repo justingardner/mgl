@@ -31,7 +31,7 @@ end
 
 % check for file
 if ~isfile(screenParamsFilename)
-  disp(sprintf('(mglEditScreenParams) UHOH: Could not find screenParams file %s',screenParamsFilename));
+  disp(sprintf('(mglEditScreenParams) Could not find screenParams file %s',screenParamsFilename));
   screenParams = {};
 else
   % load the file
@@ -42,7 +42,7 @@ end
 if isfield(screenParams,'screenParams')
   screenParams = screenParams.screenParams;
 elseif ~isempty(screenParams)
-  disp(sprintf('(mglEditScreenParams) UHOH: File %s does not contain screenParams',screenParamsFilename));
+  disp(sprintf('(mglEditScreenParams) File %s does not contain screenParams',screenParamsFilename));
   screenParams = {};
 end
 
@@ -52,7 +52,7 @@ if isempty(screenParams),return,end
 screenParams = mglValidateScreenParams(screenParams);
 
 % set some default values
-defaultValues = {{'diginAcqType',[0 1]},{'diginResponseType',[0 1]}};
+defaultValues = {{'diginAcqType',[0 1]},{'diginResponseType',[0 1]},{'displayPos',[0 0]}};
 for i = 1:length(screenParams)
   for j = 1:length(defaultValues)
     if ~isfield(screenParams{i},defaultValues{j}{1})

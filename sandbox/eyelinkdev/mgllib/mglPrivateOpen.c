@@ -211,7 +211,7 @@ unsigned long cocoaOpen(double *displayNumber, int *screenWidth, int *screenHeig
 
     // Create the openGLview, note that we set it to open with a 0,0,0,0 sized rect
     // because it will later get resized to the size of the window
-myOpenGLView = [[NSOpenGLView alloc] initWithFrame:NSMakeRect(0,0,0,0) pixelFormat:myPixelFormat];
+    myOpenGLView = [[NSOpenGLView alloc] initWithFrame:NSMakeRect(0,0,0,0) pixelFormat:myPixelFormat];
     if (myOpenGLView==nil) {
       mexPrintf("(mglPrivateOpen) Could not create openGLView\n");
       return;
@@ -225,9 +225,9 @@ myOpenGLView = [[NSOpenGLView alloc] initWithFrame:NSMakeRect(0,0,0,0) pixelForm
     // create the window, if we are running desktop, then open a borderless non backing
     // store window because anything else causes problems
     if (1)//(mglGetGlobalDouble("matlabDesktop"))
-myWindow = [[NSWindow alloc] initWithContentRect:contentRect styleMask:NSBorderlessWindowMask backing:NSBackingStoreNonretained defer:false];
+      myWindow = [[NSWindow alloc] initWithContentRect:contentRect styleMask:NSBorderlessWindowMask backing:NSBackingStoreNonretained defer:false];
     else
-myWindow = [[NSWindow alloc] initWithContentRect:contentRect styleMask:NSTitledWindowMask|NSClosableWindowMask|NSMiniaturizableWindowMask|NSTexturedBackgroundWindowMask backing:NSBackingStoreBuffered defer:false];
+      myWindow = [[NSWindow alloc] initWithContentRect:contentRect styleMask:NSTitledWindowMask|NSClosableWindowMask|NSMiniaturizableWindowMask|NSTexturedBackgroundWindowMask backing:NSBackingStoreBuffered defer:false];
     if (myWindow==nil) {
       mexPrintf("(mglPrivateOpen) Could not create window\n");
       return;
@@ -235,19 +235,25 @@ myWindow = [[NSWindow alloc] initWithContentRect:contentRect styleMask:NSTitledW
     if (verbose) mexPrintf("(mglPrivateOpen) Created window: %x\n",(unsigned long)myWindow);
 
     // attach the openGL view
-[myWindow setContentView:myOpenGLView];
+    [myWindow setContentView:myOpenGLView];
 
     // release the openGLView
     [myOpenGLView release];
 
     // center the window
     [myWindow center];
+
+    // sleep for 5000 micro seconds. The window manager appears to need a little bit of time
+    // to create the window. There should be a function call to check the window status
+    // but, I don't know what it is. The symptom is that if we don't wait here, then
+    // the screen comes up in white and then doesn't have the GLContext set properly.
+    usleep(5000);
   }
   else {
     if (verbose) mexPrintf("(mglPrivateOpen) Reusing view: %x\n",(unsigned long)[myWindow contentView]);
     if (verbose) mexPrintf("(mglPrivateOpen) Reusing window: %x\n",(unsigned long)myWindow);
   }
-
+  
   // set the openGL context as current
   myOpenGLContext = [[myWindow contentView] openGLContext];
   [myOpenGLContext makeCurrentContext];
@@ -255,11 +261,11 @@ myWindow = [[NSWindow alloc] initWithContentRect:contentRect styleMask:NSTitledW
   if (verbose) mexPrintf("(mglPrivateOpen) Setting openGLContext: %x\n",(unsigned long)myOpenGLContext);
 
   // make sure that the window won't show until we want it to.
-[myWindow setAlphaValue:0];
+  [myWindow setAlphaValue:0];
 
   // show window
   if (verbose) mexPrintf("(mglPrivateOpen) Order window\n");
-[myWindow orderFront:nil];
+  [myWindow orderFront:nil];
   if (verbose) mexPrintf("(mglPrivateOpen) Display window\n");
   [myWindow display];
   if (verbose) mexPrintf("(mglPrivateOpen) Window isVisible:%i\n",[myWindow isVisible]);
@@ -270,10 +276,10 @@ myWindow = [[NSWindow alloc] initWithContentRect:contentRect styleMask:NSTitledW
     if (verbose) mexPrintf("(mglPrivateOpen) Setting parameters for full screen mode\n");
 
     //  Set some options for going full screen
-NSArray *objects = [NSArray arrayWithObjects:[NSNumber numberWithBool:NO],[NSNumber numberWithInt:0],nil];
-NSArray *keys = [NSArray arrayWithObjects:NSFullScreenModeAllScreens,NSFullScreenModeWindowLevel,nil];
+    NSArray *objects = [NSArray arrayWithObjects:[NSNumber numberWithBool:NO],[NSNumber numberWithInt:0],nil];
+    NSArray *keys = [NSArray arrayWithObjects:NSFullScreenModeAllScreens,NSFullScreenModeWindowLevel,nil];
 
-NSDictionary *fullScreenOptions = [NSDictionary dictionaryWithObjects:objects forKeys:keys];
+    NSDictionary *fullScreenOptions = [NSDictionary dictionaryWithObjects:objects forKeys:keys];
 
     // get all the screens
     if (verbose) mexPrintf("(mglPrivateOpen) Getting screen information\n");
@@ -281,11 +287,11 @@ NSDictionary *fullScreenOptions = [NSDictionary dictionaryWithObjects:objects fo
 
     // now enter full screen mode
     if (verbose) mexPrintf("(mglPrivateOpen) Going full screen\n");
-BOOL success = [[myWindow contentView] enterFullScreenMode:[screens objectAtIndex:(*displayNumber-1)] withOptions:fullScreenOptions];
+    BOOL success = [[myWindow contentView] enterFullScreenMode:[screens objectAtIndex:(*displayNumber-1)] withOptions:fullScreenOptions];
     if (verbose) mexPrintf("(mglPrivateOpen) Full screen success: %i\n",success);
 
     // get the size of the relevant screen
-NSRect screenRect = [[screens objectAtIndex:(*displayNumber-1)] frame];
+    NSRect screenRect = [[screens objectAtIndex:(*displayNumber-1)] frame];
     *screenWidth = screenRect.size.width;
     *screenHeight = screenRect.size.height;
   }
@@ -294,9 +300,9 @@ NSRect screenRect = [[screens objectAtIndex:(*displayNumber-1)] frame];
     // for a windowed context, we don't have to go full screen, just set alpha
     if (*displayNumber > 0)
       // set alpha, if displayNumber is not == 0
-[myWindow setAlphaValue:*displayNumber];
+      [myWindow setAlphaValue:*displayNumber];
     else
-[myWindow setAlphaValue:1];
+      [myWindow setAlphaValue:1];
   }
 
   // remember the window
@@ -306,7 +312,7 @@ NSRect screenRect = [[screens objectAtIndex:(*displayNumber-1)] frame];
 
   // set the swap interval so that flush waits for vertical refresh
   const GLint swapInterval = 1;
-[myOpenGLContext setValues:&swapInterval forParameter:NSOpenGLCPSwapInterval];
+  [myOpenGLContext setValues:&swapInterval forParameter:NSOpenGLCPSwapInterval];
 
   // drain the pool
   [pool drain];

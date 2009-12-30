@@ -146,6 +146,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 ///////////////////////
 void getResolution(int *displayNumber, int *screenWidth, int *screenHeight, int *frameRate, int *bitDepth)
 {
+  // start auto release pool
+  NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+
   // get all screen array
   NSArray *screens = [NSScreen screens];
   // grab the screen in question
@@ -206,12 +209,16 @@ void getResolution(int *displayNumber, int *screenWidth, int *screenHeight, int 
 
   if (verbose)
     mexPrintf("(mglResolution) Current display parameters: screenWidth=%i, screenHeight=%i, frameRate=%i, bitDepth=%i\n",*screenWidth,*screenHeight,*frameRate,*bitDepth);
+  [pool release];
 }
 ///////////////////////
 //   setResolution   //
 ///////////////////////
 void setResolution(int *displayNumber, int *screenWidth, int *screenHeight, int *frameRate, int *bitDepth)
 {
+  // start auto release pool
+  NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+
   // FIX FIX FIX this is just the carbon code copied from below
   CGDisplayErr displayErrorNum;
   CGDirectDisplayID displays[kMaxDisplays];
@@ -271,15 +278,22 @@ void setResolution(int *displayNumber, int *screenWidth, int *screenHeight, int 
 
   if (verbose)
     mexPrintf("(mglResolution) Current display parameters: screenWidth=%i, screenHeight=%i, frameRate=%i, bitDepth=%i\n",*screenWidth,*screenHeight,*frameRate,*bitDepth);
+
+  [pool release];
 }
 //////////////////////////////////
 //   getNumDisplaysAndDefault   //
 //////////////////////////////////
 void getNumDisplaysAndDefault(int *numDisplays, int *defaultDisplayNum)
 {
+  // start auto release pool
+  NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+
   // return num displays and default display number
   *numDisplays = [[NSScreen screens] count];
   *defaultDisplayNum = *numDisplays;
+
+  [pool release];
 }
 
 #else // __cocoa__

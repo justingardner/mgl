@@ -55,7 +55,7 @@ function myscreen = initScreen(myscreen,randstate)
     'screenWidth', 'screenHeight', 'displayDistance',...
     'displaySize', 'framesPerSecond','autoCloseScreen',...
     'saveData', 'calibType', 'monitorGamma', 'calibFilename', ...
-    'flipHV', 'digin', 'hideCursor', 'eyeTrackerType'};
+    'flipHV', 'digin', 'hideCursor', 'displayPos', 'backtickChar', 'responseKeys', 'eyeTrackerType'};
 
     for i = 1:length(screenParams)
         %% see if we need to convert from cell array to struct -- old version
@@ -153,6 +153,9 @@ function myscreen = initScreen(myscreen,randstate)
     if ~isfield(myscreen,'displaySize')
         myscreen.displaySize = [31 23];
     end
+    if ~isfield(myscreen,'displayPos')
+        myscreen.displayPos = [0 0];
+    end
     if ~isfield(myscreen,'framesPerSecond')
         myscreen.framesPerSecond = 60;
     end
@@ -177,6 +180,16 @@ function myscreen = initScreen(myscreen,randstate)
     if ~isfield(myscreen,'hideCursor')
         myscreen.hideCursor = 0;
     end
+    if ~isfield(myscreen,'backtickChar')
+        myscreen.backtickChar = '`';
+    end
+    if ~isfield(myscreen,'responseKeys')
+        myscreen.responseKeys = {'1' '2' '3' '4' '5' '6' '7' '8' '9' '0'};
+    end
+    if ~isfield(myscreen,'eatKeys')
+        myscreen.eatKeys = 0;
+    end
+
     myscreen.pwd = pwd;
 
     %%%%%%%%%%%%%%%%%
@@ -185,7 +198,7 @@ function myscreen = initScreen(myscreen,randstate)
     if foundComputer
         % display the settings
         if ~isempty(myscreen.displayDistance) & ~isempty(myscreen.displaySize)
-            disp(sprintf('(initScreen) %i: %ix%i(pix) dist:%0.1f (cm) size:%0.1fx%0.1f (cm) %iHz save:%i autoclose:%i flipHV:[%i %i]',myscreen.screenNumber,myscreen.screenWidth,myscreen.screenHeight,myscreen.displayDistance,myscreen.displaySize(1),myscreen.displaySize(2),myscreen.framesPerSecond,myscreen.saveData,myscreen.autoCloseScreen,myscreen.flipHV(1),myscreen.flipHV(2)));
+            disp(sprintf('(initScreen) %0.1f: %ix%i(pix) dist:%0.1f (cm) size:%0.1fx%0.1f (cm) %iHz save:%i autoclose:%i flipHV:[%i %i]',myscreen.screenNumber,myscreen.screenWidth,myscreen.screenHeight,myscreen.displayDistance,myscreen.displaySize(1),myscreen.displaySize(2),myscreen.framesPerSecond,myscreen.saveData,myscreen.autoCloseScreen,myscreen.flipHV(1),myscreen.flipHV(2)));
         end
     else
         if ~isempty(screenParamsFilename)
@@ -271,6 +284,12 @@ function myscreen = initScreen(myscreen,randstate)
     if ~isempty(myscreen.screenNumber)
         % setting with specified screenNumber
         mglOpen(myscreen.screenNumber, myscreen.screenWidth, myscreen.screenHeight, myscreen.framesPerSecond);
+        % move the screen if it is a windowed context, and displayPos has been set.
+        if myscreen.screenNumber < 1
+            if length(myscreen.displayPos) == 2
+                mglMoveWindow(myscreen.displayPos(1),myscreen.displayPos(2)+myscreen.screenHeight);
+            end
+        end
     else
         % otherwise open a default window
         mglOpen;
@@ -339,6 +358,7 @@ function myscreen = initScreen(myscreen,randstate)
                     gammaNotSet = 0;
                     [calibPath calibFilename] = fileparts(calibFilename);
                     disp(sprintf('(initScreen) Gamma: Set to table from calibration file %s created on %s',calibFilename,calib.date));
+                    myscreen.calibFilename = calibFilename;
                 end
             else
                 disp(sprintf('(initScreen) ****Could not find montior calibration file %s***',calibFilename));
@@ -413,9 +433,29 @@ function myscreen = initScreen(myscreen,randstate)
     myscreen.keyboard.esc = 54;
     myscreen.keyboard.return = 37;
     myscreen.keyboard.space = mglCharToKeycode({' '});
-    myscreen.keyboard.backtick = mglCharToKeycode({'`'});
+    % check if the backtick character is a number, then it means
+    % that it should be interpreted as a keycode otherwise
+    % it is a character
+    if isnumeric(myscreen.backtickChar)
+        myscreen.keyboard.backtick = myscreen.backtickChar;
+    else
+        myscreen.keyboard.backtick = mglCharToKeycode({myscreen.backtickChar});
+    end
+    % get the response keys
     if ~isfield(myscreen.keyboard,'nums')
-        myscreen.keyboard.nums = mglCharToKeycode({'1' '2' '3' '4' '5' '6' '7' '8' '9' '0'});
+        % go through the settings, converting any characters to keyCodes
+        for i = 1:length(myscreen.responseKeys)
+            if isnumeric(myscreen.responseKeys{i})
+                keyCode = myscreen.responseKeys{i};
+            else
+                keyCode = mglCharToKeycode({myscreen.responseKeys{i}});
+            end
+            myscreen.keyboard.nums(i) = keyCode;
+        end
+    end
+    if myscreen.eatKeys
+        disp(sprintf('(initScreen) Eating keys'));
+        mglEatKeys(myscreen);
     end
     myscreen.keyCodes = [];
     myscreen.keyTimes = [];
@@ -575,4 +615,5 @@ function filename = getCalibFilename(myscreen,hostname)
             filename = sprintf('%s/task/displays/%s',fileparts(fileparts(which('initScreen'))),name);
         end
     end
+
 end

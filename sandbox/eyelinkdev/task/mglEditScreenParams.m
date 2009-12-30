@@ -99,21 +99,34 @@ else
   enableMonitorGamma = 'enable=0';
 end
 
+% get backtick char
+backtickChar = paramsNum2str(thisScreenParams.backtickChar);
+
+% get responseKeys
+responseKeys = '';
+for i = 1:length(thisScreenParams.responseKeys)
+  responseKeys = sprintf('%s%s ',responseKeys,paramsNum2str(thisScreenParams.responseKeys{i}));
+end
+
 %set up the paramsInfo
 paramsInfo = {};
 paramsInfo{end+1} = {'computerName',thisScreenParams.computerName,'The name of the computer for these screen parameters'};
 paramsInfo{end+1} = {'displayName',thisScreenParams.displayName,'The display name for these settings. This can be left blank if there is only one display on this computer for which you will be using mgl. If instead there are multiple displays, then you will need screen parameters for each display, and you should name them appropriately. You then call initScreen(displayName) to get the settings for the correct display'};
-paramsInfo{end+1} = {'useCustomScreenSettings',useCustomScreenSettings,'type=checkbox','If you leave this unchecked then mgl will open up with default screen settings (i.e. the display will be chosen as the last display in the list and the screenWidth and ScreenHeight will be whatever the current settings are. This is sometimes useful for when you are on a development computer -- rather than the one you are running experiments on'};
-paramsInfo{end+1} = {'screenNumber',screenNumber,'type=numeric','minmax=[0 inf]','incdec=[-1 1]','The screen number to use on this display. 0 is for a windowed contex.','round=1','contingent=useCustomScreenSettings'};
+paramsInfo{end+1} = {'useCustomScreenSettings',useCustomScreenSettings,'type=checkbox','If you leave this unchecked then mgl will open up with default screen settings (i.e. the display will be chosen as the last display in the list and the screenWidth and ScreenHeight will be whatever the current settings are). This is sometimes useful for when you are on a development computer -- rather than the one you are running experiments on'};
+paramsInfo{end+1} = {'screenNumber',screenNumber,'type=numeric','minmax=[0 inf]','incdec=[-1 1]','The screen number to use on this display. 0 is for a windowed contex. Transparent windowed context can be made when this is set to <1.','round=0','contingent=useCustomScreenSettings'};
 paramsInfo{end+1} = {'screenWidth',screenWidth,'type=numeric','minmax=[0 inf]','incdec=[-1 1]','round=1','contingent=useCustomScreenSettings','The width in pixels of the screen'};
 paramsInfo{end+1} = {'screenHeight',screenHeight,'type=numeric','minmax=[0 inf]','incdec=[-1 1]','round=1','contingent=useCustomScreenSettings','The height in pixels of the screen'};
 paramsInfo{end+1} = {'framesPerSecond',framesPerSecond,'type=numeric','minmax=[0 inf]','incdec=[-1 1]','round=1','contingent=useCustomScreenSettings','Refresh rate of monitor'};
 paramsInfo{end+1} = {'displayDistance',thisScreenParams.displayDistance,'type=numeric','minmax=[0 inf]','incdec=[-1 1]','Distance in cm to the display from the eyes. This is used for figuring out how many pixels correspond to a degree of visual angle'};
 paramsInfo{end+1} = {'displaySize',thisScreenParams.displaySize,'type=array','minmax=[0 inf]','Width and height of display in cm. This is used for figuring out how many pixels correspond to a degree of visual angle'};
+paramsInfo{end+1} = {'displayPos',thisScreenParams.displayPos,'type=array','minmax=[0 inf]','This is only relevant if you are using a windowed context (e.g. screenNumber=0). It will set the position of the display in pixels where 0,0 is the bottom left corner of your display.'};
 paramsInfo{end+1} = {'autoCloseScreen',thisScreenParams.autoCloseScreen,'type=checkbox','Check if you want endScreen to automatically do mglClose at the end of your experiment.'};
 paramsInfo{end+1} = {'flipHorizontal',thisScreenParams.flipHV(1),'type=checkbox','Click if you want initScreen to set the coordinates so that the screen is horizontally flipped. This may be useful if you are viewing the screen through mirrors'};
 paramsInfo{end+1} = {'flipVertical',thisScreenParams.flipHV(2),'type=checkbox','Click if you want initScreen to set the coordinates so that the screen is vertically flipped. This may be useful if you are viewing the screen through mirrors'};
 paramsInfo{end+1} = {'hideCursor',thisScreenParams.hideCursor,'type=checkbox','Click if you want initScreen to hide the mouse for this display.'};
+paramsInfo{end+1} = {'backtickChar',backtickChar,'type=string','Set the keyboard character that is used a synch pulse from the scanner. At NYU this is the backtick character. If you use a different character enter it here. If you enter a number then this will be interpreted as a character code (see mglCharToKeycode).'};
+paramsInfo{end+1} = {'responseKeys',responseKeys,'type=string','Sets which keys you want to use for response keys. This should be a space delimited string, for example: 1 2 3 4 5 6 7 8 9 -> is the default, which uses the number keys. If you want to use keycodes, for example to use the numberic key pay, you can do: k84 k85 k86 k87 k88 k89 k90 k92 k93'};
+paramsInfo{end+1} = {'eatKeys',thisScreenParams.eatKeys,'type=checkbox','Sets whether to eat keys. That is, any key that initScreen uses, for example the response keys and the backtickChar will not be sent to the terminal. See the function mglEatKeys for more details.'};
 paramsInfo{end+1} = {'saveData',thisScreenParams.saveData,'type=numeric','incdec=[-1 1]','minmax=[-1 inf]','Sets whether you want to save an stim file which stores all the parameters of your experiment. You will probably want to save this file for real experiments, but not when you are just testing your program. So on the desktop computer set it to 0. This can be 1 to always save a data file, 0 not to save data file,n>1 saves a data file only if greater than n number of volumes have been collected)'};
 paramsInfo{end+1} = {'calibType',putOnTopOfList(thisScreenParams.calibType,{'None','Find latest calibration','Specify particular calibration','Gamma 1.8','Gamma 2.2','Specify gamma'}),'Choose how you want to calibrate the monitor. This is for gamma correction of the monitor. Find latest calibration works with calibration files stored by moncalib, and will look for the latest calibration file in the directory task/displays that matches this computer and display name. If you want to specify a particular file then select that option and specify the calibration file in the field below. If you don''t have a calibration file created by moncalib then you might try to correct for a standard gamma value like 1.8 (mac computers) or 2.2 (PC computers). Or a gamma value of your choosing','callback',@calibTypeCallback,'passParams=1'};
 paramsInfo{end+1} = {'calibFilename',thisScreenParams.calibFilename,'Specify the calibration filename. This field is only used if you use Specify particular calibration from above',enableCalibFilename};
@@ -134,7 +147,7 @@ if ~isequal(thisScreenParams.computerName,'DELETE')
   screenParams{computerNum} = params2screenParams(params);
 end
 
-% delete scans
+% delete screen params
 deleteScreenParams = screenParams;
 screenParams = {};
 for i = 1:length(deleteScreenParams)
@@ -166,7 +179,9 @@ if params.screenNumber == 0
   global mglEditScreenParamsScreenHeight;
   if ~isempty(mglEditScreenParamsScreenWidth) || ~isempty(mglEditScreenParamsScreenHeight) 
     if (~isequal(mglEditScreenParamsScreenWidth,params.screenWidth) || ~isequal(mglEditScreenParamsScreenHeight,params.screenHeight))
-      msgbox(sprintf('(mglEditScreenParams) For windowed contexts, you cannot change the width/height of the window after you have opened it once, so this screen will not accurately reflect the current parameters. So, rather than [%i %i], this window will display as [%i %i]. To try the new parameters, you will need to restart matlab. ',params.screenWidth,params.screenHeight,mglEditScreenParamsScreenWidth,mglEditScreenParamsScreenWidth,params.screenHeight));
+      % Warning for windowed contexts (if we set mglPrivateClose.c to close the context, we don't need this) - but 
+      % need to check the stability of that.
+      %      msgbox(sprintf('(mglEditScreenParams) For windowed contexts, you cannot change the width/height of the window after you have opened it once, so this screen will not accurately reflect the current parameters. So, rather than [%i %i], this window will display as [%i %i]. To try the new parameters, you will need to restart matlab. ',params.screenWidth,params.screenHeight,mglEditScreenParamsScreenWidth,mglEditScreenParamsScreenWidth));
     end
   else
     mglEditScreenParamsScreenWidth = params.screenWidth;
@@ -191,6 +206,7 @@ function val = testSettings(params)
 
 val = 0;
 
+mglClose;
 msc = testOpenDisplay(params);
 if isempty(msc),return,end
 
@@ -209,22 +225,26 @@ if thisWaitSecs(15,params)<=0,endScreen(msc);return,end
 mglTestGamma(-1);
 % show info about gamma
 calibType = sprintf('calibType: ''%s''',msc.calibType);
+calibType2 = '';
 switch msc.calibType
  case {'Specify particular calibration','Find latest calibration'}
     if isempty(msc.calibFilename)
-      calibType = sprintf('%s (No calibration found)',calibType);
+      calibType2 = sprintf('No calibration found');
     else
-      calibType = sprintf('%s calibFilename: %s',calibType,msc.calibFilename);
+      calibType2 = sprintf('calibFilename: %s',msc.calibFilename);
     end
   case {'Gamma 1.8','Gamma 2.2','Specify gamma'}
-    calibType = sprintf('%s monitor gamma: %0.2f',calibType,msc.monitorGamma);
+    calibType2 = sprintf('monitor gamma: %0.2f',msc.monitorGamma);
 end
-mglTextDraw(calibType,[0 -6]);
+imageHeight = mglGetParam('deviceHeight');
+mglTextDraw(calibType,[0 -imageHeight/8]);
+mglTextDraw(calibType2,[0 -2*imageHeight/8]);
 if thisWaitSecs(15,params)<=0,endScreen(msc);return,end
 
 testTickScreen(30,params,msc);
 
 % close screen and return
+msc.autoCloseScreen = 1;
 endScreen(msc);
 
 %%%%%%%%%%%%%%%%%%%%%%
@@ -234,21 +254,28 @@ function retval = testTickScreen(waitTime,params,msc)
 
 startTime = mglGetSecs;
 lastButtons = [];
+
+% get the backtick char
+backtickChar = mglKeycodeToChar(msc.keyboard.backtick);
+backtickChar = backtickChar{1};
+
+imageHeight = mglGetParam('deviceHeight');
+
 while (mglGetSecs(startTime)<waitTime) && ~msc.userHitEsc
 
   % clear screen
   mglClearScreen(0);
 
   % draw some text
-  mglTextDraw(sprintf('volnum: %i',msc.volnum),[0 -3]);
+  mglTextDraw(sprintf('Volume number (%s): %i',backtickChar,msc.volnum),[0 -3]);
   if msc.useDigIO
     digioStr = sprintf('portNum: %i acqLine: %i acqType: %s responseLine: %s responseType: %s',msc.digin.portNum,msc.digin.acqLine,num2str(msc.digin.acqType),num2str(msc.digin.responseLine),num2str(msc.digin.responseType));
-    mglTextDraw(digioStr,[0 -6]);
+    mglTextDraw(digioStr,[0 -imageHeight/8]);
   else
-    mglTextDraw(sprintf('Digital I/O is disabled'),[0 -6]);
+    mglTextDraw(sprintf('Digital I/O is disabled'),[0 -imageHeight/8]);
   end
   if ~isempty(lastButtons)
-    mglTextDraw(sprintf('Last button press: %s at %0.2f',num2str(lastButtons),lastTime),[0 0]);
+    mglTextDraw(sprintf('Last button press: %s (%s) at %0.2f',num2str(lastButtons),paramsNum2str(msc.responseKeys{lastButtons(end)}),lastTime),[0 0]);
   end
   mglTextDraw(sprintf('Hit ESC to quit.',params.computerName,params.displayName),[0 3.5]);
 
@@ -402,6 +429,7 @@ end
 % get display settings
 screenParams.displayDistance = params.displayDistance;
 screenParams.displaySize = params.displaySize;
+screenParams.displayPos = params.displayPos;
 screenParams.flipHV = [params.flipHorizontal params.flipVertical];
 screenParams.autoCloseScreen = params.autoCloseScreen;
 screenParams.hideCursor = params.hideCursor;
@@ -413,6 +441,14 @@ screenParams.saveData = params.saveData;
 screenParams.calibType = params.calibType;
 screenParams.calibFilename = params.calibFilename;
 screenParams.monitorGamma = params.monitorGamma;
+
+% keyboard parameters
+screenParams.eatKeys = params.eatKeys;
+screenParams.backtickChar = paramsStr2num(params.backtickChar);
+responseKeys = regexp(strtrim(params.responseKeys),'\s+','split');
+for i = 1:length(responseKeys)
+  screenParams.responseKeys{i} = paramsStr2num(responseKeys{i});
+end
 
 % digio
 screenParams.digin.use = params.diginUse;
@@ -507,12 +543,18 @@ screenParams.framesPerSecond = displays(end).refreshRate;
 % get display settings
 screenParams.displayDistance = 57;
 screenParams.displaySize = [50.8 38.1];
+screenParams.displayPos = [0 0];
 screenParams.flipHV = [0 0];
 screenParams.hideCursor = 0;
 screenParams.autoCloseScreen = 1;
 
 % get file saving settings
 screenParams.saveData = 0;
+
+% keyboard settings
+screenParams.eatKeys = 0;
+screenParams.backtickChar = '`';
+screenParams.responseKeys = {'1' '2' '3' '4' '5' '6' '7' '8' '9' '0'};
 
 % calibration info
 screenParams.calibType = 'None';
@@ -526,3 +568,24 @@ screenParams.digin.acqLine = 0;
 screenParams.digin.acqType = 1;
 screenParams.digin.responseLine = [1 2 3 4 5 6 7];
 screenParams.digin.responseType = 1;
+
+%%%%%%%%%%%%%%%%%%%%%%%%
+%%   params2Str2num   %%
+%%%%%%%%%%%%%%%%%%%%%%%%
+function c = paramsStr2num(c)
+
+if regexp(c,'^k\d+$')
+  c = str2num(c(2:end));
+elseif length(c) > 1
+  disp(sprintf('(mglEditScreenParams) Unrecogonized format for character %s (should be either a single character or kdd (e.g. k40) for a key code)',c));
+end
+
+%%%%%%%%%%%%%%%%%%%%%%%
+%%   paramsNum2str   %%
+%%%%%%%%%%%%%%%%%%%%%%%
+function c = paramsNum2str(c)
+
+if isnumeric(c)
+  c = sprintf('k%i',c);
+end
+

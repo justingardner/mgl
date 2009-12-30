@@ -200,8 +200,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     // return argument set to 0
     plhs[0] = mxCreateDoubleMatrix(1,1,mxREAL);
     *mxGetPr(plhs[0]) = 0;
+
     // quit
     quitPostEvent();
+    return;
   }
   [pool drain];
 
@@ -256,7 +258,7 @@ void* eventDispatcher(void *data)
 	  [gEventQueue removeAllObjects];
 	  // release the event queue
 	  [gEventQueue release];
-	  [gPool drain];
+	  //[gPool drain];
 	  // destroy mutex
 	  pthread_mutex_destroy(&mut);
 	  return NULL;
