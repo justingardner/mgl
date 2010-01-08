@@ -42,7 +42,12 @@ end
 
 global gSerialPortFun
 gSerialPortFun = 'comm';
-%gSerialPortFun = 'serial';
+%gSerialPortFun = 'serial'; 
+% serial port function still seems busted. It crashes on fclose on my system and while
+% it can write RM to the Topcon and get it into remote mode, it only ever receives a one
+% character 0 in return, instead of OK. fprintf seems to send both RM and the CR/LF that
+% Topcon is expecting, so that seems ok. Seems to default to synchronous buffered full
+% duplex, so not sure what the problem is.
 
 global verbose;
 verbose = 1;
@@ -71,6 +76,12 @@ else
   else
     calib.numRepeats = numRepeats;
   end
+end
+
+% test photometer
+if screenNumber == -1
+  photometerTest;
+  return
 end
 
 justdisplay = 1;
@@ -732,7 +743,7 @@ function portnum = initSerialPortUsingSerial
 portnum = 0;
 
 % display all serial devices
-serialDev = dir('/dev/tty.*');
+serialDev = dir('/dev/cu.*');
 nSerialDev = length(serialDev);
 for i = 1:nSerialDev
   disp(sprintf('%i: %s', i,serialDev(i).name));
@@ -745,9 +756,11 @@ s = serial(fullfile('/dev',serialDev(serialDevNum).name));
 set(s,'BaudRate',9600);
 set(s,'Parity','none');
 set(s,'StopBits',1);
-fclose(s);
+set(s,'Terminator','CR/LF');
+keyboard
 fopen(s);
 portnum = s;
+keyboard
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % close the serial port
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -822,7 +835,8 @@ while (portnum == 0)
     disp(sprintf('Quit'));
     return;
   else
-    comm('open',portnum,'9600,n,8,1');
+%    comm('open',portnum,'9600,n,8,1');
+    comm('open',portnum,'4800,e,7,2');
     response = askuser;
     if response
       return
@@ -1334,4 +1348,27 @@ if ~isempty(response)
 end
 disp(sprintf('Saving with name: %s',filename));
 
-%
+%%%%%%%%%%%%%%%%%%%%%%%%
+%    photometerTest    %
+%%%%%%%%%%%%%%%%%%%%%%%%
+function photometerTest
+portnum = 1;
+comm('open',portnum,'4800,e,7,2');
+
+%portnum = initSerialPort;
+if (portnum == 0),return,end
+
+% ask user what photometer they want to use
+photometerNum = getnum(sprintf('Which photometer are you using?\n(0=quit 1-Photo Research [PR650] 2-Minolta [LS100] 3-Topcon [SR-3A]): ',0:3));
+if photometerNum == 0,return,end
+
+% init the device
+if (photometerInit(portnum,photometerNum) == -1)
+  closeSerialPort(portnum);
+  return
+end
+
+
+photometerMeasure(portnum,photometerNum)
+
+closeSerialport(portnum);
