@@ -4,19 +4,26 @@
 %         by: justin gardner & jonas larsson
 %       date: 10/02/06
 %    purpose: routine to do monitor calibration
-%             uses PhotoResearch PR650 photometer/colorimeter
+%             uses PhotoResearch PR650, Minolta or Topcon  photometer/colorimeter
+% 
+%             To test the serial port connection to your device, run like:
+%
+%             moncalib(-1);
 %
 %             stepsize is how finely you want to measure
 %             luminance changes (value < 1.0) (default is 1/32)
 %
 %             numRepeats is the number of repeats you want
-%             to make of the measurements (default is 2)
+%             to make of the measurements (default is 4)
 %
 %             This works by using the serial port interface
 %             to the PR650 and the comm library from the
 %             mathworks site:
 %
 %http://www.mathworks.com/matlabcentral/fileexchange/loadFile.do?objectId=4952&objectType=file
+%
+%             There is no 64 bit support for the comm library. 
+%
 %             If you want to rewrite this function to use a different
 %             serial port interface function, then you just need
 %             to change the functions initSerialPort, closeSerialPort
@@ -91,11 +98,11 @@ if ~isfield(calib,'bittest') || ~isfield(calib,'uncorrected') || ...
   justdisplay = 0;
   % open the serial port
   if askuser('Do you want to do an auto calibration using the serial port')
-    portnum = initSerialPort;
-    if (portnum == 0),return,end
     % ask user what photometer they want to use
-    photometerNum = getnum(sprintf('Which photometer are you using?\n(0=quit 1-Photo Research [PR650] 2-Minolta [LS100] 3-Topcon [SR-3A]): ',0:3));
+    photometerNum = getPhotometerNum;
     if photometerNum == 0,return,end
+    portnum = initSerialPort(photometerNum);
+    if (portnum == 0),return,end
     % init the device
     if (photometerInit(portnum,photometerNum) == -1)
       closeSerialPort(portnum);
@@ -368,9 +375,9 @@ function retval = photometerInit(portnum,photometerNum)
 switch photometerNum
  case {1}
   retval = photometerInitPR650(portnum);
- case {2}
+ case {2,3}
   retval = photometerInitMinolta(portnum);
- case {3}
+ case {4}
   retval = photometerInitTopcon(portnum);
 end
 
@@ -391,9 +398,9 @@ end
 switch photometerNum
  case {1}
   [luminance x y] = photometerMeasurePR650(portnum);
- case {2}
-  [luminance x y] = photometerMeasureMinolta(portnum);
- case {3}
+ case {2,3}
+  [luminance x y] = photometerMeasureMinolta(portnum,photometerNum);
+ case {3,4}
   [luminance x y] = photometerMeasureTopcon(portnum);
 end
 
@@ -524,7 +531,7 @@ clc
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % measure luminance with the minolta photometer
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function [luminance x y] = photometerMeasureMinolta(portnum)
+function [luminance x y] = photometerMeasureMinolta(portnum,photometerNum)
 
 % retrieve any info that is pending from the photometer
 readSerialPort(portnum,1024);
@@ -545,23 +552,35 @@ errorMsg = {'Offending command','Setting error',...
    'Memory value error','Measuring range over',...
    'Display range over','EEPROM error','Battery exhausted'};
 
-
 if strcmp(str(1:2),'OK')
    thisMessage = '';
    [mstatus,data]=strread(str,'%s%f','delimiter',' ');
    mstatus=char(mstatus);
    if ~strcmp(mstatus(6:7),'Cc')
-       error('make sure the measurement unit is cd/m2');
+     % this is only valid for the L100, I think. -j. 
+     if photometerNum == 2
+       disp('(moncalib) Make sure the measurement unit is cd/m2');
+     end
    end
 elseif strcmp(str(1:2),'ER')
    thisMessage = errorMsg{find(strcmp(errorNum,str(3:4)))};
    data=nan;
 end
-global verbose
-if verbose, disp(sprintf('%s Luminance=%f cd/m^-2 ',thisMessage, data));end
 
-luminance = data;
-x=0;y=0; %LS100 does not measure color
+% return data different for LS100 or CS100A
+if photometerNum == 2
+  %LS100 does not measure color
+  luminance = data;
+  x=0;y=0;
+else
+  luminance = data(1);
+  x = data(2);
+  y = data(3);
+end
+
+global verbose
+if verbose, disp(sprintf('%s Luminance=%f cd/m^-2 ',thisMessage, luminance));end
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % init the topcon photometer
@@ -667,13 +686,26 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%
 %    initSeriaPort    %
 %%%%%%%%%%%%%%%%%%%%%%%
-function portnum = initSerialPort
+function portnum = initSerialPort(photometerNum)
+
+% minolta uses 4800/e/7/2
+if any(photometerNum == [2 3])
+  baudRate = 4800;
+  parity = 'e';
+  dataLen = 7;
+  stopBits = 2;
+else
+  baudRate = 9600;
+  parity = 'n';
+  dataLen = 8;
+  stopBits = 1;
+end  
 
 global gSerialPortFun
 if strcmp(gSerialPortFun,'comm')
-  portnum = initSerialPortUsingComm;
+  portnum = initSerialPortUsingComm(baudRate,parity,dataLen,stopBits);
 elseif strcmp(gSerialPortFun,'serial')
-  portnum = initSerialPortUsingSerial;
+  portnum = initSerialPortUsingSerial(baudRate,parity,dataLen,stopBits);
 else
   disp(sprintf('(moncalib:initSerialPort) Unknown serial device program %s',gSerialPortFun));
   portnum = 0;
@@ -738,9 +770,10 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %    initSeriaPortUsingSerial    %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function portnum = initSerialPortUsingSerial
+function portnum = initSerialPortUsingSerial(baudRate,parity,dataLen,stopBits)
 
 portnum = 0;
+disp(sprintf('This does not work yet!!!!'));
 
 % display all serial devices
 serialDev = dir('/dev/cu.*');
@@ -753,14 +786,14 @@ if serialDevNum == 0,return,end
 
 % try to open the device
 s = serial(fullfile('/dev',serialDev(serialDevNum).name));
-set(s,'BaudRate',9600);
-set(s,'Parity','none');
-set(s,'StopBits',1);
+set(s,'BaudRate',baudRate);
+set(s,'Parity',parity);
+set(s,'StopBits',stopBits);
+set(s,'DataBits',dataLen);
 set(s,'Terminator','CR/LF');
-keyboard
 fopen(s);
 portnum = s;
-keyboard
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % close the serial port
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -795,14 +828,14 @@ str = fgetl(portnum);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % init the serial port
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function portnum = initSerialPortUsingComm
+function portnum = initSerialPortUsingComm(baudRate,parity,dataLen,stopBits)
 
 clc
 portnum = 0;
 
 % check to see if we have comm functions
 if exist('comm')~=3
-  disp(sprintf('UHOH: comm not found\n'));
+  disp(sprintf('(moncalib) comm not found\n'));
   disp(sprintf('These functions need the comm.mexmac function to be'));
   disp(sprintf('able to talk to the serial port. You can get the comm'));
   disp(sprintf('function from the mathworks site:\n'));
@@ -835,8 +868,7 @@ while (portnum == 0)
     disp(sprintf('Quit'));
     return;
   else
-%    comm('open',portnum,'9600,n,8,1');
-    comm('open',portnum,'4800,e,7,2');
+    comm('open',portnum,sprintf('%i,%s,%i,%i',baudRate,parity(1),dataLen,stopBits));
     response = askuser;
     if response
       return
@@ -1348,19 +1380,26 @@ if ~isempty(response)
 end
 disp(sprintf('Saving with name: %s',filename));
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%   getPhotometerNum   %%
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+function photometerNum = getPhotometerNum
+
+photometerNum = getnum(sprintf('Which photometer are you using?\n  0=quit\n  1-Photo Research [PR650]\n  2-Minolta [LS-100]\n  3-Minolta [CS-100a]\n  4-Topcon [SR-3A])\n==================\n',0:4));
+
 %%%%%%%%%%%%%%%%%%%%%%%%
 %    photometerTest    %
 %%%%%%%%%%%%%%%%%%%%%%%%
 function photometerTest
-portnum = 1;
-comm('open',portnum,'4800,e,7,2');
 
-%portnum = initSerialPort;
-if (portnum == 0),return,end
-
+disp(sprintf('(moncalib) PhotometerTest using serial port. Make sure your device is connected and ready to go'));
 % ask user what photometer they want to use
-photometerNum = getnum(sprintf('Which photometer are you using?\n(0=quit 1-Photo Research [PR650] 2-Minolta [LS100] 3-Topcon [SR-3A]): ',0:3));
+photometerNum = getPhotometerNum;
 if photometerNum == 0,return,end
+
+% open the serial port
+portnum = initSerialPort(photometerNum);
+if (portnum == 0),return,end
 
 % init the device
 if (photometerInit(portnum,photometerNum) == -1)
@@ -1368,7 +1407,15 @@ if (photometerInit(portnum,photometerNum) == -1)
   return
 end
 
+disp(sprintf('(moncalib:photomterTest) Trying to make a measurement from your photometer.\nIf the code hangs here, there is probably a communication problem. A few things to try:\n1) Unplug your serial adaptor from the computer and plug it back in again.\n2) Restart Matlab\n3) Reboot the computer (sometimes the serial adaptor needs a good kick in the pants)\n4) Check to make sure you have the correct cable (For example, the Topcon needs a null-modem cable that crosses read/write lines, while other photometers may need a simple pass through cable).\n5) Make sure that your communication mode on the device is setup correctly. Minolta can only use 4800/even/7 bits/2 stop bits. Other photometers have different settings, but should be set to 9600/none/8/1\n6) Power cycle your photometer and try again.'));
 
-photometerMeasure(portnum,photometerNum)
+% make a measurement
+for i = 1
+  [l x y] = photometerMeasure(portnum,photometerNum);
+  disp(sprintf('============================ Photometer measurement has been made ==============================='));
+  disp(sprintf('(moncalib:photometerTest) Measured luminace=%f x=%f y=%f',l,x,y));
+  disp(sprintf('================================================================================================='));
+end
 
-closeSerialport(portnum);
+% and close
+closeSerialPort(portnum);
