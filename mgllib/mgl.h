@@ -62,8 +62,10 @@
 #define __cocoa__
 #endif // ifndef __carbon__
 #endif // ifdef __x86_64__
-
+#ifndef __eventtap__
 #define __eventtap__
+#endif
+
 #include <OpenGL/OpenGL.h>
 #include <OpenGL/gl.h>
 #include <OpenGL/glext.h>
@@ -74,11 +76,10 @@
 #include <AGL/agl.h>
 
 // Cocoa specific imports.
-#ifdef __cocoa__
+// Necessary for the Listner code
 #import <Foundation/Foundation.h>
 #import <Appkit/Appkit.h>
 #import <QTKit/QTKit.h>
-#endif
 
 #endif // __APPLE__
 
@@ -125,9 +126,14 @@
 // older versions of OS X don't
 // have kCGColorSpaceGenericRGB
 #ifdef __APPLE__
-#ifndef kCGColorSpaceGenericRGB
-#define kCGColorSpaceGenericRGB kCGColorSpaceUserRGB
-#endif
+    #ifndef kCGColorSpaceGenericRGB
+        #define kCGColorSpaceGenericRGB kCGColorSpaceUserRGB
+    #endif
+    // MacOS X versions <= 10.4 do not have this default defined
+    // and it is needed for mglPrivateListener
+    #ifndef kCGEventTapOptionDefault
+        #define kCGEventTapOptionDefault 0x00000000
+    #endif
 #endif
 
 ///////////////////////////////
