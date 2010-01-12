@@ -171,7 +171,7 @@ echo "Error: Did not imbed 'options.sh' code"; exit 1 #imbed options.sh glnxi64 
 #
             LD="$CC"
             LDEXTENSION='.mexmac'
-            LDFLAGS="-bundle -Wl,-flat_namespace -undefined suppress -Wl,-exported_symbols_list,$TMW_ROOT/extern/lib/$Arch/$MAPFILE -framework agl -framework Carbon -framework CoreServices -framework Cocoa"
+            LDFLAGS="-bundle -Wl,-flat_namespace -undefined suppress -Wl,-exported_symbols_list,$TMW_ROOT/extern/lib/$Arch/$MAPFILE -framework agl -framework Carbon -framework CoreServices -framework Cocoa -framework QTKit"
             LDOPTIMFLAGS='-O'
             LDDEBUGFLAGS='-g'
 #

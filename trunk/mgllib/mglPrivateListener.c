@@ -83,6 +83,7 @@ static NSMutableArray *gKeyboardEventQueue;
 static NSMutableArray *gMouseEventQueue;
 static double gKeyStatus[MAXKEYCODES];
 static unsigned char gEatKeys[MAXEATKEYS];
+static int gavewarning = 0;
 
 //////////////
 //   main   //
@@ -363,7 +364,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     for (i = 0; i < MAXKEYCODES; i++)
       outptr[i] = gKeyStatus[i];
   }
-  // GETKEYEVENT command ----------------------------------------------------------
+  // EATKEYS command ----------------------------------------------------------
   else if (command == EATKEYS) {
     // return argument
     plhs[0] = mxCreateDoubleMatrix(1,1,mxREAL);
@@ -421,8 +422,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       mexPrintf("(mglPrivateListener) Ending keyboard and mouse event tap\n");
     }
   }
-    //  [pool drain];
-
 }
 
 //////////////////////////////////
