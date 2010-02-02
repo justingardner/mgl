@@ -86,7 +86,7 @@ else
 end
 
 % test photometer
-if screenNumber == -1
+if (nargin>=1) &&isequal(screenNumber,-1)
   photometerTest;
   return
 end
