@@ -13,13 +13,6 @@ function [task myscreen] = mglEyelinkCallbackNextTask(task, myscreen)
 %     purpose: open a link connection to an SR Research Eylink
 %
     
-    if (~mglEyelinkRecordingCheck())
-        %% if we are recording, stop
-        mglEyelinkRecordingStop();
-    end
-    if (task.collectEyeData)
-        mglPrivateEyelinkRecordingStart(myscreen.eyetracker.data);
-    end
     
     mglEyelinkEDFPrintF('MGL NEXT PHASE');
     
