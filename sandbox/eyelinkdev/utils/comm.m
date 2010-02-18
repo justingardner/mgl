@@ -33,3 +33,6 @@ function y = comm( op, port, data)
 % $Id$
 
 
+disp(sprintf('(comm) Is not compiled on this platform. You will need to download a complied version from the MathWorks site or use a version of Matlab that supports this functions (32 bit intel/G4 matlab)'));
+disp(sprintf('http://www.mathworks.com/matlabcentral/fileexchange/loadFile.do?objectId=4952&objectType=file'));
+keyboard

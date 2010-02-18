@@ -129,6 +129,8 @@
     #ifndef kCGColorSpaceGenericRGB
         #define kCGColorSpaceGenericRGB kCGColorSpaceUserRGB
     #endif
+    // MacOS X versions <= 10.4 do not have this default defined
+    // and it is needed for mglPrivateListener
     #ifndef kCGEventTapOptionDefault
         #define kCGEventTapOptionDefault 0x00000000
     #endif
