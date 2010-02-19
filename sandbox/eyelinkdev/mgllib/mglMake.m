@@ -154,37 +154,44 @@ function makeDigIO(rebuild)
 
     % make sure we have the mgl.h file--this will make
     % sure we are in the correct directory
-    % fing the mgl digio directory
-    mgldir = mglGetParam('mglDigioDir');
-    if ~isempty(mgldir)
-        cd(fullfile(mgldir));
+    mgldir = mglGetParam('mgllibDir');
+    if ~isempty(mgldir) && exist(fullfile(mgldir,'mgl.h'), 'file') % test for header
+        cd(mgldir);
         hfile = dir('mgl.h');
+    else
+        return
+    end
+    
+    % fing the mgl digio directory
+    mgldiodir = mglGetParam('mglDigioDir');
+    if ~isempty(mgldiodir)
+        cd(mgldiodir);
     else
         return
     end
 
     % get the files in the utils dir
-    mgldir = dir('*.c');
+    mgldiodir = dir('*.c');
 
-    for i = 1:length(mgldir)
-        if (~strcmp('.#',mgldir(i).name(1:2)))
+    for i = 1:length(mgldiodir)
+        if (~strcmp('.#',mgldiodir(i).name(1:2)))
             % see if it is already compiled
-            mexname = [stripext(mgldir(i).name) '.' mexext];
+            mexname = [stripext(mgldiodir(i).name) '.' mexext];
             mexfile = dir(mexname);
             % mex the file if either there is no mexfile or
             % the date of the mexfile is older than the date of the source file
-            if (rebuild || length(mexfile)<1) || (datenum(mgldir(i).date) > datenum(mexfile(1).date)) || (datenum(hfile(1).date) > datenum(mexfile(1).date))
-                command = sprintf('mex %s',mgldir(i).name);
+            if (rebuild || length(mexfile)<1) || (datenum(mgldiodir(i).date) > datenum(mexfile(1).date)) || (datenum(hfile(1).date) > datenum(mexfile(1).date))
+                command = sprintf('mex %s',mgldiodir(i).name);
                 % display the mex command
                 disp(command);
                 % now run it, catching an errors
                 try
                     eval(command);
                 catch
-                    disp(['Error compiling ' mgldir(i).name]);
+                    disp(['Error compiling ' mgldiodir(i).name]);
                 end
             else
-                disp(sprintf('%s is up to date',mgldir(i).name));
+                disp(sprintf('%s is up to date',mgldiodir(i).name));
             end    
         end
     end

@@ -7,12 +7,17 @@
 #               defaults after running mex.  No spaces are allowed
 #               around the '=' in the variable assignment.
 #
+#               Note: only the gcc side of this script was tested.
+#               The FORTRAN variables are lifted directly from
+#               mexopts.sh; use that file for compiling FORTRAN
+#               MEX-files.
+#
 # SELECTION_TAGs occur in template option files and are used by MATLAB
 # tools, such as mex and mbuild, to determine the purpose of the contents
 # of an option file. These tags are only interpreted when preceded by '#'
 # and followed by ':'.
 #
-#SELECTION_TAG_MEX_OPT: Template Options file for building MEX-files via the system ANSI compiler
+#SELECTION_TAG_MEX_OPT: Template Options file for building gcc MEX-files
 #
 # Copyright 1984-2004 The MathWorks, Inc.
 # $Revision$  $Date$
@@ -21,9 +26,9 @@
     TMW_ROOT="$MATLAB"
     MFLAGS=''
     if [ "$ENTRYPOINT" = "mexLibrary" ]; then
-        MLIBS="-L$TMW_ROOT/bin/$Arch -lmx -lmex -lmat -lmwservices -lut"
+        MLIBS="-L$TMW_ROOT/bin/$Arch -lmx -lmex -lmat -lmwservices -lut -lm"
     else  
-        MLIBS="-L$TMW_ROOT/bin/$Arch -lmx -lmex -lmat"
+        MLIBS="-L$TMW_ROOT/bin/$Arch -lmx -lmex -lmat -lm"
     fi
     case "$Arch" in
         Undetermined)
@@ -35,54 +40,19 @@
 # undetermined.
 #----------------------------------------------------------------------------
             MATLAB="$MATLAB"
+#
+# Determine the location of the GCC libraries
+#
+	    GCC_LIBDIR=`gcc -v 2>&1 | awk '/.*Reading specs.*/ {print substr($4,0,length($4)-6)}'`
             ;;
         hpux)
 #----------------------------------------------------------------------------
-#           what `which cc`
-#           HP92453-01 B.11.11.06 HP C Compiler
-            CC='cc'
-            COMPFLAGS='-z +Z +DA2.0 -mt'
-            CFLAGS="-Ae $COMPFLAGS -Wp,-H65535"
-            CLIBS="$MLIBS -lm -lc"
-            COPTIMFLAGS='-O -DNDEBUG'
-            CDEBUGFLAGS='-g'
-#
-#           what `which aCC`
-#           HP aC++ B3910B A.03.37
-#           HP aC++ B3910B A.03.30 Language Support Library
-            CXX='aCC'
-            CXXFLAGS="-AA -D_HPUX_SOURCE $COMPFLAGS"
-            CXXLIBS="$MLIBS -lm -lstd_v2 -lCsup_v2"
-            CXXOPTIMFLAGS='-O -DNDEBUG +Oconservative'
-            CXXDEBUGFLAGS='-g'
-#
-#           what `which f90`
-#           HP-UX f90 20020606 (083554)  B3907DB/B3909DB B.11.01.60
-#           HP F90 v2.6
-#            $ PATCH/11.00:PHCO_95167  Oct  1 1998 13:46:32 $
-            F90LIBDIR='/opt/fortran90/lib/pa2.0'
-            FC='f90'
-            FFLAGS='+Z +DA2.0'
-            FLIBS="$MLIBS -lm -L$F90LIBDIR -lF90 -lcl -lc -lisamstub"
-            FOPTIMFLAGS='-O +Oconservative'
-            FDEBUGFLAGS='-g'
-#
-            if [ "$ffiles" = "1" ]; then
-            LD='cc'
-            else
-            LD="$COMPILER"
-            fi
-            LDEXTENSION='.mexhpux'
-            LDFLAGS="-b -Wl,+e,mexVersion,+e,mexFunction,+e,mexfunction,+e,mexLibrary,+e,_shlInit $COMPFLAGS"
-            LDOPTIMFLAGS='-O'
-            LDDEBUGFLAGS='-g'
-#
-            POSTLINK_CMDS=':'
+            echo "gcc is not supported on hpux"
 #----------------------------------------------------------------------------
             ;;
         glnx86)
 #----------------------------------------------------------------------------
-            RPATH="-Wl,--rpath-link,$TMW_ROOT/bin/$Arch"
+            RPATH="-Wl,-rpath-link,$TMW_ROOT/bin/$Arch"
 #           gcc -v
 #           gcc version 3.2.3
             CC='gcc'
@@ -155,7 +125,7 @@
             ;;
         glnxa64)
 #----------------------------------------------------------------------------
-            RPATH="-Wl,--rpath-link,$TMW_ROOT/bin/$Arch"
+            RPATH="-Wl,-rpath-link,$TMW_ROOT/bin/$Arch"
 #           gcc -v
 #           gcc version 3.2.3
             CC='gcc'
@@ -232,10 +202,8 @@
             ;;
         mac)
 #----------------------------------------------------------------------------
-#           gcc-3.3 -v
-#           gcc version 3.3 20030304 (Apple Computer, Inc. build 1435)
             CC='gcc'
-            CFLAGS='-fno-common -no-cpp-precomp -fexceptions'
+            CFLAGS='-x objective-c -fno-common -no-cpp-precomp -fexceptions'
             CLIBS="$MLIBS -lstdc++"
             COPTIMFLAGS='-O3 -DNDEBUG'
             CDEBUGFLAGS='-g'
