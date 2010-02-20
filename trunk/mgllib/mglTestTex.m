@@ -53,6 +53,12 @@ for i = 1:nsteps;
   % calculate grating and gaussian window
   m = mglMakeGrating(texWidth,texHeight,0.8,0,i*360/nsteps);
   win = mglMakeGaussian(texWidth,texHeight,texWidth/7,texHeight/7);
+  % uncomment the following line if you want to display
+  % a square rather than sinusoidal grating a
+  %m = 2*(m>0)-1;
+  % uncomment the following line ot have a circular rather than
+  % gabor aperture
+  %win = win>0;
   % now create and RGB + alpha image with the gaussian window
   % as the alpha channel
   if ismac

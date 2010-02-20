@@ -224,7 +224,7 @@ unsigned long cocoaOpen(double *displayNumber, int *screenWidth, int *screenHeig
 
     // create the window, if we are running desktop, then open a borderless non backing
     // store window because anything else causes problems
-    if (1)//(mglGetGlobalDouble("matlabDesktop"))
+    if (!mglGetGlobalDouble("showWindowBorder"))
       myWindow = [[NSWindow alloc] initWithContentRect:contentRect styleMask:NSBorderlessWindowMask backing:NSBackingStoreNonretained defer:false];
     else
       myWindow = [[NSWindow alloc] initWithContentRect:contentRect styleMask:NSTitledWindowMask|NSClosableWindowMask|NSMiniaturizableWindowMask|NSTexturedBackgroundWindowMask backing:NSBackingStoreBuffered defer:false];
@@ -269,6 +269,23 @@ unsigned long cocoaOpen(double *displayNumber, int *screenWidth, int *screenHeig
   if (verbose) mexPrintf("(mglPrivateOpen) Display window\n");
   [myWindow display];
   if (verbose) mexPrintf("(mglPrivateOpen) Window isVisible:%i\n",[myWindow isVisible]);
+
+  if (mglGetGlobalDouble("hideTaskAndMenu")) {
+    if (verbose) mexPrintf("(mglPrivateOpen) Hiding task and menu bar\n");
+    OSStatus setSystemUIModeStatus = SetSystemUIMode(kUIModeAllHidden,kUIOptionAutoShowMenuBar|kUIOptionDisableAppleMenu);
+  }
+
+  // order the window in front if called for
+  if (mglGetGlobalDouble("orderWindowFront")) {
+    if (verbose) mexPrintf("(mglPrivateOpen) Ordering window in front\n");
+    // would like to order in front of task and menu bar, 
+    // but can't seem to do that... tried the following
+    //    [myWindow makeMainWindow];
+        [myWindow orderFrontRegardless];
+    //    [myWindow orderFront:nil];
+    //    [myWindow makeKeyAndOrderFront];
+  }
+    
 
   // Set a full screen context
   if ((*displayNumber >= 1) || (*displayNumber < 0)) {
