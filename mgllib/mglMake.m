@@ -43,7 +43,9 @@ elseif isequal(rebuild,'digio')
   return
 end
 
+thisPath = pwd;
 makeMGL(rebuild,useCocoa,useCarbon);
+cd(thisPath);
 
 %%%%%%%%%%%%%%%%%
 %%   makeMGL   %%

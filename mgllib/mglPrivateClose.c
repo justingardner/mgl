@@ -111,18 +111,25 @@ void cocoaClose(displayNumber,verbose)
   if (verbose)
     mexPrintf("(mglPrivateClose) Retain counts are window: %i view: %i openGLContext: %i\n",[myWindow retainCount],[[myWindow contentView] retainCount],[myOpenGLContext retainCount]);
 
+  // bring back task and menu bar if hidden
+  if (mglGetGlobalDouble("hideTaskAndMenu")) {
+    if (verbose) mexPrintf("(mglPrivateOpen) Hiding task and menu bar\n");
+    OSStatus setSystemUIModeStatus = SetSystemUIMode(kUIModeNormal,0);
+  }
+
   // close the window. Note that we just orderOut (or make invisible) for now,
   // since there is some problem with actually closing and reopening
-#if 1
-  if (verbose) mexPrintf("(mglPrivateClose) Releasing cocoa window\n");
-  [[myWindow contentView] clearGLContext];
-  [myWindow close];
-  mglSetGlobalDouble("cocoaWindowPointer",0);
-  mglSetGlobalDouble("GLContext",0);
-#else
-  if (verbose) mexPrintf("(mglPrivateClose) Hiding cocoa window\n");
-  [myWindow orderOut:nil];
-#endif
+  if (mglGetGlobalDouble("hideNotClose")) {
+    if (verbose) mexPrintf("(mglPrivateClose) Hiding cocoa window\n");
+    [myWindow orderOut:nil];
+  }
+  else {
+    if (verbose) mexPrintf("(mglPrivateClose) Releasing cocoa window\n");
+    [[myWindow contentView] clearGLContext];
+    [myWindow close];
+    mglSetGlobalDouble("cocoaWindowPointer",0);
+    mglSetGlobalDouble("GLContext",0);
+  }
 
   // drain the pool
   [pool drain];
