@@ -175,4 +175,5 @@ end
 
 % update staircase
 fixStimulus.staircase = upDownStaircase(fixStimulus.staircase,response);
+fixStimulus.staircase.minThreshold = 0;
 fixStimulus.threshold = fixStimulus.staircase.threshold;
