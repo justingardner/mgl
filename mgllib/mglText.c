@@ -382,8 +382,11 @@ unsigned char *renderText(const mxArray *inputString, char*fontName, int fontSiz
     mexPrintf("(mglText) Buffer size: width: %i height: %i bytesPerRow: %i byteCount: %i\n",*pixelsWide,*pixelsHigh,bitmapBytesPerRow,bitmapByteCount);
 
   // set colorspace
+#if 0
   colorSpace = CGColorSpaceCreateWithName(kCGColorSpaceGenericRGB);
-
+#else
+  colorSpace = CGColorSpaceCreateDeviceRGB();
+#endif
   // allocate memory for the bitmap and set to zero
   bitmapData = malloc(bitmapByteCount);
   memset(bitmapData,0,bitmapByteCount);

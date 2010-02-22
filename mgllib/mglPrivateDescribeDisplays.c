@@ -24,7 +24,7 @@ $Id$
 //   define section   //
 ////////////////////////
 #define kMaxDisplays 8
-#define kNumDisplayStructFields 16
+#define kNumDisplayStructFields 17
 #define kNumComputerStructFields 9
 #define kMaxStrLen 32
 #define kSysctlStrLen 256
@@ -78,6 +78,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   strcpy(displayStructFieldNames[13], "isCaptured");
   strcpy(displayStructFieldNames[14], "gammaTableWidth");
   strcpy(displayStructFieldNames[15], "gammaTableLength");
+  strcpy(displayStructFieldNames[16], "displayBounds");
 
   // Initialize the computer structure fields.
   computerStructFieldNames = (char**)mxMalloc(kNumComputerStructFields * sizeof(char*));
@@ -198,7 +199,19 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       }
       CFRelease(properties);
     }
-#endif//__cocoa__
+#else//__cocoa__
+    mxSetField(displayStruct, i, "gammaTableLength", mxCreateDoubleScalar((double)CGDisplayGammaTableCapacity(displays[i])));
+#endif
+    // get display bounds
+    CGRect displayBounds = CGDisplayBounds(displays[i]);
+    m = mxCreateDoubleMatrix(1, 4, mxREAL);
+    ptr = mxGetPr(m);
+    ptr[0] = (double)displayBounds.origin.x;
+    ptr[1] = (double)displayBounds.origin.y;
+    ptr[2] = (double)displayBounds.size.width;
+    ptr[3] = (double)displayBounds.size.height;
+    mxSetField(displayStruct, i, "displayBounds", m);
+
   } // End for (i = 0; i < numDisplays; i++)
 
   // Get the machine class.
