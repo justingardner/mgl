@@ -58,13 +58,22 @@ if mglGetParam('movieMode')
       disp(sprintf('(mglOpen) Display number out of range: %i',whichScreen));
       return
     end
-    if displays(whichScreen).isMain
-      mglSetParam('hideTaskAndMenu',1);
-    end
+    % hide task and menu bar for main screen
+    mglSetParam('hideTaskAndMenu',displays(whichScreen).isMain);
     % get the screen width and screen height necessary to cover the
     % full screen
     screenWidth = displays(whichScreen).screenSizePixel(1);
     screenHeight = displays(whichScreen).screenSizePixel(2);
+    % get xpos and ypos where window should be moved to.
+    ypos = displays(1).screenSizePixel(2);
+    % displayBounds contains position of display relative to main (i.e. 1)
+    if isfield(displays(whichScreen),'displayBounds')
+      ypos = ypos+displays(whichScreen).displayBounds(2);
+    end
+    xpos = 0;
+    if isfield(displays(whichScreen),'displayBounds')
+      xpos = xpos+displays(whichScreen).displayBounds(1);
+    end
     % now set to open the windowed context
     whichScreen = 0;
     mglSetParam('orderWindowFront',1);
@@ -216,7 +225,7 @@ end
 % if movie mode, make sure we are centered
 if mglGetParam('movieMode')
   if spoofFullScreen
-    mglMoveWindow(0,screenHeight);
+    mglMoveWindow(xpos,ypos);
   end
   mglSetParam('useCGL',1);
 end
