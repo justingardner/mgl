@@ -14,9 +14,10 @@ function [task myscreen] = mglEyelinkCallbackNextTask(task, myscreen)
 %
     
     
-    mglEyelinkEDFPrintF('MGL NEXT PHASE');
-    if isfield(task, 'collectEyeData') && (~task.collectEyeData)
-        if (~mglEyelinkRecordingCheck())
+    if isfield(task, 'collectEyeData')
+        mglEyelinkEDFPrintF('MGL NEXT PHASE');
+        
+        if (~task.collectEyeData) && (~mglEyelinkRecordingCheck())
             % if we are recording, stop
             mglEyelinkRecordingStop();
         end

@@ -11,12 +11,12 @@ function [task myscreen] = mglEyelinkCallbackStartBlock(task, myscreen)
 %
     
     if isfield(task, 'collectEyeData') && (task.collectEyeData)
-        % if (~mglEyelinkRecordingCheck())
-            %% if we are recording, stop
-            % mglEyelinkRecordingStop();
-        % end
+        if all(eq(task.collectEyeData, 'block')) && (~mglEyelinkRecordingCheck)
+            % if we are recording & we want to reset at blocks, stop
+            mglEyelinkRecordingStop();
+        end
         mglPrivateEyelinkRecordingStart(myscreen.eyetracker.data);
+        mglEyelinkEDFPrintF('MGL BEGIN BLOCK %i', task.blocknum);
     end
-    mglEyelinkEDFPrintF('MGL BEGIN BLOCK %i', task.blocknum);
     
 end

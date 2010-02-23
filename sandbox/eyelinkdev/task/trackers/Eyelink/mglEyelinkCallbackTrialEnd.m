@@ -10,6 +10,12 @@ function [task myscreen] = mglEyelinkCallbackTrialEnd(task, myscreen)
 %     purpose: open a link connection to an SR Research Eylink
 %
 
-    mglEyelinkEDFPrintF('TRIAL OK');
+    if isfield(task, 'collectEyeData') && (task.collectEyeData)
+        mglEyelinkEDFPrintF('TRIAL OK');
+        if all(eq(task.collectEyeData, 'trial')) && (~mglEyelinkRecordingCheck)
+            % if we are recording & we want to reset at blocks, stop
+            mglEyelinkRecordingStop();
+        end
+    end
     
 end
