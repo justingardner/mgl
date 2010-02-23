@@ -29,12 +29,14 @@ int sub2ind( int row, int col, int height, int elsize ) {
   return ( row*elsize + col*height*elsize );
 }
 
+
 //////////////
 //   main   //
 //////////////
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
   // declare some variables
+  GLenum textureType;
   int i,j;
 
   // check for open window
@@ -88,6 +90,21 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
   // get image size and type
   int imageWidth = dims[1], imageHeight = dims[0]; // 
+
+  // set what kind of texture this is
+  if (imageHeight == 1)
+    // a 1D texture
+    textureType = GL_TEXTURE_1D;
+  else {
+#ifndef GL_TEXTURE_RECTANGLE_EXT
+    // for systems without rectangular textures, use 2D texture
+    textureType = GL_TEXTURE_2D;
+#else
+    // rectangular textures
+    textureType = GL_TEXTURE_RECTANGLE_EXT;
+#endif
+  }
+
   
   int imageType;
   if (ndims == 2) imageType = 1; else imageType = dims[2];
@@ -153,59 +170,81 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   glGenTextures(1, &textureNumber);
 
   // If rectangular textures are unsupported, scale image to nearest dimensions
-#ifndef GL_TEXTURE_RECTANGLE_EXT
-  // No support for non-power of two textures
-  int po2Width=imageWidth;
-  int po2Height=imageHeight;
-  double lw=log(imageWidth)/log(2);
-  double lh=log(imageHeight)/log(2);
-  if (lw!=round(lw) | lh!=round(lh)) {
-    po2Width=(int) pow(2,round(lw));
-    po2Height=(int) pow(2,round(lh));
-    if (verbose) {
-      mexPrintf("(mglCreateTexture) Only support for power-of-2 sized textures on this platform.\n");
-      mexPrintf("(mglCreateTexture) Scaling image to nearest power-of-2 size...\n");
-      mexPrintf("(mglCreateTexture) Scaled size is (width x height): %i x %i\n",po2Width,po2Height);
+  if (textureType == GL_TEXTURE_2D) {
+    // No support for non-power of two textures
+    int po2Width=imageWidth;
+    int po2Height=imageHeight;
+    double lw=log(imageWidth)/log(2);
+    double lh=log(imageHeight)/log(2);
+    if (lw!=round(lw) | lh!=round(lh)) {
+      po2Width=(int) pow(2,round(lw));
+      po2Height=(int) pow(2,round(lh));
+      if (verbose) {
+	mexPrintf("(mglCreateTexture) Only support for power-of-2 sized textures on this platform.\n");
+	mexPrintf("(mglCreateTexture) Scaling image to nearest power-of-2 size...\n");
+	mexPrintf("(mglCreateTexture) Scaled size is (width x height): %i x %i\n",po2Width,po2Height);
+      }
+      GLubyte * tmp =(GLubyte*)malloc(po2Width*po2Height*sizeof(GLubyte)*BYTEDEPTH);
+      gluScaleImage( GL_RGBA, imageWidth, imageHeight, TEXTURE_DATATYPE, imageFormatted, po2Width, po2Height, TEXTURE_DATATYPE, tmp);
+      free(imageFormatted);
+      imageFormatted=tmp;
     }
-    GLubyte * tmp =(GLubyte*)malloc(po2Width*po2Height*sizeof(GLubyte)*BYTEDEPTH);
-    gluScaleImage( GL_RGBA, imageWidth, imageHeight, TEXTURE_DATATYPE, imageFormatted, po2Width, po2Height, TEXTURE_DATATYPE, tmp);
-    free(imageFormatted);
-    imageFormatted=tmp;
+    glBindTexture(GL_TEXTURE_2D, textureNumber);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glPixelStorei(GL_UNPACK_ROW_LENGTH,0);
+
+    // now place the data into the texture
+    glTexImage2D(GL_TEXTURE_2D,0,4,po2Width,po2Height,0,GL_RGBA,TEXTURE_DATATYPE,imageFormatted);
+
   }
-  glBindTexture(GL_TEXTURE_2D, textureNumber);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-  glPixelStorei(GL_UNPACK_ROW_LENGTH,0);
-
-  // now place the data into the texture
-  glTexImage2D(GL_TEXTURE_2D,0,4,po2Width,po2Height,0,GL_RGBA,TEXTURE_DATATYPE,imageFormatted);
-
-#else// GL_TEXTURE_RECTANGLE_EXT
-  // Support for non-power of two textures
-  glBindTexture(GL_TEXTURE_RECTANGLE_EXT, textureNumber);
+  else if (textureType == GL_TEXTURE_RECTANGLE_EXT) {
+    // Support for non-power of two textures
+    glBindTexture(textureType, textureNumber);
 
 #ifdef __APPLE__
-  // tell GL that the memory will be handled by us. (apple)
-  glPixelStorei(GL_UNPACK_CLIENT_STORAGE_APPLE,0);
-  // now, try to store the memory in VRAM (apple)
-  glTexParameteri(GL_TEXTURE_RECTANGLE_EXT,GL_TEXTURE_STORAGE_HINT_APPLE,GL_STORAGE_CACHED_APPLE);
-  glTextureRangeAPPLE(GL_TEXTURE_RECTANGLE_EXT,imageWidth*imageHeight*BYTEDEPTH,imageFormatted);
+    // tell GL that the memory will be handled by us. (apple)
+    glPixelStorei(GL_UNPACK_CLIENT_STORAGE_APPLE,0);
+    // now, try to store the memory in VRAM (apple)
+    glTexParameteri(textureType,GL_TEXTURE_STORAGE_HINT_APPLE,GL_STORAGE_CACHED_APPLE);
+    glTextureRangeAPPLE(textureType,imageWidth*imageHeight*BYTEDEPTH,imageFormatted);
 #endif
   
-  // some other stuff
-  glTexParameteri(GL_TEXTURE_RECTANGLE_EXT, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-  glTexParameteri(GL_TEXTURE_RECTANGLE_EXT, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-  glTexParameteri(GL_TEXTURE_RECTANGLE_EXT, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-  glTexParameteri(GL_TEXTURE_RECTANGLE_EXT, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-  glPixelStorei(GL_UNPACK_ROW_LENGTH,0);
+    // some other stuff
+    glTexParameteri(textureType, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(textureType, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(textureType, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(textureType, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glPixelStorei(GL_UNPACK_ROW_LENGTH,0);
 
-  // now place the data into the texture
-  glTexImage2D(GL_TEXTURE_RECTANGLE_EXT,0,GL_RGBA,imageWidth,imageHeight,0,GL_RGBA,TEXTURE_DATATYPE,imageFormatted);
+    // now place the data into the texture
+    glTexImage2D(GL_TEXTURE_RECTANGLE_EXT,0,GL_RGBA,imageWidth,imageHeight,0,GL_RGBA,TEXTURE_DATATYPE,imageFormatted);
+  }
+  else if (textureType == GL_TEXTURE_1D) {
+    // Support for non-power of two textures
+    glBindTexture(textureType, textureNumber);
+
+#ifdef __APPLE__
+    // tell GL that the memory will be handled by us. (apple)
+    glPixelStorei(GL_UNPACK_CLIENT_STORAGE_APPLE,0);
+    // now, try to store the memory in VRAM (apple)
+    glTexParameteri(textureType,GL_TEXTURE_STORAGE_HINT_APPLE,GL_STORAGE_CACHED_APPLE);
+    glTextureRangeAPPLE(textureType,imageWidth*imageHeight*BYTEDEPTH,imageFormatted);
+#endif
   
-#endif// GL_TEXTURE_RECTANGLE_EXT
-  
+    // some other stuff
+    glTexParameteri(textureType, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(textureType, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(textureType, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(textureType, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glPixelStorei(GL_UNPACK_ROW_LENGTH,0);
+
+    // now place the data into the texture
+    glTexImage1D(textureType,0,GL_RGBA,imageWidth,0,GL_RGBA,TEXTURE_DATATYPE,imageFormatted);
+  }
+
   // error status checking commented out, since it just returns
   // a number that doesn't mean anything to the user.
   //GLenum err=glGetError();
@@ -217,9 +256,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   free(imageFormatted);
 
   // create the output structure
-  const char *fieldNames[] =  {"textureNumber","imageWidth","imageHeight","textureAxes" };
+  const char *fieldNames[] =  {"textureNumber","imageWidth","imageHeight","textureAxes","textureType" };
   int outDims[2] = {1, 1};
-  plhs[0] = mxCreateStructArray(1,outDims,4,fieldNames);
+  plhs[0] = mxCreateStructArray(1,outDims,5,fieldNames);
   
   // now set the textureNumber field
   double *outptr;
@@ -263,4 +302,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     outptr = (double*)mxGetPr(mxGetField(plhs[0],0,"imageHeight"));
     *outptr = (double)imageHeight;
   }
+
+  // set the textureType
+  mxSetField(plhs[0],0,"textureType",mxCreateDoubleMatrix(1,1,mxREAL));
+  outptr = (double*)mxGetPr(mxGetField(plhs[0],0,"textureType"));
+  *outptr = (double)textureType;
+
 }

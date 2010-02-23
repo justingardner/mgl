@@ -25,6 +25,16 @@ mglVisualAngleCoordinates(57,[40 30]);
 % clear both buffers to gray
 mglClearScreen(0.5);mglFlush;
 mglClearScreen;mglFlush;
+mglSetParam('verbose',1);
+%m = mglCreateTexture(255*(sin(0:8*pi/800:8*pi)+1)/2);
+m = mglCreateTexture(255*rand(1,800));
+mglBltTexture(m,[0 0 nan 5],0,0,30);
+mglBltTexture(m,[0 0]);
+
+mglFlush;
+keyboard
+%mglClose;
+%return
 
 if ismac
   % display wait text
@@ -74,6 +84,7 @@ for i = 1:nsteps;
   end
   % now create the texture
   tex(i) = mglCreateTexture(m4);
+  keyboard
 end
 
 % display each texture to back buffer, to make sure

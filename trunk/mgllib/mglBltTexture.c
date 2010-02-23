@@ -36,6 +36,7 @@ $Id$
 //////////////////////////
 typedef struct textype {
   GLuint textureNumber;
+  GLenum textureType;
   double imageWidth;
   double imageHeight;
   int textureAxes;
@@ -170,6 +171,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       deviceHDirection = allParams[10];
       deviceVDirection = allParams[11];
       verbose = (int)allParams[12];
+      tex[texnum].textureType = (GLenum)allParams[13];
     }
     else {
       xPixelsToDevice = mglGetGlobalDouble("xPixelsToDevice");
@@ -285,6 +287,14 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 	return;
 	break;
     }
+    // set any nan positions to defaults
+    double displayRectDefaults[] = {0,0,tex[texnum].imageWidth*xPixelsToDevice,tex[texnum].imageHeight*yPixelsToDevice};
+    int i;
+    for (i = 0;i < 4;i++)
+      if (isnan(tex[texnum].displayRect[i]))
+	tex[texnum].displayRect[i] = displayRectDefaults[i];
+
+
     if (verbose)
       mexPrintf("(mglBltTexture) Display rect = [%0.2f %0.2f %0.2f %0.2f]\n",tex[texnum].displayRect[0],tex[texnum].displayRect[1],tex[texnum].displayRect[2],tex[texnum].displayRect[3]);
 
@@ -436,87 +446,113 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     glTranslated(xshift,yshift,0);
     glRotated(tex[texnum].rotation,0,0,1);
 
-#ifdef GL_TEXTURE_RECTANGLE_EXT
-    // bind the texture we want to draw
-    glEnable(GL_TEXTURE_RECTANGLE_EXT);
-    glBindTexture(GL_TEXTURE_RECTANGLE_EXT, tex[texnum].textureNumber);
+    // GL_TEXTURE_RECTANGLE_EXT (standard 2D texture that can be a rectangle)
+    if (tex[texnum].textureType==GL_TEXTURE_RECTANGLE_EXT) {
+      // bind the texture we want to draw
+      glEnable(GL_TEXTURE_RECTANGLE_EXT);
+      glBindTexture(GL_TEXTURE_RECTANGLE_EXT, tex[texnum].textureNumber);
 
-    // profile info
-    if (profile) {
-      mexPrintf("Enable %f\n",getmsec()-startTime);
-      startTime = getmsec();
-    }
+      // profile info
+      if (profile) {
+	mexPrintf("Enable %f\n",getmsec()-startTime);
+	startTime = getmsec();
+      }
 
-    // and set the transformation
-    glBegin(GL_QUADS);
-    if (tex[texnum].textureAxes == YX) {
-    // default texture axes (yx, using matlab coordinates) does not require swapping y and x in texture coords (done in mglCreateTexture)
-      glTexCoord2d(0.0, 0.0);
-      glVertex3d(tex[texnum].displayRect[0],tex[texnum].displayRect[1], 0.0);
+      // and set the transformation
+      glBegin(GL_QUADS);
+      if (tex[texnum].textureAxes == YX) {
+	// default texture axes (yx, using matlab coordinates) does not require swapping y and x in texture coords (done in mglCreateTexture)
+	glTexCoord2d(0.0, 0.0);
+	glVertex3d(tex[texnum].displayRect[0],tex[texnum].displayRect[1], 0.0);
     
-      glTexCoord2d(0.0, tex[texnum].imageHeight);
-      glVertex3d(tex[texnum].displayRect[0], tex[texnum].displayRect[3], 0.0);
+	glTexCoord2d(0.0, tex[texnum].imageHeight);
+	glVertex3d(tex[texnum].displayRect[0], tex[texnum].displayRect[3], 0.0);
     
-      glTexCoord2d(tex[texnum].imageWidth, tex[texnum].imageHeight);
-      glVertex3d(tex[texnum].displayRect[2], tex[texnum].displayRect[3], 0.0);
+	glTexCoord2d(tex[texnum].imageWidth, tex[texnum].imageHeight);
+	glVertex3d(tex[texnum].displayRect[2], tex[texnum].displayRect[3], 0.0);
     
-      glTexCoord2d(tex[texnum].imageWidth, 0.0);
-      glVertex3d(tex[texnum].displayRect[2], tex[texnum].displayRect[1], 0.0);
+	glTexCoord2d(tex[texnum].imageWidth, 0.0);
+	glVertex3d(tex[texnum].displayRect[2], tex[texnum].displayRect[1], 0.0);
+	glEnd();
+      }  else if (tex[texnum].textureAxes==XY) {
+	//  using reverse ordered coordinates does require swapping y and x in texture coords.
+	glTexCoord2d(0.0, 0.0);
+	glVertex3d(tex[texnum].displayRect[0],tex[texnum].displayRect[1], 0.0);
+    
+	glTexCoord2d(0.0, tex[texnum].imageWidth);
+	glVertex3d(tex[texnum].displayRect[2], tex[texnum].displayRect[1], 0.0);
+	
+	glTexCoord2d(tex[texnum].imageHeight,tex[texnum].imageWidth);
+	glVertex3d(tex[texnum].displayRect[2], tex[texnum].displayRect[3], 0.0);
+    
+	glTexCoord2d(tex[texnum].imageHeight, 0.0);
+	glVertex3d(tex[texnum].displayRect[0], tex[texnum].displayRect[3], 0.0);    
+      }
+
       glEnd();
-    }  else if (tex[texnum].textureAxes==XY) {
-      //  using reverse ordered coordinates does require swapping y and x in texture coords.
-      glTexCoord2d(0.0, 0.0);
-      glVertex3d(tex[texnum].displayRect[0],tex[texnum].displayRect[1], 0.0);
-    
-      glTexCoord2d(0.0, tex[texnum].imageWidth);
-      glVertex3d(tex[texnum].displayRect[2], tex[texnum].displayRect[1], 0.0);
-    
-      glTexCoord2d(tex[texnum].imageHeight,tex[texnum].imageWidth);
-      glVertex3d(tex[texnum].displayRect[2], tex[texnum].displayRect[3], 0.0);
-    
-      glTexCoord2d(tex[texnum].imageHeight, 0.0);
-      glVertex3d(tex[texnum].displayRect[0], tex[texnum].displayRect[3], 0.0);    
+      glDisable(GL_TEXTURE_RECTANGLE_EXT);
     }
+    // On systems w/out GL_TEXTURE_RECTANGLE_EXT we use the GL_TEXTURE_2D
+    else if (tex[texnum].textureType == GL_TEXTURE_2D) {
+      // bind the texture we want to draw
+      glEnable(GL_TEXTURE_2D);
+      glBindTexture(GL_TEXTURE_2D, tex[texnum].textureNumber);
 
-    glEnd();
-    glDisable(GL_TEXTURE_RECTANGLE_EXT);
-#else//GL_TEXTURE_RECTANGLE_EXT
-    // bind the texture we want to draw
-    glEnable(GL_TEXTURE_2D);
-    glBindTexture(GL_TEXTURE_2D, tex[texnum].textureNumber);
+      // and set the transformation
+      glBegin(GL_QUADS);
+      if (tex[texnum].textureAxes==YX) {
+	// default texture axes (yx, using matlab coordinates) does not require swapping y and x in texture coords.
+	glTexCoord2f(0.0, 0.0);
+	glVertex3f(tex[texnum].displayRect[0],tex[texnum].displayRect[1], 0.0);
+    
+	glTexCoord2f(0.0, 1.0);
+	glVertex3f(tex[texnum].displayRect[0], tex[texnum].displayRect[3], 0.0);
+    
+	glTexCoord2f(1.0, 1.0);
+	glVertex3f(tex[texnum].displayRect[2], tex[texnum].displayRect[3], 0.0);
+    
+	glTexCoord2f(1.0, 0.0);
+	glVertex3f(tex[texnum].displayRect[2], tex[texnum].displayRect[1], 0.0);
+      } else if (tex[texnum].textureAxes==XY) {
+	//  using reverse ordered coordinates does require swapping y and x in texture coords.
+	glTexCoord2f(0.0, 0.0);
+	glVertex3f(tex[texnum].displayRect[0],tex[texnum].displayRect[1], 0.0);
+    
+	glTexCoord2f(0.0, 1.0);
+	glVertex3f(tex[texnum].displayRect[2], tex[texnum].displayRect[1], 0.0);
+    
+	glTexCoord2f(1.0, 1.0);
+	glVertex3f(tex[texnum].displayRect[2], tex[texnum].displayRect[3], 0.0);
+    
+	glTexCoord2f(1.0, 0.0);
+	glVertex3f(tex[texnum].displayRect[0], tex[texnum].displayRect[3], 0.0);
+    
+      }
+      glEnd();
+    }
+    // 1D texture
+    else if (tex[texnum].textureType == GL_TEXTURE_1D) {
+      // bind the texture we want to draw
+      glEnable(GL_TEXTURE_1D);
+      glBindTexture(GL_TEXTURE_1D, tex[texnum].textureNumber);
 
-    // and set the transformation
-    glBegin(GL_QUADS);
-    if (strncmp(tex[texnum].textureAxes, "yx",2)==0) {
-    // default texture axes (yx, using matlab coordinates) does not require swapping y and x in texture coords.
-      glTexCoord2f(0.0, 0.0);
+      // and set the transformation
+      glBegin(GL_QUADS);
+
+      glTexCoord1f(0.0);
       glVertex3f(tex[texnum].displayRect[0],tex[texnum].displayRect[1], 0.0);
     
-      glTexCoord2f(0.0, 1.0);
+      glTexCoord1f(0.0);
       glVertex3f(tex[texnum].displayRect[0], tex[texnum].displayRect[3], 0.0);
     
-      glTexCoord2f(1.0, 1.0);
+      glTexCoord1f(1.0);
       glVertex3f(tex[texnum].displayRect[2], tex[texnum].displayRect[3], 0.0);
     
-      glTexCoord2f(1.0, 0.0);
+      glTexCoord1f(1.0);
       glVertex3f(tex[texnum].displayRect[2], tex[texnum].displayRect[1], 0.0);
-    } else if (strncmp(tex[texnum].textureAxes,"xy",2)==0) {
-      //  using reverse ordered coordinates does require swapping y and x in texture coords.
-      glTexCoord2f(0.0, 0.0);
-      glVertex3f(tex[texnum].displayRect[0],tex[texnum].displayRect[1], 0.0);
-    
-      glTexCoord2f(0.0, 1.0);
-      glVertex3f(tex[texnum].displayRect[2], tex[texnum].displayRect[1], 0.0);
-    
-      glTexCoord2f(1.0, 1.0);
-      glVertex3f(tex[texnum].displayRect[2], tex[texnum].displayRect[3], 0.0);
-    
-      glTexCoord2f(1.0, 0.0);
-      glVertex3f(tex[texnum].displayRect[0], tex[texnum].displayRect[3], 0.0);
-    
+
+      glEnd();
     }
-    glEnd();
-#endif//GL_TEXTURE_RECTANGLE_EXT
     glPopMatrix();
   }
   if (profile) {
