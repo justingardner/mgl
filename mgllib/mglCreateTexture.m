@@ -7,7 +7,7 @@
 %  copyright: (c) 2006 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
 %    purpose: Create a texture for display on the screen with mglBltTexture
 %             image can either be grayscale nxm, color nxmx3 or
-%             color+alpha nxmx4
+%             color+alpha nxmx4. 
 % 
 %       e.g.: mglOpen;
 %             mglClearScreen
@@ -15,6 +15,16 @@
 %             texture = mglCreateTexture(round(rand(100,100)*255));
 %             mglBltTexture(texture,[0 0]);
 %             mglFlush;
+%
+%             Note that you can use 1D textures for example to display a 1D image like a sine wave grating
+%       e.g.: mglOpen;
+%             mglClearScreen(0.5)
+%             mglScreenCoordinates
+%             x = 0:8*pi/99:8*pi;
+%             texture = mglCreateTexture(255*(sin(x)+1)/2);
+%             mglBltTexture(texture,[0 0 100 500]);
+%             mglFlush;
+%
 function texture = mglCreateTexture(image,axes)
 
 % create the texture
@@ -47,7 +57,7 @@ texture.allParams = [texture.textureNumber texture.imageWidth ...
 		    texture.imageHeight textureAxes ...
 		    texture.hFlip texture.vFlip 0 0 mglGetParam('xPixelsToDevice') ...
 		    mglGetParam('yPixelsToDevice') mglGetParam('deviceHDirection') ...
-		    mglGetParam('deviceVDirection') mglGetParam('verbose')];
+		    mglGetParam('deviceVDirection') mglGetParam('verbose') texture.textureType];
 
 % increment the texture count
 mglSetParam('numTextures',mglGetParam('numTextures')+1);
