@@ -19,7 +19,7 @@ if ~any(nargin == [0 1])
 end
 
 % default difficulty
-if nargin == 0, difficulty = 0;end
+if nargin == 0, difficulty = 2;end
 
 % set fixStimulus properties to control difficulty
 global fixStimulus;
