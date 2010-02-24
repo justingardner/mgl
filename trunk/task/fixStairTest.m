@@ -71,3 +71,5 @@ end
 % if we got here, we are at the end of the experiment
 myscreen = endTask(myscreen,task);
 
+% clear the fixStimulus since we don't need to keep parameters across experimetns
+clear global fixStimulus
