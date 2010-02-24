@@ -84,7 +84,6 @@ while mglGetSecs(startTime) < 5
     % display wait text
     mglTextSet('Helvetica',32,[1 1 1],0,0,0,0,0,0,0);
     mglTextDraw('Testing 1D textures',[0 5]);
-    keyboard
   end
 
   % update rotation
