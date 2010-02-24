@@ -25,14 +25,75 @@ mglVisualAngleCoordinates(57,[40 30]);
 % clear both buffers to gray
 mglClearScreen(0.5);mglFlush;
 mglClearScreen;mglFlush;
-mglSetParam('verbose',1);
-%m = mglCreateTexture(255*(sin(0:8*pi/800:8*pi)+1)/2);
-m = mglCreateTexture(255*rand(1,800));
-mglBltTexture(m,[0 0 nan 5],0,0,30);
-mglBltTexture(m,[0 0]);
 
-mglFlush;
-keyboard
+% size of textures in degrees
+texWidth = 10;
+texHeight = 10;
+
+% convert to pixels
+texWidthPixels = round(mglGetParam('xDeviceToPixels')*texWidth);
+texHeightPixels = round(mglGetParam('yDeviceToPixels')*texHeight);
+
+% set spatial frequency to use
+sf = 2;
+
+% create a 1 dimensional texture
+tex1drand = mglCreateTexture(255*rand(1,texWidthPixels));
+numCycles = sf*texWidth;
+tex1dsquare = mglCreateTexture(255*(sign(sin(0:numCycles*2*pi/(texWidthPixels-1):numCycles*2*pi))+1)/2);
+
+% make the sine wave grating longer than needed, so that we can move it underneath the gaussian window
+numCycles = sf*texWidth*1.5;
+tex1dsin = mglCreateTexture(255*(sin(0:numCycles*2*pi/(1.5*texWidthPixels-1):numCycles*2*pi)+1)/2);
+
+% make a gaussian window
+win = mglMakeGaussian(texWidth*2,texHeight*2,texWidth/7,texHeight/7);
+m(:,:,4) = 255*(1-win);
+m(:,:,1) = 127;
+m(:,:,2) = 127;
+m(:,:,3) = 127;
+tex2dGaussWin = mglCreateTexture(m);
+
+% display the three 1 dimensional textures inside a gaussian window for 10 secs
+startTime = mglGetSecs;
+rotation = 0;
+xpos = 0;
+while mglGetSecs(startTime) < 5
+  % clear screen
+  mglClearScreen;
+
+  % now blt the 1 dimensional texture and cover it with a gaussian
+  mglBltTexture(tex1drand,[-15 0 nan texHeight],0,0,360-rotation);
+  mglBltTexture(tex2dGaussWin,[-15 0]);
+
+  % now blt the 1 dimensional texture and cover it with a gaussian
+  % for the sin grating, move the texture underneath a little bit 
+  % each frame to simulate moving
+  xpos = xpos+0.05;
+  if xpos > (1/sf)
+    xpos = xpos-(1/sf);
+  end
+  mglBltTexture(tex1dsin,[xpos 0 nan texHeight]);
+  mglBltTexture(tex2dGaussWin,[0 0]);
+
+  % now blt the 1 dimensional texture and cover it with a gaussian
+  mglBltTexture(tex1dsquare,[15 0 nan texHeight],0,0,rotation);
+  mglBltTexture(tex2dGaussWin,[15 0]);
+
+  if ismac
+    % display wait text
+    mglTextSet('Helvetica',32,[1 1 1],0,0,0,0,0,0,0);
+    mglTextDraw('Testing 1D textures',[0 5]);
+    keyboard
+  end
+
+  % update rotation
+  rotation = rotation + 1;
+
+  % and display
+  mglFlush;
+end
+
 %mglClose;
 %return
 
@@ -44,9 +105,6 @@ else
   mglStrokeText('Calculating textures (0 percent done)',-8,0,0.5,0.8,2);mglFlush;
 end
 
-% size of textures in degrees
-texWidth = 10;
-texHeight = 10;
 
 % now create each image with a different phase (use nsteps of phase)
 nsteps = 30;
@@ -84,7 +142,6 @@ for i = 1:nsteps;
   end
   % now create the texture
   tex(i) = mglCreateTexture(m4);
-  keyboard
 end
 
 % display each texture to back buffer, to make sure

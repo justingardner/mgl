@@ -146,7 +146,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     free(tex);
     return;
   }
-  if ((inputRectCols != 2) && (inputRectCols != 4)) {
+  if ((inputRectCols != 2) && (inputRectCols != 4) && (inputRectCols != 3)) {
     mexPrintf("(mglBltTexture) Dest rect must be either 2 or 4 columns long\n");
     free(tex);
     return;
@@ -274,6 +274,12 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 	tex[texnum].displayRect[1] = inputRect[inputRectOffset+inputRectRows];
 	tex[texnum].displayRect[2] = tex[texnum].imageWidth*xPixelsToDevice;
 	tex[texnum].displayRect[3] = tex[texnum].imageHeight*yPixelsToDevice;
+	break;
+      case 3:
+	tex[texnum].displayRect[0] = inputRect[inputRectOffset];
+	tex[texnum].displayRect[1] = inputRect[inputRectOffset+inputRectRows];
+	tex[texnum].displayRect[2] = tex[texnum].imageWidth*xPixelsToDevice;
+	tex[texnum].displayRect[3] = inputRect[inputRectOffset+inputRectRows*2];
 	break;
       case 4:
 	tex[texnum].displayRect[0] = inputRect[inputRectOffset];
