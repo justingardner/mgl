@@ -68,6 +68,8 @@ task{1}.getResponse = [0 0 0 0 0 1];
 
 % init the staircase
 fixStimulus.staircase = upDownStaircase(fixStimulus.stairUp,fixStimulus.stairDown,fixStimulus.threshold,fixStimulus.stairStepSize,fixStimulus.stairUseLevitt);
+fixStimulus.staircase.minThreshold = 0;
+fixStimulus.staircase.maxThreshold = 1;
 
 % init the task
 [task{1} myscreen] = initTask(task{1},myscreen,@fixStartSegmentCallback,@fixDrawStimulusCallback,@fixTrialResponseCallback,@fixTrialStartCallback);
@@ -175,5 +177,4 @@ end
 
 % update staircase
 fixStimulus.staircase = upDownStaircase(fixStimulus.staircase,response);
-fixStimulus.staircase.minThreshold = 0;
 fixStimulus.threshold = fixStimulus.staircase.threshold;
