@@ -11,9 +11,8 @@
 %                      mglText.
 %             position: Either a 2-vector [xpos ypos] or 
 %                       4-vector [xpos ypos width height]
-%                       To specify a default width or height (i.e. to display
-%                       at the pixel size that the texture was created, specify
-%                       nan for width or height.
+%                       For 1d textures, you can also specify a 3-vector
+%                       [xpos ypos height]
 %             hAlignment = {-1 = left,0 = center,1 = right}
 %                          defaults to center
 %             vAlignment = {-1 = top,0 = center,1 = bottom}
@@ -47,5 +46,5 @@
 % mglVisualAngleCoordinates(57,[16 12]);
 % image1d = rand(1,300)*255;
 % imageTex = mglCreateTexture(image1d);
-% mglBltTexture(imageTex,[0 0 nan 5]);
+% mglBltTexture(imageTex,[0 0 5]);
 % mglFlush;
