@@ -116,7 +116,8 @@ function [myscreen] = initEyeLinkEyeTracker(myscreen, conntype)
     
         % get a data file
         mglPrivateEyelinkOpenEDF(sprintf('%s.edf', myscreen.eyetracker.datafilename));
-        mglEyelinkCMDPrintF(sprintf('add_file_preamble_text ''RECORDED BY MGL''');
+        mglEyelinkCMDPrintF(sprintf('add_file_preamble_text ''RECORDED BY MGL'''));
+        
         % Basic data file info
         mglEyelinkEDFPrintF('DISPLAY_COORDS 0 0 %d %d',...
             mglGetParam('screenWidth'), mglGetParam('screenHeight'));
