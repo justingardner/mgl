@@ -193,6 +193,12 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 	free(tex);
 	return;
       }
+      if (mxGetField(prhs[0],texnum,"textureType") != 0)
+      tex[texnum].textureType = (GLenum)*mxGetPr(mxGetField(prhs[0],texnum,"textureType"));
+      else {
+	mexPrintf("(mglBltTexture): TextureType field not defined in texture");
+	tex[texnum].textureType = GL_TEXTURE_RECTANGLE_EXT;
+      }
       if (mxGetField(prhs[0],texnum,"imageWidth") != 0)
 	tex[texnum].imageWidth = (double)*mxGetPr(mxGetField(prhs[0],texnum,"imageWidth"));
       else {
@@ -319,7 +325,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         return;
       }
     }
-    if (verbose) mexPrintf("hAlignment is %s\n",(hAlignment == CENTER)?"center":((hAlignment == LEFT)?"left":"right"));
+    if (verbose) mexPrintf("(mglBltTexture) hAlignment is %s\n",(hAlignment == CENTER)?"center":((hAlignment == LEFT)?"left":"right"));
 
     // check the alginment options for vertical
     if (nrhs < 4) {
@@ -333,7 +339,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         return;
       }
     }
-    if (verbose) mexPrintf("vAlignment is %s\n",(vAlignment == CENTER)?"center":((vAlignment == TOP)?"top":"bottom"));
+    if (verbose) mexPrintf("(mglBltTexture) vAlignment is %s\n",(vAlignment == CENTER)?"center":((vAlignment == TOP)?"top":"bottom"));
 
     // check the rotation
     if (nrhs < 5) {
@@ -342,7 +348,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     else {
       tex[texnum].rotation = ((int)mxGetN(prhs[4]) > texnum) ? *(mxGetPr(prhs[4])+texnum) : *mxGetPr(prhs[4]);
     }
-    if (verbose) mexPrintf("rotation is %f\n",tex[texnum].rotation);
+    if (verbose) mexPrintf("(mglBltTexture) rotation is %f\n",tex[texnum].rotation);
 
     // display text overhang
     if (verbose) mexPrintf("(mglBltTexture) Text overhang = %0.2f\n",tex[texnum].textOverhang);
@@ -454,6 +460,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
     // GL_TEXTURE_RECTANGLE_EXT (standard 2D texture that can be a rectangle)
     if (tex[texnum].textureType==GL_TEXTURE_RECTANGLE_EXT) {
+      if (verbose) mexPrintf("(mglBltTexture) GL_TEXTURE_RECTANGLE_EXT\n");
       // bind the texture we want to draw
       glEnable(GL_TEXTURE_RECTANGLE_EXT);
       glBindTexture(GL_TEXTURE_RECTANGLE_EXT, tex[texnum].textureNumber);
@@ -500,6 +507,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     }
     // On systems w/out GL_TEXTURE_RECTANGLE_EXT we use the GL_TEXTURE_2D
     else if (tex[texnum].textureType == GL_TEXTURE_2D) {
+      if (verbose) mexPrintf("(mglBltTexture) GL_TEXTURE_2D\n");
       // bind the texture we want to draw
       glEnable(GL_TEXTURE_2D);
       glBindTexture(GL_TEXTURE_2D, tex[texnum].textureNumber);
@@ -538,6 +546,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     }
     // 1D texture
     else if (tex[texnum].textureType == GL_TEXTURE_1D) {
+      if (verbose) mexPrintf("(mglBltTexture) GL_TEXTURE_1D\n");
       // bind the texture we want to draw
       glEnable(GL_TEXTURE_1D);
       glBindTexture(GL_TEXTURE_1D, tex[texnum].textureNumber);
@@ -558,6 +567,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       glVertex3f(tex[texnum].displayRect[2], tex[texnum].displayRect[1], 0.0);
 
       glEnd();
+    }
+    else {
+      mexPrintf("(mglBltTexture) Unknown texture type: %i\n",tex[texnum].textureType);
     }
     glPopMatrix();
   }
