@@ -147,7 +147,8 @@ function [task myscreen] = fixDrawStimulusCallback(task, myscreen)
 
 global fixStimulus;
 
-mglClearScreen;
+if fixStimulus.trainingMode,mglClearScreen;end
+
 if ~isempty(fixStimulus.displayText)
   mglBltTexture(fixStimulus.displayText,fixStimulus.displayTextLoc);
 end
