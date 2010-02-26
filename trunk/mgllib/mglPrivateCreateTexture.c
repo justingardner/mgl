@@ -223,6 +223,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     glTexImage2D(GL_TEXTURE_RECTANGLE_EXT,0,GL_RGBA,imageWidth,imageHeight,0,GL_RGBA,TEXTURE_DATATYPE,imageFormatted);
   }
   else if (textureType == GL_TEXTURE_1D) {
+
     // Support for non-power of two textures
     glBindTexture(textureType, textureNumber);
 
@@ -273,7 +274,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     if (mxGetNumberOfElements( prhs[1] )==2) {
       mxGetString(prhs[1],charptr,3);
     }
-  } else if (mglIsGlobal("defaultTextureAxes")) {    
+  } else if (mglIsGlobal("defaultTextureAxes")) {   
     if (mxGetNumberOfElements( mglGetGlobalField("defaultTextureAxes") )==2) {
       mxGetString(mglGetGlobalField("defaultTextureAxes"),charptr,3);
     } 
