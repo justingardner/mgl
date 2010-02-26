@@ -36,6 +36,7 @@ maxlines = floor(mglGetParam('screenHeight')/textHeight)-1;
 % some init values
 str = 'start';textnum = 1;
 
+maxStrLen = 20;
 % loop to display text
 while 1
   % ask the user what they want to display
@@ -46,14 +47,25 @@ while 1
       mglDeleteTexture(textTexture(i));
     end
     clear textTexture;
-    textnum = 0;
+    textnum = 1;
     mglClearScreen;
   % or draw some more text
   elseif strcmp(str,'end')
     break;
   else
-    % convert text to texture
-    textTexture(textnum) = mglText(str);
+    while(length(str)>0)
+      if length(str) > maxStrLen
+	thisStr = sprintf('%s-',str(1:maxStrLen));
+	str = str(maxStrLen+1:end);
+      else
+	thisStr = str;
+	str = '';
+      end
+      % convert text to texture
+      textTexture(textnum) = mglText(thisStr);
+      % get the next line of text
+      textnum = mod(textnum,maxlines)+1;
+    end
     % set vertical offset
     voffset = textHeightDevice;
     % clear screen
@@ -67,8 +79,6 @@ while 1
   end
   % and flush screen
   mglFlush;
-  % get the next line of text
-  textnum = mod(textnum,maxlines)+1;
 end
 
 msc = endScreen(msc);
