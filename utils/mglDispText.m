@@ -36,7 +36,7 @@ maxlines = floor(mglGetParam('screenHeight')/textHeight)-1;
 % some init values
 str = 'start';textnum = 1;
 
-maxStrLen = 20;
+maxStrLen = 20;minDist = 4;
 % loop to display text
 while 1
   % ask the user what they want to display
@@ -55,8 +55,24 @@ while 1
   else
     while(length(str)>0)
       if length(str) > maxStrLen
-	thisStr = sprintf('%s-',str(1:maxStrLen));
-	str = str(maxStrLen+1:end);
+	% default break loc is at maxStrLen
+	breakLoc = maxStrLen;
+	thisStr = sprintf('%s-',str(1:breakLoc));
+	% but look for a better place to break string
+	breakLocs = regexp(str,'[\W]');
+	if ~isempty(breakLocs)
+	  distFromBreakLoc = breakLocs-maxStrLen;
+          if any(abs(distFromBreakLoc) < minDist)
+	    [minDist breakLocIndex] = min(abs(distFromBreakLoc));
+	    breakLoc = breakLocs(breakLocIndex(1));
+	    if breakLoc < length(str)
+	      thisStr = sprintf('%s',str(1:breakLoc));
+	    else
+	      breakLoc = maxStrLen;
+	    end
+	  end
+	end
+	str = str(breakLoc+1:end);
       else
 	thisStr = str;
 	str = '';
