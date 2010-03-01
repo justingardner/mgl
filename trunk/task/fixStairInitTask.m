@@ -46,7 +46,6 @@ if ~isfield(fixStimulus,'responseColor') fixStimulus.responseColor = [1 1 0]; en
 if ~isfield(fixStimulus,'interColor') fixStimulus.interColor = [0 1 1]; end
 if ~isfield(fixStimulus,'correctColor') fixStimulus.correctColor = [0 0.8 0]; end
 if ~isfield(fixStimulus,'incorrectColor') fixStimulus.incorrectColor = [0.8 0 0]; end
-if ~isfield(fixStimulus,'traceNum') fixStimulus.traceNum = 5; end
 if ~isfield(fixStimulus,'responseTime') fixStimulus.responseTime = 1; end
 if ~isfield(fixStimulus,'stimTime') fixStimulus.stimTime = 0.4; end
 if ~isfield(fixStimulus,'interTime') fixStimulus.interTime = 0.8; end
@@ -73,6 +72,8 @@ fixStimulus.staircase.maxThreshold = 1;
 
 % init the task
 [task{1} myscreen] = initTask(task{1},myscreen,@fixStartSegmentCallback,@fixDrawStimulusCallback,@fixTrialResponseCallback,@fixTrialStartCallback);
+
+[task{1} myscreen] = addTraces(task{1}, myscreen, 'fixStair');
 
 % keep the correct and incorrect counts
 task{1}.correct = 0;
@@ -114,7 +115,7 @@ if ~isempty(whichInterval)
   end
   fixStimulus.thisColor = fixStimulus.stimColor*fixStimulus.thisStrength;
   % write out what the strength is
-  myscreen = writeTrace(fixStimulus.thisStrength,fixStimulus.traceNum,myscreen);
+  myscreen = writeTrace(fixStimulus.thisStrength,task.fixStairTrace,myscreen);
   % training mode text
   if fixStimulus.trainingMode
     if whichInterval == 1
@@ -137,7 +138,7 @@ else
   % training mode, clear sceen here
   if fixStimulus.trainingMode,mglClearScreen;end
   fixStimulus.thisColor = fixStimulus.interColor;
-  myscreen = writeTrace(0,fixStimulus.traceNum,myscreen);
+  myscreen = writeTrace(0,task.fixStairTrace,myscreen);
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -177,7 +178,7 @@ if response
   % set to correct fixation color
   fixStimulus.thisColor = fixStimulus.correctColor;
   % set trace to 2 to indicate correct response
-  myscreen = writeTrace(2,fixStimulus.traceNum,myscreen);
+  myscreen = writeTrace(2,task.fixStairTrace,myscreen);
   % and update correct count
   task.correct = task.correct+1;
 else
@@ -189,7 +190,7 @@ else
   % set to incorrect fixation color
   fixStimulus.thisColor = fixStimulus.incorrectColor;
   % set trace to -2 to indicate incorrect response
-  myscreen = writeTrace(-2,fixStimulus.traceNum,myscreen);
+  myscreen = writeTrace(-2,task.fixStairTrace,myscreen);
   % and update incorrect count
   task.incorrect = task.incorrect+1;
 end
