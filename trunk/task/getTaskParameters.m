@@ -6,7 +6,7 @@
 %    purpose: get the task parameters, reaction times etc,
 %             out of the screen and task variables
 %
-function experiment = getTaskParameters(myscreen,task)
+function retval = getTaskParameters(myscreen,task)
 
 % check arguments
 if ~any(nargin == [1 2])
@@ -61,7 +61,7 @@ for taskNum = 1:length(allTasks)
   blockTrialNum = 0;
   experiment = initPhase([],phaseNum,numTraces);
   tnum = 0;
-  
+
   if (task{phaseNum}.segmentTrace)
     % go through the events, looking for the segment  
     for enum = 1:myscreen.events.n
@@ -164,11 +164,7 @@ for taskNum = 1:length(allTasks)
       end
     end      
   end
-  if multiTask
-    retval{taskNum} = experiment;
-  else
-    retval = experiment;
-  end
+
 
 
   % set the traces in the return value if they exist
@@ -184,6 +180,12 @@ for taskNum = 1:length(allTasks)
 	experiment(j).tracesAll = myscreen.traces;
       end
     end
+  end
+
+  if multiTask
+    retval{taskNum} = experiment;
+  else
+    retval = experiment;
   end
 
 end
