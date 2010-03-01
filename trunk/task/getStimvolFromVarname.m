@@ -111,6 +111,11 @@ e = getTaskParameters(myscreen,task);
 % make sure it is a cell array
 if ~iscell(e),olde = e;clear e;e{1} = olde;,end
 
+% handle when the varname is every (which means to make every combination of variables
+if (length(varname{1}) == 1) && strcmp(varname{1}{1},'_every_')
+  varname = makeEveryCombination(e{taskNum}(phaseNum).parameter);
+end
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % check, if we have a single varname and that name is _all_, then
 % we want to concatenate together all the trial types
@@ -275,5 +280,39 @@ end
 if verbose
   for i = 1:length(stimvolOut)
     disp(sprintf('(getStimvolFromVarname) %s: %i trials',stimNamesOut{i},length(stimvolOut{i})));
+  end
+end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%    makeEveryCombination    %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function varname = makeEveryCombination(p)
+
+% get parameter names and number
+parameterNames = fieldnames(p);
+numParameters = length(parameterNames);
+
+% get all parameter values
+for i = 1:numParameters
+  parameterValues{i} = unique(p.(parameterNames{i}));
+  parameterLength(i) = length(parameterValues{i});
+end
+
+% now go through and make each combination
+for i = 1:prod(parameterLength)
+  % figure out what value to set each parameter to. Do this by creating
+  % a command which will set the variables x1, x2, xi to the index
+  % for each parameter value to set to for the ith combination
+  evalStr = '[';
+  for j = 1:numParameters
+    evalStr = sprintf('%s x%i',evalStr, j);
+  end
+  evalStr = sprintf('%s] = ind2sub(parameterLength,i);',evalStr);
+  eval(evalStr);
+  % now that x1, x2, xi equal what index for each parameter, make the correct
+  % string for each parameter
+  for j = 1:numParameters
+    eval(sprintf('val = parameterValues{j}(x%i);',j));
+    varname{i}{j} = sprintf('%s=%f',parameterNames{j},val);
   end
 end
