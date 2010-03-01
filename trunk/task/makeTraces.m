@@ -52,7 +52,11 @@ if (isfield(myscreen,'events'))
     if (lastticknum == ticknum)
       timetrace = thistime;
     else
-      timetrace = lasttime:(thistime-lasttime)/(ticknum-lastticknum):thistime;
+      if (lasttime-thistime) ~= 0
+	timetrace = lasttime:(thistime-lasttime)/(ticknum-lastticknum):thistime;
+      else
+	timetrace = repmat(lasttime,1,ticknum-lastticknum+1);
+      end
     end
     % and stick that time into the time trace
     myscreen.time(lastticknum:ticknum) = timetrace;
