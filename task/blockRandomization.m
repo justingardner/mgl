@@ -18,32 +18,21 @@
 % 
 %             remember this function can only affect the
 %             block, it cannot change task or myscreen
+%
+%             This functions work by first initializing the parameters (using initRandomization)
+%             this is done in the case where there is only one input to the function
+%             On subsequent calls there will be two input arguments, the (already init) parameter
+%             structure and a previous block of parameter (which can be empty). 
+%             The routine then returns a randomized set of parameters in the format noted above
+%           
 % 
 function retval = blockRandomization(parameter,previousParamIndexes)
 
 % check for init case
 if nargin == 1
-  % temporarily remove do Random
-  if isfield(parameter,'doRandom_')
-    doRandom = parameter.doRandom_;
-    parameter = rmfield(parameter,'doRandom_');
-  else
-    doRandom = 1;
-  end
-  % get parameter names now
-  parameter.names_ = fieldnames(parameter);
-  parameter.n_ = length(parameter.names_);
-  for i = 1:parameter.n_
-    paramsize = eval(sprintf('size(parameter.%s)',parameter.names_{i}));
-    % check for column vectors
-    if (paramsize(1) > 1) && (paramsize(2) == 1)
-      disp(sprintf('Parameter %s is a column vector',parameter.names_{i}));
-    end
-    parameter.size_(i,:) = eval(sprintf('size(parameter.%s)',parameter.names_{i}));
-  end
-  parameter.totalN_ = prod(parameter.size_(:,2));
-  % put doRandom back
-  parameter.doRandom_ = doRandom;
+  % init parameters
+  parameter = initRandomization(parameter);
+  if ~isfield(parameter,'doRandom_'),parameter.doRandom_=1;end
   retval = parameter;
   return
 end
