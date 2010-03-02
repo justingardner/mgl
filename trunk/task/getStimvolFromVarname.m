@@ -19,6 +19,12 @@
 %
 %             getStimvolFromVarname('_all_',myscreen,task);
 %
+%             Or it can be _every_ which returns every combination of different parameters as a separate
+%             trial type. So, for example if you have 3 speeds and 2 directions, it will create 6 different
+%             types
+%
+%             getStimvolFromVarname('_every_',myscreen,task);
+%
 %             If varnameIn is a cell array, then you can specify a set of matching
 %             conditions. For example, the following would return the stimvols for
 %             when var1 = 1 *and* var2 = either 2 or 3:
@@ -289,8 +295,9 @@ end
 function varname = makeEveryCombination(p)
 
 % get parameter names and number
-parameterNames = fieldnames(p);
-numParameters = length(parameterNames);
+p = initRandomization(p);
+parameterNames = p.names_;
+numParameters = p.n_;
 
 % get all parameter values
 for i = 1:numParameters
