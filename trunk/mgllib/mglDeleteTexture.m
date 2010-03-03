@@ -28,8 +28,11 @@ if nargin ~= 1
 end
 
 if isfield(texture,'textureNumber')
-  mglPrivateDeleteTexture(texture.textureNumber);
-  texture.textureNumber = -1;
+  % if texture is an array then we delete each element separately
+  for i = 1:length(texture)
+    mglPrivateDeleteTexture(texture(i).textureNumber);
+  end
+  texture(i).textureNumber = -1;
 else
   disp('(mglDeleteTexture) Input is not a texture');
 end
