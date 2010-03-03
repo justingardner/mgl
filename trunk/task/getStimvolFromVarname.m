@@ -184,7 +184,7 @@ else
 	    if isempty(strfind(varname{i}{j},'='))
 	      % if it is then for each particular setting
 	      % of the variable, we make a stim type
-	      vartypes = unique(sort(varval));
+	      vartypes = unique(sort(e{tnum}(pnum).originalTaskParameter.(varname{i}{j})(:)));
 	      for k = 1:length(vartypes)
 		stimvol{i}{end+1} = varval==vartypes(k);
 		stimnames{i}{end+1} = sprintf('%s=%s',varname{i}{j},num2str(vartypes(k)));
