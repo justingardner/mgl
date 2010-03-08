@@ -30,6 +30,9 @@ if ~exist('screenHeight','var'), screenHeight = []; end
 if ~exist('frameRate','var'), frameRate = []; end
 if ~exist('bitDepth','var'), bitDepth = []; end
 
+% don't need to set screen resolution with one or fewer arguments
+if nargin <= 1, setResolution = 0;else,setResolution = 1;end
+
 % set whether the desktop is running
 if usejava('desktop')
   mglSetParam('matlabDesktop',1);
@@ -38,6 +41,47 @@ else
   if isempty(mglGetParam('useCGL'))
     mglSetParam('useCGL',1);
   end
+end
+
+% see if we are running for movie mode
+spoofFullScreen = 0;
+if mglGetParam('movieMode')
+  % in this case, always use a windowed context
+  % full screen mode is spoofed by making a windowed context that
+  % is the same size as the screen and closing the task and menu
+  % bar
+  if isempty(whichScreen) || (whichScreen > 0)
+    displays = mglDescribeDisplays;
+    % set default display
+    if isempty(whichScreen),whichScreen = length(displays);end
+    if whichScreen > length(displays)
+      disp(sprintf('(mglOpen) Display number out of range: %i',whichScreen));
+      return
+    end
+    % hide task and menu bar for main screen
+    mglSetParam('hideTaskAndMenu',displays(whichScreen).isMain);
+    % get the screen width and screen height necessary to cover the
+    % full screen
+    screenWidth = displays(whichScreen).screenSizePixel(1);
+    screenHeight = displays(whichScreen).screenSizePixel(2);
+    % get xpos and ypos where window should be moved to.
+    ypos = displays(1).screenSizePixel(2);
+    % displayBounds contains position of display relative to main (i.e. 1)
+    if isfield(displays(whichScreen),'displayBounds')
+      ypos = ypos+displays(whichScreen).displayBounds(2);
+    end
+    xpos = 0;
+    if isfield(displays(whichScreen),'displayBounds')
+      xpos = xpos+displays(whichScreen).displayBounds(1);
+    end
+    % now set to open the windowed context
+    whichScreen = 0;
+    mglSetParam('orderWindowFront',1);
+    spoofFullScreen = 1;
+  end
+  setResolution = 1;
+  mglSetParam('useCGL',0);
+  mglSetParam('showWindowBorder',0);
 end
 
 % set verbose off
@@ -83,7 +127,7 @@ if ~openDisplay
   % clear the originalResolution
   mglSetParam('originalResolution',[]);
   % call the private mex function
-  if nargin <= 1 % 1 or less arguments then don't try to set screen resolution
+  if setResolution == 0
     % if whichScreen has not been set then get the default
     % display from mglResolution
     displayResolution = mglResolution;
@@ -177,4 +221,12 @@ end
 if mglGetParam('matlabDesktop')
   % always show the cursor from the desktop.
   mglDisplayCursor(1);
+end
+
+% if movie mode, make sure we are centered
+if mglGetParam('movieMode')
+  if spoofFullScreen
+    mglMoveWindow(xpos,ypos);
+  end
+  mglSetParam('useCGL',1);
 end

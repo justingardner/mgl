@@ -8,9 +8,14 @@
 %    purpose: rebuilds mex file, with no arguments checks
 %             dates to see whether it should rebuild. With
 %             rebuild set to 1 removes all mex files for
-%             the current platform and ebuilds; rebuild can also
-%             specify 'carbon' or 'cocoa' or the defines. additional
-%             arguments are treated as mex arguments
+%             the current platform and rebuilds
+%
+%             If rebuild is set to 'carbon' then it will rebuild mac files using only carbon
+%             function calls (obsolete in 64bit Mac os). If set to 'cocoa' will build using
+%             cocoa (the default).
+%
+%             To build digital I/O code (which requires the NI NIDAQ MX-base library), set
+%             rebuild to 'digio'
 %    
 %
 function retval = mglMake(rebuild, varargin)

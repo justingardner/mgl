@@ -106,34 +106,40 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   // create a texture
   ///////////////////////////
   GLuint textureNumber;
+  GLenum textureType = GL_TEXTURE_RECTANGLE_EXT;
 
   // get a unique texture identifier name
   glGenTextures(1, &textureNumber);
   
   // bind the texture to be a 2D texture
   // should really add check that non-power-of-two textures are supported, but seems to be default on new Macs
-  glBindTexture(GL_TEXTURE_RECTANGLE_EXT, textureNumber);
+  glBindTexture(textureType, textureNumber);
 
   // some other stuff
-  glTexParameteri(GL_TEXTURE_RECTANGLE_EXT, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-  glTexParameteri(GL_TEXTURE_RECTANGLE_EXT, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-  glTexParameteri(GL_TEXTURE_RECTANGLE_EXT, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-  glTexParameteri(GL_TEXTURE_RECTANGLE_EXT, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glTexParameteri(textureType, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+  glTexParameteri(textureType, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+  glTexParameteri(textureType, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  glTexParameteri(textureType, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
   glPixelStorei(GL_UNPACK_ROW_LENGTH,0);
 
   // now place the data into the texture
-  glTexImage2D(GL_TEXTURE_RECTANGLE_EXT,0,GL_RGBA,pixelsWide,pixelsHigh,0,GL_RGBA,GL_UNSIGNED_INT_8_8_8_8,bitmapData);  
+  glTexImage2D(textureType,0,GL_RGBA,pixelsWide,pixelsHigh,0,GL_RGBA,GL_UNSIGNED_INT_8_8_8_8,bitmapData);  
 
   // create the output structure
-  const char *fieldNames[] =  {"textureNumber","imageWidth","imageHeight","textureAxes","textImageRect","hFlip","vFlip","isText" };
+  const char *fieldNames[] =  {"textureNumber","imageWidth","imageHeight","textureAxes","textImageRect","hFlip","vFlip","isText","textureType" };
   int outDims[2] = {1, 1};
-  plhs[0] = mxCreateStructArray(1,outDims,8,fieldNames);
+  plhs[0] = mxCreateStructArray(1,outDims,9,fieldNames);
   
   // now set the textureNumber field
   double *outptr;
   mxSetField(plhs[0],0,"textureNumber",mxCreateDoubleMatrix(1,1,mxREAL));
   outptr = (double*)mxGetPr(mxGetField(plhs[0],0,"textureNumber"));
   *outptr = (double)textureNumber;
+
+  // set the textureType
+  mxSetField(plhs[0],0,"textureType",mxCreateDoubleMatrix(1,1,mxREAL));
+  outptr = (double*)mxGetPr(mxGetField(plhs[0],0,"textureType"));
+  *outptr = (double)textureType;
 
   // now set the pixelsWide and height
   // notice that imagewidth and pixelsHigh are intentionally
@@ -382,8 +388,11 @@ unsigned char *renderText(const mxArray *inputString, char*fontName, int fontSiz
     mexPrintf("(mglText) Buffer size: width: %i height: %i bytesPerRow: %i byteCount: %i\n",*pixelsWide,*pixelsHigh,bitmapBytesPerRow,bitmapByteCount);
 
   // set colorspace
+#if 0
   colorSpace = CGColorSpaceCreateWithName(kCGColorSpaceGenericRGB);
-
+#else
+  colorSpace = CGColorSpaceCreateDeviceRGB();
+#endif
   // allocate memory for the bitmap and set to zero
   bitmapData = malloc(bitmapByteCount);
   memset(bitmapData,0,bitmapByteCount);

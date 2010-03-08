@@ -46,7 +46,6 @@ if ~isfield(fixStimulus,'responseColor') fixStimulus.responseColor = [1 1 0]; en
 if ~isfield(fixStimulus,'interColor') fixStimulus.interColor = [0 1 1]; end
 if ~isfield(fixStimulus,'correctColor') fixStimulus.correctColor = [0 0.8 0]; end
 if ~isfield(fixStimulus,'incorrectColor') fixStimulus.incorrectColor = [0.8 0 0]; end
-if ~isfield(fixStimulus,'traceNum') fixStimulus.traceNum = 5; end
 if ~isfield(fixStimulus,'responseTime') fixStimulus.responseTime = 1; end
 if ~isfield(fixStimulus,'stimTime') fixStimulus.stimTime = 0.4; end
 if ~isfield(fixStimulus,'interTime') fixStimulus.interTime = 0.8; end
@@ -68,9 +67,13 @@ task{1}.getResponse = [0 0 0 0 0 1];
 
 % init the staircase
 fixStimulus.staircase = upDownStaircase(fixStimulus.stairUp,fixStimulus.stairDown,fixStimulus.threshold,fixStimulus.stairStepSize,fixStimulus.stairUseLevitt);
+fixStimulus.staircase.minThreshold = 0;
+fixStimulus.staircase.maxThreshold = 1;
 
 % init the task
 [task{1} myscreen] = initTask(task{1},myscreen,@fixStartSegmentCallback,@fixDrawStimulusCallback,@fixTrialResponseCallback,@fixTrialStartCallback);
+
+[task{1} myscreen] = addTraces(task{1}, myscreen, 'fixStair');
 
 % keep the correct and incorrect counts
 task{1}.correct = 0;
@@ -93,6 +96,14 @@ function [task myscreen] = fixStartSegmentCallback(task, myscreen)
 
 global fixStimulus;
 
+if isfield(fixStimulus,'displayText')
+  % delete the texture
+  if ~isempty(fixStimulus.displayText)
+    mglDeleteTexture(fixStimulus.displayText);
+  end
+end
+fixStimulus.displayText = [];
+
 % choose what color the fixation cross will be
 whichInterval = find(task.thistrial.thisseg == [2 4]);
 % if this is the signal interval
@@ -104,27 +115,30 @@ if ~isempty(whichInterval)
   end
   fixStimulus.thisColor = fixStimulus.stimColor*fixStimulus.thisStrength;
   % write out what the strength is
-  myscreen = writeTrace(fixStimulus.thisStrength,fixStimulus.traceNum,myscreen);
+  myscreen = writeTrace(fixStimulus.thisStrength,task.fixStairTrace,myscreen);
   % training mode text
   if fixStimulus.trainingMode
     if whichInterval == 1
-      mglTextDraw('Interval 1',[fixStimulus.pos(1) fixStimulus.pos(2)+fixStimulus.diskSize*2],0,1);
+      fixStimulus.displayText = mglText('Interval 1');
+      fixStimulus.displayTextLoc = [fixStimulus.pos(1) fixStimulus.pos(2)+fixStimulus.diskSize*2];
     else
-      mglTextDraw('Interval 2',[fixStimulus.pos(1) fixStimulus.pos(2)+fixStimulus.diskSize*2],0,1);
+      fixStimulus.displayText = mglText('Interval 2');
+      fixStimulus.displayTextLoc = [fixStimulus.pos(1) fixStimulus.pos(2)+fixStimulus.diskSize*2];
     end
   end
 % if this is the response interval
 elseif task.thistrial.thisseg == 6
   fixStimulus.thisColor = fixStimulus.responseColor;
   if fixStimulus.trainingMode
-    mglTextDraw('Which interval was darker (1 or 2)?',[fixStimulus.pos(1) fixStimulus.pos(2)+fixStimulus.diskSize*2],0,1);
+    fixStimulus.displayText = mglText('Which interval was darker (1 or 2)?');
+    fixStimulus.displayTextLoc = [fixStimulus.pos(1) fixStimulus.pos(2)+fixStimulus.diskSize*2];
   end
 % if this is the inter stimulus interval
 else
   % training mode, clear sceen here
   if fixStimulus.trainingMode,mglClearScreen;end
   fixStimulus.thisColor = fixStimulus.interColor;
-  myscreen = writeTrace(0,fixStimulus.traceNum,myscreen);
+  myscreen = writeTrace(0,task.fixStairTrace,myscreen);
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -133,6 +147,12 @@ end
 function [task myscreen] = fixDrawStimulusCallback(task, myscreen)
 
 global fixStimulus;
+
+if fixStimulus.trainingMode,mglClearScreen;end
+
+if ~isempty(fixStimulus.displayText)
+  mglBltTexture(fixStimulus.displayText,fixStimulus.displayTextLoc);
+end
 mglGluDisk(fixStimulus.pos(1),fixStimulus.pos(2),fixStimulus.diskSize*[1 1],myscreen.background,60);
 
 mglFixationCross(fixStimulus.fixWidth,fixStimulus.fixLineWidth,fixStimulus.thisColor,fixStimulus.pos);
@@ -151,24 +171,26 @@ response = response(1);
 if response
   % for training mode
   if fixStimulus.trainingMode
-    mglClearScreen;
-    mglTextDraw('Correct!',[fixStimulus.pos(1) fixStimulus.pos(2)+fixStimulus.diskSize*2],0,1);
+    mglDeleteTexture(fixStimulus.displayText);
+    fixStimulus.displayText = mglText('Correct!');
+    fixStimulus.displayTextLoc = [fixStimulus.pos(1) fixStimulus.pos(2)+fixStimulus.diskSize*2];
   end
   % set to correct fixation color
   fixStimulus.thisColor = fixStimulus.correctColor;
   % set trace to 2 to indicate correct response
-  myscreen = writeTrace(2,fixStimulus.traceNum,myscreen);
+  myscreen = writeTrace(2,task.fixStairTrace,myscreen);
   % and update correct count
   task.correct = task.correct+1;
 else
   if fixStimulus.trainingMode
-    mglClearScreen;
-    mglTextDraw('Incorrect',[fixStimulus.pos(1) fixStimulus.pos(2)+fixStimulus.diskSize*2],0,1);
+    mglDeleteTexture(fixStimulus.displayText);
+    fixStimulus.displayText = mglText('Incorrect.');
+    fixStimulus.displayTextLoc = [fixStimulus.pos(1) fixStimulus.pos(2)+fixStimulus.diskSize*2];
   end
   % set to incorrect fixation color
   fixStimulus.thisColor = fixStimulus.incorrectColor;
   % set trace to -2 to indicate incorrect response
-  myscreen = writeTrace(-2,fixStimulus.traceNum,myscreen);
+  myscreen = writeTrace(-2,task.fixStairTrace,myscreen);
   % and update incorrect count
   task.incorrect = task.incorrect+1;
 end

@@ -11,28 +11,8 @@ function retval = uniformRandomization(parameter,previousParamIndexes)
 % do init
 %%%%%%%%%%%%%%%%%%%%%%
 if nargin == 1
-  % get parameter names now
-  names = fieldnames(parameter);
-  n = 0;
-  for i = 1:length(names)
-    % if it ends in underscore it is a reserved variable
-    if isempty(regexp(names{i},'_$'))
-      n = n+1;
-      parameter.names_{n} = names{i};
-    end
-  end
-  parameter.n_ = length(parameter.names_);
-  for i = 1:parameter.n_
-    paramsize = eval(sprintf('size(parameter.%s)',parameter.names_{i}));
-    % check for column vectors
-    if (paramsize(1) > 1) && (paramsize(2) == 1)
-      eval(sprintf('parameter.%s=paramater.%s''',parameter.names_{i},paramater.names_{i}));
-      parameter.size_(i) = paramsize(1);
-    else
-      parameter.size_(i) = paramsize(2);
-    end
-  end
-  % set the block length
+  parameter = initRandomization(parameter);
+  % set the block length (that is how many trials to compute out for)
   if ~isfield(parameter,'blocklen_')
     parameter.blocklen_ = 250;
   end

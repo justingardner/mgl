@@ -19,7 +19,7 @@ if ~any(nargin == [0 1])
 end
 
 % default difficulty
-if nargin == 0, difficulty = 0;end
+if nargin == 0, difficulty = 2;end
 
 % set fixStimulus properties to control difficulty
 global fixStimulus;
@@ -71,3 +71,5 @@ end
 % if we got here, we are at the end of the experiment
 myscreen = endTask(myscreen,task);
 
+% clear the fixStimulus since we don't need to keep parameters across experimetns
+clear global fixStimulus

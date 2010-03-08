@@ -19,6 +19,12 @@
 %
 %             getStimvolFromVarname('_all_',myscreen,task);
 %
+%             Or it can be _every_ which returns every combination of different parameters as a separate
+%             trial type. So, for example if you have 3 speeds and 2 directions, it will create 6 different
+%             types
+%
+%             getStimvolFromVarname('_every_',myscreen,task);
+%
 %             If varnameIn is a cell array, then you can specify a set of matching
 %             conditions. For example, the following would return the stimvols for
 %             when var1 = 1 *and* var2 = either 2 or 3:
@@ -111,6 +117,11 @@ e = getTaskParameters(myscreen,task);
 % make sure it is a cell array
 if ~iscell(e),olde = e;clear e;e{1} = olde;,end
 
+% handle when the varname is every (which means to make every combination of variables
+if (length(varname{1}) == 1) && strcmp(varname{1}{1},'_every_')
+  varname = makeEveryCombination(e{taskNum}(phaseNum).parameter);
+end
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % check, if we have a single varname and that name is _all_, then
 % we want to concatenate together all the trial types
@@ -173,7 +184,7 @@ else
 	    if isempty(strfind(varname{i}{j},'='))
 	      % if it is then for each particular setting
 	      % of the variable, we make a stim type
-	      vartypes = unique(sort(varval));
+	      vartypes = unique(sort(e{tnum}(pnum).originalTaskParameter.(varname{i}{j})(:)));
 	      for k = 1:length(vartypes)
 		stimvol{i}{end+1} = varval==vartypes(k);
 		stimnames{i}{end+1} = sprintf('%s=%s',varname{i}{j},num2str(vartypes(k)));
@@ -275,5 +286,40 @@ end
 if verbose
   for i = 1:length(stimvolOut)
     disp(sprintf('(getStimvolFromVarname) %s: %i trials',stimNamesOut{i},length(stimvolOut{i})));
+  end
+end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%    makeEveryCombination    %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function varname = makeEveryCombination(p)
+
+% get parameter names and number
+p = initRandomization(p);
+parameterNames = p.names_;
+numParameters = p.n_;
+
+% get all parameter values
+for i = 1:numParameters
+  parameterValues{i} = unique(p.(parameterNames{i}));
+  parameterLength(i) = length(parameterValues{i});
+end
+
+% now go through and make each combination
+for i = 1:prod(parameterLength)
+  % figure out what value to set each parameter to. Do this by creating
+  % a command which will set the variables x1, x2, xi to the index
+  % for each parameter value to set to for the ith combination
+  evalStr = '[';
+  for j = 1:numParameters
+    evalStr = sprintf('%s x%i',evalStr, j);
+  end
+  evalStr = sprintf('%s] = ind2sub(parameterLength,i);',evalStr);
+  eval(evalStr);
+  % now that x1, x2, xi equal what index for each parameter, make the correct
+  % string for each parameter
+  for j = 1:numParameters
+    eval(sprintf('val = parameterValues{j}(x%i);',j));
+    varname{i}{j} = sprintf('%s=%f',parameterNames{j},val);
   end
 end

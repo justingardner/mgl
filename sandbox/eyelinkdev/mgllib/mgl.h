@@ -227,7 +227,7 @@ int mglIsGlobal(char *field)
 {
   mxArray *MGL, *tmp;
   int ifield;
-  
+
   // check if MGL exists in global workspace - if not return right away
   if ((mexGetVariablePtr("global", MGL_GLOBAL_NAME) == NULL)){
     mexPrintf("(mglIsGlobal) MGL global variable does not seem to exist.\n");
@@ -245,6 +245,7 @@ int mglIsGlobal(char *field)
   }
   // get field number by name; returns -1 if field does not exist
   ifield = mxGetFieldNumber(MGL,field);
+  if (ifield == -1) return 0;
 
   // check whether it is empty:
   tmp = mxGetFieldByNumber(MGL, (mwIndex)0, ifield);

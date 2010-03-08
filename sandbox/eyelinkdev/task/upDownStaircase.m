@@ -52,7 +52,7 @@ if (nargin == 2)
   end
 elseif ((nargin == 4) || (nargin == 5))
   % set type
-  s.type = 'upDownStaircasecase';
+  s.type = 'upDownStaircase';
     
   % controls how many up, how many down
   s.upn = varargin{1};
