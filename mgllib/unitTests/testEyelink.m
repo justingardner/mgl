@@ -1,12 +1,15 @@
 % needed for video test
-mglOpen()
+mglOpen(0)
 mglScreenCoordinates()
 mglClearScreen([0.5 0.5 0.5]);
 
 % open the link
 % calls mglPrivateEyelinkOpen, default ip is '100.1.1.1', default conntype is 0
-mglEyelinkOpen('100.1.1.1', 0);
-
+try
+  mglEyelinkOpen('100.1.1.1', 0);
+catch err
+  mglEyelinkOpen('100.1.1.1', 1);
+end
 %mglPrivateEyelinkSendCommand
 
 % set up some variables
@@ -25,23 +28,34 @@ mglPrivateEyelinkOpenEDF('foo.edf');
 % eyemsg_printf("DISPLAY_COORDS %ld %ld %ld %ld", dispinfo.left, dispinfo.top, dispinfo.right, dispinfo.bottom); 
 % eyemsg_printf("FRAMERATE %1.2f Hz.", dispinfo.refresh);
 % start recording
-mglPrivateEyelinkRecordingStart([1 1 1 1]);
+mglEyelinkRecordingStart('file-sample', 'link-sample', 'file-event', 'link-event');
+mglEyelinkRecordingStop();
+mglEyelinkRecordingStart('edf-sample', 'link-sample', 'edf-event', 'link-event');
 
 % write some messages to the EDF file
 mglEyelinkEDFPrintF('this is my message')
 
+fprintf(2,'Sample test (''s'': sample received, ''.'': no sample)\n');
+totalSamples = 0;
 for nSample = 1:300
     % get a sample
-    eyePos(nSample,:) = mglPrivateEyelinkGetCurrentSample();
+    newSample = mglPrivateEyelinkGetCurrentSample();
+    if ~isempty(newSample)
+      totalSamples = totalSamples + 1;
+      eyePos(totalSamples,:) = newSample;
+      fprintf(2,'s')
+    else
+      fprintf(2,'.');
+    end
     pause(1/75);
 end
-
+fprintf(2,'\nEnd sample test.\n')
 
 % stop recording
 mglEyelinkRecordingStop();
 
 % check recording state
-fprintf(2,'Recording state should be ''0'' and is %d', mglEyelinkRecordingCheck());
+fprintf(2,'Recording state should be ''0'' and is %d\n', mglEyelinkRecordingCheck());
 
 % close the datafile
 mglEyelinkCMDPrintF('close_data_file');
@@ -55,7 +69,9 @@ mglPrivateEyelinkEDFGetFile('foo.edf');
 % close the link
 mglPrivateEyelinkClose();
 
-scatter(mglGetParam('deviceWidth')-eyePos(:,1),mglGetParam('deviceHeight')-eyePos(:,2), 0.2);
+if totalSamples > 0
+  scatter(mglGetParam('deviceWidth')-eyePos(:,1),mglGetParam('deviceHeight')-eyePos(:,2), 0.2);
+end
 
 % close context
 mglClose
