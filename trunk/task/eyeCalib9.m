@@ -14,7 +14,11 @@ if ~exist('bkcolor','var'),bkcolor = 'gray',end
 myscreen.background = bkcolor;
 myscreen = initScreen(myscreen);
   
-myscreen = initASLEyeTracker(myscreen, 9);
+% default paramaters for eye calibration
+myscreen.eyecalib.x = [5 0 -5 5 0 -5 5 0 -5];
+myscreen.eyecalib.y = [5 5 5 0 0 0 -5 -5 -5];
+myscreen.eyecalib.n = length(myscreen.eyecalib.x);
+myscreen.eyecalib.waittime = inf;
 
 % do eye calibration
 eyeCalibDisp(myscreen);
