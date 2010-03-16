@@ -178,7 +178,7 @@ unsigned long cocoaOpen(double *displayNumber, int *screenWidth, int *screenHeig
   NSWindow *myWindow;
   NSOpenGLContext *myOpenGLContext;
 
-  // get status of global variable that sets wether to display
+  // get status of global variable that sets whether to display
   // verbose information
   int verbose = (int)mglGetGlobalDouble("verbose");
 
@@ -583,6 +583,8 @@ unsigned long cglOpen(double *displayNumber, int *screenWidth, int *screenHeight
   // set the drawing context
   CGLSetCurrentContext( contextObj ) ;
   CGLSetFullScreen( contextObj ) ;
+  // THIS IS MACOS 10.6 SPECIFIC AND SHOULDN'T BE USED WITHOUT
+  // A MAKEFILE THAT TESTS FOR OS VERSION...
   //CGLSetFullScreenOnDisplay( contextObj, displayMask );
   // Hide cursor
   CGDisplayHideCursor( kCGDirectMainDisplay ) ;

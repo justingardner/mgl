@@ -181,7 +181,7 @@ end
 % run the eye calibration
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 if (doEyeCalib == 1)
-  myscreen.eyecalib.prompt = 0;
+  myscreen.eyetracker.prompt = 0;
   myscreen = eyeCalibDisp(myscreen);
 end
 

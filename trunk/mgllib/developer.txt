@@ -1,0 +1,36 @@
+Notes for Developers
+--------------------
+
+MGLLIB specific notes and To Dos should be placed here.
+
+
+**
+Should all parameter checking, etc for 'Private' functions occur in their
+non-private matlab wrappers? This keeps the code simpler to read and more
+reliable (less matlab <-> C errors likely)?
+**
+mglCreateTexture contains a lot of generic texture code that could be used in
+other texture functions (e.g. mglPrivateEyelinkCalibration) but would need to
+be separated into a library. If there are enough instances like this, I think
+it would make sense to break the mgl.h functions and these other accessory
+functions into an mgllib.a (or mgllib.dylib if appropriate). I know this makes
+linking slightly more complicated, but I think in the long run it would make
+mgllib more rational.
+
+In general, I think that breaking the C code up into a library would also make
+maintenance easier. Rather than hard to parse #ifdefs for each architecture,
+you would just build a library for each architecture and link it in the
+existing architecture dependent mglMake file.
+**
+I note that the gl texture code in mglCreateTexture and mglText are not
+consistent. One seems to use an architecture independent texture type and the
+other uses 8_8_8_... which was noted in the code elsewhere as not independent.
+This may also provide a reason for consolidation of the code.
+**
+
+Is GL_UNSIGNED_BYTE == GLubyte
+---
+
+To Do List:
+	mglBltTexture: Textures created in one coordinate system fail to reflect changes in anther coordinate system. e.g. if you are in eye coords, use mglCreateTexture, the allParams field stores the incorrect pixel transform
+	

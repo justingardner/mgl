@@ -59,7 +59,9 @@
 #else //__x86_64__
 // for 32bit
 #ifndef __carbon__
+#ifndef __cocoa__
 #define __cocoa__
+#endif // ifndef __cocoa__
 #endif // ifndef __carbon__
 #endif // ifdef __x86_64__
 #ifndef __eventtap__

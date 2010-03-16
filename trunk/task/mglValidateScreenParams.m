@@ -46,7 +46,8 @@ necessaryFields = {'computerName',mglGetHostName;
 		   'diginAcqLine',[];
 		   'diginAcqType',[];
 		   'diginResponseLine',[];
-		   'diginResponseType',[];
+		   'diginResponseType',[]; ...
+		   'eyeTrackerType', [];
 		  };
 
 % look for optional fields
