@@ -30,7 +30,7 @@ end
 if isfield(texture,'textureNumber')
   % if texture is an array then we delete each element separately
   for i = 1:length(texture)
-    mglPrivateDeleteTexture(texture(i).textureNumber);
+    mglPrivateDeleteTexture(texture(i).textureNumber,texture(i).liveBuffer);
   end
   texture(i).textureNumber = -1;
 else

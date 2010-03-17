@@ -24,10 +24,15 @@ $Id$
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
   GLuint texNum;
-  // should be called with texture number
-  if (nrhs == 1) {
+  GLubyte *liveBuffer;
+// should be called with texture number
+  if (nrhs == 2) {
     texNum = (GLuint) *mxGetPr( prhs[0] );    
     glDeleteTextures(1,&texNum);
+    // free the live buffer if it is there
+    liveBuffer = (GLubyte *)(unsigned long) *mxGetPr( prhs[1] );    
+    if (liveBuffer)
+      free(liveBuffer);
   }
   else {
     usageError("mglDeleteTexture");

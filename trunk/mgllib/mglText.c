@@ -126,9 +126,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   glTexImage2D(textureType,0,GL_RGBA,pixelsWide,pixelsHigh,0,GL_RGBA,GL_UNSIGNED_INT_8_8_8_8,bitmapData);  
 
   // create the output structure
-  const char *fieldNames[] =  {"textureNumber","imageWidth","imageHeight","textureAxes","textImageRect","hFlip","vFlip","isText","textureType" };
+  const char *fieldNames[] =  {"textureNumber","imageWidth","imageHeight","textureAxes","textImageRect","hFlip","vFlip","isText","textureType","liveBuffer" };
   int outDims[2] = {1, 1};
-  plhs[0] = mxCreateStructArray(1,outDims,9,fieldNames);
+  plhs[0] = mxCreateStructArray(1,outDims,10,fieldNames);
   
   // now set the textureNumber field
   double *outptr;
@@ -173,6 +173,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   mxSetField(plhs[0],0,"isText",mxCreateDoubleMatrix(1,1,mxREAL));
   outptr = (double*)mxGetPr(mxGetField(plhs[0],0,"isText"));
   *outptr = (double)1;
+
+  mxSetField(plhs[0],0,"liveBuffer",mxCreateDoubleMatrix(1,1,mxREAL));
+  outptr = (double*)mxGetPr(mxGetField(plhs[0],0,"liveBuffer"));
+  *outptr = (double)0;
 
   // if the user has specified more output arguments, then
   // return a matrix with the image data.
