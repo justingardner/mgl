@@ -1911,8 +1911,11 @@ char *keycodeToChar(UInt16 keycode)
 
     // get the keycode using UCKeyTranslate
   UCKeyTranslate(chr_data,keycode-1,kUCKeyActionDown,0,keyboard_type,0,&deadKeyState,maxStringLength,&actualStringLength,unicodeString);
-
-  return ((char*)unicodeString);
+  // mexPrintf("%u\n",(char)unicodeString[0]);
+  char *c = malloc(sizeof(char)*2);
+  c[1]=0;
+  c[0]=unicodeString[0];
+  return (c);
 
 }
 //-----------------------------------------------------------------------------------///
