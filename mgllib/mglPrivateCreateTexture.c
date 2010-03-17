@@ -46,7 +46,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   }
 
   // check input arguments
-  if (nrhs > 2) {
+  if (nrhs > 3) {
     // if not supported, call matlab help on the file
     const int ndims = 1;
     const int dims[] = {1};
@@ -54,6 +54,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mexCallMATLAB(0,NULL,1,callInput,"help");
     return;
   }  
+
+  int liveBuffer = 0;
+  if (nrhs==3) 
+    liveBuffer = (int)*(double *)mxGetPr(prhs[2]);
 
   // get status of global variable that sets wether to display
   // verbose information
@@ -218,9 +222,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     glTexParameteri(textureType, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(textureType, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glPixelStorei(GL_UNPACK_ROW_LENGTH,0);
-
     // now place the data into the texture
     glTexImage2D(GL_TEXTURE_RECTANGLE_EXT,0,GL_RGBA,imageWidth,imageHeight,0,GL_RGBA,TEXTURE_DATATYPE,imageFormatted);
+
   }
   else if (textureType == GL_TEXTURE_1D) {
 
@@ -254,12 +258,14 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   //}
 
   // free temporary image storage
-  free(imageFormatted);
+  if (!liveBuffer) {
+    free(imageFormatted);
+  }
 
   // create the output structure
-  const char *fieldNames[] =  {"textureNumber","imageWidth","imageHeight","textureAxes","textureType" };
+  const char *fieldNames[] =  {"textureNumber","imageWidth","imageHeight","textureAxes","textureType","liveBuffer" };
   int outDims[2] = {1, 1};
-  plhs[0] = mxCreateStructArray(1,outDims,5,fieldNames);
+  plhs[0] = mxCreateStructArray(1,outDims,6,fieldNames);
   
   // now set the textureNumber field
   double *outptr;
@@ -309,4 +315,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   outptr = (double*)mxGetPr(mxGetField(plhs[0],0,"textureType"));
   *outptr = (double)textureType;
 
+  // set the liveBuffer
+  mxSetField(plhs[0],0,"liveBuffer",mxCreateDoubleMatrix(1,1,mxREAL));
+  outptr = (double*)mxGetPr(mxGetField(plhs[0],0,"liveBuffer"));
+  if (liveBuffer)
+    *outptr = (double)(unsigned long)imageFormatted;
+  else
+    *outptr = 0;
+  
+ 
 }
