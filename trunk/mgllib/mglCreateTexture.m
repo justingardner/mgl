@@ -25,10 +25,12 @@
 %             mglBltTexture(texture,[0 0 100 500]);
 %             mglFlush;
 %
-function texture = mglCreateTexture(image,axes)
+function texture = mglCreateTexture(image,axes,liveBuffer)
 
 % create the texture
-if nargin == 2
+if nargin == 3
+  texture = mglPrivateCreateTexture(image,axes,liveBuffer);
+elseif nargin == 2
   texture = mglPrivateCreateTexture(image,axes);
 elseif nargin == 1
   texture = mglPrivateCreateTexture(image);
