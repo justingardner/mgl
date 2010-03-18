@@ -27,6 +27,8 @@
 %
 function texture = mglCreateTexture(image,axes,liveBuffer)
 
+global yowsa;
+yowsa = image;
 % create the texture
 if nargin == 3
   texture = mglPrivateCreateTexture(image,axes,liveBuffer);

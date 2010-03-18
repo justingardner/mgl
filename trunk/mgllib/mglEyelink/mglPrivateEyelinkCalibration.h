@@ -93,20 +93,6 @@
 // ===========
 // = Structs =
 // ===========
-typedef struct MGLTexture {
-  GLuint textureNumber;
-  GLubyte *pixels;
-  double imageWidth;
-  double imageHeight;
-  int textureAxes;
-  int vFlip;
-  int hFlip;
-  double textOverhang;
-  int isText;
-  double displayRect[4];
-  double rotation;
-} MGLTexture;
-
 typedef struct MGLKeyEvent {
     INT16 charCode;
     INT16 keyCode;
@@ -139,12 +125,6 @@ void drawLozenge(CrossHairInfo *chi, int x, int y, int width, int height, int ci
 void getMouseState(CrossHairInfo *chi, int *rx, int *ry, int *rstate);
 int ELCALLBACK writeImage(char *outfilename, IMAGETYPE format, EYEBITMAP *bitmap);
 
-void mglcBltTexture(MGLTexture *texture, int position[4], int hAlignment, int vAlignment);
-MGLTexture *mglcCreateRGBATexture(int width, int height);
-MGLTexture *mglcCreateTextTexture(char *text);
-void mglcFreeTexture(MGLTexture *texture);
-void mglcFlush(int displayNumber);
-void mglcClearScreen(int *color);
 int mglcGetKeys();
 char *keycodeToChar(UInt16 keycode);
 void setupGeyKeyCallback();
@@ -169,6 +149,12 @@ static int keyDownEvent = 0;
 static int eventKeyCode = 0;
 static CGEventFlags eventKeyFlags;
 
-mxArray *matlabCameraMatrix = NULL;
+mxArray *cameraTexture;
+GLubyte *cameraImageBuffer = NULL;
+GLenum cameraTextureType = 0;
+GLuint cameraTextureNumber = 0;
+GLubyte cameraImageColormap[256][3];
 
+double screenCenterX;
+double screenCenterY;
 #endif __MGLEYELINK_H
