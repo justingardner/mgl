@@ -70,7 +70,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         else if (results!=NO_REPLY) 
         { 
             eyemsg_printf("Error in executing command: %s", errormsg?buf:"");
-            mexErrMsgTxt(errormsg?buf:"");
+            mexPrintf(errormsg?buf:"");
             break; 
         } 
     }     

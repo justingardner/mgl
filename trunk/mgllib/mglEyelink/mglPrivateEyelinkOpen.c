@@ -24,67 +24,85 @@ usage:   mglPrivateEyelinkOpen(ipaddress, trackedwindow, displaywindow)
 
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
+  // setup output argument
+  double *outptr;
+  if (nlhs == 1){
+    plhs[0] = mxCreateDoubleMatrix(1,1,mxREAL);
+    outptr = mxGetPr(plhs[0]);
+    *outptr = 0;
+  }
 
-    if (nrhs<1 || nrhs>2) /* What arguments should this take? */
+  if (nrhs<1 || nrhs>2) /* What arguments should this take? */
     {
-        usageError("mglPrivateEyelinkOpen");
-        return;
+      usageError("mglPrivateEyelinkOpen");
+      return;
     }
 
-    /* input must be a string */
-    if ( mxIsChar(prhs[0]) != 1)
-        mexErrMsgTxt("Input must be a string.");
+  /* input must be a string */
+  if ( mxIsChar(prhs[0]) != 1) {
+    mexPrintf("Input must be a string.\n");
+    return;
+  }
 
-    /* input must be a row vector */
-    if (mxGetM(prhs[0])!=1)
-        mexErrMsgTxt("Input must be a row vector.");    
+  /* input must be a row vector */
+  if (mxGetM(prhs[0])!=1) {
+    mexPrintf("Input must be a row vector.\n");    
+    return;
+  }
         
-    char *trackerip;
-    mwSize buflen;
+  char *trackerip;
+  mwSize buflen;
 
-    /* get the length of the input string */
-    buflen = (mxGetM(prhs[0]) * mxGetN(prhs[0])) + 1;
+  /* get the length of the input string */
+  buflen = (mxGetM(prhs[0]) * mxGetN(prhs[0])) + 1;
 
-    /* copy the string data from prhs[0] into a C string input_ buf.    */
-    trackerip = mxArrayToString(prhs[0]);
+  /* copy the string data from prhs[0] into a C string input_ buf.    */
+  trackerip = mxArrayToString(prhs[0]);
 
-    if(trackerip == NULL) 
-        mexErrMsgTxt("Could not convert input to string.");
+  if(trackerip == NULL) {
+    mexPrintf("Could not convert input to string.\n");
+    return;
+  }
 
-    if (set_eyelink_address(trackerip)==-1){
-        mexErrMsgTxt("Could not parse IP addrss.");     
-    }    
+  if (set_eyelink_address(trackerip)==-1){
+    mexPrintf("Could not parse IP addrss.\n");     
+    return;
+  }    
     
 
-    /* **** TODO: Clean up the trackercontype code to use integer values? */
-    int trackerconntype = 0;
-    // • 0, opens a connection with the eye tracker; 
-    // • 1, will create a dummy connection for simulation; 
-    // • -1, initializes the DLL but does not open a connection. 
+  /* **** TODO: Clean up the trackercontype code to use integer values? */
+  int trackerconntype = 0;
+  // • 0, opens a connection with the eye tracker; 
+  // • 1, will create a dummy connection for simulation; 
+  // • -1, initializes the DLL but does not open a connection. 
     
-    if (nrhs==2) {
-        /* optional parameter which controlls the link connection type */
-        if (mxGetM(prhs[1]) != 1 && mxGetN(prhs[1]) != 1){
-            mexErrMsgTxt("Connection type must be an single value.");
-        } else {
-            /* should be a real data access call */
-            trackerconntype = (int)*mxGetPr(prhs[1]);
-            mexPrintf("(mglPrivateEyelinkOpen) Connection type is %d\n", trackerconntype);
-            if (trackerconntype != -1 && trackerconntype != 0 && trackerconntype != 1) {
-                mexErrMsgTxt("Connection type must be one of {-1, 0, 1}.");
-            }
-        }
-    }
-
-    if(open_eyelink_connection(trackerconntype)) {
-        /* abort if we can't open link*/
-        mexErrMsgTxt("Connection failed: could not establish a link.\n");
+  if (nrhs==2) {
+    /* optional parameter which controlls the link connection type */
+    if (mxGetM(prhs[1]) != 1 && mxGetN(prhs[1]) != 1){
+      mexPrintf("Connection type must be an single value.\n");
+      return;
     } else {
-        mexPrintf("(mglPrivateEyelinkOpen) MGL Eyelink tracker link established.\n");
-        mexPrintf("(mglPrivateEyelinkOpen) MGL Eyelink tracker IP %s.\n", trackerip);
-        mxFree(trackerip);
-        
+      /* should be a real data access call */
+      trackerconntype = (int)*mxGetPr(prhs[1]);
+      mexPrintf("(mglPrivateEyelinkOpen) Connection type is %d\n", trackerconntype);
+      if (trackerconntype != -1 && trackerconntype != 0 && trackerconntype != 1) {
+	mexPrintf("Connection type must be one of {-1, 0, 1}.\n");
+	return;
+      }
     }
+  }
+
+  if(open_eyelink_connection(trackerconntype)) {
+    /* abort if we can't open link*/
+    mexPrintf("Connection failed: could not establish a link.\n");
+    return;
+  } else {
+    mexPrintf("(mglPrivateEyelinkOpen) MGL Eyelink tracker link established.\n");
+    mexPrintf("(mglPrivateEyelinkOpen) MGL Eyelink tracker IP %s.\n", trackerip);
+    mxFree(trackerip);
+    // set output argument
+    if (nlhs == 1)*outptr = 1;
+  }
     
 }
 
