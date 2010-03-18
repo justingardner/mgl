@@ -107,7 +107,7 @@ mglClearScreen;
 % end
 
 mglBltTexture(stimulus.texture,[0,0], 'center', 'center')
-mglGluAnnulus(myscreen.eyetracker.eyepos(1),myscreen.eyetracker.eyepos(2),5,30, [0.8 0.8 0.8]*myscreen.background);
+mglGluAnnulus(myscreen.eyetracker.eyepos(1),myscreen.eyetracker.eyepos(2),5,500, [0.8 0.8 0.8]*myscreen.background);
 % mglFixationCross(1, 1, [0.6 0.6 0.6], myscreen.eyetracker.eyepos);
 
 

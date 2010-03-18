@@ -698,9 +698,9 @@ void ELCALLBACK image_title(INT16 threshold, char *title)
     snprintf(cameraTitle, sizeof(cameraTitle), "%s, threshold at %d", 
       title, threshold);
   }
-    // mexPrintf("Camera Title: %s\n", cameraTitle);
-    // mglcFreeTexture(mgltTitle);
-    // mgltTitle = mglcCreateTextTexture(cameraTitle);
+  //  mexPrintf("(mglPrivateEyelinkCalibration) Camera Title: %s\n", cameraTitle);
+  // mglcFreeTexture(mgltTitle);
+  // mgltTitle = mglcCreateTextTexture(cameraTitle);
 
 }
 
