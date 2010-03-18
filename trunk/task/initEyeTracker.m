@@ -42,6 +42,8 @@ else
   end
 end
 if ~myscreen.eyetracker.init
-  error('Attempt to initialize eye tracker failed.');
+  disp('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!');
+  disp('(initEyeTracker) ERROR: Attempt to initialize eye tracker failed.');
+  disp('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!');
 end
 

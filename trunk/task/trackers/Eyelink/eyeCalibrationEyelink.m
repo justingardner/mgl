@@ -1,10 +1,6 @@
 function [myscreen] = eyeCalibrationEyelink(myscreen)
 % eyeCalibrationEyelink - initializes a the myscreen and tracker for use
 %
-%
-
-% eyeCalibrationEyelink.m
-%
 %        $Id: eyeCalibrationEyelink.m 203 2007-03-19 15:41:00Z justin $
 %      usage: myscreen = eyeCalibrationEyelink(myscreen)
 %         by: eric dewitt
@@ -25,15 +21,39 @@ function [myscreen] = eyeCalibrationEyelink(myscreen)
 % You should have received a copy of the GNU General Public License
 % along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-    if ~myscreen.eyetracker.dummymode
-        fprintf(2,'(eyeCalibrationEyelink) Calibrating Eyelink.\n');
-        inScreenCoord = mglGetParam('screenCoordinates');
-        mglScreenCoordinates();
-        mglPrivateEyelinkCalibration;
-        if ~inScreenCoord
-            mglVisualAngleCoordinates(myscreen.displayDistance, myscreen.displaySize);
-        end
-    else
-        fprintf(2,'(eyeCalibrationEyelink) Skipping calibration in dummy mode.\n');
-    end
+if ~myscreen.eyetracker.dummymode
+  fprintf(2,'(eyeCalibrationEyelink) Calibrating Eyelink.\n');
+  % get current coordinates
+  inScreenCoord = mglGetParam('screenCoordinates');
+
+  % draw some text to tell user what is going on
+  mglTextDraw('Calibrate Eyelink - Hit ESC when finished',[0 0]);
+  disp('===========================');
+  disp('Enter: Display camera image');
+  disp('c: Start calibration routine');
+  disp('v: Start verification routine');
+  disp('a: autothreshold');
+  disp('ESC: Finished');
+  disp('For a full list of commands. Hit F1 on eye tracker');
+  disp('===========================');
+  mglFlush;
+
+  % switch to screen coordinates
+  mglScreenCoordinates();
+
+  % run calibration routine
+  mglPrivateEyelinkCalibration;
+  
+  % return screen coordinates
+  if ~inScreenCoord
+    mglVisualAngleCoordinates(myscreen.displayDistance, myscreen.displaySize);
+  end
+  
+  % clear screen
+  mglClearScreen;
+  mglFlush;
+  mglClearScreen;
+  mglFlush;
+else
+  fprintf(2,'(eyeCalibrationEyelink) Skipping calibration in dummy mode.\n');
 end

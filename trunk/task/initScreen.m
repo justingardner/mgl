@@ -531,6 +531,7 @@ myscreen.eyecalib.waittime = 1;
 % the initEyeTracker function hasn't been run or was unsuccessful
 if ~isfield(myscreen, 'eyetracker') || ~isfield(myscreen.eyetracker, 'init')
   myscreen.eyetracker.init = 0;
+  myscreen.eyetracker.eyepos = [nan nan];
   myscreen.eyetracker.callback = [];
 end
 
