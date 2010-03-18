@@ -156,8 +156,6 @@ unsigned char *renderText(char *cInputString, char*fontName, int fontSize, doubl
 // =============================
 // = (Static) Member Variables =
 // =============================
-MGLTexture *mgltCamera = NULL;                     // Texture for camera image display
-MGLTexture *mgltTitle = NULL;                      // Texture for camera title display
 static char cameraTitle[1024];
 static int cameraPos[4] = {551, 435, 0, 0};
 static int titlePos[4] = {551, 100, 0, 0};
@@ -170,5 +168,7 @@ static CFMachPortRef gEventTap;
 static int keyDownEvent = 0;
 static int eventKeyCode = 0;
 static CGEventFlags eventKeyFlags;
+
+mxArray *matlabCameraMatrix = NULL;
 
 #endif __MGLEYELINK_H
