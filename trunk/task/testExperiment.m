@@ -67,6 +67,7 @@ end
 
 % if we got here, we are at the end of the experiment
 myscreen = endTask(myscreen,task);
+clear global stimulus;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % function that gets called at the start of each segment
