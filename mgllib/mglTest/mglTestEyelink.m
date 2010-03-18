@@ -70,7 +70,9 @@ mglPrivateEyelinkEDFGetFile('foo.edf');
 mglPrivateEyelinkClose();
 
 if totalSamples > 0
-  scatter(mglGetParam('deviceWidth')-eyePos(:,1),mglGetParam('deviceHeight')-eyePos(:,2), 0.2);
+  plot(mglGetParam('deviceWidth')-eyePos(:,1),mglGetParam('deviceHeight')-eyePos(:,2), 'k.-');
+  xlabel('H. eyepos');
+  ylabel('V. eyepos');
 end
 
 % close context
