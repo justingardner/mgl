@@ -84,29 +84,29 @@ void ELCALLTYPE get_display_information(DISPLAYINFO *di)
   */
   memset(di,0, sizeof(DISPLAYINFO)); // clear everything to 0
 
-if (mglIsGlobal("screenWidth")) {
-  di->width = (int)mglGetGlobalDouble("screenWidth");
-} else {
-  mexErrMsgTxt("MGL must be initialised.");
-}
+  if (mglIsGlobal("screenWidth")) {
+    di->width = (int)mglGetGlobalDouble("screenWidth");
+  } else {
+    mexErrMsgTxt("MGL must be initialised.");
+  }
 
-if (mglIsGlobal("screenHeight")) {
-  di->height = (int)mglGetGlobalDouble("screenHeight");
-} else {
-  mexErrMsgTxt("MGL must be initialised.");
-}
+  if (mglIsGlobal("screenHeight")) {
+    di->height = (int)mglGetGlobalDouble("screenHeight");
+  } else {
+    mexErrMsgTxt("MGL must be initialised.");
+  }
 
-if (mglIsGlobal("bitDepth")) {
-  di->bits = (int)mglGetGlobalDouble("bitDepth");
-} else {
-  mexErrMsgTxt("MGL must be initialised.");
-}
-
-if (mglIsGlobal("frameRate")) {
-  di->refresh = (int)mglGetGlobalDouble("frameRate");
-} else {
-  mexErrMsgTxt("MGL must be initialised.");
-}
+  if (mglIsGlobal("bitDepth")) {
+    di->bits = (int)mglGetGlobalDouble("bitDepth");
+  } else {
+    mexErrMsgTxt("MGL must be initialised.");
+  }
+  
+  if (mglIsGlobal("frameRate")) {
+    di->refresh = (int)mglGetGlobalDouble("frameRate");
+  } else {
+    mexErrMsgTxt("MGL must be initialised.");
+  }
 
 }
 
@@ -402,7 +402,7 @@ void ELCALLBACK draw_cal_target(INT16 x, INT16 y)
   inColor[1] = 0.0; // green
   inColor[2] = 0.0; // blue
   mexCallMATLAB(0, NULL, 4, callInput, "mglGluDisk");            
-  mexEvalString("mglFlush;\n");
+  mexEvalString("mglFlush;");
   // mexPrintf("mglPrivateEyelinkCalibrate) mglGluDisk at (%g,%g) with size %g.\n", *inX, *inY, *inSize);
 }
 
@@ -412,8 +412,8 @@ This function is responsible for erasing the target that was drawn by the last c
 void ELCALLBACK erase_cal_target(void)
 {
   /* erase the last calibration target  */
-  mexEvalString("mglClearScreen(0);\n");
-  mexEvalString("mglFlush;\n");
+  mexEvalString("mglClearScreen;");
+  mexEvalString("mglFlush;");
 }
 
 /*!
@@ -508,9 +508,31 @@ Called to clear the display.
 */
   void ELCALLBACK clear_cal_display(void)
 {
-  mexEvalString("mglClearScreen;\n");
-  mexEvalString("mglFlush;\n");
+  mexEvalString("mglClearScreen;");
+  mexEvalString("mglFlush;");
 
+}
+
+/*!
+This function is called after setup_image_display and before the first call to 
+draw_image_line. This is responsible to setup the palettes to display the camera
+image.
+
+@param ncolors number of colors in the palette.
+@param r       red component of rgb.
+@param g       blue component of rgb.
+@param b       green component of rgb.
+
+*/
+void ELCALLBACK set_image_palette(INT16 ncolors, byte r[130], byte g[130], byte b[130])
+{
+  int i = 0; 
+  // set up colormap for screen display
+  for(i=0; i<ncolors; i++) {
+    cameraImageColormap[i][0] = (GLubyte)r[i];
+    cameraImageColormap[i][1] = (GLubyte)g[i];
+    cameraImageColormap[i][2] = (GLubyte)b[i];
+  }
 }
 
 /*!
@@ -527,13 +549,40 @@ INT16 ELCALLBACK setup_image_display(INT16 width, INT16 height)
   cameraPos[2] = width*2;
   cameraPos[3] = height*2;
 
-  // create the matrix for putting the camera display into
+  // create a texture using mglCreateTexture
+  mxArray *callInput[3],*callOutput[2];
   mwSize dims[3] = {height, width, BYTEDEPTH};
-  matlabCameraMatrix = mxCreateNumericArray(3,dims,mxDOUBLE_CLASS,mxREAL);
+  callInput[0] = mxCreateNumericArray(3,dims,mxDOUBLE_CLASS,mxREAL);
+  callInput[1] = mxCreateString("yx");
+  callInput[2] = mxCreateDoubleMatrix(1,1,mxREAL);
+  double *arg = (double*)mxGetPr(callInput[2]);
+  *arg = 1;
+  mexCallMATLAB(1,callOutput,3,callInput,"mglCreateTexture");            
 
-  mexEvalString("mglClearScreen;\n");
-  mexEvalString("mglFlush;\n");
+  // clean up
+  mxDestroyArray(callInput[0]);
+  mxDestroyArray(callInput[1]);
+  mxDestroyArray(callInput[2]);
 
+  // get the pointer to the "liveBuffer" which we can use to modify the texture on the fly
+  cameraTexture = callOutput[0];
+  cameraImageBuffer = (GLubyte*)(unsigned long)*mxGetPr(mxGetField(callOutput[0],0,"liveBuffer"));
+  cameraTextureType = (GLenum)*mxGetPr(mxGetField(callOutput[0],0,"textureType"));
+  cameraTextureNumber = (GLuint)*mxGetPr(mxGetField(callOutput[0],0,"textureNumber"));
+ 
+  // set the alpha channel to 255
+  int i,c=0;
+  for(i = 0;i<width*height;i++,c+=4)
+    cameraImageBuffer[c+3] = 255;
+
+  // clear the screen
+  mexEvalString("mglClearScreen");
+  mexEvalString("mglFlush;");
+
+  // set the center of the screen
+  screenCenterX = mglGetGlobalDouble("screenWidth")/2;
+  screenCenterY = mglGetGlobalDouble("screenHeight")/2;
+  
   return 0;
 }
 
@@ -544,59 +593,17 @@ function.
 */
 void ELCALLBACK exit_image_display(void)
 {
-
-  mxDestroyArray(matlabCameraMatrix); 
-  mexEvalString("mglClearScreen;\n");
-  mexEvalString("mglFlush;\n");
-  mexEvalString("mglClearScreen;\n");
-  mexEvalString("mglFlush;\n");
-
-}
-
-/*!
-This function is called to update any image title change.
-@param threshold if -1 the entire tile is in the title string
-otherwise, the threshold of the current image.
-@param title     if threshold is -1, the title contains the whole title 
-for the image. Otherwise only the camera name is given.
-*/
-void ELCALLBACK image_title(INT16 threshold, char *title)
-{
-
-  if (threshold == -1){
-    snprintf(cameraTitle, sizeof(cameraTitle), "%s", title);
-  } else {
-    snprintf(cameraTitle, sizeof(cameraTitle), "%s, threshold at %d", 
-      title, threshold);
+  // check to see if we need to delete the texture
+  mxArray *callInput[1];
+  if (cameraImageBuffer) {
+    callInput[0] = cameraTexture;
+    mexCallMATLAB(0,NULL,1,callInput,"mglDeleteTexture");
   }
-    // mexPrintf("Camera Title: %s\n", cameraTitle);
-    // mglcFreeTexture(mgltTitle);
-    // mgltTitle = mglcCreateTextTexture(cameraTitle);
-
-}
-
-/*!
-This function is called after setup_image_display and before the first call to 
-draw_image_line. This is responsible to setup the palettes to display the camera
-image.
-
-@param ncolors number of colors in the palette.
-@param r       red component of rgb.
-@param g       blue component of rgb.
-@param b       green component of rgb.
-
-*/
-double cameraImageColormap[256][3];
-void ELCALLBACK set_image_palette(INT16 ncolors, byte r[130], byte g[130], byte b[130])
-{
-
-  int i = 0; 
-  for(i=0; i<ncolors; i++) 
-  {
-    cameraImageColormap[i][0] = (double)r[i];
-    cameraImageColormap[i][1] = (double)g[i];
-    cameraImageColormap[i][2] = (double)b[i];
-  }
+  // clear the screen
+  mexEvalString("mglClearScreen;");
+  mexEvalString("mglFlush;");
+  mexEvalString("mglClearScreen;");
+  mexEvalString("mglFlush;");
 
 }
 
@@ -626,45 +633,42 @@ void ELCALLBACK draw_image_line(INT16 width, INT16 line, INT16 totlines, byte *p
   short i;
   UINT32 *currentLine;    // we will write rgba at once as a packed pixel
   byte *p = pixels;       // a packed rgba lookup
-  mxArray *callInput[1];
-  mxArray *callOutput[2];
+  mxArray *callInput[2];
 
 
     // mexPrintf("(mglPrivateEyelinkCalibrate) width %d, line %d, height %d\n", width, line, totlines);
 
   // get the beginning of the current line
-  double *matlabCameraMatrixPtr = (double*)mxGetPr(matlabCameraMatrix);
-  matlabCameraMatrixPtr = matlabCameraMatrixPtr+(line-1);
+  //  double *matlabCameraMatrixPtr = (double*)mxGetPr(matlabCameraMatrix);
+  //  matlabCameraMatrixPtr = matlabCameraMatrixPtr+(line-1);
 
-  double screenCenterX=400;
-  double screenCenterY=400;
-  
+  GLubyte *thisLineCameraImageBuffer = cameraImageBuffer+(line-1)*width*BYTEDEPTH;
+
   // draw the line into our memory buffer
-  for(i=0; i<width; i++)
-  {
-    matlabCameraMatrixPtr[i*totlines] = cameraImageColormap[*p][0];
-    matlabCameraMatrixPtr[i*totlines+width*totlines] = cameraImageColormap[*p][1];
-    matlabCameraMatrixPtr[i*totlines+2*width*totlines] = cameraImageColormap[*p][2];
-    matlabCameraMatrixPtr[i*totlines+3*width*totlines] = 255;
+  for(i=0; i<width; i++) {
+    thisLineCameraImageBuffer[i*BYTEDEPTH] = cameraImageColormap[*p][0];
+    thisLineCameraImageBuffer[i*BYTEDEPTH+1] = cameraImageColormap[*p][1];
+    thisLineCameraImageBuffer[i*BYTEDEPTH+2] = cameraImageColormap[*p][2];
     p++;
   }
-  if(line == totlines)
-  {
+  if(line == totlines) {
     // at this point we have a complete camera image.
-    // so clear the screen,
-    mexEvalString("mglClearScreen;\n");
-    callInput[0] = matlabCameraMatrix;
-    // create a texture
-    mexCallMATLAB(1,callOutput,1,callInput,"mglCreateTexture");            
-    // and blt that texture to the screen
-    callOutput[1] = mxCreateDoubleMatrix(1,4,mxREAL);
-    double *bltPos = (double*)mxGetPr(callOutput[1]);
-    bltPos[0] = screenCenterX-width/2;bltPos[1] = screenCenterY-totlines/2;bltPos[2] = width*2;bltPos[3] = totlines*2;
-    mexCallMATLAB(0,NULL,2,callOutput,"mglBltTexture");            
+    // rebind the texture to the buffer
+    glBindTexture(cameraTextureType, cameraTextureNumber);
+    glTexImage2D(cameraTextureType,0,GL_RGBA,width,totlines,0,GL_RGBA,TEXTURE_DATATYPE,cameraImageBuffer);
+    // clear the screen,
+    mexEvalString("mglClearScreen;");
+    // blt that texture to the screen
+    callInput[0] = cameraTexture;
+    callInput[1] = mxCreateDoubleMatrix(1,4,mxREAL);
+    double *bltPos = (double*)mxGetPr(callInput[1]);
+    bltPos[0] = screenCenterX;bltPos[1] = screenCenterY;bltPos[2] = width*2;bltPos[3] = totlines*2;
+    mexCallMATLAB(0,NULL,2,callInput,"mglBltTexture");            
     // flush screen
-    mexEvalString("mglFlush;\n");
-    // delete the texture
-    mexCallMATLAB(0,NULL,1,callOutput,"mglDeleteTexture");            
+    mexEvalString("mglFlush;");
+    return;
+    
+
   
     // center the camera image on the screen
     
@@ -685,6 +689,28 @@ void ELCALLBACK draw_image_line(INT16 width, INT16 line, INT16 totlines, byte *p
 
 
   }
+
+}
+
+/*!
+This function is called to update any image title change.
+@param threshold if -1 the entire tile is in the title string
+otherwise, the threshold of the current image.
+@param title     if threshold is -1, the title contains the whole title 
+for the image. Otherwise only the camera name is given.
+*/
+void ELCALLBACK image_title(INT16 threshold, char *title)
+{
+
+  if (threshold == -1){
+    snprintf(cameraTitle, sizeof(cameraTitle), "%s", title);
+  } else {
+    snprintf(cameraTitle, sizeof(cameraTitle), "%s, threshold at %d", 
+      title, threshold);
+  }
+    // mexPrintf("Camera Title: %s\n", cameraTitle);
+    // mglcFreeTexture(mgltTitle);
+    // mgltTitle = mglcCreateTextTexture(cameraTitle);
 
 }
 
