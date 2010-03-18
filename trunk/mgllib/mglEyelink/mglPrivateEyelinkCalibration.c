@@ -23,7 +23,7 @@
 //   main   //
 //////////////
 
-  void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
+void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
   if (nrhs>2) /* What arguments should this take? */
   {
@@ -187,6 +187,29 @@ INT16 ELCALLBACK get_input_key(InputEvent *key_input)
 
   UINT16 keycode = 0;    // the key (mgl code)
 
+
+  //  mxArray *callOutput[1];
+  //  mexCallMATLAB(1, callOutput, 0, NULL, "mglGetKeys");
+  //  int nKeys = mxGetNumberOfElements(callOutput[0]);
+  //  double *keysDown = (double *)mxGetPr(callOutput[0]);
+  //  int keyDown = 0;
+  //  int i;
+  //  for (i = 0; i < nKeys; i++)
+  //    if (keysDown[i])
+  //      keyDown = i+1;
+  //  if (keyDown)
+  //    mexPrintf("%i\n",keyDown);
+
+  
+  
+
+  //  if (nKeys > 0) {
+  //    int myEventKeyCode = (int)*(double *)mxGetPr(callOutput[0]);
+  //    int myEventKeyCharcode = (int)*(double *)mxGetPr(callOutput[2]);
+  //    mexPrintf("%i %i %i\n",nKeys,myEventKeyCode,myEventKeyCharcode);
+  //  }
+  
+
     // get a key event using the get key event.
   if (!(keycode = mglcGetKeys())) {
     eventKeyCode = 0;
@@ -199,9 +222,7 @@ INT16 ELCALLBACK get_input_key(InputEvent *key_input)
     eventKeyCode = keycode;
         // parse key and place in *key_input
     UINT16 charcode = 0, modcode = 0; // the key (ascii)
-        // char *charbuff;
-        // char charbuff = ' ';
-        // get modifiers
+    // get modifiers
     int shift = 0, control = 0, command = 0, alt = 0, capslock = 0;
         // get the key event
         // charbuff = keycodeToChar(keycode);
@@ -381,18 +402,18 @@ void ELCALLBACK draw_cal_target(INT16 x, INT16 y)
   inColor[1] = 0.0; // green
   inColor[2] = 0.0; // blue
   mexCallMATLAB(0, NULL, 4, callInput, "mglGluDisk");            
-  mglcFlush(mglcDisplayNumber);
-    // mexPrintf("mglPrivateEyelinkCalibrate) mglGluDisk at (%g,%g) with size %g.\n", *inX, *inY, *inSize);
+  mexEvalString("mglFlush;\n");
+  // mexPrintf("mglPrivateEyelinkCalibrate) mglGluDisk at (%g,%g) with size %g.\n", *inX, *inY, *inSize);
 }
 
 /*!
 This function is responsible for erasing the target that was drawn by the last call to draw_cal_target.
 */
-  void ELCALLBACK erase_cal_target(void)
+void ELCALLBACK erase_cal_target(void)
 {
-    /* erase the last calibration target  */
-  mglcClearScreen(NULL);
-  mglcFlush(mglcDisplayNumber);
+  /* erase the last calibration target  */
+  mexEvalString("mglClearScreen(0);\n");
+  mexEvalString("mglFlush;\n");
 }
 
 /*!
@@ -487,8 +508,8 @@ Called to clear the display.
 */
   void ELCALLBACK clear_cal_display(void)
 {
-  mglcClearScreen(NULL);
-  mglcFlush(mglcDisplayNumber);
+  mexEvalString("mglClearScreen;\n");
+  mexEvalString("mglFlush;\n");
 
 }
 
@@ -505,10 +526,13 @@ INT16 ELCALLBACK setup_image_display(INT16 width, INT16 height)
 
   cameraPos[2] = width*2;
   cameraPos[3] = height*2;
-  mgltCamera = mglcCreateRGBATexture(width, height);
-    // mgltTitle = mglcCreateTextTexture("Title");    
-  mglcClearScreen(NULL);
-  mglcFlush(mglcDisplayNumber);
+
+  // create the matrix for putting the camera display into
+  mwSize dims[3] = {height, width, BYTEDEPTH};
+  matlabCameraMatrix = mxCreateNumericArray(3,dims,mxDOUBLE_CLASS,mxREAL);
+
+  mexEvalString("mglClearScreen;\n");
+  mexEvalString("mglFlush;\n");
 
   return 0;
 }
@@ -521,12 +545,11 @@ function.
 void ELCALLBACK exit_image_display(void)
 {
 
-  mglcFreeTexture(mgltCamera);
-    // mglcFreeTexture(mgltTitle);
-  mglcClearScreen(NULL);
-  mglcFlush(mglcDisplayNumber);
-  mglcClearScreen(NULL);
-  mglcFlush(mglcDisplayNumber);
+  mxDestroyArray(matlabCameraMatrix); 
+  mexEvalString("mglClearScreen;\n");
+  mexEvalString("mglFlush;\n");
+  mexEvalString("mglClearScreen;\n");
+  mexEvalString("mglFlush;\n");
 
 }
 
@@ -563,21 +586,16 @@ image.
 @param b       green component of rgb.
 
 */
+double cameraImageColormap[256][3];
 void ELCALLBACK set_image_palette(INT16 ncolors, byte r[130], byte g[130], byte b[130])
 {
 
   int i = 0; 
   for(i=0; i<ncolors; i++) 
   {
-    UINT32 rf = r[i];
-    UINT32 gf = g[i];
-    UINT32 bf = b[i];
-    UINT32 alpha = 255;
-#ifdef __LITTLE_ENDIAN__
-    cameraImagePalleteMap[i] = (alpha<<24) | (rf<<16) | (gf<<8) | (bf);
-#else
-    cameraImagePalleteMap[i] = (rf<<24) | (gf<<16) | (bf<<8) | (alpha);
-#endif
+    cameraImageColormap[i][0] = (double)r[i];
+    cameraImageColormap[i][1] = (double)g[i];
+    cameraImageColormap[i][2] = (double)b[i];
   }
 
 }
@@ -602,50 +620,55 @@ printf("RGB %d %d %d\n",r[pix],g[pix],b[pix]);
 
 @remark certain display draw the image up side down. eg. GDI.
 */
-  void ELCALLBACK draw_image_line(INT16 width, INT16 line, INT16 totlines, byte *pixels)
+void ELCALLBACK draw_image_line(INT16 width, INT16 line, INT16 totlines, byte *pixels)
 {
 
   short i;
   UINT32 *currentLine;    // we will write rgba at once as a packed pixel
   byte *p = pixels;       // a packed rgba lookup
+  mxArray *callInput[1];
+  mxArray *callOutput[2];
+
 
     // mexPrintf("(mglPrivateEyelinkCalibrate) width %d, line %d, height %d\n", width, line, totlines);
 
-    // get the beginning of the current line
-  currentLine = (UINT32*)(((GLubyte*)(mgltCamera->pixels))+((line-1)*sizeof(GLubyte)*BYTEDEPTH*width));
+  // get the beginning of the current line
+  double *matlabCameraMatrixPtr = (double*)mxGetPr(matlabCameraMatrix);
+  matlabCameraMatrixPtr = matlabCameraMatrixPtr+(line-1);
 
+  double screenCenterX=400;
+  double screenCenterY=400;
+  
+  // draw the line into our memory buffer
   for(i=0; i<width; i++)
   {
-    *currentLine++ = cameraImagePalleteMap[*p++]; // copy the line to image
+    matlabCameraMatrixPtr[i*totlines] = cameraImageColormap[*p][0];
+    matlabCameraMatrixPtr[i*totlines+width*totlines] = cameraImageColormap[*p][1];
+    matlabCameraMatrixPtr[i*totlines+2*width*totlines] = cameraImageColormap[*p][2];
+    matlabCameraMatrixPtr[i*totlines+3*width*totlines] = 255;
+    p++;
   }
   if(line == totlines)
   {
-        // at this point we have a complete camera image. This may be very small.
-        // we might want to enlarge it. For simplicity reasons, we will skip that.
-
-    mglcClearScreen(NULL);
-
-        // center the camera image on the screen
-    glBindTexture(GL_TEXTURE_2D, mgltCamera->textureNumber);    
-// #ifdef __APPLE__
-//         // tell GL that the memory will be handled by us. (apple)
-//         glPixelStorei(GL_UNPACK_CLIENT_STORAGE_APPLE,0);
-//         // now, try to store the memory in VRAM (apple)
-//         glTexParameteri(GL_TEXTURE_RECTANGLE_EXT,GL_TEXTURE_STORAGE_HINT_APPLE,GL_STORAGE_CACHED_APPLE);
-//         glTextureRangeAPPLE(GL_TEXTURE_RECTANGLE_EXT,mgltCamera->imageWidth*mgltCamera->imageHeight*BYTEDEPTH,mgltCamera->pixels);
-// #endif
-    glTexImage2D(GL_TEXTURE_RECTANGLE_EXT,0,GL_RGBA,
-      mgltCamera->imageWidth,mgltCamera->imageHeight,0,
-      GL_RGBA,TEXTURE_DATATYPE,mgltCamera->pixels);  
-
-        // mexPrintf("[Camera Texture]");
-    mglcBltTexture(mgltCamera, cameraPos, ALIGNCENTER, ALIGNCENTER);
-        // mexPrintf("[Title Texture]");
-        // mglcBltTexture(mgltTitle, titlePos, ALIGNCENTER, ALIGNCENTER);
-
-        // mexPrintf("F %d\n", mglcFrameNumber++aa);
-
-        // now we need to draw the cursors.
+    // at this point we have a complete camera image.
+    // so clear the screen,
+    mexEvalString("mglClearScreen;\n");
+    callInput[0] = matlabCameraMatrix;
+    // create a texture
+    mexCallMATLAB(1,callOutput,1,callInput,"mglCreateTexture");            
+    // and blt that texture to the screen
+    callOutput[1] = mxCreateDoubleMatrix(1,4,mxREAL);
+    double *bltPos = (double*)mxGetPr(callOutput[1]);
+    bltPos[0] = screenCenterX-width/2;bltPos[1] = screenCenterY-totlines/2;bltPos[2] = width*2;bltPos[3] = totlines*2;
+    mexCallMATLAB(0,NULL,2,callOutput,"mglBltTexture");            
+    // flush screen
+    mexEvalString("mglFlush;\n");
+    // delete the texture
+    mexCallMATLAB(0,NULL,1,callOutput,"mglDeleteTexture");            
+  
+    // center the camera image on the screen
+    
+    // now we need to draw the cursors.
 
     CrossHairInfo crossHairInfo;
     memset(&crossHairInfo,0,sizeof(crossHairInfo));
@@ -659,7 +682,6 @@ printf("RGB %d %d %d\n",r[pix],g[pix],b[pix]);
 
     eyelink_draw_cross_hair(&crossHairInfo);
 
-    mglcFlush(mglcDisplayNumber);
 
 
   }
@@ -761,933 +783,8 @@ hAlignment = DEFAULT_H_ALIGNMENT;
 vAlignment = DEFAULT_V_ALIGNMENT;
 */
 
-void mglcBltTexture(MGLTexture *texture, int position[4], int hAlignment, int vAlignment)
-{
 
-  double xPixelsToDevice, yPixelsToDevice, deviceHDirection, deviceVDirection;
 
-  xPixelsToDevice = mglGetGlobalDouble("xPixelsToDevice");
-  yPixelsToDevice = mglGetGlobalDouble("yPixelsToDevice");
-  deviceHDirection = mglGetGlobalDouble("deviceHDirection");
-  deviceVDirection = mglGetGlobalDouble("deviceVDirection");
-
-  texture->displayRect[0] = position[0];
-  texture->displayRect[1] = position[1];
-  if (position[2] == 0)
-    texture->displayRect[2] = texture->imageWidth*xPixelsToDevice;
-  else
-    texture->displayRect[2] = position[2];
-  if (position[3] == 0)
-    texture->displayRect[3] = texture->imageHeight*yPixelsToDevice;
-  else
-    texture->displayRect[3] = position[3];
-
-    // mexPrintf("(mglcBltTexture) Display rect = [%0.2f %0.2f %0.2f %0.2f]\n",texture->displayRect[0],texture->displayRect[1],texture->displayRect[2],texture->displayRect[3]);
-
-    // get the xPixelsToDevice and yPixelsToDevice making sure these are set properly
-  if ((xPixelsToDevice == 0) || (yPixelsToDevice == 0)) {
-    xPixelsToDevice = 1;
-    yPixelsToDevice = 1;
-  }
-
-    // ok now fix horizontal alignment
-  if (hAlignment == ALIGNCENTER) {
-    texture->displayRect[0] = texture->displayRect[0] - (texture->displayRect[2]+texture->textOverhang)/2;
-  }
-  else if (hAlignment == ALIGNRIGHT) {
-    if (deviceHDirection > 0)
-      texture->displayRect[0] = texture->displayRect[0] - (texture->displayRect[2]+texture->textOverhang);
-  }
-  else if (hAlignment == ALIGNLEFT) {
-    if (deviceHDirection < 0)
-      texture->displayRect[0] = texture->displayRect[0] + (texture->displayRect[2]+texture->textOverhang);
-  }
-
-    // ok now fix vertical alignment
-  if (vAlignment == ALIGNCENTER) {
-    texture->displayRect[1] = texture->displayRect[1] - (texture->displayRect[3]+texture->textOverhang)/2;
-    if (deviceVDirection > 0) {
-    // and adjust overhang
-      texture->displayRect[1] = texture->displayRect[1]+texture->textOverhang;
-    }
-  }
-  else if (vAlignment == ALIGNBOTTOM) {
-    if (deviceVDirection < 0) {
-      texture->displayRect[1] = texture->displayRect[1] - (texture->displayRect[3]+texture->textOverhang);
-      texture->displayRect[1] = texture->displayRect[1]-texture->textOverhang;
-    }
-    else {
-      texture->displayRect[1] = texture->displayRect[1]+2*texture->textOverhang;
-    }
-  }
-  else if (vAlignment == ALIGNTOP) {
-    if (deviceVDirection > 0) {
-      texture->displayRect[1] = texture->displayRect[1] - (texture->displayRect[3]+texture->textOverhang);
-    }
-    else {
-      texture->displayRect[1] = texture->displayRect[1]+texture->textOverhang;
-    }
-  }
-
-    // add the offset to the display rect
-  texture->displayRect[2] = texture->displayRect[2] + texture->displayRect[0];
-  texture->displayRect[3] = texture->displayRect[3] + texture->displayRect[1];
-
-    // check for flips, this is only necessary for text textures (i.e. ones created by mglText)
-    // so that the global variables textHFlip and textVFlip control how the texture is blted
-  if (texture->isText) {
-      // look in global for flips    
-      // first check whether coordinate system runs upward or downward
-    if (deviceVDirection < 0) {
-            // coordinate system flipped in y-direction; flip text by default
-      double temp;
-      temp = texture->displayRect[1];
-      texture->displayRect[1] = texture->displayRect[3];
-      texture->displayRect[3] = temp;
-    }
-  }
-    // see if we need to do vflip
-  if (texture->vFlip) {
-    double temp;
-    temp = texture->displayRect[1];
-    texture->displayRect[1] = texture->displayRect[3];
-    texture->displayRect[3] = temp;
-  }
-    // see if we need to do hflip
-  if (texture->hFlip) {
-    double temp;
-    temp = texture->displayRect[2];
-    texture->displayRect[2] = texture->displayRect[0];
-    texture->displayRect[0] = temp;
-  }
-    // mexPrintf("(mglcBltTexture) Display rect = [%0.2f %0.2f %0.2f %0.2f]\n",texture->displayRect[0],texture->displayRect[1],texture->displayRect[2],texture->displayRect[3]);
-
-    // set blending functions etc.
-  glEnable(GL_BLEND);
-  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-  glColor4f(1,1,1,1);
-
-    // calculate the amount of shift we need to
-    // move the axis (to center tex)
-  double xshift = texture->displayRect[0]+(texture->displayRect[2]-texture->displayRect[0])/2;
-  double yshift = texture->displayRect[1]+(texture->displayRect[3]-texture->displayRect[1])/2;
-  texture->displayRect[3] -= yshift;
-  texture->displayRect[2] -= xshift;
-  texture->displayRect[1] -= yshift;
-  texture->displayRect[0] -= xshift;
-
-    // now shift and rotate the coordinate frame
-  glMatrixMode( GL_MODELVIEW );    
-  glPushMatrix();
-  glTranslated(xshift,yshift,0);
-  glRotated(texture->rotation,0,0,1);
-
-#ifdef GL_TEXTURE_RECTANGLE_EXT
-    // bind the texture we want to draw
-  glEnable(GL_TEXTURE_RECTANGLE_EXT);
-  glBindTexture(GL_TEXTURE_RECTANGLE_EXT, texture->textureNumber);
-
-    // and set the transformation
-  glBegin(GL_QUADS);
-  if (texture->textureAxes == YX) {
-    // default texture axes (yx, using matlab coordinates) does not require
-    // swapping y and x in texture coords (done in mglCreateTexture)
-    glTexCoord2d(0.0, 0.0);
-    glVertex3d(texture->displayRect[0],texture->displayRect[1], 0.0);
-
-    glTexCoord2d(0.0, texture->imageHeight);
-    glVertex3d(texture->displayRect[0], texture->displayRect[3], 0.0);
-
-    glTexCoord2d(texture->imageWidth, texture->imageHeight);
-    glVertex3d(texture->displayRect[2], texture->displayRect[3], 0.0);
-
-    glTexCoord2d(texture->imageWidth, 0.0);
-    glVertex3d(texture->displayRect[2], texture->displayRect[1], 0.0);
-    glEnd();
-  }
-  else {
-    if (texture->textureAxes==XY) {
-      //  using reverse ordered coordinates does require swapping y and x in texture coords.
-      glTexCoord2d(0.0, 0.0);
-      glVertex3d(texture->displayRect[0],texture->displayRect[1], 0.0);
-
-      glTexCoord2d(0.0, texture->imageWidth);
-      glVertex3d(texture->displayRect[2], texture->displayRect[1], 0.0);
-
-      glTexCoord2d(texture->imageHeight,texture->imageWidth);
-      glVertex3d(texture->displayRect[2], texture->displayRect[3], 0.0);
-
-      glTexCoord2d(texture->imageHeight, 0.0);
-      glVertex3d(texture->displayRect[0], texture->displayRect[3], 0.0);    
-    }
-  }
-
-  glEnd();
-  glDisable(GL_TEXTURE_RECTANGLE_EXT);
-#else//GL_TEXTURE_RECTANGLE_EXT
-    // bind the texture we want to draw
-  glEnable(GL_TEXTURE_2D);
-  glBindTexture(GL_TEXTURE_2D, texture->textureNumber);
-
-    // and set the transformation
-  glBegin(GL_QUADS);
-  if (strncmp(texture->textureAxes, "yx",2)==0) {
-        // default texture axes (yx, using matlab coordinates) does not require swapping y and x in texture coords.
-    glTexCoord2f(0.0, 0.0);
-    glVertex3f(texture->displayRect[0],texture->displayRect[1], 0.0);
-
-    glTexCoord2f(0.0, 1.0);
-    glVertex3f(texture->displayRect[0], texture->displayRect[3], 0.0);
-
-    glTexCoord2f(1.0, 1.0);
-    glVertex3f(texture->displayRect[2], texture->displayRect[3], 0.0);
-
-    glTexCoord2f(1.0, 0.0);
-    glVertex3f(texture->displayRect[2], texture->displayRect[1], 0.0);
-  }
-  else {
-    if (strncmp(texture->textureAxes,"xy",2)==0) {
-        //  using reverse ordered coordinates does require swapping y and x in texture coords.
-      glTexCoord2f(0.0, 0.0);
-      glVertex3f(texture->displayRect[0],texture->displayRect[1], 0.0);
-
-      glTexCoord2f(0.0, 1.0);
-      glVertex3f(texture->displayRect[2], texture->displayRect[1], 0.0);
-
-      glTexCoord2f(1.0, 1.0);
-      glVertex3f(texture->displayRect[2], texture->displayRect[3], 0.0);
-
-      glTexCoord2f(1.0, 0.0);
-      glVertex3f(texture->displayRect[0], texture->displayRect[3], 0.0);
-
-    }
-  }
-  glEnd();
-#endif//GL_TEXTURE_RECTANGLE_EXT
-  glPopMatrix();
-}
-
-MGLTexture *mglcCreateRGBATexture(int width, int height)
-{
-    // we need eventually add parameters to set other elements of the texture
-    // array
-
-    // declare some variables
-  int i,j;
-  double xPixelsToDevice, yPixelsToDevice, deviceHDirection, deviceVDirection;
-  MGLTexture *texture;
-
-  texture = (MGLTexture*)malloc(sizeof(MGLTexture));
-
-  xPixelsToDevice = mglGetGlobalDouble("xPixelsToDevice");
-  yPixelsToDevice = mglGetGlobalDouble("yPixelsToDevice");
-  deviceHDirection = mglGetGlobalDouble("deviceHDirection");
-  deviceVDirection = mglGetGlobalDouble("deviceVDirection");
-
-  glGenTextures(1, &(texture->textureNumber));
-  texture->pixels = (GLubyte*)malloc(width*height*sizeof(GLubyte)*BYTEDEPTH);
-  texture->imageWidth = width;
-  texture->imageHeight = height;
-  texture->textureAxes = YX;
-  texture->hFlip = 0;
-  texture->vFlip = 0;
-  texture->textOverhang = 0;
-  texture->isText = 0;
-  texture->rotation = 0;
-  texture->displayRect[0] = 0;
-  texture->displayRect[1] = 0;
-  texture->displayRect[2] = 0;
-  texture->displayRect[3] = 0;
-
-  // If rectangular textures are unsupported, scale image to nearest dimensions
-#ifndef GL_TEXTURE_RECTANGLE_EXT
-  // No support for non-power of two textures
-  printf("NO SUPPORT FOR NON-POWER OF TWO TEXTURES!");
-  int po2Width=texture->imageWidth;
-  int po2Height=texture->imageHeight;
-  double lw=log(texture->imageWidth)/log(2);
-  double lh=log(texture->imageHeight)/log(2);
-  if (lw!=round(lw) | lh!=round(lh)) {
-    po2Width=(int) pow(2,round(lw));
-    po2Height=(int) pow(2,round(lh));
-    GLubyte * tmp = (GLubyte*)malloc(po2Width*po2Height*sizeof(GLubyte)*BYTEDEPTH);
-    gluScaleImage( GL_RGBA, texture->imageWidth, texture->imageHeight, TEXTURE_DATATYPE, glPixels, po2Width, po2Height, TEXTURE_DATATYPE, tmp);
-    free(texture->pixels);
-    texture->pixels=tmp;
-    texture->imageWidth = po2Width;
-    texture->imageHeight = po2Height;
-  }
-  glBindTexture(GL_TEXTURE_2D, texture->textureNumber);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-  glPixelStorei(GL_UNPACK_ROW_LENGTH,0);
-
-  // now place the data into the texture
-  glTexImage2D(GL_TEXTURE_2D,0,4,texture->imageWidth,texture->imageHeight,0,GL_RGBA,TEXTURE_DATATYPE,texture->pixels);
-
-#else// GL_TEXTURE_RECTANGLE_EXT
-  // Support for non-power of two textures
-  glBindTexture(GL_TEXTURE_RECTANGLE_EXT, texture->textureNumber);
-
-// #ifdef __APPLE__
-//     // tell GL that the memory will be handled by us. (apple)
-//     glPixelStorei(GL_UNPACK_CLIENT_STORAGE_APPLE,0);
-//     // now, try to store the memory in VRAM (apple)
-//     glTexParameteri(GL_TEXTURE_RECTANGLE_EXT,GL_TEXTURE_STORAGE_HINT_APPLE,GL_STORAGE_CACHED_APPLE);
-//     glTextureRangeAPPLE(GL_TEXTURE_RECTANGLE_EXT,texture->imageWidth*texture->imageHeight*BYTEDEPTH,texture->pixels);
-// #endif
-
-  // some other stuff
-  glTexParameteri(GL_TEXTURE_RECTANGLE_EXT, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-  glTexParameteri(GL_TEXTURE_RECTANGLE_EXT, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-  glTexParameteri(GL_TEXTURE_RECTANGLE_EXT, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-  glTexParameteri(GL_TEXTURE_RECTANGLE_EXT, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-  glPixelStorei(GL_UNPACK_ROW_LENGTH,0);
-
-  // now place the data into the texture
-  glTexImage2D(GL_TEXTURE_RECTANGLE_EXT,0,GL_RGBA,texture->imageWidth,texture->imageHeight,0,GL_RGBA,TEXTURE_DATATYPE,texture->pixels);
-
-#endif// GL_TEXTURE_RECTANGLE_EXT
-  return(texture);
-
-}
-
-void mglcFreeTexture(MGLTexture *texture)
-{
-  mexPrintf("Freeing texture number %d\n", texture->textureNumber);
-  glDeleteTextures(1,&texture->textureNumber);
-  free(texture->pixels);
-  free(texture);
-}
-
-MGLTexture *mglcCreateTextTexture(char *text)
-{
-
-  // get the global variable for the font
-  mxArray *gFontName = mglGetGlobalField("fontName");
-  char fontName[1024];
-
-  // check for null pointer
-  if (gFontName == NULL)
-    snprintf(fontName, sizeof(fontName), DEFAULT_FONT); // safety first!
-  // otherwise get the font
-  else {
-    mxGetString(gFontName,fontName,1024);
-  }
-
-  // get fontsize
-  int fontSize = (int)mglGetGlobalDouble("fontSize");
-  if (fontSize == 0)
-    fontSize = DEFAULT_FONTSIZE;
-
-  // get fontcolor
-  double fontColor[4] = {1, 0.5, 1, 1};
-  mxArray *gFontColor = mglGetGlobalField("fontColor");
-  if (gFontColor != NULL) 
-    mglGetColor(gFontColor,fontColor);
-
-  // on intel mac it looks like we have to swap the bytes
-#ifdef __LITTLE_ENDIAN__
-  double temp;
-  temp = fontColor[0];
-  fontColor[0] = fontColor[3];
-  fontColor[3] = temp;
-  temp = fontColor[1];
-  fontColor[1] = fontColor[2];
-  fontColor[2] = temp;
-#endif
-
-    // get fontrotation
-  double fontRotation = mglGetGlobalDouble("fontRotation");
-
-    // get font characteristics
-  Boolean fontBold = (Boolean)mglGetGlobalDouble("fontBold");
-  Boolean fontItalic = (Boolean)mglGetGlobalDouble("fontItalic");
-  Boolean fontStrikethrough = (Boolean)mglGetGlobalDouble("fontStrikeThrough");
-  Boolean fontUnderline = (Boolean)mglGetGlobalDouble("fontUnderline");
-
-    // now render the text into a bitmap.
-  int pixelsWide = 0, pixelsHigh = 0;
-  Rect textImageRect;
-  GLubyte *bitmapData = (GLubyte *)renderText(text, fontName, fontSize, fontColor, fontRotation, fontBold, fontItalic, fontUnderline, fontStrikethrough, &pixelsWide, &pixelsHigh, &textImageRect);
-
-    ///////////////////////////
-    // create a texture
-    ///////////////////////////
-  MGLTexture *texture;
-  texture = mglcCreateRGBATexture(pixelsHigh,pixelsWide);
-  memcpy(texture->pixels, bitmapData, (BYTEDEPTH*texture->imageWidth*texture->imageHeight));  
-  texture->isText = 1;
-  texture->vFlip = mglGetGlobalDouble("fontHFlip");
-  texture->hFlip = mglGetGlobalDouble("fontHFlip");
-
-
-    // WE'LL NEED THIS IF THE DATA ISN'T HANDLED LOCALLY
-    // // now place the data into the texture
-  glBindTexture(GL_TEXTURE_2D, texture->textureNumber);    
-  glTexImage2D(GL_TEXTURE_RECTANGLE_EXT,0,GL_RGBA,texture->imageWidth,texture->imageHeight,0,GL_RGBA,TEXTURE_DATATYPE,texture->pixels);  
-
-    // free up the original bitmapData
-    // free(bitmapData);
-  return(texture);
-}
-
-#ifdef __APPLE__
-//-----------------------------------------------------------------------------------///
-// ******************************* mac specific code  ******************************* //
-//-----------------------------------------------------------------------------------///
-unsigned char *renderText(char *cInputString, char*fontName, int fontSize, double *fontColor, double fontRotation, Boolean fontBold, Boolean fontItalic, Boolean fontUnderline, Boolean fontStrikethrough, int *pixelsWide, int *pixelsHigh, Rect *textImageRect)
-{
-
-  // get status of global variable verbose
-  int verbose = (int)mglGetGlobalDouble("verbose");
-
-  //////////////////////////
-  // This code is modified from ATSUI Basics example Program helloworld.c
-  //////////////////////////
-  CFStringRef			string;
-  UniChar			*text;
-  UniCharCount			length;
-  ATSUStyle			style;
-  ATSUTextLayout		layout;
-  ATSUFontID			font;
-  Fixed				pointSize;
-  ATSUAttributeTag		tags[2];
-  ByteCount			sizes[2];
-  ATSUAttributeValuePtr	        values[2];
-  float				x, y, cgY;
-
-  ////////////////////////////////////
-  // Create style object
-  ////////////////////////////////////
-  // Create a style object. This is one of two objects necessary to draw using ATSUI.
-  // (The layout is the other.)
-  verify_noerr( ATSUCreateStyle(&style) );
-
-  // Now we are going to set a few things in the style.
-  // This is not strictly necessary, as the style comes
-  // with some sane defaults after being created, but
-  // it is useful to demonstrate.
-
-  ////////////////////////////////////
-  // Get font
-  ////////////////////////////////////
-  // Look up the font we are going to use, and set it in the style object, using
-  // the aforementioned "triple" (tag, size, value) semantics. This is how almost
-  // all settings in ATSUI are applied.
-  verify_noerr( ATSUFindFontFromName(fontName, strlen(fontName), kFontFullName, kFontNoPlatform, kFontNoScript, kFontNoLanguage, &font) );
-  tags[0] = kATSUFontTag;
-  sizes[0] = sizeof(ATSUFontID);
-  values[0] = &font;
-  verify_noerr( ATSUSetAttributes(style, 1, tags, sizes, values) );
-
-  // Notice below the point size is set as Fixed, not an int or a float.
-  // For historical reasons, most values in ATSUI are Fixed or Fract, not int or float.
-  // See the header FixMath.h in the CarbonCore framework for conversion macros.
-
-  // Set the point size, also using a triple. You can actually set multiple triples at once,
-  // since the tag, size, and value parameters are arrays. Other examples do this, such as
-  // the vertical text example.
-  // 
-  pointSize = Long2Fix(fontSize);
-  tags[0] = kATSUSizeTag;
-  sizes[0] = sizeof(Fixed);
-  values[0] = &pointSize;
-  verify_noerr( ATSUSetAttributes(style, 1, tags, sizes, values) );
-
-  // set color of text, this should work, but is giving inconsistent
-  // results of setting color, so as a fix, we will set the color here
-  // to white and later on convert the generated bitmaps to the correct
-  // color. see below under "set color of bitmap"
-  //  ATSURGBAlphaColor textColor = {fontColor[0], fontColor[1], fontColor[2], fontColor[3]};
-  ATSURGBAlphaColor textColor;
-  textColor.red = 1.0;
-  textColor.green = 1.0;
-  textColor.blue = 1.0;
-  textColor.alpha = 1.0;
-  tags[0] = kATSURGBAlphaColorTag;
-  sizes[0] = sizeof(ATSURGBAlphaColor);
-  values[0] = &textColor;
-  verify_noerr( ATSUSetAttributes(style, 1, tags, sizes, values) );
-
-  // set bold
-  tags[0] = kATSUQDBoldfaceTag;
-  sizes[0] = sizeof(Boolean);
-  values[0] = &fontBold;
-  verify_noerr( ATSUSetAttributes(style, 1, tags, sizes, values) );
-
-  // set italic
-  tags[0] = kATSUQDItalicTag;
-  sizes[0] = sizeof(Boolean);
-  values[0] = &fontItalic;
-  verify_noerr( ATSUSetAttributes(style, 1, tags, sizes, values) );
-
-  // set strike-through
-  tags[0] = kATSUStyleStrikeThroughTag;
-  sizes[0] = sizeof(Boolean);
-  values[0] = &fontStrikethrough;
-  verify_noerr( ATSUSetAttributes(style, 1, tags, sizes, values) );
-
-  // set strike-through
-  tags[0] = kATSUQDUnderlineTag;
-  sizes[0] = sizeof(Boolean);
-  values[0] = &fontUnderline;
-  verify_noerr( ATSUSetAttributes(style, 1, tags, sizes, values) );
-
-  ////////////////////////////////////
-  // Create text layout
-  ////////////////////////////////////
-  // Now we create the second of two objects necessary to draw text using ATSUI, the layout.
-  // You can specify a pointer to the text buffer at layout creation time, or later using
-  // the routine ATSUSetTextPointerLocation(). Below, we do it after layout creation time.
-  verify_noerr( ATSUCreateTextLayout(&layout) );
-
-  ////////////////////////////////////
-  // Convert string to unicode
-  ////////////////////////////////////
-  // Before assigning text to the layout, we must first convert the string we plan to draw
-  // from a CFStringRef into an array of UniChar.
-  string = CFStringCreateWithCString(NULL, cInputString, kCFStringEncodingASCII);
-
-  // Extract the raw Unicode from the CFString, then dispose of the CFString
-  length = CFStringGetLength(string);
-  text = (UniChar *)malloc(length * sizeof(UniChar));
-  CFStringGetCharacters(string, CFRangeMake(0, length), text);
-  CFRelease(string);
-
-  // set rotation of text
-  Fixed textRotation = FloatToFixed(-90.0+fontRotation);
-  tags[0] = kATSULineRotationTag;
-  sizes[0] = sizeof(Fixed);
-  values[0] = &textRotation;
-  verify_noerr( ATSUSetLayoutControls(layout, 1, tags, sizes, values) );
-  ////////////////////////////////////
-  // Attach text to layout
-  ////////////////////////////////////
-  // If input is 16bit Uint then it is a unicode, otherwise Attach the resulting UTF-16 Unicode text to the layout
-    // if (mxIsUint16(inputString)) 
-    //     verify_noerr( ATSUSetTextPointerLocation(layout,(UniChar*)mxGetData(inputString),kATSUFromTextBeginning, kATSUToTextEnd, mxGetN(inputString)));
-    // else
-  verify_noerr( ATSUSetTextPointerLocation(layout,text,kATSUFromTextBeginning, kATSUToTextEnd, length) );
-
-  // Now we tie the two necessary objects, the layout and the style, together
-  verify_noerr( ATSUSetRunStyle(layout, style, kATSUFromTextBeginning, kATSUToTextEnd) );
-
-  ////////////////////////////////////
-  // measure the bounds of the text
-  ////////////////////////////////////
-  verify_noerr( ATSUMeasureTextImage(layout,kATSUFromTextBeginning,kATSUToTextEnd,0,0,textImageRect));
-
-  if (verbose)
-    mexPrintf("(mglText) textImageRect: %i %i %i %i\n",textImageRect->top,textImageRect->left,textImageRect->bottom,textImageRect->right);
-
-  // get the height and width of the text image
-  *pixelsWide = (abs(textImageRect->right)+abs(textImageRect->left))+5;
-  *pixelsHigh = (abs(textImageRect->bottom)+abs(textImageRect->top))+3;
-  // adding this alignment here helps so that we don't get weird
-  // overruns with certain text sizes (i.e. seems like width may
-  // need to be a multiple of something?) but then this messes up
-  // the alignment, so leaving it commented for now.
-  //  pixelsWide = (int)(64.0*ceil(((double)pixelsWide)/64.0));
-  //  pixelsHigh = (int)(64.0*ceil(((double)pixelsHigh)/64.0));
-
-  ////////////////////////////////////
-  // allocate bitmap context
-  ////////////////////////////////////
-  // now we know how large the text is going to be, allocate a bitmap with
-  // the correct dimensions (this code is modified from "Creating a Bitmap Graphics Context"
-  // in the Quartz 2D Programming Guide:
-  // http://developer.apple.com/documentation/GraphicsImaging/Conceptual/drawingwithquartz2d/dq_context/chapter_3_section_4.html#//apple_ref/doc/uid/TP30001066-CH203-CJBHBFFE
-
-  CGContextRef    bitmapContext = NULL;
-  CGColorSpaceRef colorSpace;
-  int             bitmapByteCount;
-  int             bitmapBytesPerRow;
-  void            *bitmapData = NULL;
-
-  // calculate bytes per row and count
-  bitmapBytesPerRow   = (*pixelsWide * 4);
-  bitmapByteCount     = (bitmapBytesPerRow * (*pixelsHigh));
-
-  if (verbose)
-    mexPrintf("(mglText) Buffer size: width: %i height: %i bytesPerRow: %i byteCount: %i\n",*pixelsWide,*pixelsHigh,bitmapBytesPerRow,bitmapByteCount);
-
-  // set colorspace
-#if 0
-colorSpace = CGColorSpaceCreateWithName(kCGColorSpaceGenericRGB);
-#else
-colorSpace = CGColorSpaceCreateDeviceRGB();
-#endif
-  // allocate memory for the bitmap and set to zero
-bitmapData = malloc(bitmapByteCount);
-memset(bitmapData,0,bitmapByteCount);
-
-  // check to see if we allocated memory properly
-if (bitmapData == NULL) {
-  mexPrintf ("(mglText) UHOH: Memory not bitmap could not be allocated\n");
-  free(text);
-  verify_noerr( ATSUDisposeStyle(style) );
-  verify_noerr( ATSUDisposeTextLayout(layout) );
-  free(cInputString);
-  return(NULL);
-}
-
-  // create the bitmap context
-bitmapContext = CGBitmapContextCreate(bitmapData,*pixelsWide,*pixelsHigh,8,bitmapBytesPerRow,colorSpace,kCGImageAlphaPremultipliedFirst);
-
-  // check to see if we succeeded
-if (bitmapContext == NULL) {
-  mexPrintf ("(mglText) UHOH: Bitmap context could not be created\n");
-  free (bitmapData);
-  free(text);
-  verify_noerr( ATSUDisposeStyle(style) );
-  verify_noerr( ATSUDisposeTextLayout(layout) );
-  free(cInputString);
-  return(NULL);
-}
-  // release the color space
-CGColorSpaceRelease( colorSpace );
-
-  ////////////////////////////////////
-  // Bind context and layout
-  ////////////////////////////////////
-  // We use the bitmap context created above to draw into. Following is the comment
-  // from the example code.
-  //
-  // On OS 9, ATSUI would draw using only Quickdraw. With Mac OS X, it can draw with
-  // either Quickdraw or CoreGraphics. Quickdraw is now being de-emphasized in favor
-  // of CoreGraphics, to the point where ATSUI will default to drawing using CoreGraphics.
-  // By default ATSUI will work by using the cannonical CGContext that comes with every GrafPort.
-  // However, it is preferred that clients set up their own CGContext and pass it to ATSUI
-  // before drawing. This not only gives the client more control, it offers the best performance.
-  //
-tags[0] = kATSUCGContextTag;
-sizes[0] = sizeof(CGContextRef);
-values[0] = &bitmapContext;
-verify_noerr( ATSUSetLayoutControls(layout, 1, tags, sizes, values) );
-
-  ////////////////////////////////////
-  // Draw text
-  ////////////////////////////////////
-  // Now, finally, we are ready to draw.
-  //
-  // When drawing it is important to note the difference between QD and CG style coordinates.
-  // For QD, the y coordinate starts at zero at the top of the window, and goes down. For CG,
-  // it is just the opposite. Because we have set a CGContext in our layout, ATSUI will be
-  // expecting CG style coordinates. Otherwise, it would be expecting QD style coordinates.
-  // Also, remember ATSUI only accepts coordinates in Fixed, not float or int. In our example,
-  // "x" and "y" are the coordinates in QD space. "cgY" contains the y coordinate in CG space.
-  //
-
-  // window to get the coordinate in CG-aware space.
-x = 2-textImageRect->left;
-cgY = *pixelsHigh-2+textImageRect->top;
-verify_noerr( ATSUDrawText(layout, kATSUFromTextBeginning, kATSUToTextEnd, X2Fix(x), X2Fix(cgY)) );
-
-  ////////////////////////////////////
-  // Free up resources
-  ////////////////////////////////////
-  // Deallocate string storage
-free(text);
-    // free(cInputString);
-
-  // Layout and style also need to be disposed
-verify_noerr( ATSUDisposeStyle(style) );
-verify_noerr( ATSUDisposeTextLayout(layout) );
-
-  ////////////////////////////////////
-  // Set color of bitmap
-  ////////////////////////////////////
-
-  // copy the data into the buffer
-int n=0,c,i,j;
-for (c = 0; c < 4; c++) {
-  for (j = 0; j < *pixelsHigh; j++) {
-    for (i = 0; i < (*pixelsWide)*4; i+=4) {
-      ((unsigned char*)bitmapData)[i+j*(*pixelsWide)*4+c] = (unsigned char)(fontColor[c]*(double)((unsigned char *)bitmapData)[i+j*(*pixelsWide)*4+c]);
-    }
-  }
-}
-  // free bitmap context
-CGContextRelease(bitmapContext);
-
-  // return buffer of rendered text
-return(bitmapData);
-}
-#endif //__APPLE__
-//-----------------------------------------------------------------------------------///
-// ****************************** linux specific code  ****************************** //
-//-----------------------------------------------------------------------------------///
-#ifdef __linux__
-/////////////////////////
-//   include section   //
-/////////////////////////
-#include <string.h>
-#include <math.h>
-#include <ft2build.h>
-#include FT_FREETYPE_H
-
-//////////////////
-//   sub2indM   //
-//////////////////
-int sub2indM( int row, int col, int height, int elsize ) {
-  // return linear index corresponding to (row,col) into row-major array (Matlab-style)
-  return ( row*elsize + col*height*elsize );
-}
-
-//////////////////
-//   sub2indC   //
-//////////////////
-int sub2indC( int row, int col, int width, int elsize ) {
-  // return linear index corresponding to (row,col) into column-major array (C-style)
-  return ( col*elsize + row*width*elsize );
-}
-
-/////////////////////
-//   draw_bitmap   //
-/////////////////////
-void draw_bitmap( FT_Bitmap* bitmap, FT_Int x, FT_Int y, unsigned char *image, int width, int height )
-{
-  FT_Int  i, j, p, q;
-  FT_Int  x_max = x + bitmap->width;
-  FT_Int  y_max = y + bitmap->rows;
-
-  for ( i = x, p = 0; i < x_max; i++, p++ )
-  {
-    for ( j = y, q = 0; j < y_max; j++, q++ )
-    {
-      if ( i >= width || j >= height )
-        continue;
-
-      image[sub2indC(y,x,width,1)] |= bitmap->buffer[q * bitmap->width + p];
-    }
-  }
-}
-
-////////////////////
-//   renderText   //
-////////////////////
-unsigned char *renderText(const mxArray *inputString, char*fontName, int fontSize, double *fontColor, double fontRotation, Boolean fontBold, Boolean fontItalic, Boolean fontUnderline, Boolean fontStrikethrough, int *pixelsWide, int *pixelsHigh, Rect *textImageRect)
-{
-
-  FT_Library    library;
-  FT_Face       face;
-
-  FT_GlyphSlot  slot;
-  FT_Matrix     matrix;                 /* transformation matrix */
-  FT_UInt       glyph_index;
-  FT_Vector     pen;                    /* untransformed origin  */
-  FT_Error      error;
-
-  double        angle;
-  int           target_height, target_width;
-  int           n, num_chars;
-
-
-  num_chars     = strlen( inputString );
-  angle         = ( fontRotation / 360 ) * 3.14159 * 2;      /* use 25 degrees     */
-  target_height = HEIGHT;
-  target_width = ;
-
-  unsigned char * target_bitmap=(unsigned char *)malloc(target_height*target_width); 
-
-  error = FT_Init_FreeType( &library );              /* initialize library */
-  /* error handling omitted */
-
-  error = FT_New_Face( library, fontName, 0, &face ); /* create face object */
-  /* error handling omitted */
-
-  /* use 50pt at 100dpi */
-  error = FT_Set_Char_Size( face, 50 * 64, 0,
-    100, 0 );                /* set character size */
-  /* error handling omitted */
-
-  slot = face->glyph;
-
-  /* set up matrix */
-  matrix.xx = (FT_Fixed)( cos( angle ) * 0x10000L );
-  matrix.xy = (FT_Fixed)(-sin( angle ) * 0x10000L );
-  matrix.yx = (FT_Fixed)( sin( angle ) * 0x10000L );
-  matrix.yy = (FT_Fixed)( cos( angle ) * 0x10000L );
-
-  /* the pen position in 26.6 cartesian space coordinates; */
-  /* start at (300,200) relative to the upper left corner  */
-  pen.x = 300 * 64;
-  pen.y = ( target_height - 200 ) * 64;
-
-  for ( n = 0; n < num_chars; n++ )
-  {
-    /* set transformation */
-    FT_Set_Transform( face, &matrix, &pen );
-
-    /* load glyph image into the slot (erase previous one) */
-    error = FT_Load_Char( face, inputString[n], FT_LOAD_RENDER );
-    if ( error )
-      continue;                 /* ignore errors */
-
-    /* now, draw to our target surface (convert position) */
-    draw_bitmap( &slot->bitmap,
-      slot->bitmap_left,
-      target_height - slot->bitmap_top, 
-      target_bitmap,
-      target_width,
-      target_height );
-
-    /* increment pen position */
-    pen.x += slot->advance.x;
-    pen.y += slot->advance.y;
-  }
-
-  // Convert text bitmap to RGBA texture map
-  GLubyte * textureBitmap = (GLubyte *)malloc(target_height*target_width*sizeof(GLubyte)*4);
-
-  mglM  int offs;
-  for (int j=0; j<target_height; j++)
-  for (int i=0; i<target_width; i++) {
-    offs=sub2indC(j,i,target_width,1);
-    for (int k=0; k<4; k++) {
-      tetxureBitmap[offs+k]=(GLubyte) target_bitmap[offs];
-    }
-  }
-
-  // create texture from bitmap
-
-
-  FT_Done_Face    ( face );
-  FT_Done_FreeType( library );
-
-  free(target_bitmap);
-  free(textureBitmap);
-
-
-}
-
-#endif //__linux__
-
-void mglcClearScreen(int *color)
-{
-  if (color!=NULL) {
-    glClearColor(color[0],color[1],color[2],color[3]);    
-  }
-    // now clear to the set color
-  glClear(GL_COLOR_BUFFER_BIT);    
-}
-
-void mglcFlush(int displayNumber)
-{
-  int fullScreen=1;
-
-
-//-----------------------------------------------------------------------------------///
-// **************************** mac cocoa specific code  **************************** //
-//-----------------------------------------------------------------------------------///
-#ifdef __APPLE__ 
-#ifdef __cocoa__
-  if (displayNumber >= 0) {
-    if (mglGetGlobalDouble("isCocoaWindow")) {
-      // cocoa, get openGLContext and flush
-      NSOpenGLContext *myOpenGLContext = (NSOpenGLContext*)(unsigned long)mglGetGlobalDouble("GLContext");
-      if (myOpenGLContext)
-        [myOpenGLContext flushBuffer];
-    }
-    else {
-      // get the current context
-      CGLContextObj contextObj = CGLGetCurrentContext();
-      // and flip the double buffered screen
-      // this call waits for vertical blanking
-      CGLFlushDrawable(contextObj); 
-    }
-  }
-#else //__cocoa__
-//-----------------------------------------------------------------------------------///
-// **************************** mac carbon specific code  *************************** //
-//-----------------------------------------------------------------------------------///
-  if (displayNumber > 0) {
-
-    // get the current context
-    CGLContextObj contextObj = CGLGetCurrentContext();
-
-    // and flip the double buffered screen
-    // this call waits for vertical blanking
-    CGLFlushDrawable(contextObj); 
-  }
-  else if (displayNumber == 0) {
-    // run in a window: get agl context
-    AGLContext contextObj=aglGetCurrentContext ();
-
-    if (!contextObj) {
-      printf("(mglFlush) No drawable context found\n");
-    }
-
-    // there seems to be some interaction with the matlab desktop
-    // in which the windowed graphics context crashes. The crash
-    // appears to occur in handeling a FlushAllWindows call. This
-    // causes a EXC_BAD_ACCESS error (something like a seg fault).
-    // I think this is occuring because of some interaction with
-    // multiple threads running--presumably, the window is being
-    // updated by one thread which called FlushAllBuffers and
-    // also by our call (either here, or in ShowWindow or HideWindow).
-    // the multiple accesses make Mac unhappy. 
-    // Don't know how to deal with this problem. I have tried to 
-    // check here that QDDone has finished, but it doesn't seem to make a
-    // difference.
-    // other things were tried too, like checking for events (assuming
-    // that maybe the OS got stuck with events that were never processed
-    // but none of that helped).
-    // The only thing that does seem to help is not closing and opening
-    // the window.
-    //AGLDrawable drawableObj = aglGetDrawable(contextObj);
-    //    QDFlushPortBuffer(drawableObj,NULL);
-    // swap buffers
-    //    if (QDDone(drawableObj))
-    aglSwapBuffers (contextObj);
-
-    // get an event
-    //    EventRef theEvent;
-    //    EventTargetRef theTarget;
-    //    theTarget = GetEventDispatcherTarget();
-    //    if (ReceiveNextEvent(0,NULL,3/60,true,&theEvent) == noErr) {
-    //      SendEventToEventTarget(theEvent,theTarget);
-    //      ReleaseEvent(theEvent);
-    //    }
-    //    EventRecord theEventRecord;
-    //    EventMask theMask = everyEvent;
-    //    WaitNextEvent(theMask,&theEventRecord,3,nil);
-  }
-#endif//__cocoa__
-#endif//__APPLE__
-//-----------------------------------------------------------------------------------///
-// ****************************** linux specific code  ****************************** //
-//-----------------------------------------------------------------------------------///
-#ifdef __linux__
-
-  int dpyptr=(int)mglGetGlobalDouble("XDisplayPointer");
-  if (dpyptr<=0) return;
-  Display * dpy=(Display *)dpyptr;
-  glXSwapBuffers( dpy, glXGetCurrentDrawable() );
-
-#endif//__linux__
-
-//-----------------------------------------------------------------------------------///
-// **************************** Windows specific code  ****************************** //
-//-----------------------------------------------------------------------------------///
-#ifdef __WINDOWS__
-  unsigned int ref;
-  HDC hDC;
-  HGLRC hRC;
-
-  // Grab our device and rendering context pointers.
-  ref = (unsigned int)mglGetGlobalDouble("winDeviceContext");
-  hDC = (HDC)ref;
-  ref = (unsigned int)mglGetGlobalDouble("GLContext");
-  hRC = (HGLRC)ref;
-
-  wglMakeCurrent(hDC, hRC);
-  SwapBuffers(hDC);
-#endif // __WINDOWS__
-}
 
 // =========================
 // = New Get Keys Function =
