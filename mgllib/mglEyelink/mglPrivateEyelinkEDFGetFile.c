@@ -32,12 +32,16 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     }
     
     /* input must be a string */
-    if ( mxIsChar(prhs[0]) != 1)
-        mexErrMsgTxt("Input must be a string.");
+    if ( mxIsChar(prhs[0]) != 1) {
+        mexPrintf("(mglPrivateEyelinkEDFGetFile) Input must be a string.\n");
+	return;
+    }
     
     /* input must be a row vector */
-    if (mxGetM(prhs[0])!=1)
-        mexErrMsgTxt("Input must be a row vector.");    
+    if (mxGetM(prhs[0])!=1) {
+        mexPrintf("(mglPrivateEyelinkEDFGetFile) Input must be a row vector.\n");    
+	return;
+    }
     
     char *our_file_name;
     mwSize buflen;
@@ -49,10 +53,12 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     our_file_name = mxArrayToString(prhs[0]);
     
     int result;
-    
+    mexPrintf("(mglPrivateEyelinkEDFGetFile) ");
     if (result = receive_data_file(our_file_name, our_file_name, 0)) {
         if (result == FILE_CANT_OPEN || result == FILE_XFER_ABORTED) {
-            mexErrMsgTxt("File transfer error.");    
+	  mexPrintf("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");    
+	  mexPrintf("(mglPrivateEyelinkEDFGetFile) File transfer error.\n");    
+	  mexPrintf("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");    
         }
     } else {
         mexPrintf("\n.");
