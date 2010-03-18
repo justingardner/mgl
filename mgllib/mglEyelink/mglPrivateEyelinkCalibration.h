@@ -137,7 +137,7 @@ unsigned char *renderText(char *cInputString, char*fontName, int fontSize, doubl
 // = (Static) Member Variables =
 // =============================
 static char cameraTitle[1024];
-static int cameraPos[4] = {551, 435, 0, 0};
+static int cameraPos[2];
 static int titlePos[4] = {551, 100, 0, 0};
 static UINT32 cameraImagePalleteMap[130+2]; // Camera image pallete mapping
 static int mglcDisplayNumber;

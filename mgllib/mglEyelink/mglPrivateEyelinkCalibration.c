@@ -546,9 +546,6 @@ required for camera setup.
 INT16 ELCALLBACK setup_image_display(INT16 width, INT16 height)
 {
 
-  cameraPos[2] = width*2;
-  cameraPos[3] = height*2;
-
   // create a texture using mglCreateTexture
   mxArray *callInput[3],*callOutput[2];
   mwSize dims[3] = {height, width, BYTEDEPTH};
@@ -583,6 +580,9 @@ INT16 ELCALLBACK setup_image_display(INT16 width, INT16 height)
   screenCenterX = mglGetGlobalDouble("screenWidth")/2;
   screenCenterY = mglGetGlobalDouble("screenHeight")/2;
   
+  // and the bottom left corner of the screen image
+  cameraPos[0] = screenCenterX - width;
+  cameraPos[1] = screenCenterY - height;
   return 0;
 }
 
@@ -629,19 +629,12 @@ printf("RGB %d %d %d\n",r[pix],g[pix],b[pix]);
 */
 void ELCALLBACK draw_image_line(INT16 width, INT16 line, INT16 totlines, byte *pixels)
 {
-
+  // init variables
   short i;
-  UINT32 *currentLine;    // we will write rgba at once as a packed pixel
-  byte *p = pixels;       // a packed rgba lookup
+  byte *p = pixels;
   mxArray *callInput[2];
 
-
-    // mexPrintf("(mglPrivateEyelinkCalibrate) width %d, line %d, height %d\n", width, line, totlines);
-
   // get the beginning of the current line
-  //  double *matlabCameraMatrixPtr = (double*)mxGetPr(matlabCameraMatrix);
-  //  matlabCameraMatrixPtr = matlabCameraMatrixPtr+(line-1);
-
   GLubyte *thisLineCameraImageBuffer = cameraImageBuffer+(line-1)*width*BYTEDEPTH;
 
   // draw the line into our memory buffer
@@ -653,39 +646,36 @@ void ELCALLBACK draw_image_line(INT16 width, INT16 line, INT16 totlines, byte *p
   }
   if(line == totlines) {
     // at this point we have a complete camera image.
-    // rebind the texture to the buffer
+    // rebind the texture to the image buffer
     glBindTexture(cameraTextureType, cameraTextureNumber);
     glTexImage2D(cameraTextureType,0,GL_RGBA,width,totlines,0,GL_RGBA,TEXTURE_DATATYPE,cameraImageBuffer);
+
     // clear the screen,
     mexEvalString("mglClearScreen;");
+
     // blt that texture to the screen
     callInput[0] = cameraTexture;
     callInput[1] = mxCreateDoubleMatrix(1,4,mxREAL);
     double *bltPos = (double*)mxGetPr(callInput[1]);
     bltPos[0] = screenCenterX;bltPos[1] = screenCenterY;bltPos[2] = width*2;bltPos[3] = totlines*2;
     mexCallMATLAB(0,NULL,2,callInput,"mglBltTexture");            
-    // flush screen
-    mexEvalString("mglFlush;");
-    return;
-    
-
-  
-    // center the camera image on the screen
     
     // now we need to draw the cursors.
-
     CrossHairInfo crossHairInfo;
     memset(&crossHairInfo,0,sizeof(crossHairInfo));
 
-    crossHairInfo.w = cameraPos[2];
-    crossHairInfo.h = cameraPos[3];
+    crossHairInfo.w = width*2;
+    crossHairInfo.h = totlines*2;
     crossHairInfo.drawLozenge = drawLozenge;
     crossHairInfo.drawLine = drawLine;
     crossHairInfo.getMouseState = getMouseState;
-        // crossHairInfo.userdata = image; // could be used for gl display num
+    // crossHairInfo.userdata = image; // could be used for gl display num
 
     eyelink_draw_cross_hair(&crossHairInfo);
 
+    // flush screen
+    mexEvalString("mglFlush;");
+    return;
 
 
   }
@@ -730,10 +720,15 @@ void drawLine(CrossHairInfo *chi, int x1, int y1, int x2, int y2, int cindex)
   callInput[3] = mxCreateDoubleMatrix(1,1,mxREAL);
   callInput[4] = mxCreateDoubleMatrix(1,1,mxREAL);
   callInput[5] = mxCreateDoubleMatrix(1,3,mxREAL);
-  *(double*)mxGetPr(callInput[0]) = x1 + cameraPos[0] - cameraPos[2]/2;
-  *(double*)mxGetPr(callInput[1]) = y1 + cameraPos[1] - cameraPos[3]/2;
-  *(double*)mxGetPr(callInput[2]) = x2 + cameraPos[0] - cameraPos[2]/2;
-  *(double*)mxGetPr(callInput[3]) = y2 + cameraPos[1] - cameraPos[3]/2;
+  *(double*)mxGetPr(callInput[0]) = x1 + cameraPos[0];
+  *(double*)mxGetPr(callInput[1]) = y1 + cameraPos[1];
+  *(double*)mxGetPr(callInput[2]) = x2 + cameraPos[0];
+  *(double*)mxGetPr(callInput[3]) = y2 + cameraPos[1];
+
+  //  *(double*)mxGetPr(callInput[0]) = x1;
+  //  *(double*)mxGetPr(callInput[1]) = y1;
+  //  *(double*)mxGetPr(callInput[2]) = x2;
+  //  *(double*)mxGetPr(callInput[3]) = y2;
   *(double*)mxGetPr(callInput[4]) = 2;                // Size in pixels
   inColor = (double*)mxGetPr(callInput[5]);
   inColor[0] = 0;
