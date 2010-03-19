@@ -2,10 +2,13 @@
 %
 %        $Id: taskTemplate.m 217 2007-04-04 16:54:42Z justin $
 %      usage: taskTemplate
-%         by: justin gardner
-%       date: 09/07/06
+%         by: eric dewitt
+%       date: 03/19/2010
 %  copyright: (c) 2006 Justin Gardner (GPL see mgl/COPYING)
-%    purpose: example program to show how to use the task structure
+%    purpose: example program that demonstrates a gaze contingent experiment
+%             (displays a line of text which gets revealed as you look at it)
+%             using the EyeLink tracker. You will need to have the eyelink code
+%             compiled to use this: mglMake('eyelink');
 %
 function myscreen = taskTemplateGazeContingent
 
