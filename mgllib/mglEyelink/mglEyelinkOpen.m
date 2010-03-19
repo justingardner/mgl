@@ -26,5 +26,11 @@ end
 if nargin < 2
   conntype = 0; % open live connection
 end
-retval = mglPrivateEyelinkOpen(ip, conntype);
+
+% check to make sure the function is compiled
+if exist('mglPrivateEyelinkOpen') == 2
+  retval = mglPrivateEyelinkOpen(ip, conntype);
+else
+  retval = 0;
+end
 
