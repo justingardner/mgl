@@ -37,7 +37,9 @@ myscreen.eyetracker.data = [1 1 1 0]; % don't need link events
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % run the eye calibration
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% this initializes the eye tracker subsystem (a set of callback functions)
 myscreen = initEyeTracker(myscreen, 'Eyelink');
+% this calls the appropriate calibration function for the initialized eyetracker
 myscreen = calibrateEyeTracker(myscreen);
 
 task{1}.waitForBacktick = 0;
@@ -51,6 +53,10 @@ task{1}.segquant = [0 1.5];
 % fix: enter the parameter of your choice
 task{1}.parameter.myParameter = [0 30 90];
 task{1}.random = 1;
+
+% if we want to collect eyedata we must also specify it in one of the task/phases
+% otherwise it will default to false
+task{1}.collectEyeData = true;
 
 % initialize the task
 for phaseNum = 1:length(task)
@@ -103,15 +109,10 @@ global stimulus
 % we are on.
 
 mglClearScreen;
-% if (task.thistrial.thisseg == 1)
-%   mglFixationCross(1,1,[0 1 1]);
-% else
-%   mglFixationCross(1,1,[1 1 1]);
-% end
 
 mglBltTexture(stimulus.texture,[0,0], 'center', 'center')
+
 mglGluAnnulus(myscreen.eyetracker.eyepos(1),myscreen.eyetracker.eyepos(2),5,500, [0.8 0.8 0.8]*myscreen.background);
-% mglFixationCross(1, 1, [0.6 0.6 0.6], myscreen.eyetracker.eyepos);
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
