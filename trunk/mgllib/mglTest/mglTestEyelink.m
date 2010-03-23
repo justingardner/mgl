@@ -1,6 +1,6 @@
 % needed for video test
-mglOpen
-mglScreenCoordinates()
+mglOpen();
+mglScreenCoordinates();
 mglClearScreen([0.5 0.5 0.5]);
 
 % open the link
@@ -8,6 +8,7 @@ mglClearScreen([0.5 0.5 0.5]);
 try
   mglEyelinkOpen('100.1.1.1', 0);
 catch err
+  fprintf(2,'Defaulting to simulation mode.');
   mglEyelinkOpen('100.1.1.1', 1);
 end
 %mglPrivateEyelinkSendCommand
@@ -20,7 +21,7 @@ mglEyelinkCMDPrintF('file_sample_data = RIGHT,GAZE,AREA,GAZERES,STATUS');
 mglEyelinkCMDPrintF('sample_rate = 500');
 
 % run the calibration
-mglPrivateEyelinkCalibration
+mglPrivateEyelinkCalibration()
 
 % open up a data file
 mglPrivateEyelinkOpenEDF('foo.edf');
