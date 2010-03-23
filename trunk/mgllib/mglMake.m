@@ -19,7 +19,11 @@
 %
 %             To build eyelink code (which requires the eyelink developers kit), set
 %             rebuild to 'eyelink'
-%    
+%                  
+%             You can pass arbitrary command line options to the mex
+%             compilation after the first argument. (If the first argument is
+%             not one of the commands listed above it will also be treated  as
+%             a command line option.) Command line options must begin with a '-'.
 %
 function retval = mglMake(rebuild, varargin)
 
