@@ -398,11 +398,10 @@ else
   task.callback.rand = @blockRandomization;
 end
 if myscreen.eyetracker.init
-  % default to assuming collecting data
+  % default to assuming we are not collecting data for this task/phase
   if ~isfield(task, 'collectEyeData')
-    task.collectEyeData = 1;
+    task.collectEyeData = false;
   end
-  fprintf(2, '(initTask) THIS IS WHERE WE INITIALIZE THE CALLBACKS FOR TRACKING');        
 end
 
 
