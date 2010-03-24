@@ -1,6 +1,6 @@
 % moncalib.m
 %
-%      usage: moncalib(screenNumber,stepsize,numRepeats)
+%      usage: moncalib(screenNumber,stepsize,numRepeats,testTable,bitTest,initWaitTime)
 %         by: justin gardner & jonas larsson
 %       date: 10/02/06
 %    purpose: routine to do monitor calibration
@@ -39,10 +39,23 @@
 %             also continue with a calibration that has only partially
 %             been finished (like if you forced a quit in the middle)
 %             The function saves the calibration file after each step
-function calib = moncalib(screenNumber,stepsize,numRepeats)
+%
+%             If you set testTable to 1 (default is 1) it will also run
+%             a test to see if you have actually succeeded in linearizing the table
+% 
+%             If you set bitTest to 1 (default 0) it will run a test to see
+%             if your display card supports 10 bit gamma tables (the graph on
+%             the right should look like a linear rise in luminance as we
+%             step in units of 1/1024 the output. If it is 8 bit, it will look like
+%             a step function.
+%
+%             initWaitTime can be set so that you have however many seconds you set
+%             it to to leave the room before the calibration starts. (default 0)
+%
+function calib = moncalib(screenNumber,stepsize,numRepeats,testTable,bitTest,initWaitTime)
 
 % check arguments
-if ~any(nargin == [0 1 2 3])
+if ~any(nargin == [0 1 2 3 4 5])
   help moncalib
   return
 end
@@ -61,8 +74,9 @@ verbose = 1;
 doGamma = 1;
 doExponent = 0;
 testExponent = 0;
-testTable = 1;
-doBittest = 1;
+if nargin < 4,testTable = 1;end
+if nargin < 5,bitTest = 0;end
+if nargin < 6,initWaitTime = 0;end
 
 % see if we were actually passed in a calib structure
 if (nargin > 0) && isfield(screenNumber,'screenNumber')
@@ -116,7 +130,7 @@ if ~isfield(calib,'bittest') || ~isfield(calib,'uncorrected') || ...
     % ask the user if they want to do these things, since they
     % take a long time
     testTable = askuser('After calibration you can test the calibration, but this will force you to measure the luminances twice, do you want to test the calibration');
-    doBittest = askuser('Do you want to test whether you have a 10 bit gamma table');
+    bitTest = askuser('Do you want to test whether you have a 10 bit gamma table');
   end
 
   % ask to see if we want to save
@@ -154,8 +168,10 @@ if ~isfield(calib,'bittest') || ~isfield(calib,'uncorrected') || ...
 end
 
 if ~justdisplay && ~isempty(portnum)
-  disp(sprintf('Starting in 20 seconds'));
-  mglWaitSecs(2);
+  if initWaitTime > 0
+    disp(sprintf('Starting in %i seconds',initWaitTime));
+    mglWaitSecs(initWaitTime);
+  end
 end
 
 % choose the range of values over which to do the gamma testing
@@ -263,7 +279,7 @@ if doGamma
   end
 end
 
-if doBittest
+if bitTest
   % test to see how many bits we have in the gamma table
   disp(sprintf('Testing how many bits the gamma table is'));
   if ~isfield(calib.bittest,'data') && ~justdisplay
@@ -342,8 +358,8 @@ for val = outputValues
       end
     end
   end
-  % now take average over all repeats of measurement
-  measuredLuminance(end+1) = mean(thisMeasuredLuminance(1:numRepeats));
+  % now take median over all repeats of measurement
+  measuredLuminance(end+1) = median(thisMeasuredLuminance(1:numRepeats));
   measuredLuminanceSte(end+1) = std(thisMeasuredLuminance(1:numRepeats))/sqrt(numRepeats);
   if (verbose>1),disp(sprintf('Luminance = %0.4f',measuredLuminance(end)));end
 end
@@ -540,8 +556,8 @@ writeSerialPort(portnum,['MES',13,10]);  % send a measure signal to LS100
 
 % read the masurement
 str = '';readstr = 'start';
-while isempty(str) 
-   readstr = readSerialPort(portnum,256);
+while isempty(str) || ~isempty(readstr) 
+   readstr = readSerialPort(portnum,16);
    str = [str readstr];
    mglWaitSecs(0.2);
 end
@@ -556,15 +572,19 @@ if strcmp(str(1:2),'OK')
    thisMessage = '';
    [mstatus,data]=strread(str,'%s%f','delimiter',' ');
    mstatus=char(mstatus);
-   if ~strcmp(mstatus(6:7),'Cc')
-     % this is only valid for the L100, I think. -j. 
-     if photometerNum == 2
+   % this is only valid for the L100, I think. -j. 
+   if photometerNum == 2
+     if ~strcmp(mstatus(6:7),'Cc')
        disp('(moncalib) Make sure the measurement unit is cd/m2');
      end
    end
 elseif strcmp(str(1:2),'ER')
    thisMessage = errorMsg{find(strcmp(errorNum,str(3:4)))};
    data=nan;
+else
+  thisMessage = sprintf('(Unknwon error) %s',str);
+  keyboard
+  data = nan;
 end
 
 % return data different for LS100 or CS100A
@@ -574,8 +594,13 @@ if photometerNum == 2
   x=0;y=0;
 else
   luminance = data(1);
-  x = data(2);
-  y = data(3);
+  if length(data)>=3
+    x = data(2);
+    y = data(3);
+  else
+    x = 0;
+    y = 0;
+  end
 end
 
 global verbose

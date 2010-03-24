@@ -66,16 +66,27 @@ heightPixels = round(height*yDeg2pix);
 widthPixels = widthPixels + mod(widthPixels+1,2);
 heightPixels = heightPixels + mod(heightPixels+1,2);
 
-% get a grid of x and y coordinates that has 
-% the correct number of pixels
-x = -width/2:width/(widthPixels-1):width/2;
-y = -height/2:height/(heightPixels-1):height/2;
-[xMesh,yMesh] = meshgrid(x,y);
-
 % calculate image parameters
 phase = pi*phase/180;
-angle = pi*angle/180;
-a=cos(angle)*sf*2*pi;
-b=sin(angle)*sf*2*pi;
-% compute grating
-m = cos(a*xMesh+b*yMesh+phase);
+
+% if height is nan, it means we should calculate a 1 dimensional grating
+if isnan(height)
+  % 1D grating (note we ignore orientation)
+  x = -width/2:width/(widthPixels-1):width/2;
+  m = cos(x*sf*2*pi+phase);
+else
+  % 2D grating
+  % calculate orientation
+  angle = pi*angle/180;
+  a=cos(angle)*sf*2*pi;
+  b=sin(angle)*sf*2*pi;
+
+  % get a grid of x and y coordinates that has 
+  % the correct number of pixels
+  x = -width/2:width/(widthPixels-1):width/2;
+  y = -height/2:height/(heightPixels-1):height/2;
+  [xMesh,yMesh] = meshgrid(x,y);
+
+  % compute grating
+  m = cos(a*xMesh+b*yMesh+phase);
+end
