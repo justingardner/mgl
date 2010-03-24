@@ -74,7 +74,6 @@ for nArg = 1:numel(varargin)
   end
 end
 
-
 % if we find the mglPrivateListener, then shut it down
 % to avoid crashing
 if exist('mglPrivateListener')==3
@@ -114,43 +113,44 @@ else
   mexdir{1} = mgldir;
 end
 
-for nDir = 1:numel(mexdir)
-  % get the files in the mexdir
-  cd(mexdir{nDir});
-  sourcefile = dir('*.c');
-  for i = 1:length(sourcefile)
-    % check to make sure this is not a temp file
-    if (~strcmp('.#',sourcefile(i).name(1:2)))
-      % see if it is already compiled
-      mexname = [stripext(sourcefile(i).name) '.' mexext];
-      mexfile = dir(mexname);
-      % mex the file if either there is no mexfile or
-      % the date of the mexfile is older than the date of the source file
-      if (rebuild || length(mexfile)<1) || ...
-	    (datenum(sourcefile(i).date) > datenum(mexfile(1).date)) || ...
-	    (datenum(hfile(1).date) > datenum(mexfile(1).date))
-	command = sprintf('mex ');
-	if exist('arg', 'var') && isfield(arg, 'name');
-	  command = [command sprintf('%s ',arg.name)];
-	end
-	command = [command sprintf('%s',sourcefile(i).name)];
-        % display the mex command
-	disp(command);
-	% now run it, catching an errors
-	try
-	  eval(command);
-	catch err
-	  disp(['Error compiling ' sourcefile(i).name]);
-	  disp(err.message);
-	  disp(err.identifier);
-	end
-      else
-	disp(sprintf('%s is up to date',sourcefile(i).name));
-      end    
+if ~digio
+  for nDir = 1:numel(mexdir)
+    % get the files in the mexdir
+    cd(mexdir{nDir});
+    sourcefile = dir('*.c');
+    for i = 1:length(sourcefile)
+      % check to make sure this is not a temp file
+      if (~strcmp('.#',sourcefile(i).name(1:2)))
+	% see if it is already compiled
+	mexname = [stripext(sourcefile(i).name) '.' mexext];
+	mexfile = dir(mexname);
+	% mex the file if either there is no mexfile or
+	% the date of the mexfile is older than the date of the source file
+	if (rebuild || length(mexfile)<1) || ...
+	      (datenum(sourcefile(i).date) > datenum(mexfile(1).date)) || ...
+	      (datenum(hfile(1).date) > datenum(mexfile(1).date))
+	  command = sprintf('mex ');
+	  if exist('arg', 'var') && isfield(arg, 'name');
+	    command = [command sprintf('%s ',arg.name)];
+	  end
+	  command = [command sprintf('%s',sourcefile(i).name)];
+	  % display the mex command
+	  disp(command);
+	  % now run it, catching an errors
+	  try
+	    eval(command);
+	  catch err
+	    disp(['Error compiling ' sourcefile(i).name]);
+	    disp(err.message);
+	    disp(err.identifier);
+	  end
+	else
+	  disp(sprintf('%s is up to date',sourcefile(i).name));
+	end    
+      end
     end
   end
-end
-if digio
+else 
   makeDigIO(rebuild);
 end
 cd(lastPath);
