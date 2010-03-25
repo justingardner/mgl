@@ -49,11 +49,10 @@ myscreen = initStimulus('stimulus',myscreen);
 % index in stimulus.colors.reservedColor e.g. to get the
 % second color, in this case white, you would do
 % mglClearScreen(stimulus.colors.reservedColor(2));
-stimulus.colors.reservedColors = [0 0 0; 1 1 1; 0 .65 0; 1 0 0;0.2 0.3 0.7];
+stimulus.colors.reservedColors = [0 0 0; 1 1 1; 0 .65 0; 1 0 0];
 
 % grating parameters
 stimulus.grating.radius = 4.5;
-stimulus.grating.nPhases = 20;
 stimulus.grating.n = 4;
 stimulus.grating.sf = 2;
 stimulus.grating.tf = 2;
@@ -121,12 +120,6 @@ stimulus.linearizedGammaTable = mglGetGammaTable;
 
 disppercent(-inf,'Creating grating textures');
 
-% calculate all the phases we are going to compute
-stimulus.grating.centerPhase = 0;
-stimulus.grating.phases = [0:2*pi/(stimulus.grating.nPhases):2*pi];
-stimulus.grating.phases = stimulus.grating.phases(1:end-1);
-nPhases = length(stimulus.grating.phases);
-
 % calculate some colors information
 %  number of reserved colors
 stimulus.colors.nReservedColors = size(stimulus.colors.reservedColors,1);
@@ -165,7 +158,7 @@ mask = ones(size(win,1),size(win,2),4)*stimulus.colors.midGratingIndex;
 mask(:,:,4) = win;
 stimulus.mask = mglCreateTexture(mask);
 
-% make all the 1D gratings. We compute all phases and all possible contrast values given the
+% make all the 1D gratings. We compute all possible contrast values given the
 % range of indexes available to us. The 1st texture is gray the nth texture is full
 % contrast for the current gamma setting
 for iContrast = 0:stimulus.colors.nDisplayContrasts
@@ -220,7 +213,7 @@ mglBltTexture(stimulus.tex(contrastIndex),[0 0 stimulus.grating.height]);
 mglBltTexture(stimulus.mask,[0 0]);
 
 % put up the fixation cross with reserved color 5
-mglFixationCross(0.5,1,stimulus.colors.reservedColor(5));
+mglFixationCross(0.5,1,stimulus.colors.reservedColor(4));
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%
