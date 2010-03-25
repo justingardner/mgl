@@ -33,7 +33,7 @@ else
   for i = 2:length(whichMakeGrating)
     whichMakeGratingString = sprintf('%s, %s',whichMakeGratingString,whichMakeGrating{i});
   end
-  disp(sprintf('(makeGrating) You have multiple copies of the function makeGrating in your path. The version in mgl will run now. If this is what you want then you should change your mgl code to call the function mglMakeGrating instead of calling makeGrating. In a future release of mgl you will *have* to use the function name mglMakeGrating rather than mglGrating. The versions in your path are: %s',whichMakeGratingString));
+  disp(sprintf('(makeGrating) You have multiple copies of the function makeGrating in your path. The version in mgl will run now. If this is what you want then you should change your mgl code to call the function mglMakeGrating instead of calling makeGrating. In a future release of mgl you will *have* to use the function name mglMakeGrating rather than makeGrating. The versions in your path are: %s',whichMakeGratingString));
   m = mglMakeGrating(width,height,sf,angle,phase,xDeg2pix,yDeg2pix);
 end
 
