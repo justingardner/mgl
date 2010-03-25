@@ -10,6 +10,6 @@ function  = mglEyelinkSetup(displaycontext)
 
   % TODO: add MGL screen/context handling
   
-  mglPrivateEyelinkCalibration();
+  mglPrivateEyelinkSetup();
 
 end %  function

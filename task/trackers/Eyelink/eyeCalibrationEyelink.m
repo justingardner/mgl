@@ -42,7 +42,7 @@ if ~myscreen.eyetracker.dummymode
   mglScreenCoordinates();
 
   % run calibration routine
-  mglPrivateEyelinkCalibration;
+  mglEyelinkSetup();
   
   % return screen coordinates
   if ~inScreenCoord

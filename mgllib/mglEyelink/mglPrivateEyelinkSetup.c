@@ -1,6 +1,6 @@
 #ifdef documentation
 =========================================================================
-  program: mglPrivateEyelinkCalibration.c
+  program: mglPrivateEyelinkSetup.c
   by:      eric dewitt and eli merriam
   date:    02/08/09
   copyright: (c) 2006 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
@@ -9,7 +9,7 @@
   and eyelink software (remote, on eyelink computer) based setup.
   Local setup allows for self calibration. Wrapper handles keyboard.
   You must specify display location for the camera graphics.
-  usage:   mglPrivateEyelinkCalibration([display_num])
+  usage:   mglPrivateEyelinkSetup([display_num])
 
   =========================================================================
 #endif
@@ -17,7 +17,7 @@
 /////////////////////////
 //   include section   //
 /////////////////////////
-#include "mglPrivateEyelinkCalibration.h"
+#include "mglPrivateEyelinkSetup.h"
 
 /////////////
 //   main   //
@@ -27,16 +27,16 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
   if (nrhs>2) /* What arguments should this take? */
   {
-    usageError("mglPrivateEyelinkCalibration");
+    usageError("mglPrivateEyelinkSetup");
     return;
   }
 
   if (nrhs>=1) {
     int n;
-    mexPrintf("(mglPrivateEyelinkCalibration) Attempting to use specific display.\n"); 
+    mexPrintf("(mglPrivateEyelinkSetup) Attempting to use specific display.\n"); 
     n = mxGetN(prhs[0])*mxGetM(prhs[0]);
     if (n != 1) {
-      mexErrMsgTxt("(mglPrivateEyelinkCalibration) You must specify a single display number.");
+      mexErrMsgTxt("(mglPrivateEyelinkSetup) You must specify a single display number.");
     }
     mglcDisplayNumber = (int)*(double*)mxGetPr(prhs[0]);
     mexPrintf("(mglPrivateEyelinkCalibrate) Attempting to use display %d.\n");
@@ -698,7 +698,7 @@ void ELCALLBACK image_title(INT16 threshold, char *title)
     snprintf(cameraTitle, sizeof(cameraTitle), "%s, threshold at %d", 
       title, threshold);
   }
-  //  mexPrintf("(mglPrivateEyelinkCalibration) Camera Title: %s\n", cameraTitle);
+  //  mexPrintf("(mglPrivateEyelinkSetup) Camera Title: %s\n", cameraTitle);
   // mglcFreeTexture(mgltTitle);
   // mgltTitle = mglcCreateTextTexture(cameraTitle);
 

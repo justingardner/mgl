@@ -17,7 +17,7 @@
 /////////////////////////
 //   include section   //
 /////////////////////////
-#include "mglPrivateEyelinkCalibration.h"
+#include "mglPrivateEyelinkSetup.h"
 
 #ifndef DRAW_OWN_TARGET
 #define DRAW_OWN_TARGET 1
