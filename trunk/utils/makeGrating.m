@@ -25,7 +25,7 @@ whichMakeGrating = which('makeGrating','-ALL');
 
 % if only one in path
 if length(whichMakeGrating) == 1
-  disp(sprintf('(makeGrating) Warning the name of this function has changed to mglMakeGrating. Please change your code appropriately. In a future release of mgl you will *have* to use the function name mglMakeGrating rather than mglGrating'));
+  disp(sprintf('(makeGrating) Warning the name of this function has changed to mglMakeGrating. Please change your code appropriately. In a future release of mgl you will *have* to use the function name mglMakeGrating rather than makeGrating'));
   % then just run the new one with a warning
   m = mglMakeGrating(width,height,sf,angle,phase,xDeg2pix,yDeg2pix);
 else
