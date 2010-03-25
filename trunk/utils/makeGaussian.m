@@ -32,7 +32,7 @@ else
   for i = 2:length(whichMakeGaussian)
     whichMakeGaussianString = sprintf('%s, %s',whichMakeGaussianString,whichMakeGaussian{i});
   end
-  disp(sprintf('(makeGaussian) You have multiple copies of the function makeGaussian in your path. The version in mgl will run now. If this is what you want then you should change your mgl code to call the function mglMakeGaussian instead of calling makeGaussian. In a future release of mgl you will *have* to use the function name mglMakeGaussian rather than mglGaussian. The versions in your path are: %s',whichMakeGaussianString));
+  disp(sprintf('(makeGaussian) You have multiple copies of the function makeGaussian in your path. The version in mgl will run now. If this is what you want then you should change your mgl code to call the function mglMakeGaussian instead of calling makeGaussian. In a future release of mgl you will *have* to use the function name mglMakeGaussian rather than makeGaussian. The versions in your path are: %s',whichMakeGaussianString));
   m = mglMakeGaussian(width,height,sdx,sdy,xCenter,yCenter,xDeg2pix,yDeg2pix);
 end
 
