@@ -543,6 +543,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     
       }
       glEnd();
+      glDisable(GL_TEXTURE_2D);
     }
     // 1D texture
     else if (tex[texnum].textureType == GL_TEXTURE_1D) {
@@ -567,6 +568,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       glVertex3f(tex[texnum].displayRect[2], tex[texnum].displayRect[1], 0.0);
 
       glEnd();
+      glDisable(GL_TEXTURE_1D);
     }
     else {
       mexPrintf("(mglBltTexture) Unknown texture type: %i\n",tex[texnum].textureType);
