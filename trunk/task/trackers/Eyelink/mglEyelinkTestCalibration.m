@@ -4,6 +4,6 @@ mglClearScreen(22);
 mglFlush();
 mglEyelinkOpen();
 mglScreenCoordinates();
-mglPrivateEyelinkCalibration();
+mglEyelinkSetup();
 mglEyelinkClose();
 % mglClose();

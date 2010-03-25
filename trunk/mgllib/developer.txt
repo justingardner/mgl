@@ -10,7 +10,7 @@ non-private matlab wrappers? This keeps the code simpler to read and more
 reliable (less matlab <-> C errors likely)?
 **
 mglCreateTexture contains a lot of generic texture code that could be used in
-other texture functions (e.g. mglPrivateEyelinkCalibration) but would need to
+other texture functions (e.g. mglPrivateEyelinkSetup) but would need to
 be separated into a library. If there are enough instances like this, I think
 it would make sense to break the mgl.h functions and these other accessory
 functions into an mgllib.a (or mgllib.dylib if appropriate). I know this makes
