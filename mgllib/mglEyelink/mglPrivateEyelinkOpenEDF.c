@@ -1,9 +1,10 @@
 #ifdef documentation
 =========================================================================
-program: mglPrivateEyelinkCMDPrintF.c
+program: mglPrivateEyelinkOpenEDF.c
 by:      eric dewitt and eli merriam
 date:    02/08/09
-copyright: (c) 2006 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
+copyright: (c) 2009, Eric DeWitt, 
+          2006 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
 purpose: mex function to open a connection to an Eyelink tracker and configure
          it for use with the specificed mgl window
 usage:   mglPrivateEyelinkCMDPrintF(message)
