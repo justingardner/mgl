@@ -10,12 +10,13 @@ function mglEyelinkRecordingStart(varargin)
 %       Usage: mglEyelinkRecordingStart(<recordingState>)
 %
 %              Pass in either a vector for recording state: e.g. [1 0 0 0] where
-%              the elemetns are [edf-sample edf-event link-sample link-event]
-%
+%              the elements are [file-sample file-event link-sample link-event]
 %              or up to four string arguments that set the recording state
 %
-%              mglEyelinkRecordingStart('edf-sample','edf-event','link-sample','link-event');
+%              mglEyelinkRecordingStart('file-sample','file-event',
+%                                       'link-sample','link-event');
 %
+%               'edf-sample' and 'edf-event' are equivilant to 'file-*'
 
 if ~any(nargin==[1:4])
   help mglEyelinkRecordingStart
