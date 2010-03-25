@@ -24,7 +24,7 @@ whichMakeGaussian = which('makeGaussian','-ALL');
 
 % if only one in path
 if length(whichMakeGaussian) == 1
-  disp(sprintf('(makeGaussian) Warning the name of this function has changed to mglMakeGaussian. Please change your code appropriately. In a future release of mgl you will *have* to use the function name mglMakeGaussian rather than mglGaussian'));
+  disp(sprintf('(makeGaussian) Warning the name of this function has changed to mglMakeGaussian. Please change your code appropriately. In a future release of mgl you will *have* to use the function name mglMakeGaussian rather than makeGaussian'));
   % then just run the new one with a warning
   m = mglMakeGaussian(width,height,sdx,sdy,xCenter,yCenter,xDeg2pix,yDeg2pix);
 else
