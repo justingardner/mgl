@@ -1,4 +1,4 @@
-function  = mglEyelinkSetup(displaycontext)
+function  mglEyelinkSetup(displaycontext)
 %   MGLEYELINKSETUP   Enters the Eyelink setup mode [] =
 %     MGLEYELINKSETUP(DISPLAYCONTEXT)
 % 
