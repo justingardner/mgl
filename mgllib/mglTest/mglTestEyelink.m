@@ -52,11 +52,15 @@ for nSample = 1:300
 end
 fprintf(2,'\nEnd sample test.\n')
 
+% check recording state
+fprintf(2,'Recording state should be ''0'' and is %d\n', mglEyelinkRecordingCheck());
+
 % stop recording
 mglEyelinkRecordingStop();
 
 % check recording state
-fprintf(2,'Recording state should be ''0'' and is %d\n', mglEyelinkRecordingCheck());
+fprintf(2,'Recording state should be ''-1'' and is %d\n', mglEyelinkRecordingCheck());
+
 
 % close the datafile
 mglEyelinkCMDPrintF('close_data_file');
