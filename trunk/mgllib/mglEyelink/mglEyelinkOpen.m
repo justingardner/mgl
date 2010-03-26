@@ -28,7 +28,7 @@ if nargin < 2
 end
 
 % check to make sure the function is compiled
-if exist('mglPrivateEyelinkOpen') == 2
+if exist('mglPrivateEyelinkOpen') == 3
   retval = mglPrivateEyelinkOpen(ip, conntype);
 else
   retval = 0;
