@@ -139,7 +139,8 @@ if ~digio
 	  % now run it, catching an errors
 	  try
 	    eval(command);
-	  catch err
+	  catch
+	    err = lasterror;
 	    disp(['Error compiling ' sourcefile(i).name]);
 	    disp(err.message);
 	    disp(err.identifier);
