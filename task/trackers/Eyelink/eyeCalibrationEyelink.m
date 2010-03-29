@@ -25,9 +25,12 @@ if ~myscreen.eyetracker.dummymode
   fprintf(2,'(eyeCalibrationEyelink) Calibrating Eyelink.\n');
   % get current coordinates
   inScreenCoord = mglGetParam('screenCoordinates');
-
-  % draw some text to tell user what is going on
-  mglTextDraw('Calibrate Eyelink - Hit ESC when finished',[0 0]);
+  
+  % This screws up the autothresholding (as the text changes the luminence from
+  % what it will be during the experiment). Also, this text should not be on the
+  % users screen, it should be on the console.
+  % % draw some text to tell user what is going on
+  % mglTextDraw('Calibrate Eyelink - Hit ESC when finished',[0 0]);
   disp('===========================');
   disp('Enter: Display camera image');
   disp('c: Start calibration routine');
