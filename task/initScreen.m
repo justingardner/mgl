@@ -359,6 +359,9 @@ switch myscreen.calibType
 	[calibPath calibFilename] = fileparts(calibFilename);
 	disp(sprintf('(initScreen) Gamma: Set to table from calibration file %s created on %s',calibFilename,calib.date));
 	myscreen.calibFilename = calibFilename;
+	myscreen.calibFullFilename = fullfile(calibPath,calibFilename);
+      else
+	disp(sprintf('(initScreen) !!! Calibration file %s does not have a valid calibration table !!!',calibFilename));
       end
     else
       disp(sprintf('(initScreen) ****Could not find montior calibration file %s***',calibFilename));
@@ -590,14 +593,13 @@ if ~isempty(strfind(hostname,'.'))
   hostname = hostname{1};
 end
 
-% now look in the current directory for displays
-filenames = dir(fullfile(myscreen.pwd,sprintf('displays/*%s*',hostname)));
-
-% if we haven't found any files in current directory then look in task directory
-if length(filenames) == 0
-  defaultdir = sprintf('%s/displays/*%s*',fileparts(which('initScreen')),hostname);
-  filenames = dir(defaultdir);
+% get where the display directory is
+displayDir = mglGetParam('displayDir');
+if isempty(displayDir)
+  % default if displayDir is not set to mgl/task/displays
+  displayDir = sprintf('%s/displays',fileparts(which('initScreen')));
 end
+filenames = dir(fullfile(displayDir,sprintf('*%s*',hostname)));
 
 % init variables
 maxnum = 0;
@@ -611,7 +613,7 @@ for i = 1:length(filenames)
   if (filenum > maxnum)
     maxnum = filenum;
     [path name] = fileparts(filenames(i).name);
-    filename = sprintf('%s/task/displays/%s',fileparts(fileparts(which('initScreen'))),name);
+    filename = fullfile(displayDir,name);
   end
 end
 

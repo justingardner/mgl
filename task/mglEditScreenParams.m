@@ -107,6 +107,10 @@ responseKeys = '';
 for i = 1:length(thisScreenParams.responseKeys)
   responseKeys = sprintf('%s%s ',responseKeys,paramsNum2str(thisScreenParams.responseKeys{i}));
 end
+displayDir = mglGetParam('displayDir');
+if isempty(displayDir)
+  displayDir = fullfile(fileparts(fileparts(which('moncalib'))),'task','displays');
+end
 
 %set up the paramsInfo
 paramsInfo = {};
@@ -130,6 +134,8 @@ paramsInfo{end+1} = {'eatKeys',thisScreenParams.eatKeys,'type=checkbox','Sets wh
 paramsInfo{end+1} = {'saveData',thisScreenParams.saveData,'type=numeric','incdec=[-1 1]','minmax=[-1 inf]','Sets whether you want to save an stim file which stores all the parameters of your experiment. You will probably want to save this file for real experiments, but not when you are just testing your program. So on the desktop computer set it to 0. This can be 1 to always save a data file, 0 not to save data file,n>1 saves a data file only if greater than n number of volumes have been collected)'};
 paramsInfo{end+1} = {'calibType',putOnTopOfList(thisScreenParams.calibType,{'None','Find latest calibration','Specify particular calibration','Gamma 1.8','Gamma 2.2','Specify gamma'}),'Choose how you want to calibrate the monitor. This is for gamma correction of the monitor. Find latest calibration works with calibration files stored by moncalib, and will look for the latest calibration file in the directory task/displays that matches this computer and display name. If you want to specify a particular file then select that option and specify the calibration file in the field below. If you don''t have a calibration file created by moncalib then you might try to correct for a standard gamma value like 1.8 (mac computers) or 2.2 (PC computers). Or a gamma value of your choosing','callback',@calibTypeCallback,'passParams=1'};
 paramsInfo{end+1} = {'calibFilename',thisScreenParams.calibFilename,'Specify the calibration filename. This field is only used if you use Specify particular calibration from above',enableCalibFilename};
+paramsInfo{end+1} = {'displayDir',displayDir,'The name of the directory where your calibration files from moncalib are stored. Default is mgl/task directory'};
+paramsInfo{end+1} = {'displayCalib',0,'type=pushbutton','buttonString=Display monitor calibration','callback',@displayCalib,'passParams=1','Click to display the monitor calibration done by moncalib'};
 paramsInfo{end+1} = {'monitorGamma',thisScreenParams.monitorGamma,'type=numeric','Specify the monitor gamma. This is only used if you set Specify Gamma above',enableMonitorGamma};
 paramsInfo{end+1} = {'diginUse',thisScreenParams.digin.use,'type=checkbox','Click this if you want to use the National Instruments cards digital io for detecting volume acquisitions and subject responses. If you use this, the keyboard will still work (i.e. you can still press backtick and response numbers. This uses the function mglDigIO -- and you will need to make sure that you have compiled mgl/util/mglPrivateDigIO.c'};
 paramsInfo{end+1} = {'diginPortNum',thisScreenParams.digin.portNum,'type=numeric','This is the port that should be used for reading. For NI USB-6501 devices it can be one of 0, 1 or 2','incdec=[-1 1]','minmax=[0 inf]','contingent=diginUse','round=1'};
@@ -145,6 +151,7 @@ if ~isequal(thisScreenParams.computerName,'DELETE')
   params = mrParamsDialog(paramsInfo,'Set screen parameters');
   if isempty(params),return,end
   screenParams{computerNum} = params2screenParams(params);
+  setDisplayDir(params.displayDir);
 end
 
 % delete screen params
@@ -166,6 +173,8 @@ function msc = testOpenDisplay(params)
 
 msc = [];
 disp(sprintf('(mglEditScreenParams:testSettings) Testing settings for %s:%s',params.computerName,params.displayName));
+
+setDisplayDir(params.displayDir);
 
 % test to see if the screenNumber is valid
 if params.screenNumber > length(mglDescribeDisplays)
@@ -589,3 +598,43 @@ if isnumeric(c)
   c = sprintf('k%i',c);
 end
 
+%%%%%%%%%%%%%%%%%%%%%%
+%%   TestSettings   %%
+%%%%%%%%%%%%%%%%%%%%%%
+function val = displayCalib(params)
+
+val = 0;
+
+mglClose;
+msc = testOpenDisplay(params);
+if isempty(msc),return,end
+mglClose;
+
+if ~isfield(msc,'calibFullFilename') 
+  disp(sprintf('(mglEditScreenParams) Calibration not found or not set in calibType above'));
+  return
+else
+  c = load(msc.calibFullFilename);
+  if ~isfield(c,'calib')
+    disp(sprintf('(mglEditScreenParams) Calib file %s does not contain the calib variable. Was it created by moncalib?',msc.calibFullFilename));
+    return
+  else
+    moncalib(c.calib);
+  end
+end
+
+%%%%%%%%%%%%%%%%%%%%%%%
+%    setDisplayDir    %
+%%%%%%%%%%%%%%%%%%%%%%%
+function setDisplayDir(displayDir)
+
+% set the display dir (where the calibrations should live
+if isdir(displayDir)
+  mglSetParam('displayDir',displayDir,1);
+else
+  if askuser(sprintf('(mglEditScreenParams) Display dir %s does not exist. Ok to create',displayDir))
+    mkdir(displayDir);
+    mglSetParam('displayDir',displayDir,1);
+  end
+end
+  
