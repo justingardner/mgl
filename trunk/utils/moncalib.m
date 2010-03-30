@@ -204,6 +204,7 @@ if doGamma
   end
   figure;subplot(1,2,1);
   dispLuminanceFigure(calib.uncorrected);
+  title(calib.date);
   hold on
   if doExponent
     % get the exponent
@@ -1380,7 +1381,11 @@ function filename = getSaveFilename(hostname)
 % get the ouptut filename
 hostname = strread(hostname,'%s','delimiter','.');
 hostname = hostname{1};
-defaultdir = sprintf('%s/task/displays/*%s*',fileparts(fileparts(which('moncalib'))),hostname);
+displayDir = mglGetParam('displayDir');
+if isempty(displayDir)
+  displayDir = fullfile(fileparts(fileparts(which('moncalib'))),'task','displays');
+end
+defaultdir = fullfile(displayDir,sprintf('*%s*',hostname));
 filenames = dir(defaultdir);
 maxnum = 0;
 for i = 1:length(filenames)
@@ -1390,7 +1395,7 @@ for i = 1:length(filenames)
     maxnum = filenum;
   end
 end
-filename = sprintf('%s/task/displays/%04i_%s_%s',fileparts(fileparts(which('moncalib'))),maxnum+1,hostname,datestr(now,'yymmdd'));
+filename = fullfile(displayDir,sprintf('%04i_%s_%s',maxnum+1,hostname,datestr(now,'yymmdd')));
 
 disp(sprintf('Default calibration name: %s',filename));
 response = input('Calibration save name (hit enter to accept default): ','s');
