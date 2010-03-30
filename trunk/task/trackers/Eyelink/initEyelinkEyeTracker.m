@@ -25,6 +25,12 @@ function [myscreen] = initEyelinkEyeTracker(myscreen, conntype)
 % You should have received a copy of the GNU General Public License
 % along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+myscreen.eyetracker.init = false;
+
+if ~exist('mglPrivateEyelinkOpen')
+  disp(sprintf('(initEyelinkEyeTracker) Eyelink comands not compiled. Use mglMake(''eyelink'') if you want to use the tracker'));
+  return
+end
 
 if nargin < 2 || conntype == 0
   conntype = 0;

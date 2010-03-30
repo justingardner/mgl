@@ -53,50 +53,11 @@ if (myscreen.eyecalib.prompt)
   end
 end
 
-% put fixation in center of screen to allow subject to get there in time
-mglClearScreen;
-mglGluDisk(0,0,myscreen.eyecalib.size/2,myscreen.eyecalib.color);
-mglFlush;
-if waitSecsEsc(2,myscreen) == -1,return,end
-
-% make sure eye tracker is on and recording that this is an eyecalibration
-%myscreen.fishcamp = bitor(myscreen.fishcamp,bin2dec('101'));
-%fishcamp(1,myscreen.fishcamp);
-%XXX writeDigPort(16,2);
-
-for j = 1:myscreen.eyecalib.n
-  mglClearScreen;
-  mglGluDisk(myscreen.eyecalib.x(j),myscreen.eyecalib.y(j),myscreen.eyecalib.size/2,myscreen.eyecalib.color);
-  mglFlush;
-  if ((myscreen.eyecalib.x(j) ~= 0) || (myscreen.eyecalib.y(j) ~= 0))
-%XXX    writeDigPort(48,2);
-  else
-%XXX    writeDigPort(16,2);
-  end
-  startTime = mglGetSecs;
-  if ~isinf(myscreen.eyecalib.waittime)
-    while (myscreen.eyecalib.waittime > (mglGetSecs-startTime));
-      [keyCodes keyTimes] = mglGetKeyEvent([],1);
-      if any(keyCodes==myscreen.keyboard.esc)
-	mglClearScreen;mglFlush;
-	mglClearScreen;mglFlush;
-	return
-      end
-    end
-  else
-    input(sprintf('Hit ENTER to continue'));
-  end
-end
-mglClearScreen;mglFlush;
-mglClearScreen;mglFlush;
-
-% turn off trace for eye calibration
-%myscreen.fishcamp = bitand(hex2dec('FF01'),myscreen.fishcamp);
-%fishcamp(1,myscreen.fishcamp);
-% reset fliptime
-myscreen.fliptime = inf;
-
-%XXX writeDigPort(16,2);
+% set up eye tracker
+myscreen.eyetracker.savedata = true;
+myscreen.eyetracker.data = [1 1 1 0]; % don't need link events
+myscreen = initEyeTracker(myscreen, 'Eyelink');
+myscreen = calibrateEyeTracker(myscreen);
 
 function retval = waitSecsEsc(waitTime,myscreen)
 
