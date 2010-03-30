@@ -42,7 +42,7 @@ if (task{tnum}.blocknum == 0) || (task{tnum}.blockTrialnum > task{tnum}.block(ta
     tnum = tnum+1;
     % write out the phase
     myscreen = writeTrace(tnum,task{tnum-1}.phaseTrace,myscreen);
-    if myscreen.eyetracker.init && isfield(myscreen.eyetracker.callback, 'nextTask')
+    if myscreen.eyetracker.init && isfield(myscreen.eyetracker.callback, 'nextTask') && tnum <= numel(task)
       [task{tnum} myscreen] = feval(myscreen.eyetracker.callback.nextTask,task{tnum},myscreen);
     end
     [task myscreen tnum] = updateTask(task, myscreen, tnum);
