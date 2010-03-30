@@ -27,7 +27,7 @@ if ~isfield(MGL,'persistentParamsLoaded')
     load(persistentParamsFilename);
     if exist('persistentParams','var')
       persistentParamNames = fieldnames(persistentParams);
-      for i = 1:length(persistentParams)
+      for i = 1:length(persistentParamNames)
 	MGL.(persistentParamNames{i}) = persistentParams.(persistentParamNames{i});
 	% set to remember that we have succeeded
 	MGL.persistentParamsLoaded = 1;
