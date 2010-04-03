@@ -4,12 +4,37 @@ function mglVisualAngleCoordinates(physicalDistance,physicalSize);
 %  copyright: (c) 2006 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
 %        $Id$
 % Sets view transformation to correspond to visual angles (in degrees)
-% given size and distance of display. Display must be open and have 
-% valid width and height (retrieved using mglGetParam
+% given size and distance of display. Display must be open
 %
 %       physicalDistance': [distance] <in cm>
 %           physicalSize': [xsize ysize] <in cm> 
-%    e.g.:
+%
+% Note that there are two settings that control how this function works.
+% One is whether you want to set the coordinates for square pixels
+%
+% mglSetParam('visualAngleSquarePixels',1)
+%
+% What this does is set the transformation to have the same pix2deg in
+% the x and y dimension. This is useful for things like rotating a texture with
+% mglBltTexture which basically has to assume that pixels are square (i.e. it
+% does not scale the texture differently when it is oriented horizontally vs
+% vertically, for instance). If you wanted to compensate for non-square pixels
+% it would be a bit messy. So visualAngleSquarePixels defaults to 1.
+%
+% mglSetParam('visualAngleCalibProportion')
+%
+% When you calibrate the monitor, you have to decide how to compute the pix2deg.
+% Whatever you calibrate on, say half the height or width of the monitor will
+% come out exactly right. But, any distance away from that point will be distorted
+% This is because visual angles are basically a spherical coordinate frame and
+% we are doing a linear transformation (a scale factor in x and y) which is only
+% approximately correct. That is, visual angles assumes that the screen is curved
+% around the eye, but the screen is actually flat. If you want to see exactly what
+% distortion this will cause in the horizontal and vertical dimensions for your
+% settings, you can run: mglDispVisualAngleDiscrepancy. This value defaults to 0.5
+% which makes the top, bottom, left and right of your screen be accurate, but in
+% between be inaccurate. For the minimum absolute distortion across all locations,
+% you can set this value to 0.36
 %
 %mglOpen
 %mglVisualAngleCoordinates(57,[16 12]);
