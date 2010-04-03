@@ -20,7 +20,7 @@ if exist('myscreen','var') && (isstr(myscreen) || (isnumeric(myscreen) && isscal
     displayname = displayname(colonloc+1:end);
   end
   % set the display name
-  myscreen.displayname = displayname;
+  myscreen.displayName = displayname;
 end
 
 % set version number
@@ -34,6 +34,12 @@ end
 % default monitor gamma (used when there is no calibration file)
 defaultMonitorGamma = 1.8;
 
+% correct capitalization
+if isfield(myscreen,'displayname')
+  myscreen.displayName = myscreen.displayname;
+  myscreen = rmfield(myscreen,'displayname');
+end
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % database parameters
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -41,7 +47,7 @@ defaultMonitorGamma = 1.8;
 
 % check for passed in screenParams
 if isfield(myscreen,'screenParams')
-  screenParams = cat(2,myscreen.screenParams,screenParams);
+  screenParams = myscreen.screenParams;
   screenParamsFilename = '';
   rmfield(myscreen,'screenParams');
 end
@@ -55,7 +61,7 @@ screenParamsList = {'computerName', 'displayName', 'screenNumber',...
 		    'screenWidth', 'screenHeight', 'displayDistance',...
 		    'displaySize', 'framesPerSecond','autoCloseScreen',...
 		    'saveData', 'calibType', 'monitorGamma', 'calibFilename', ...
-		    'flipHV', 'digin', 'hideCursor', 'displayPos', 'backtickChar', 'responseKeys', 'eyeTrackerType', 'eatKeys'};
+		    'flipHV', 'digin', 'hideCursor', 'displayPos', 'backtickChar', 'responseKeys', 'eyeTrackerType', 'eatKeys','squarePixels','calibProportion'};
 
 for i = 1:length(screenParams)
   %% see if we need to convert from cell array to struct -- old version
@@ -98,13 +104,13 @@ for pnum = 1:length(screenParams)
   if ~isempty(strfind(myscreen.computer,screenParams{pnum}.computerName))
     % if no displayName is asked for or no displayname is set in the screenParams
     % then only accept the computer if we haven't already found it
-    if (foundComputer == 0) && (isempty(screenParams{pnum}.displayName) || ~isfield(myscreen,'displayname'))
+    if (foundComputer == 0) && (isempty(screenParams{pnum}.displayName) || ~isfield(myscreen,'displayName'))
       foundComputer = pnum;
       % check for matching displayname
-    elseif isfield(myscreen,'displayname') && isstr(myscreen.displayname) && strcmp(myscreen.displayname,screenParams{pnum}.displayName)
+    elseif isfield(myscreen,'displayName') && isstr(myscreen.displayName) && strcmp(myscreen.displayName,screenParams{pnum}.displayName)
       foundComputer = pnum;
       % check for matching display number
-    elseif isfield(myscreen,'displayname') && isnumeric(myscreen.displayname) && isequal(myscreen.displayname,screenParams{pnum}.screenNumber)
+    elseif isfield(myscreen,'displayName') && isnumeric(myscreen.displayName) && isequal(myscreen.displayName,screenParams{pnum}.screenNumber)
       foundComputer = pnum;
     end
   end
@@ -189,6 +195,12 @@ end
 if ~isfield(myscreen,'eatKeys')
   myscreen.eatKeys = 0;
 end
+if ~isfield(myscreen,'squarePixels')
+  myscreen.squarePixels = 0;
+end
+if ~isfield(myscreen,'calibProportion')
+  myscreen.calibProportion = 0.36;
+end
 
 myscreen.pwd = pwd;
 
@@ -201,11 +213,18 @@ if foundComputer
     disp(sprintf('(initScreen) %0.1f: %ix%i(pix) dist:%0.1f (cm) size:%0.1fx%0.1f (cm) %iHz save:%i autoclose:%i flipHV:[%i %i]',myscreen.screenNumber,myscreen.screenWidth,myscreen.screenHeight,myscreen.displayDistance,myscreen.displaySize(1),myscreen.displaySize(2),myscreen.framesPerSecond,myscreen.saveData,myscreen.autoCloseScreen,myscreen.flipHV(1),myscreen.flipHV(2)));
   end
 else
+  disp(sprintf('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!'));
   if ~isempty(screenParamsFilename)
-    disp(sprintf('(initScreen) Could not find computer %s in screenParams file %s\n',myscreen.computer,screenParamsFilename));
+    if ~isempty(myscreen.displayName)
+      disp(sprintf('(initScreen) Could not find computer: %s with display: %s in %s',myscreen.computer,myscreen.displayName,screenParamsFilename));
+    else
+      disp(sprintf('(initScreen) Could not find computer: %s in screenParams file %s',myscreen.computer,screenParamsFilename));
+    end
   else
     disp(sprintf('(initScreen) Could not find computer %s in myscreen.screenParams\n',myscreen.computer));
   end
+  disp(sprintf('(initScreen) Using default parameters'));
+  disp(sprintf('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!'));
 end
 
 % decided where to store data
@@ -304,6 +323,11 @@ if isempty(myscreen.displayDistance) | isempty(myscreen.displaySize)
   disp('(initScreen) Could not find display parameters');
   return
 end
+
+% set whether to use square voxels
+mglSetParam('visualAngleSquarePixels',myscreen.squarePixels);
+% and what proportion to calibrate off of
+mglSetParam('visualAngleCalibProportion',myscreen.calibProportion);
 
 mglVisualAngleCoordinates(myscreen.displayDistance,myscreen.displaySize);
 myscreen.imageWidth = mglGetParam('deviceWidth');

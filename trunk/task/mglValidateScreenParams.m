@@ -29,6 +29,8 @@ function screenParams = mglValidateScreenParams(screenParams)
   'screenHeight',[];
   'displayDistance',57;
   'displaySize',[16 12];
+  'calibProportion',0.36;		     
+  'squarePixels',1;		     
   'displayPos',[0 0];
   'framesPerSecond',60;
   'autoCloseScreen',0;

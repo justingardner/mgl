@@ -112,6 +112,15 @@ if isempty(displayDir)
   displayDir = fullfile(fileparts(fileparts(which('moncalib'))),'task','displays');
 end
 
+% add some default fields if the exist
+validatedScreenParams = mglValidateScreenParams(thisScreenParams);
+addFields = {'calibProportion','squarePixels'};
+for i= 1:length(addFields)
+  if ~isfield(thisScreenParams,addFields{i})
+    thisScreenParams.(addFields{i}) = validatedScreenParams.(addFields{i});
+  end
+end
+
 %set up the paramsInfo
 paramsInfo = {};
 paramsInfo{end+1} = {'computerName',thisScreenParams.computerName,'The name of the computer for these screen parameters'};
@@ -123,6 +132,9 @@ paramsInfo{end+1} = {'screenHeight',screenHeight,'type=numeric','minmax=[0 inf]'
 paramsInfo{end+1} = {'framesPerSecond',framesPerSecond,'type=numeric','minmax=[0 inf]','incdec=[-1 1]','round=1','contingent=useCustomScreenSettings','Refresh rate of monitor'};
 paramsInfo{end+1} = {'displayDistance',thisScreenParams.displayDistance,'type=numeric','minmax=[0 inf]','incdec=[-1 1]','Distance in cm to the display from the eyes. This is used for figuring out how many pixels correspond to a degree of visual angle'};
 paramsInfo{end+1} = {'displaySize',thisScreenParams.displaySize,'type=array','minmax=[0 inf]','Width and height of display in cm. This is used for figuring out how many pixels correspond to a degree of visual angle'};
+paramsInfo{end+1} = {'calibProportion',thisScreenParams.calibProportion,'type=numeric','minmax=[0 1]','incdec=[-0.01 0.01]','Calibration proportion should be a value between 0 and 1 (usually set to 0.36). This number controls what proportion of the screen width and height is used to compute pix2deg scale factors. This is important because only at this screen position will visual angles be *exactly* correct. This is because using a linear scale factor to convert from screen positions to visual angles makes the incorrect assumption that the screen is spherical curved around the persons eye. While this is convenient, it is wrong and so some screen positions will have a slight error in the actual visual angle. This is rather small and usually not very important, but you may want to set this to some other percentage if you want to have a different screen location be exactly correct. Press display calib discrepancy to see what your actual discrepancy is.'};
+paramsInfo{end+1} = {'squarePixels',thisScreenParams.squarePixels,'type=checkbox','Calibrate x and y pixels to degree scale factors forcing these to be the same for both dimensions (i.e. forcing square voxels). This is useful if you want the number of pixels in any dimension to be forced to equally the same visual angle. See display calib discrepancy to see how much of a discrepancy this introduces in any position on the monitor'};
+paramsInfo{end+1} = {'dispCalibDiscrepancy',0,'type=pushbutton','buttonString=display calib discrepancy','callback',@dispCalibDiscrepancy,'passParams=1','Click to see the calibration position discrepancy'};
 paramsInfo{end+1} = {'displayPos',thisScreenParams.displayPos,'type=array','minmax=[0 inf]','This is only relevant if you are using a windowed context (e.g. screenNumber=0). It will set the position of the display in pixels where 0,0 is the bottom left corner of your display.'};
 paramsInfo{end+1} = {'autoCloseScreen',thisScreenParams.autoCloseScreen,'type=checkbox','Check if you want endScreen to automatically do mglClose at the end of your experiment.'};
 paramsInfo{end+1} = {'flipHorizontal',thisScreenParams.flipHV(1),'type=checkbox','Click if you want initScreen to set the coordinates so that the screen is horizontally flipped. This may be useful if you are viewing the screen through mirrors'};
@@ -143,7 +155,6 @@ paramsInfo{end+1} = {'diginAcqLine',thisScreenParams.digin.acqLine,'type=numeric
 paramsInfo{end+1} = {'diginAcqType',num2str(thisScreenParams.digin.acqType),'type=string','This is how to interpert the digial signals for the acquisition. If you want to trigger when the signal goes low then set this to 0. If you want trigger when the signal goes high, set this to 1. If you want to trigger when the signal changes state (i.e. either low or high), set to [0 1]','contingent=diginUse'};
 paramsInfo{end+1} = {'diginResponseLine',num2str(thisScreenParams.digin.responseLine),'type=string','This is the lines from which to read the subject responses. If you want to specify line 1 and line 3 for subject response 1 and 2, you would enter [1 3], for instance. You can have up to 7 different lines for subject responses.','minmax=[0 7]','contingent=diginUse','round=1'};
 paramsInfo{end+1} = {'diginResponseType',num2str(thisScreenParams.digin.responseType),'type=string','This is how to interpert the digial signals for the responses. If you want to trigger when the signal goes low then set this to 0. If you want trigger when the signal goes high, set this to 1. If you want to trigger when the signal changes state (i.e. either low or high), set to [0 1]','contingent=diginUse'};
-paramsInfo{end+1} = {'testDigin',0,'type=pushbutton','buttonString=Test digin','callback',@testDigin,'passParams=1','Click to test the digin settings'};
 paramsInfo{end+1} = {'testSettings',0,'type=pushbutton','buttonString=Test screen params','callback',@testSettings,'passParams=1','Click to test the monitor settings'};
 
 % display parameter choosing dialog
@@ -207,6 +218,20 @@ msc.allowpause = 0;
 
 % now call initScreen with these parameters
 msc = initScreen(msc);
+
+%%%%%%%%%%%%%%%%%%%%%%
+%%   TestSettings   %%
+%%%%%%%%%%%%%%%%%%%%%%
+function val = dispCalibDiscrepancy(params)
+
+val = 0;
+
+mglClose;
+msc = testOpenDisplay(params);
+if isempty(msc),return,end
+mglDispVisualAngleDiscrepancy;
+mglClose;
+
 
 %%%%%%%%%%%%%%%%%%%%%%
 %%   TestSettings   %%
@@ -442,6 +467,8 @@ screenParams.displayPos = params.displayPos;
 screenParams.flipHV = [params.flipHorizontal params.flipVertical];
 screenParams.autoCloseScreen = params.autoCloseScreen;
 screenParams.hideCursor = params.hideCursor;
+screenParams.calibProportion = params.calibProportion;
+screenParams.squarePixels = params.squarePixels;
 
 % get file saving settings
 screenParams.saveData = params.saveData;
