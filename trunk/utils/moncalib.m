@@ -155,7 +155,7 @@ if ~isfield(calib,'bittest') || ~isfield(calib,'uncorrected') || ...
     % now open the screen
     mglOpen(calib.screenNumber,monitorParameters.screenWidth, monitorParameters.screenHeight, monitorParameters.frameRate, monitorParameters.bitDepth);
   else
-    calib.monitor.ID = input('Enter a name for the monitor (this can be any string you like): ','s');
+    calib.monitor.ID = input('Enter a name for the monitor (this is optional and only really necessary for a system with multiple displays): ','s');
     mglOpen(calib.screenNumber);
   end
 
@@ -1011,7 +1011,8 @@ while isempty(p)
     p = [];
   end
 end
-ID = input('Enter a name for the monitor (this can be any string you like): ','s');
+
+ID = input('Enter a name for the monitor (this is optional and only really necessary for a system with multiple displays): ','s');
 
 monitorParameters.ID = ID;
 monitorParameters.screenWidth = p(1);
