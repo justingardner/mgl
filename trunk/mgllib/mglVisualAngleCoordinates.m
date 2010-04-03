@@ -21,7 +21,7 @@ function mglVisualAngleCoordinates(physicalDistance,physicalSize);
 % vertically, for instance). If you wanted to compensate for non-square pixels
 % it would be a bit messy. So visualAngleSquarePixels defaults to 1.
 %
-% mglSetParam('visualAngleCalibProportion')
+% mglSetParam('visualAngleCalibProportion',0.5)
 %
 % When you calibrate the monitor, you have to decide how to compute the pix2deg.
 % Whatever you calibrate on, say half the height or width of the monitor will
@@ -36,6 +36,7 @@ function mglVisualAngleCoordinates(physicalDistance,physicalSize);
 % between be inaccurate. For the minimum absolute distortion across all locations,
 % you can set this value to 0.36
 %
+%e.g.:
 %mglOpen
 %mglVisualAngleCoordinates(57,[16 12]);
 
