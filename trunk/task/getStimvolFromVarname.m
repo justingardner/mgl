@@ -69,6 +69,15 @@ if isstruct(varnameIn)
   end
 end
 
+% used for rounding variable values to a tractable number
+% of significant figures. i.e. if your value is 0.5000000001
+% that is hard to represent in a string, it will get rounded
+% to 0.5. If you actually need all the significant figures
+% you might need to up this value here. The value of 7 is set
+% so that if you use sprintf('%f',val) you will represent
+% the default number of significant figures
+numSigDigits = 7;
+
 % get default task numbers and phase numbers
 if ~exist('taskNum','var'),taskNum = 1:length(task);end
 if ~exist('segmentNum','var'),segmentNum = 1;end
@@ -119,7 +128,7 @@ if ~iscell(e),olde = e;clear e;e{1} = olde;,end
 
 % handle when the varname is every (which means to make every combination of variables
 if (length(varname{1}) == 1) && strcmp(varname{1}{1},'_every_')
-  varname = makeEveryCombination(e{taskNum}(phaseNum).parameter);
+  varname = makeEveryCombination(e{taskNum}(phaseNum).parameter,numSigDigits);
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -199,6 +208,20 @@ else
 	    % get the value of the variable in question
 	    % on each trial
 	    varval = getVarFromParameters(strtok(varname{i}{j},'='),e{tnum}(pnum));
+	    % round the values to numSigDigits. This is so that if you have
+	    % multiple significant digits you still get the string to match, which
+	    % won't have as many significant digits. (e.g. if your value was pi, and
+	    % your reperesnt as a string, you will lose some digits). First remember how many unique
+	    % values we have so that we can spit out a warning if this manipulation
+	    % causes some conditions to get grouped together (i.e. this would happen
+	    % if you have a variable that only difference after the numSigDigitis decimal place)
+	    if isnumeric(varval)
+	      nUniqueVarval = length(unique(varval));
+	      varval = round(varval*10^numSigDigits)/10^numSigDigits;
+	      if length(unique(varval)) ~= nUniqueVarval
+		disp(sprintf('(getStimvolFromVarname) WARNING: Variable %s has values that only differe after %i significant figures that will be grouped together',strtok(varname{i}{j},'='),numSigDigits));
+	      end
+	    end
 	    % see if it is a conditional variable, that is,
 	    % one that is like var=[1 2 3].
 	    if ~isempty(strfind(varname{i}{j},'='))
@@ -292,7 +315,7 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %    makeEveryCombination    %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function varname = makeEveryCombination(p)
+function varname = makeEveryCombination(p,numSigDigits)
 
 % get parameter names and number
 p = initRandomization(p);
@@ -320,6 +343,6 @@ for i = 1:prod(parameterLength)
   % string for each parameter
   for j = 1:numParameters
     eval(sprintf('val = parameterValues{j}(x%i);',j));
-    varname{i}{j} = sprintf('%s=%f',parameterNames{j},val);
+    varname{i}{j} = sprintf(sprintf('%%s=%%.%if',numSigDigits),parameterNames{j},val);
   end
 end
