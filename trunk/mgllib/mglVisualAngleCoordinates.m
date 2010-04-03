@@ -58,21 +58,48 @@ mglTransform('GL_TEXTURE','glLoadIdentity')
 
 % Set view transformation for 2D display
 
-% We calculate the size of the display in degrees based on the smaller (height) 
-% dimension only. While this is not quite correct, it makes for much easier drawing,
-% since we can assume that distances are equal in x and y dimensions and do not change
-% with viewing angle (which would be true if the screen was spherical, but is 
-% increasingly incorrect for a flat screen the greater the eccentricity).
-% If we correctly calculated the visual angle subtended separately for each dimension,
-% a rectangle defined by (-1,-1) to (1,1) would not be exactly quadratic.
-
-
 devicePhysicalSize = mglGetParam('devicePhysicalSize');
-%mglSetParam('deviceWidth',360*atan(devicePhysicalSize(1)/mglGetParam('devicePhysicalDistance'))/(2*pi));
-%mglSetParam('deviceHeight',360*atan(devicePhysicalSize(2)/mglGetParam('devicePhysicalDistance'))/(2*pi));
-%mglSetParam('deviceWidth',2*atan(0.5*devicePhysicalSize(1)/mglGetParam('devicePhysicalDistance'))/pi*180);
-mglSetParam('deviceHeight',2*atan(0.5*devicePhysicalSize(2)/mglGetParam('devicePhysicalDistance'))/pi*180);
-mglSetParam('deviceWidth',mglGetParam('deviceHeight')/mglGetParam('screenHeight')*mglGetParam('screenWidth'));
+
+% get what proportion of the screen size should be used for computing visual angle
+% note that if this is set to 0.5 then it guarantees that the point at half the height or width will
+% be exactly correct and everything else will be an approximation (since visual angles are computed as
+% if the screen is spherical around the observers eyes). 0.36 gives the best absolute error over all positions
+% 0.37 gives the best sum-squared error.
+p = mglGetParam('visualAngleCalibProportion');
+if isempty(p),p = 0.5;end
+
+% computed deviceWidth and deviceHeight
+mglSetParam('deviceHeight',(1/p)*atan(p*devicePhysicalSize(2)/mglGetParam('devicePhysicalDistance'))/pi*180);
+mglSetParam('deviceWidth',(1/p)*atan(p*devicePhysicalSize(1)/mglGetParam('devicePhysicalDistance'))/pi*180);
+
+% It is often convenient to make sure that the pixel to degree scaling factors
+% are the same in x and y - i.e. that we have square pixels. This is now an
+% explicit option
+forceSquarePixels = mglGetParam('visualAngleSquarePixels');
+if isempty(forceSquarePixels),forceSquarePixels = 1;end
+% compute the best square pixel compromise
+if forceSquarePixels
+  xpix2deg = mglGetParam('deviceWidth')/mglGetParam('screenWidth');
+  ypix2deg = mglGetParam('deviceHeight')/mglGetParam('screenHeight');
+  % if they are not the same adjust
+  if (xpix2deg ~= ypix2deg)
+    pix2deg = (xpix2deg + ypix2deg)/2;
+    squareDiscrep = 100*abs(pix2deg-xpix2deg)/xpix2deg;
+    if squareDiscrep >= 3.0
+      disp(sprintf('(mglVisualAngleCoordinates) !!!!! Assuming square pixels causes an error in the '));
+      disp(sprintf('vertical pix2deg of %f percent. To fix, you can either set your monitor to a mode with',squareDiscrep))
+      disp(sprintf('square pixel dimensions or turn off squrePixels in mglEditScreenParams !!!!!'));
+    end      
+    squareDiscrep = 100*abs(pix2deg-ypix2deg)/ypix2deg;
+    if squareDiscrep >= 3.0
+      disp(sprintf('(mglVisualAngleCoordinates) !!!!! Assuming square pixels causes an error in the '));
+      disp(sprintf('vertical pix2deg of %f percent. To fix, you can either set your monitor to a mode with',squareDiscrep))
+      disp(sprintf('square pixel dimensions or turn off squrePixels in mglEditScreenParams !!!!!!'));
+    end      
+    mglSetParam('deviceHeight',pix2deg*mglGetParam('screenHeight'));
+    mglSetParam('deviceWidth',pix2deg*mglGetParam('screenWidth'));
+  end
+end
 
 % display if verbose
 if (mglGetParam('verbose'))
