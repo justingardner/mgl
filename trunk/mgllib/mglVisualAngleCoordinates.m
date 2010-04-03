@@ -85,16 +85,18 @@ if forceSquarePixels
   if (xpix2deg ~= ypix2deg)
     pix2deg = (xpix2deg + ypix2deg)/2;
     squareDiscrep = 100*abs(pix2deg-xpix2deg)/xpix2deg;
-    if squareDiscrep >= 3.0
+    if squareDiscrep >= 5.0
       disp(sprintf('(mglVisualAngleCoordinates) !!!!! Assuming square pixels causes an error in the '));
       disp(sprintf('vertical pix2deg of %f percent. To fix, you can either set your monitor to a mode with',squareDiscrep))
-      disp(sprintf('square pixel dimensions or turn off squrePixels in mglEditScreenParams !!!!!'));
+      disp(sprintf('square pixel dimensions or turn off squrePixels in mglEditScreenParams if you are'));
+      disp(sprintf('using mglEditScreenParams or set mglSetParam(''visualAngleSquarePixels'',0,1) if not!!!!!!'));
     end      
     squareDiscrep = 100*abs(pix2deg-ypix2deg)/ypix2deg;
-    if squareDiscrep >= 3.0
+    if squareDiscrep >= 5.0
       disp(sprintf('(mglVisualAngleCoordinates) !!!!! Assuming square pixels causes an error in the '));
       disp(sprintf('vertical pix2deg of %f percent. To fix, you can either set your monitor to a mode with',squareDiscrep))
-      disp(sprintf('square pixel dimensions or turn off squrePixels in mglEditScreenParams !!!!!!'));
+      disp(sprintf('square pixel dimensions or turn off squrePixels in mglEditScreenParams if you are'));
+      disp(sprintf('using mglEditScreenParams or set mglSetParam(''visualAngleSquarePixels'',0,1) if not!!!!!!'));
     end      
     mglSetParam('deviceHeight',pix2deg*mglGetParam('screenHeight'));
     mglSetParam('deviceWidth',pix2deg*mglGetParam('screenWidth'));
