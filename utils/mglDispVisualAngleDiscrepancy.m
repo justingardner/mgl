@@ -4,9 +4,18 @@
 %      usage:mglDispVisualAngleDiscrepancy()
 %         by: justin gardner
 %       date: 03/29/10
-%    purpose: 
+%    purpose: Display the discrepancy between what you ask for and what you
+%             get in terms of visual angle based on current settings
+%             of mglVisualAngleCoordinates. Make sure to call after you
+%             run mglVisualAngleCoordinates. Note that there is a discrepancy
+%             because we are essentially approximating the flat screen of the
+%             monitor display with a curved surface to compute visual angles.
 %
-function retval = mglDispVisualAngleDiscrepancey()
+%mglOpen;
+%mglVisualAngleCoordinates(57,[16 12]);
+%mglClose;
+%mglDispVisualAngleDiscrepancy;
+function retval = mglDispVisualAngleDiscrepancy()
 
 if ~isequal(mglGetParam('deviceCoords'),'visualAngle')
   disp('(mglDispVisualAngleDiscrepancy) Screen is not in visual angle coordinates');
