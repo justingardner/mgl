@@ -75,9 +75,22 @@
 %Movies
 %  mglMovie                  : Function to play quicktime movies (mac 64bit only)
 %
+%Eyelink
+%  mglEyelinkOpen            : Open a link to eye-tracker
+%  mglEyelinkClose           : Close the link to eye-tracker
+%  mglEyelinkSetup           : Puts tracker in setup mode
+%  mglEyelinkRecordingStart  : Start recording
+%  mglEyelinkRecordingStop   : Stop recording
+%  mglEyelinkCMDPrintF       : Send a command to the eye tracker
+%  mglEyelinkEDFPrintF       : Put a message into recorded data-stream
+%  mglEyelinkRecordingCheck  : Check to see if eye-tracker is recording
+%  mglEyelinkOpenEDF         : Opens a new datafile to store eye data
+%  mglEyelikGetCurrentEyePos : Get current eye position
+%  
 %Test/Demo programs
 %  mglTestAlignment          : Alignment of textures
 %  mglTestDots               : Draws dots
+%  mglTestEyelink            : Test the eyelink eye-tracker
 %  mglTestGamma              : GUI controlled gamma
 %  mglTestLUTAnimation       : Gamma LUT animation
 %  mglTestStencil            : Demonstrates stencil functions

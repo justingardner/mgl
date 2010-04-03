@@ -6,11 +6,21 @@ mglClearScreen([0.5 0.5 0.5]);
 % open the link
 % calls mglPrivateEyelinkOpen, default ip is '100.1.1.1', default conntype is 0
 try
-  mglEyelinkOpen('100.1.1.1', 0);
-catch err
+  retval = mglEyelinkOpen('100.1.1.1', 0);
+catch 
+  err = lasterror
   fprintf(2,'Defaulting to simulation mode.');
-  mglEyelinkOpen('100.1.1.1', 1);
+  retval = mglEyelinkOpen('100.1.1.1', 1);
 end
+if retval == 0
+  mglClose;
+  disp(sprintf('(mglTestEyelink) Could not open eyetracker'));
+  disp(sprintf('You make need to compile the eye tracker code. Make sure'))
+  disp(sprintf('that you have the eyelink developers kit installed and then run: \n'))
+  disp(sprintf('mglMake(''eyelink'')'));
+  return
+end
+  
 %mglPrivateEyelinkSendCommand
 
 % set up some variables
