@@ -4,7 +4,30 @@
 %      usage: mglEditScreenParams()
 %         by: justin gardner
 %       date: 07/17/09
-%    purpose: 
+%    purpose: This function can be used in conjunction with initScreen in the 
+%             task directory to set your monitor parameters. You will first get
+%             a dialog box which allows you to set which computer/display you
+%             want to edit settings for. Note that the settings work by matching
+%             the computer name that you are running from and also a display name
+%             the display name is an optional parameter and is for when you have
+%             more than one display associated with a single computer. Choose 
+%             which computer/display you want to edit by hitting the arrow keys
+%             on computerNum and then hit ok to edit.
+%
+%             You will then get a second dialog box which allows you to set parameters
+%             for that computer. Click on help for more info on what the parameter
+%             settings do. Once you are satisfied, hit OK to save the settings
+%             into the file ~/.mglScreenParams.mat. 
+%
+%             To use the parameters, just run:
+%
+%             initScreen;
+%
+%             If you have more than one display, then choose which display that
+%             you want, by doing:
+%
+%             initScreen('displayName');
+%            
 %
 function retval = mglEditScreenParams()
 
