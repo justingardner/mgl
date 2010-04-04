@@ -19,6 +19,9 @@
     	          to generate the event in seconds. The keyCode and a boolean
                   as to whether it is a keyDown event.
                 3:LIST. Lists all pending events
+                4:MOUSEMOVE. Move the mouse to the specified x,y position
+                5:MOUSEDOWN. Click the specified mouse button at the specified x,y position
+                6:MOUSEUP. Click the specified mouse button at the specified x,y position
  
                 Note that this function relies on objective-c constructs
                 like the NSMutabaleArray - it could be written without this
@@ -58,6 +61,9 @@ void quitPostEvent(void);
 #define INIT 1
 #define KEYEVENT 2
 #define LIST 3
+#define MOUSEMOVE 4
+#define MOUSEDOWN 5
+#define MOUSEUP 6
 
 /////////////////////
 //   queue event   //
@@ -67,8 +73,13 @@ void quitPostEvent(void);
   int type;
   int keyCode;
   int keyDown;
+  CGEventType mouseEventType;
+  CGPoint mousePoint;
+  CGMouseButton mouseButton;
 }
 - (id)initWithTimeKeyCodeAndKeyDown:(double)initTime :(int)initKeyCode :(int)initKeyDown;
+- (id)initWithTimeMouseEventXY:(double)initTime :(CGEventType)initMouseType :(CGFloat)x :(CGFloat)y;
+- (id)initWithTimeMouseEvent:(double)initTime :(CGEventType)initMouseType;
 - (id)initQuitEventWithTime:(double)initTime;
 - (int)eventType;
 - (void)postEvent;
@@ -165,6 +176,90 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
       // create the event
       postQueueEvent *qEvent = [[postQueueEvent alloc] initWithTimeKeyCodeAndKeyDown:time :keyCode :keyDown];
+
+      // add the event to the event queue
+      [gEventQueue addObject:qEvent];
+      [qEvent release];
+
+      // sort the event queue by time
+      SEL compareByTime = @selector(compareByTime:);
+      [gEventQueue sortUsingSelector:compareByTime];
+
+      // release mutex
+      pthread_mutex_unlock(&mut);
+    }
+  }
+  // MOUSEMOVE command --------------------------------------------------------------
+  else if (command == MOUSEMOVE) {
+    // add a key event if the 
+    if (mglGetGlobalDouble("postEventEnabled")) {
+      // check command line arguments
+      if (nrhs != 4) {
+	usageError("mglPostEvent");
+	return;
+      }
+
+      // get x and y
+      double time = (double)mxGetScalar(prhs[1]);
+      CGFloat x = (CGFloat)(double)mxGetScalar(prhs[2]);
+      CGFloat y = (CGFloat)(double)mxGetScalar(prhs[3]);
+
+      // lock the mutex to avoid concurrent access to the global variables
+      pthread_mutex_lock(&mut);
+
+      // create the event
+      postQueueEvent *qEvent = [[postQueueEvent alloc] initWithTimeMouseEventXY:time :kCGEventMouseMoved :x :y];
+
+      // add the event to the event queue
+      [gEventQueue addObject:qEvent];
+      [qEvent release];
+
+      // sort the event queue by time
+      SEL compareByTime = @selector(compareByTime:);
+      [gEventQueue sortUsingSelector:compareByTime];
+
+      // release mutex
+      pthread_mutex_unlock(&mut);
+    }
+  }
+  // MOUSEUP/DOWN command --------------------------------------------------------------
+  else if ((command == MOUSEUP) || (command == MOUSEDOWN)){
+    // add a key event if the 
+    if (mglGetGlobalDouble("postEventEnabled")) {
+      // check command line arguments
+      if (nrhs != 5) {
+	usageError("mglPostEvent");
+	return;
+      }
+
+      // get whichButton
+      double time = (double)mxGetScalar(prhs[1]);
+      int whichButton = (int)(double)mxGetScalar(prhs[2]);
+      CGFloat x = (CGFloat)(double)mxGetScalar(prhs[3]);
+      CGFloat y = (CGFloat)(double)mxGetScalar(prhs[4]);
+      CGEventType mouseEventType;
+
+      // create the right kind of event
+      switch (whichButton) {
+        case 0:
+	  if (command == MOUSEUP)
+	    mouseEventType = kCGEventLeftMouseUp;
+	  else
+	    mouseEventType = kCGEventLeftMouseDown;
+	  break;
+        case 1:
+	  if (command == MOUSEUP)
+	    mouseEventType = kCGEventRightMouseUp;
+	  else
+	    mouseEventType = kCGEventRightMouseDown;
+	  break;
+      }
+
+      // lock the mutex to avoid concurrent access to the global variables
+      pthread_mutex_lock(&mut);
+
+      // create the event
+      postQueueEvent *qEvent = [[postQueueEvent alloc] initWithTimeMouseEventXY:time :mouseEventType :x :y];
 
       // add the event to the event queue
       [gEventQueue addObject:qEvent];
@@ -344,6 +439,32 @@ void launchEventDispatcherAsThread()
   //return self
   return self;
 }
+- (id)initWithTimeMouseEventXY:(double)initTime :(CGEventType)initMouseType :(CGFloat)x :(CGFloat)y
+{
+  // init parent
+  [super init];
+  // set internals
+  time = initTime;
+  type = MOUSEMOVE;
+  mouseEventType = initMouseType;
+  mousePoint.x = x;
+  mousePoint.y = y;
+  //return self
+  return self;
+}
+- (id)initWithTimeMouseEvent:(double)initTime :(CGEventType)initMouseType
+{
+  // init parent
+  [super init];
+  // set internals
+  time = initTime;
+  type = MOUSEMOVE;
+  mouseEventType = initMouseType;
+  mousePoint.x = 0;
+  mousePoint.y = 0;
+  //return self
+  return self;
+}
 //-----------------------------------------------------------------------------------///
 // ******************************* mac specific code  ******************************* //
 //-----------------------------------------------------------------------------------///
@@ -354,6 +475,14 @@ void launchEventDispatcherAsThread()
   if (type == KEYEVENT) {
     // create the desired key event
     CGEventRef event = CGEventCreateKeyboardEvent(NULL,(CGKeyCode)keyCode,(bool)keyDown);
+    // post it at the earliest location in the system event-queue that we can
+    CGEventPost(kCGHIDEventTap,event);
+    // and release the event
+    CFRelease(event);
+  }
+  else if ((type == MOUSEMOVE)||(type == MOUSEDOWN)||(type == MOUSEUP)) {
+    // create the desired mouse event
+    CGEventRef event = CGEventCreateMouseEvent(NULL,mouseEventType,mousePoint,mouseDown);
     // post it at the earliest location in the system event-queue that we can
     CGEventPost(kCGHIDEventTap,event);
     // and release the event
