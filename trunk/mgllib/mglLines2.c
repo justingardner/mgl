@@ -28,7 +28,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   int i, n;
 
   // check input arguments
-  if ((nrhs < 4) || (nrhs>6)) {
+  if ((nrhs < 4) || (nrhs>7)) {
     usageError("mglLines2");
     return;
   }
@@ -62,6 +62,20 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       glColor3f(color[0],color[1],color[2]);
   }
 
+  // anti-aliasing
+  if ((nrhs < 7) || (*mxGetPr(prhs[6])==0)){
+    // disable anti-aliasing
+    glDisable (GL_LINE_SMOOTH);
+    glDisable (GL_BLEND);
+  }
+  else {
+    // enable anti-aliasing
+    glEnable (GL_LINE_SMOOTH);
+    glEnable (GL_BLEND);
+    glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glHint (GL_LINE_SMOOTH_HINT, GL_DONT_CARE);
+  }
+
   // draw the points
   glBegin(GL_LINES);
   for(i=0;i<n;i++){
@@ -69,5 +83,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     glVertex2f(x1[i],y1[i]);
   }
   glEnd();
+
+  glDisable (GL_LINE_SMOOTH);
 }
 
