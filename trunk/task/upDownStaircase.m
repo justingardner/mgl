@@ -18,8 +18,10 @@
 %             reversal. the default is to keep the stepsize the same
 %             >> s = upDownStaircase(1,3,thresh,stepsize,1)
 %
-%             to update the staricase, where response is 1 or 0
+%             to update the staricase, where response is 1 or 0 for correct or incorrect
 %             >> s = upDownStaircase(s,response)
+%
+%             s.threshold holds the current estimate of the threshold 
 %             
 %             you can set min and max values for the threshold by
 %             setting (after you initialize the staircase):
