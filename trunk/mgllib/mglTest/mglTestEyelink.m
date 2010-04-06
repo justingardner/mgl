@@ -31,7 +31,7 @@ mglEyelinkCMDPrintF('file_sample_data = RIGHT,GAZE,AREA,GAZERES,STATUS');
 mglEyelinkCMDPrintF('sample_rate = 500');
 
 % run the calibration
-mglPrivateEyelinkCalibration()
+mglPrivateEyelinkSetup()
 
 % open up a data file
 mglPrivateEyelinkOpenEDF('foo.edf');
