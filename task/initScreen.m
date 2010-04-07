@@ -415,6 +415,10 @@ switch myscreen.calibType
     mglSetGammaTable(gammaTable);
   end
 end
+
+% keep initial gamma table
+myscreen.initScreenGammaTable = mglGetGammaTable;
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Gamma correction of monitor
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
