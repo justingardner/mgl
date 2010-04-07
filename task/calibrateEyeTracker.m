@@ -20,9 +20,12 @@ end
 
 if isfield(myscreen, 'eyetracker') && isfield(myscreen.eyetracker, 'init') ...
       && myscreen.eyetracker.init
+  % first turn off eat keys if eat keys is set
+  mglListener('quit');
   %% calibrate the eyetracker by type
   calibrator = sprintf('eyeCalibration%s', myscreen.eyeTrackerType);
   eval(sprintf('myscreen = %s(myscreen);', calibrator));
+  if myscreen.eatkeys,mglEatKeys(myscreen);end
 else
   fprintf(2, '(calibrateEyeTracker) No eye-tracker has been initialized.\n');
 end
