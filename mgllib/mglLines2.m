@@ -16,3 +16,10 @@
 %mglVisualAngleCoordinates(57,[16 12]);
 %mglLines2(-4, -4, 4, 4, 2, [1 0.6 1]);
 %mglFlush
+%
+%To draw multiple lines at once:
+%mglOpen
+%mglVisualAngleCoordinates(57,[16 12]);
+%mglLines2(rand(1,100)*5-2.5, rand(1,100)*10-5, rand(1,100)*5-2.5, rand(1,100)*3-1.5, 3, [0 0.6 1],1);
+%mglFlush
+%
