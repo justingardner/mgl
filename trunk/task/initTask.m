@@ -400,14 +400,13 @@ end
 % default to assuming we are not collecting data for this task/phase
 if ~isfield(task, 'collectEyeData')
   task.collectEyeData = false;
-elseif task.collectEyeData
+elseif ~isequal(task.collectEyeData,false)
   % if we are "collecting eye data" on a task, then we 
   % should shut down myscreens collectEyeData which
   % collects eye data for all tasks rather than each
   % task specifically. 
   myscreen.eyetracker.collectEyeData = false;
 end
-
 
 % initialize the parameters
 task.parameter = feval(task.callback.rand,task.parameter);
