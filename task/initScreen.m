@@ -566,6 +566,10 @@ if ~isfield(myscreen, 'eyetracker') || ~isfield(myscreen.eyetracker, 'init')
   myscreen.eyetracker.callback = [];
 end
 
+if ~isfield(myscreen.eyetracker,'collectEyeData')
+  myscreen.eyetracker.collectEyeData = 1;
+end
+
 % init stimulus names if it does not exist already
 if ~isfield(myscreen,'stimulusNames')
   myscreen.stimulusNames = {};
