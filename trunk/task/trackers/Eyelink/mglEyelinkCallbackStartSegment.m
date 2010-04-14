@@ -10,8 +10,8 @@ function [task myscreen] = mglEyelinkCallbackStartSegment(task, myscreen)
 %     purpose: open a link connection to an SR Research Eylink
 %
 
-    if isfield(task, 'collectEyeData') && (task.collectEyeData)
-        mglEyelinkEDFPrintF('MGL BEGIN SEGMENT %i', task.thistrial.thisseg);
-    end
-    
+% always save info about segments
+if myscreen.eyetracker.init
+  mglEyelinkEDFPrintF('MGL BEGIN SEGMENT %i %i %i %i %i', task.thistrial.thisseg,task.trialnum,task.blocknum,task.thistrial.thisphase,task.taskID);
 end
+
