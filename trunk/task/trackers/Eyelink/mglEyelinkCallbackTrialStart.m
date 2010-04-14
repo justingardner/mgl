@@ -10,11 +10,9 @@ function [task myscreen] = mglEyelinkCallbackTrialStart(task, myscreen)
 %     purpose: open a link connection to an SR Research Eylink
 %
 
-if isfield(task, 'collectEyeData') && (task.collectEyeData)    
-  mglEyelinkCMDPrintF('record_status_message ''Task phase %d, block %d, trial %d.''', ...
-		      task.thistrial.thisphase, task.blocknum, task.trialnum);
-  mglEyelinkEDFPrintF('TRIALID %d%d%d', ...
-		      task.thistrial.thisphase, task.blocknum, task.trialnum);
+if task.collectEyeData
+  mglEyelinkCMDPrintF('record_status_message ''Task phase %d, block %d, trial %d.''',task.thistrial.thisphase, task.blocknum, task.trialnum);
+  mglEyelinkEDFPrintF('TRIALID %d%d%d',task.thistrial.thisphase, task.blocknum, task.trialnum);
   mglEyelinkEDFPrintF('SYNCTIME');
 end
 

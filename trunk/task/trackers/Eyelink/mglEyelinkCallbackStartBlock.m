@@ -10,13 +10,12 @@ function [task myscreen] = mglEyelinkCallbackStartBlock(task, myscreen)
 %     purpose: open a link connection to an SR Research Eylink
 %
     
-    if isfield(task, 'collectEyeData') && (task.collectEyeData)
-        if all(eq(task.collectEyeData, 'block')) && (~mglEyelinkRecordingCheck)
-            % if we are recording & we want to reset at blocks, stop
-            mglEyelinkRecordingStop();
-        end
-        mglPrivateEyelinkRecordingStart(myscreen.eyetracker.data);
-        mglEyelinkEDFPrintF('MGL BEGIN BLOCK %i', task.blocknum);
-    end
-    
+if task.collectEyeData
+  if all(eq(task.collectEyeData, 'block')) && (~mglEyelinkRecordingCheck)
+    % if we are recording & we want to reset at blocks, stop
+    mglEyelinkRecordingStop();
+  end
+  mglPrivateEyelinkRecordingStart(myscreen.eyetracker.data);
+  mglEyelinkEDFPrintF('MGL BEGIN BLOCK %i', task.blocknum);
 end
+    

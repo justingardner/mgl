@@ -1,4 +1,4 @@
-function [task myscreen] = mglEyelinkCallbackSaveData(task, myscreen)
+function [task myscreen] = mglEyelinkCallbackGetPosition(task, myscreen)
 % mglEyelinkCallbackGetPosition - Assigns eye position to myscreen
 %
 % Usage: mglEyelinkCallbackGetPosition(IP, conntype)
@@ -13,6 +13,5 @@ function [task myscreen] = mglEyelinkCallbackSaveData(task, myscreen)
 %     purpose: open a link connection to an SR Research Eylink
 %
 
-    myscreen.eyetracker.eyepos = mglEyelinkGetCurrentEyePos(1); % in device coords
+myscreen.eyetracker.eyepos = mglEyelinkGetCurrentEyePos(1); % in device coords
     
-end
