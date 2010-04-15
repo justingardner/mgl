@@ -25,7 +25,7 @@ if isfield(myscreen, 'eyetracker') && isfield(myscreen.eyetracker, 'init') ...
   %% calibrate the eyetracker by type
   calibrator = sprintf('eyeCalibration%s', myscreen.eyeTrackerType);
   eval(sprintf('myscreen = %s(myscreen);', calibrator));
-  if myscreen.eatkeys,mglEatKeys(myscreen);end
+  if myscreen.eatKeys,mglEatKeys(myscreen);end
 else
   fprintf(2, '(calibrateEyeTracker) No eye-tracker has been initialized.\n');
 end
