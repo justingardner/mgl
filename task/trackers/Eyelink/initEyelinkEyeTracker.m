@@ -135,16 +135,6 @@ if ~isfield(myscreen.eyetracker, 'savedata') || myscreen.eyetracker.savedata
   
 end
 
-% start recording
-if myscreen.eyetracker.collectEyeData == 1
-  if  ~mglEyelinkRecordingCheck
-    % if we are recording stop to reset.
-    mglEyelinkRecordingStop();
-  end
-  mglPrivateEyelinkRecordingStart(myscreen.eyetracker.data);
-end
-
-
 myscreen.eyetracker.init = 1;
 
 
