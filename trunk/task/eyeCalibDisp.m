@@ -59,6 +59,16 @@ myscreen.eyetracker.data = [1 1 1 0]; % don't need link events
 myscreen = initEyeTracker(myscreen, 'Eyelink');
 myscreen = calibrateEyeTracker(myscreen);
 
+% start recording
+if (myscreen.eyetracker.init) && (myscreen.eyetracker.collectEyeData == 1)
+  if  ~mglEyelinkRecordingCheck
+    % if we are recording stop to reset.
+    mglEyelinkRecordingStop();
+  end
+  mglPrivateEyelinkRecordingStart(myscreen.eyetracker.data);
+end
+
+
 function retval = waitSecsEsc(waitTime,myscreen)
 
 retval = 1;
