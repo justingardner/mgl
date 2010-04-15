@@ -19,6 +19,8 @@ end
 % display text if called for
 if (nargin > 1) && isstr(dispText) && ~isempty(dispText)
   mglTextDraw(dispText,[0 0]);
+else
+  mglTextDraw('Hit <space> to calibrate eye tracker, <return> to skip.',[0 0]);
 end
 % flush screen
 myscreen = tickScreen(myscreen);
