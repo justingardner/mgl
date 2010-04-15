@@ -341,6 +341,7 @@ task.trialnumTotal = 0;
 
 % update, how many tasks we have seen
 myscreen.numTasks = myscreen.numTasks+1;
+task.taskID = myscreen.numTasks;
 
 % now set the segment trace
 %% NOTE: Should this be generalized to simply use addTraces for
