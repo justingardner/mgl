@@ -144,6 +144,9 @@ for i= 1:length(addFields)
   end
 end
 
+% eye tracker types
+eyeTrackerTypes = {'None','Eyelink'};
+
 %set up the paramsInfo
 paramsInfo = {};
 paramsInfo{end+1} = {'computerName',thisScreenParams.computerName,'The name of the computer for these screen parameters'};
@@ -172,6 +175,7 @@ paramsInfo{end+1} = {'calibFilename',thisScreenParams.calibFilename,'Specify the
 paramsInfo{end+1} = {'displayDir',displayDir,'The name of the directory where your calibration files from moncalib are stored. Default is mgl/task directory'};
 paramsInfo{end+1} = {'displayCalib',0,'type=pushbutton','buttonString=Display monitor calibration','callback',@displayCalib,'passParams=1','Click to display the monitor calibration done by moncalib'};
 paramsInfo{end+1} = {'monitorGamma',thisScreenParams.monitorGamma,'type=numeric','Specify the monitor gamma. This is only used if you set Specify Gamma above',enableMonitorGamma};
+paramsInfo{end+1} = {'eyeTrackerType',putOnTopOfList(thisScreenParams.eyeTrackerType,eyeTrackerTypes),'Choose which eye tracker to use.'};
 paramsInfo{end+1} = {'diginUse',thisScreenParams.digin.use,'type=checkbox','Click this if you want to use the National Instruments cards digital io for detecting volume acquisitions and subject responses. If you use this, the keyboard will still work (i.e. you can still press backtick and response numbers. This uses the function mglDigIO -- and you will need to make sure that you have compiled mgl/util/mglPrivateDigIO.c'};
 paramsInfo{end+1} = {'diginPortNum',thisScreenParams.digin.portNum,'type=numeric','This is the port that should be used for reading. For NI USB-6501 devices it can be one of 0, 1 or 2','incdec=[-1 1]','minmax=[0 inf]','contingent=diginUse','round=1'};
 paramsInfo{end+1} = {'diginAcqLine',thisScreenParams.digin.acqLine,'type=numeric','This is the line from which to read the acquisition pulse (i.e. the one that occurs every volume','incdec=[-1 1]','minmax=[0 7]','contingent=diginUse','round=1'};
@@ -529,6 +533,8 @@ else
   screenParams.digin.responseType = [];
 end  
 
+% eye tracker type
+screenParams.eyeTrackerType = params.eyeTrackerType;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%   calibTypeCallback   %%
@@ -627,6 +633,9 @@ screenParams.digin.acqLine = 0;
 screenParams.digin.acqType = 1;
 screenParams.digin.responseLine = [1 2 3 4 5 6 7];
 screenParams.digin.responseType = 1;
+
+% eyeTracker
+screenParams.eyeTrackerType = 'None';
 
 %%%%%%%%%%%%%%%%%%%%%%%%
 %%   params2Str2num   %%
