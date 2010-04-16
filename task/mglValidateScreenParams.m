@@ -67,7 +67,7 @@ function screenParams = mglValidateScreenParams(screenParams)
   thisFieldNames = fieldnames(screenParams);
   for f = 1:length(thisFieldNames)
     % check if it is a necessary field
-    if ~any(strcmp(thisFieldNames{f},necessaryFields))
+    if ~any(strcmp(thisFieldNames{f},necessaryFields)) & ~strcmp(thisFieldNames{f},'digin')
       % if not warn
       disp(sprintf('(mglValidateScreenParams) Removed unecessary field %s form %s:%s screen params',thisFieldNames{f},screenParams.computerName,screenParams.displayName));
       screenParams = rmfield(screenParams,thisFieldNames{f});
