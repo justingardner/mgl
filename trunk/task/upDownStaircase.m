@@ -40,7 +40,7 @@ if (nargin == 2)
   response = varargin{2};
   % update number of trials
   s.n = s.n + 1;
-  s.response(s.n) = response;
+  s.response(s.n) = response; %correct or incorrect
   s.strength(s.n) = s.threshold;
   % update the response in this particular group
   s.group(s.groupn).n = s.group(s.groupn).n + 1;
