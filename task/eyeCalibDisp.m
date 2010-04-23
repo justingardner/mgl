@@ -70,7 +70,6 @@ if (myscreen.eyetracker.init) && (myscreen.eyetracker.collectEyeData == 1)
   mglPrivateEyelinkRecordingStart(myscreen.eyetracker.data);
 end
 
-
 function retval = waitSecsEsc(waitTime,myscreen)
 
 retval = 1;
