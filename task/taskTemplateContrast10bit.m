@@ -116,7 +116,15 @@ function stimulus = initGratings(stimulus,myscreen,task)
 maxIndex = 255;
 
 % get gamma table
-stimulus.linearizedGammaTable = mglGetGammaTable;
+if ~isfield(myscreen,'gammaTable')
+  stimulus.linearizedGammaTable = mglGetGammaTable;
+  disp(sprintf('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!'));
+  disp(sprintf('(taskTemplateContrast10bit:initGratings) No gamma table found in myscreen. Contrast'));
+  disp(sprintf('         displays like this should be run with a valid calibration made by moncalib'));
+  disp(sprintf('         for this monitor.'));
+  disp(sprintf('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!'));
+end
+stimulus.linearizedGammaTable = myscreen.initScreenGammaTable;
 
 disppercent(-inf,'Creating grating textures');
 
@@ -224,6 +232,7 @@ function contrastIndex = getContrastIndex(desiredContrast,verbose)
 if nargin < 2,verbose = 0;end
 
 global stimulus;
+if desiredContrast < 0, desiredContrast = 0;end
 
 % now find closest matching contrast we can display with this gamma table
 contrastIndex = min(round(stimulus.colors.nDisplayContrasts*desiredContrast/stimulus.currentMaxContrast),stimulus.colors.nDisplayContrasts);
@@ -254,6 +263,9 @@ contrastIndex = contrastIndex+1;
 function setGammaTableForMaxContrast(maxContrast)
 
 global stimulus;
+% if you just want to show gray, that's ok, but to make the
+% code work properly we act as if you want to display a range of contrasts
+if maxContrast <= 0,maxContrast = 0.01;end
 
 % set the reserved colors
 gammaTable(1:size(stimulus.colors.reservedColors,1),1:size(stimulus.colors.reservedColors,2))=stimulus.colors.reservedColors;
