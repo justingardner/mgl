@@ -4,7 +4,11 @@
 %      usage: mglValidateScreenParams()
 %         by: justin gardner
 %       date: 07/23/09
-%    purpose: 
+%    purpose: Validates a screenParams structure to make sure that it 
+%             has all necessary fields
+%
+% screenParams = mglDefaultScreenParams;
+% screenParams = mglValidateScreenParams(screenParams);
 %
 function screenParams = mglValidateScreenParams(screenParams)
 
