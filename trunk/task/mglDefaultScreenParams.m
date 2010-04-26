@@ -19,7 +19,6 @@ end
 displays = mglDescribeDisplays;
 
 % get screen settings
-params.useCustomScreenSettings = 0;
 screenParams.screenNumber = length(displays);
 screenParams.screenWidth = displays(end).screenSizePixel(1);
 screenParams.screenHeight = displays(end).screenSizePixel(2);
