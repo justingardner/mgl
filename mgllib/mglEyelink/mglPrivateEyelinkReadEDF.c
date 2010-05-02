@@ -124,11 +124,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     if (isEyeUsedMessage(eventType,data)) currentEye = (int)data->fe.eye;
     // get samples
     if (eventType == SAMPLE_TYPE){
+      *outptr++ = (double)data->fs.time;
       *outptr++ = (double)data->fs.gx[currentEye];
       *outptr++ = (double)data->fs.gy[currentEye];
       *outptr++ = (double)data->fs.pa[currentEye];
       *outptr++ = (double)currentEye;
-      *outptr++ = (double)data->fs.time;
     }
   }
 
