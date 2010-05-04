@@ -19,7 +19,11 @@ end
 % default arguments
 if nargin < 2,verbose = 1;end
 
-if isfile(setext(filename,'edf'))
+[p,n,e] = fileparts(filename);
+if isempty(e)
+    filename = fullfile(p, n, 'edf');
+end
+if isfile(filename)
   % mglPrivateEleyinkReadEDF returns two matrices. The first
   % is the eye data with rows time, gaze x, gaze y, pupil, whichEye
   % The second contains Mgl messages which has rows:
