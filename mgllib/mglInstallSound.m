@@ -61,27 +61,3 @@ else
 end
 
 
-%%%%%%%%%%%%%%%%
-%    isfile    %
-%%%%%%%%%%%%%%%%
-function [isit permission] = isfile(filename)
-
-isit = 0;permission = [];
-if (nargin ~= 1)
-  help isfile;
-  return
-end
-if isempty(filename),isit = 0;,return,end
-
-% open file
-fid = fopen(filename,'r');
-
-% check to see if there was an error
-if (fid ~= -1)
-  fclose(fid);
-  [dummy permission] = fileattrib(filename);
-  isit = 1;
-else
-  isit = 0;
-end
-
