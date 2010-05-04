@@ -21,7 +21,7 @@ if nargin < 2,verbose = 1;end
 
 [p,n,e] = fileparts(filename);
 if isempty(e)
-    filename = fullfile(p, n, 'edf');
+    filename = fullfile(p, [n '.edf']);
 end
 if isfile(filename)
   % mglPrivateEleyinkReadEDF returns two matrices. The first
