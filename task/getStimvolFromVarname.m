@@ -192,8 +192,9 @@ else
 	    % see if it is a strict variable name
 	    if isempty(strfind(varname{i}{j},'='))
 	      % if it is then for each particular setting
-	      % of the variable, we make a stim type
-	      vartypes = unique(sort(e{tnum}(pnum).originalTaskParameter.(varname{i}{j})(:)));
+	      % of the variable, we make a stim type. Use getVarFromParameters
+	      % to return all the possible settings for the variable
+	      vartypes = getVarFromParameters(varname{i}{j},e{tnum}(pnum),1);
 	      for k = 1:length(vartypes)
 		stimvol{i}{end+1} = varval==vartypes(k);
 		stimnames{i}{end+1} = sprintf('%s=%s',varname{i}{j},num2str(vartypes(k)));

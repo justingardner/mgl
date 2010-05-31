@@ -280,7 +280,9 @@ if numTraces>0
   experiment(phaseNum).traces(1:numTraces,:) = nan;
 end
 
-% get what the parameters were originaly set to
+% get what the parameters were originaly set to - i.e. in the task variable. This gives a record
+% of all the values that the parameter was originally intended to go through for example (sometimes
+% an experiment may run short and you don't go through all possible values).
 experiment(phaseNum).originalTaskParameter = task.parameter;
 taskParameters = fieldnames(task.parameter);
 for i = 1:length(taskParameters)

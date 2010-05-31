@@ -1,21 +1,29 @@
 % getVarFromParameters.m
 %
 %        $Id: 
-%      usage: getVarFromParameters(varname,e)
+%      usage: getVarFromParameters(varname,e,<allPossibleVals=0>)
 %         by: justin gardner
 %       date: 03/16/07
 %    purpose: get a variable name from task parameters, could be
 %             will return the full qualified name of the variable
 %             e is returned from getTaskParameters
+%             if the third argument is set to 1, this function returns
+%             what all possible values are for the variable.
 % e.g.
-% getVarFromparametrs('varname',getTaskParameters(task));
+% getVarFromParameters('varname',getTaskParameters(task));
 %%%%%%%%%%%%%%%%%%%%%%%%
-function [varval taskNum phaseNum] = getVarFromParameters(varname,e)
+function [varval taskNum phaseNum] = getVarFromParameters(varname,e,allPossibleVals)
 
 % check arguments
-if ~any(nargin == [2])
+if ~any(nargin == [2 3])
   help getVarFromParameters
   return
+end
+
+% normally just get the values that were actually run. If allPossibleVals is set
+% then return what all possible values for that parameter were.
+if nargin < 3
+  allPossibleVals = 0;
 end
 
 if ~iscell(e)
@@ -56,6 +64,10 @@ if regexp(varname,'.*[(].*[)]$')
     return
   end
   varval = refvar(indexval);
+  % if allPossibleVals is set, then just return the parameterCode vals
+  if allPossibleVals
+    varval = unique(sort(refvar));
+  end
   return
 end
 
@@ -64,12 +76,25 @@ for i = 1:length(e)
   for j = 1:length(e{i})
     % see if it is a parameter
     if isfield(e{i}(j).parameter,varname)
-      varval = e{i}(j).parameter.(varname);
+      % get the variable
+      if allPossibleVals
+	% get all possible vals
+	varval = e{i}(j).originalTaskParameter.(varname);
+      else
+	% get the vals that were actually run
+	varval = e{i}(j).parameter.(varname);
+      end
       taskNum = i;
       phaseNum = j;
       % or a rand var
     elseif isfield(e{i}(j),'randVars') && isfield(e{i}(j).randVars,varname)
+      % get the variable
       varval = e{i}(j).randVars.(varname);
+      taskNum = i;
+      phaseNum = j;
+    % if allPossibleVals is set then see if the variable is a parameterCode and return that 
+    elseif allPossibleVals && isfield(e{i}(j),'parameterCode') && isfield(e{i}(j).parameterCode,varname)
+      varval = unique(sort(e{i}(j).parameterCode.(varname)));
       taskNum = i;
       phaseNum = j;
     end
