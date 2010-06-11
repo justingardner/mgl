@@ -366,7 +366,10 @@ switch myscreen.calibType
     % this could either be an exact filename, or it could be one of a standard
     % set i.e. 0001_yoyodyne_LCD2_061013, so we check for those types
     % if we can't find the exact match
+    [calibPath calibFilename] = fileparts(calibFilename);
+    calibFilename = fullfile(calibPath,calibFilename);
     if ~isfile(sprintf('%s.mat',calibFilename))
+      disp(sprintf('(initScreen) Could not find calibFilename: %s\n',calibFilename));
       calibFilename = getCalibFilename(myscreen,calibFilename);
     end
   else
