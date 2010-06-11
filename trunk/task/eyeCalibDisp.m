@@ -12,6 +12,11 @@
 % TODO: make this function generic with respect to the eyetracker used
 function myscreen = eyeCalibDisp(myscreen,dispText)
 
+if nargin < 1
+  help eyeCalibDisp;
+  return
+end
+
 % set the screen background color
 if (myscreen.background ~= 0)
   mglClearScreen(myscreen.background);
@@ -55,21 +60,33 @@ if (myscreen.eyecalib.prompt)
   end
 end
 
-% set up eye tracker
-myscreen.eyetracker.savedata = true;
-myscreen.eyetracker.data = [1 1 1 0]; % don't need link events
-myscreen = initEyeTracker(myscreen, 'Eyelink');
-myscreen = calibrateEyeTracker(myscreen);
+if strcmp(lower(myscreen.eyeTrackerType),'eyelink')
+  % set up eye tracker
+  myscreen.eyetracker.savedata = true;
+  myscreen.eyetracker.data = [1 1 1 0]; % don't need link events
+  myscreen = initEyeTracker(myscreen, 'Eyelink');
+  myscreen = calibrateEyeTracker(myscreen);
 
-% start recording
-if (myscreen.eyetracker.init) && (myscreen.eyetracker.collectEyeData == 1)
-  if  ~mglEyelinkRecordingCheck
-    % if we are recording stop to reset.
-    mglEyelinkRecordingStop();
+  % start recording
+  if (myscreen.eyetracker.init) && (myscreen.eyetracker.collectEyeData == 1)
+    if  ~mglEyelinkRecordingCheck
+      % if we are recording stop to reset.
+      mglEyelinkRecordingStop();
+    end
+    mglPrivateEyelinkRecordingStart(myscreen.eyetracker.data);
   end
-  mglPrivateEyelinkRecordingStart(myscreen.eyetracker.data);
+elseif strcmp(lower(myscreen.eyeTrackerType),'calibrate')
+  doCalibration(myscreen);
+elseif isempty(myscreen.eyeTrackerType)
+  disp(sprintf('(eyeCalibDisp) No eyeTracker type set in mglEditScreenParams'));
+else
+  disp(sprintf('(eyeCalibDisp) Unknown eyeTracker type %s',myscreen.eyeTrackerTYpe))
 end
 
+  
+%%%%%%%%%%%%%%%%%%%%%
+%    waitSecsEsc    %
+%%%%%%%%%%%%%%%%%%%%%
 function retval = waitSecsEsc(waitTime,myscreen)
 
 retval = 1;
@@ -81,3 +98,51 @@ while mglGetSecs(startTime) <= waitTime
     return
   end
 end
+
+%%%%%%%%%%%%%%%%%%%%%%%
+%    doCalibration    %
+%%%%%%%%%%%%%%%%%%%%%%%
+function doCalibration(myscreen)
+
+% put fixation in center of screen to allow subject to get there in time
+mglClearScreen;
+mglGluDisk(0,0,myscreen.eyecalib.size/2,myscreen.eyecalib.color);
+mglFlush;
+if waitSecsEsc(2,myscreen) == -1,return,end
+
+% make sure eye tracker is on and recording that this is an eyecalibration
+%myscreen.fishcamp = bitor(myscreen.fishcamp,bin2dec('101'));
+%fishcamp(1,myscreen.fishcamp);
+%XXX writeDigPort(16,2);
+
+for j = 1:myscreen.eyecalib.n
+  mglClearScreen;
+  mglGluDisk(myscreen.eyecalib.x(j),myscreen.eyecalib.y(j),myscreen.eyecalib.size/2,myscreen.eyecalib.color);
+  mglFlush;
+  if ((myscreen.eyecalib.x(j) ~= 0) || (myscreen.eyecalib.y(j) ~= 0))
+%XXX    writeDigPort(48,2);
+  else
+%XXX    writeDigPort(16,2);
+  end
+  startTime = mglGetSecs;
+  if ~isinf(myscreen.eyecalib.waittime)
+    while (myscreen.eyecalib.waittime > (mglGetSecs-startTime));
+      [keyCodes keyTimes] = mglGetKeyEvent([],1);
+      if any(keyCodes==myscreen.keyboard.esc)
+        mglClearScreen;mglFlush;
+        mglClearScreen;mglFlush;
+        return
+      end
+    end
+  else
+    input(sprintf('Hit ENTER to continue'));
+  end
+end
+mglClearScreen;mglFlush;
+mglClearScreen;mglFlush;
+
+% turn off trace for eye calibration
+%myscreen.fishcamp = bitand(hex2dec('FF01'),myscreen.fishcamp);
+%fishcamp(1,myscreen.fishcamp);
+% reset fliptime
+myscreen.fliptime = inf;
