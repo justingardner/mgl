@@ -60,6 +60,11 @@ if (myscreen.eyecalib.prompt)
   end
 end
 
+if ~isfield(myscreen,'eyeTrackerType')
+  disp(sprintf('(eyeCalibDisp) No eyeTrackerType has been set'));
+  return;
+end
+
 if strcmp(lower(myscreen.eyeTrackerType),'eyelink')
   % set up eye tracker
   myscreen.eyetracker.savedata = true;
@@ -80,7 +85,7 @@ elseif strcmp(lower(myscreen.eyeTrackerType),'calibrate')
 elseif isempty(myscreen.eyeTrackerType)
   disp(sprintf('(eyeCalibDisp) No eyeTracker type set in mglEditScreenParams'));
 else
-  disp(sprintf('(eyeCalibDisp) Unknown eyeTracker type %s',myscreen.eyeTrackerTYpe))
+  disp(sprintf('(eyeCalibDisp) Unknown eyeTracker type %s',myscreen.eyeTrackerType))
 end
 
   
