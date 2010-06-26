@@ -40,3 +40,4 @@ if ~exist('vAlignment'),vAlignment = 0;,end
 % make the text texture and blt it to the screen
 textTexture = mglText(str);
 mglBltTexture(textTexture,pos,hAlignment,vAlignment);
+mglDeleteTexture(textTexture);
