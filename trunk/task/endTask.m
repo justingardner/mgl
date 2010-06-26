@@ -16,6 +16,7 @@ if ~any(nargin == [2])
   return
 end
 
+mydisp(sprintf('(endTask) Ending task...\n'));
 % quit keyboard listener
 mglListener('quit');
 
@@ -30,8 +31,7 @@ if myscreen.eyetracker.init && isfield(myscreen.eyetracker.callback, 'endTrackin
   feval(myscreen.eyetracker.callback.endTracking,task,myscreen);
 end
 
-
-mydisp(sprintf('End task\n'));
+mydisp(sprintf('(endTask) Done\n'));
 % we are done
 myscreen.task = task;
 % package up stimuli
