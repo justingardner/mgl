@@ -16,17 +16,15 @@ if ~any(nargin == [0])
 end
 
 % initalize the screen
-myscreen.background = 'gray';
-myscreen.screenParams{1} = {'yoyodyne.cns.nyu.edu',[],2,1280,1024,57,[31 23],60,1,0,1.8,''};
-myscreen = initScreen(myscreen);
+myscreen = initScreen;
 
 task{1}.waitForBacktick = 1;
 % fix: the task defined here has two segments, one that
 % is 3 seconds long followed by another that is 
 % 6-9 seconds (randomized in steps of 1.5 seconds)
 % change this to what you want for your trial
-task{1}.segmin = [1 1];
-task{1}.segmax = [1 1];
+task{1}.segmin = [3 6];
+task{1}.segmax = [3 9];
 task{1}.segquant = [0 1.5];
 % fix: enter the parameter of your choice
 task{1}.parameter.myParameter = [0 30 90];
@@ -99,7 +97,7 @@ end
 function stimulus = myInitStimulus(stimulus,myscreen)
 
 % fix: add stuff to initalize your stimulus
-stimulus.init = 1;
+
 
 
 
