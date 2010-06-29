@@ -9,9 +9,23 @@
 function experiment = getTaskParameters(myscreen,task)
 
 % check arguments
+experiment = [];
 if ~any(nargin == [1 2])
   help getTaskParameters
   return
+end
+
+% see if we are passed the name of a file
+if (nargin == 1) && isstr(myscreen)
+  % check for file
+  [pathStr filename ext] = fileparts(myscreen);
+  filename = sprintf('%s.mat',fullfile(pathStr,filename));
+  if ~isfile(filename)
+    disp(sprintf('(getTaskParameters) Could not find file %s',filename));
+    return
+  end
+  % load file
+  load(filename);
 end
 
 % so you can pass in stimfile strucuture from MLR
