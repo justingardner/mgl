@@ -112,7 +112,7 @@ global stimulus
 % here, we just check whether this is the first time we got a response
 % this trial and display what the subject's response was and the reaction time
 if task.thistrial.gotResponse < 1
-  disp(sprintf('Subject response: %i Reaction time: %0.2fs',task.thistrial.whichButton(1),task.thistrial.reactionTime));
+  disp(sprintf('Subject response: %i Reaction time: %0.2fs',task.thistrial.whichButton,task.thistrial.reactionTime));
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
