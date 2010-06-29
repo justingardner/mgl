@@ -79,7 +79,7 @@ for i = 1:length(e)
       % get the variable
       if allPossibleVals
 	% get all possible vals
-	varval = e{i}(j).originalTaskParameter.(varname);
+	varval = unique(e{i}(j).originalTaskParameter.(varname));
       else
 	% get the vals that were actually run
 	varval = e{i}(j).parameter.(varname);
