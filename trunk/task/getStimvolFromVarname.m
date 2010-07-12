@@ -37,10 +37,11 @@
 %             {{'var1=[1]','var2=[2 3]'},{'var1=[2]','var2=[1]'}}
 %
 %
-function [stimvolOut stimNamesOut] = getStimvolFromVarname(varnameIn,myscreen,task,taskNum,phaseNum,segmentNum)
+function [stimvolOut stimNamesOut trialNumOut] = getStimvolFromVarname(varnameIn,myscreen,task,taskNum,phaseNum,segmentNum)
 
 stimvolOut = {};
 stimNamesOut = {};
+trialNumOut = {};
 % check arguments
 if ~any(nargin == [3 4 5 6 7])
   help getStimvolFromVarname
@@ -51,6 +52,9 @@ end
 if isstruct(varnameIn) 
   if isfield(varnameIn,'segmentNum')
     segmentNum = varnameIn.segmentNum;
+  end
+  if isfield(varnameIn,'segmentBegin') && isfield(varnameIn,'segmentEnd')
+    segmentNum = [varnameIn.segmentBegin varnameIn.segmentEnd];
   end
   if isfield(varnameIn,'taskNum')
     taskNum = varnameIn.taskNum;
@@ -91,6 +95,29 @@ if ~exist('phaseNum','var')
   phaseNum = 1:phaseNum;
 end
 if ~exist('verbose','var'),verbose = true;end
+
+
+% now check if we have been called with two segmentNums in which
+% case we should return volumes from the beginning semgent num to
+% the end segment num, so we recursively call this function to get
+% the start segment and end segment and then create a stimvol cell
+% array that contains all the intervening volumes
+if length(segmentNum) == 2
+  [stimvol1 stimNamesOut trialNum1] = getStimvolFromVarname(varnameIn,myscreen,task,taskNum,phaseNum,segmentNum(1));
+  [stimvol2 stimNamesOut] = getStimvolFromVarname(varnameIn,myscreen,task,taskNum,phaseNum,segmentNum(2));
+  % add all volumes from start to end
+  for i = 1:length(stimvol1)
+    stimvolOut{i} = [];
+    trialNumOut{i} = [];
+    for j = 1:length(stimvol1{i})
+      if length(stimvol2{i}) >= j
+	stimvolOut{i} = [stimvolOut{i} stimvol1{i}(j):stimvol2{i}(j)];
+	trialNumOut{i} = [trialNumOut{i} repmat(trialNum1{i}(j),1,length(stimvol1{i}(j):stimvol2{i}(j)))];
+      end
+    end
+  end
+  return
+end
 
 if verbose
   disp(sprintf('(getStimvolFromVarname) taskNum=[%s], phaseNum=[%s], segmentNum=[%s]',num2str(taskNum),num2str(phaseNum),num2str(segmentNum)));
@@ -145,6 +172,7 @@ if (length(varname) == 1) && (length(varname{1}) == 1) && strcmp(varname{1}{1},'
 	  % if we passed all the checks, then get the volume number for each trial
 	  for trialNum = 1:length(e{taskNum}(phaseNum).trials)
 	    stimvolOut{1}(trialNum) = e{taskNum}(phaseNum).trials(trialNum).volnum(segmentNum);
+	    trialNumOut{1}(trialNum) = trialNum;
 	  end
 	else
 	  disp(sprintf('(getStimvolFromVarname) SegmentNum %i out of range [1 %i]',segmentNum,length(e{taskNum}(phaseNum).trials(1).volnum)));
@@ -277,9 +305,11 @@ else
 	      if length(stimvolOut) >= k
 		stimvolOut{k} = [stimvolOut{k} trialVolume(stimvol{i}{j})];
 		stimNamesOut{k} = [stimNamesOut{k} stimnames{i}{j}];
+		trialNumOut{k} = find(stimvol{i}{j});
 	      else
 		stimvolOut{k} = trialVolume(stimvol{i}{j});
 		stimNamesOut{k} = stimnames{i}{j};
+		trialNumOut{k} = find(stimvol{i}{j});
 	      end
 	      k = k+1;
 	    end
@@ -293,6 +323,7 @@ end
 % remove any nan stimvols (this happens if a trial occurs
 % after the end of the experiment)
 for i = 1:length(stimvolOut)
+  trialNumOut{i} = trialNumOut{i}(~isnan(stimvolOut{i}));
   stimvolOut{i} = stimvolOut{i}(~isnan(stimvolOut{i}));
 end
 
