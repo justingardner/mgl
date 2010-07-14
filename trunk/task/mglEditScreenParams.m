@@ -275,12 +275,15 @@ if isempty(msc),return,end
 mglTextSet('Helvetica',32,[1 1 1 1],0,0,0,0,0,0,0);
 mglTextDraw(sprintf('Testing settings for %s:%s',params.computerName,params.displayName),[0 -5]);
 
-% wait for five seconds
+% wait for fifteen seconds maximum and then quit (just in case the screen doesn't open properly)
 if thisWaitSecs(15,params)<=0,endScreen(msc);return,end
+
+% from now on just continue to run until uer hits ESC
+waitTime = inf;
 
 % show the monitor dims
 mglMonitorDims(-1);
-if thisWaitSecs(15,params)<=0,endScreen(msc);return,end
+if thisWaitSecs(waitTime,params)<=0,endScreen(msc);return,end
 
 % show fine gratings
 mglTestGamma(-1);
@@ -300,9 +303,9 @@ end
 imageHeight = mglGetParam('deviceHeight');
 mglTextDraw(calibType,[0 -imageHeight/8]);
 mglTextDraw(calibType2,[0 -2*imageHeight/8]);
-if thisWaitSecs(15,params)<=0,endScreen(msc);return,end
+if thisWaitSecs(waitTime,params)<=0,endScreen(msc);return,end
 
-testTickScreen(30,params,msc);
+testTickScreen(waitTime,params,msc);
 
 % close screen and return
 msc.autoCloseScreen = 1;
