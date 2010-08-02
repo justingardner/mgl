@@ -1,7 +1,7 @@
 % upDownStaircase.m
 %
 %        $Id$
-%      usage: upDownStaircase()
+%      usage: upDownStaircase(nup,ndown,initialThreshold,stepsize,<stepRule=0>)
 %         by: justin gardner
 %       date: 06/20/05
 %  copyright: (c) 2006 Justin Gardner (GPL see mgl/COPYING)
@@ -16,8 +16,20 @@
 %             with a given stepsize, you can use the Levitt
 %             rule which halves the stepsize after the 1st,3rd,7th,15th
 %             reversal. the default is to keep the stepsize the same
-%             >> s = upDownStaircase(1,3,thresh,stepsize,1)
+%             >> s = upDownStaircase(1,3,thresh,stepsize,'levitt')
+%             you can specify a minimum stepsize
+%             >> s= upDownStaircase(1,3,thresh,[stepsize minStepsize],'levitt');
 %
+%             with a given stepsize, you can use the Pest Rules which are
+%                1) halve the stepsize after each reversal
+%                2) use the same stepsize for same direction, except
+%                3) Double the stepsize on the third step in the same direction
+%                4) If a reversal follows a doubling of step size, then double
+%                   the stepsize on the fourth step in the same direction
+%                5) Maximum stepsize (and minimum) should be specifed. Max should
+%                   be atleast 8 to 16 times minimum stepsize
+%             >> s = upDownStaircase(1,2,thresh,[initStepsize minStepsize maxStepsize],'pest');
+%         
 %             to update the staricase, where response is 1 or 0 for correct or incorrect
 %             >> s = upDownStaircase(s,response)
 %
@@ -27,14 +39,14 @@
 %             setting (after you initialize the staircase):
 %             s.minThreshold = 0; s.maxThreshold = 1000;
 %             
-%             you can also set a minimum stepsize (useful when
-%             you are using the Levitt rule) by doing e.g.:
-%             s.minStepsize = 0.1;
-%
 function s = upDownStaircase(varargin)
 
+if (nargin == 1)
+  % compute thresholds
+  s = computeThreshold(varargin{1});
+  return
 % two arguments, means an update
-if (nargin == 2)
+elseif (nargin == 2)
   % give names to the arguments
   s = varargin{1};
   response = varargin{2};
@@ -69,16 +81,38 @@ elseif ((nargin == 4) || (nargin == 5))
   s.reversal = [];
   s.reversaln = 0;
   s.groupn = 1;
+  % check for stepsize rule
+  s.stepsizeRule = 0;
+  if (nargin == 5) 
+    if isequal(varargin{5},1) || isequal(lower(varargin{5}),'levitt')
+      s.stepsizeRule = 1;
+    elseif isequal(varargin{5},2) || isequal(lower(varargin{5}),'pest')
+      s.stepsizeRule = 2;
+      s.stepsBeforeDoubling = 2;
+    end
+  end
   % if this is a singleton, it gives the step size
   % of the upDownStaircasecase
   if (length(varargin{4}) == 1)
     s.stepsize = varargin{4};
     s.steptype = 'step';
     s.startStepSize = s.stepsize;
-    if (nargin == 5) && varargin{5}==1
-      s.reduceStepsizeOnReversals = 1;
+  % if we are using a stepsize changing algorithim
+  elseif s.stepsizeRule > 0
+    s.stepsize = varargin{4}(1);
+    s.steptype = 'step';
+    s.startStepSize = s.stepsize;
+    % user specified minimum stepsize
+    if length(varargin{4}) == 2
+      s.minStepsize = varargin{4}(2);
+    % user specified maximum stepsize
+    elseif length(varargin{4}) == 3
+      s.minStepsize = varargin{4}(2);
+      s.maxStepsize = varargin{4}(3);
     else
-      s.reduceStepsizeOnReversals = 0;
+      disp(sprintf('(upDownStaircase) When using rules, you can specify [initial <min> <max>] as your stepsizes only'));
+      help upDownStaircase;
+      return
     end
   else
     % otherwise, we must be given an array of fixed
@@ -88,22 +122,39 @@ elseif ((nargin == 4) || (nargin == 5))
     % if the threshold isn't one of these fixed 
     % stimuli then set it to be that
     if ~sum(s.threshold == s.fixed)
-      disp(sprintf('UHOH: Threshold %0.2f is not one of fixed',s.threshold));
+      disp(sprintf('(upDownStaircase): Threshold %0.2f is not one of fixed',s.threshold));
       s.threshold = s.fixed(first(find(abs(s.fixed - s.threshold)==min(abs(s.fixed-s.threshold)))));
-      disp(sprintf('      Threshold set to %0.2f',s.threshold));
+      disp(sprintf('                   Threshold set to %0.2f',s.threshold));
     end
     % make sure that the fixed list is in order
     s.fixed = sort(unique(s.fixed));
     % remember where the threshold is
     s.fixedthreshold = find(s.threshold == s.fixed);
     % cant reduce stepsize
-    s.reduceStepsizeOnReversals = 0;
+    s.stepsizeRule = 0;
   end
   % set minmax
   s.minThreshold = -inf;
   s.maxThreshold = inf;
   % set minimum stepsize
-  s.minStepsize = 0;
+  if ~isfield(s,'minStepsize')
+    % for PEST, make this default to 1/8 the starting stepsize
+    if s.stepsizeRule == 2
+      s.minStepsize = s.stepsize/8;
+    else
+      s.minStepsize = -inf;
+    end
+  end
+  % set maximum stepsize
+  if ~isfield(s,'maxStepsize')
+    % for PEST, make this default to 16 * minStepsize
+    if s.stepsizeRule == 2
+      s.maxStepsize = s.minStepsize*16;
+    else
+      s.maxStepsize = inf;
+    end
+  end
+
 else
   help upDownStaircase;
   return
@@ -140,15 +191,11 @@ end
 %%%%%%%%%%%%%%%%%%%%%
 function s = dostep(s,stepdir)
 
-if (stepdir == -1)
-  s = stepdown(s);
-else
-  s = stepup(s);
+% do the step (for pest we have to determine the stepsize first)
+if s.stepsizeRule ~= 2
+  % apply step
+  if (stepdir == -1) s = stepdown(s);else s = stepup(s);end
 end
-
-% reset group number etc.
-s.groupn = s.groupn+1;
-s.group(s.groupn).n = 0;
 
 % check if this is a reversal
 if (isfield(s,'direction'))
@@ -156,8 +203,8 @@ if (isfield(s,'direction'))
   % this is a reversal
   if (s.direction ~= stepdir)
     s.reversaln = s.reversaln+1;
-    % reduce step size if called for
-    if s.reduceStepsizeOnReversals
+    % levitt rule
+    if s.stepsizeRule == 1
       % see if this is the first reversal,
       % or a reversal that is 1,3,7,15 etc.
       % if so we will cut step size by two
@@ -166,10 +213,41 @@ if (isfield(s,'direction'))
 %	disp(sprintf('Reversal %i: stepsize = %0.8f',s.reversaln,s.stepsize));
       
       end
+    % PEST rule
+    elseif s.stepsizeRule == 2
+      % half the step size
+      s.stepsize = max(s.minStepsize,s.stepsize/2);
+      % reset the same direction counter
+      if s.stepsBeforeDoubling <= 0
+	% if we have been doubling before this reversal, then
+	% we need an extra step before doubling again (Rule #4)
+	s.stepsBeforeDoubling = 3;
+      else
+	% otherwise 3 steps in a row in same direction before doubling
+	s.stepsBeforeDoubling = 2;
+      end
     end
     s.reversals(s.reversaln) = s.n;
+  else
+    % PEST rule same direction
+    if s.stepsizeRule == 2
+      s.stepsBeforeDoubling = s.stepsBeforeDoubling - 1;
+      if (s.stepsBeforeDoubling <= 0)
+	s.stepsize = min(s.maxStepsize,s.stepsize*2);
+      end
+    end
   end
 end
+
+% do the step (after applying pest rule
+if s.stepsizeRule == 2
+  % apply step
+  if (stepdir == -1) s = stepdown(s);else s = stepup(s);end
+end
+
+% reset group number etc.
+s.groupn = s.groupn+1;
+s.group(s.groupn).n = 0;
 
 % keep track of direction we are in
 s.direction = stepdir;
@@ -193,5 +271,34 @@ if (isempty(x))
   retval = [];
 else
   retval = x(1);
+end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+%    commuteThreshold    %
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+function s = computeThreshold(s)
+
+% compute the mean of last k reversals
+if isfield(s,'reversals') && (length(s.reversals) > 0)
+  % computes the mean of last reversals
+  for i = 1:length(s.reversals)
+    s.computedThresholds.meanOfReversals(i) = mean(s.strength(s.reversals(i:end)));
+  end
+  s.computedThresholds.meanOfReversals = fliplr(s.computedThresholds.meanOfReversals);
+  s.computedThresholds.meanOfAllReversals = s.computedThresholds.meanOfReversals(end);
+  % pointers to some common reversals to take
+  for nReversals = [3 5 7]
+    if length(s.reversals) >= nReversals 
+      s.computedThresholds.(sprintf('meanOfLast%iReversals',nReversals)) = s.computedThresholds.meanOfReversals(nReversals);
+    else
+      s.computedThresholds.(sprintf('meanOfLast%iReversals',nReversals)) = nan;
+    end
+  end
+end
+
+% compute weibull fit
+if exist('fitweibull') == 2
+  s.computedThresholds.weibullFitParams = fitweibull(s.strength,s.response);
+  s.computedThresholds.weibull = s.computedThresholds.weibullFitParams.fitparams(1);
 end
 
