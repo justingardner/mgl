@@ -89,7 +89,11 @@ for i = 1:length(e)
       % or a rand var
     elseif isfield(e{i}(j),'randVars') && isfield(e{i}(j).randVars,varname)
       % get the variable
-      varval = e{i}(j).randVars.(varname);
+      if allPossibleVals
+	varval = unique(e{i}(j).randVars.(varname));
+      else
+	varval = e{i}(j).randVars.(varname);
+      end
       taskNum = i;
       phaseNum = j;
     % if allPossibleVals is set then see if the variable is a parameterCode and return that 
