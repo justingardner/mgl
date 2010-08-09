@@ -20,6 +20,9 @@ mydisp(sprintf('(endTask) Ending task...\n'));
 % quit keyboard listener
 mglListener('quit');
 
+% if there are calculated random variables, in the last trial, save them
+task = saveCalculatedVariables(task);
+
 % compute traces and save data
 myscreen = endScreen(myscreen);
 % This funciton will check for existing stim files and update the save
@@ -47,3 +50,26 @@ if isfield(myscreen,'pwd') && isdir(myscreen.pwd)
 end
 
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%    saveCalculatedVariables    %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function task = saveCalculatedVariables(task)
+
+if iscell(task)
+  for i = 1:length(task)
+    task{i} = saveCalculatedVariables(task{i});
+  end
+  return
+else
+  if task.randVars.calculated_n_
+    for nVar = 1:task.randVars.calculated_n_
+      if isfield(task.thistrial,task.randVars.calculated_names_{nVar})
+	eval(sprintf('task.randVars.%s(task.trialnum) = task.thistrial.%s;', ...
+		     task.randVars.calculated_names_{nVar}, ...
+		     task.randVars.calculated_names_{nVar}));
+      end
+    end
+  end
+end
+  
+  
