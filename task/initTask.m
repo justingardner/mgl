@@ -216,7 +216,11 @@ task.randVars.calculated_n_ = 0;
 
 % default to computing a length of 250
 if ~isfield(task.randVars,'len_')
-  task.randVars.len_ = 250;
+  if isfinite(task.numTrials)
+    task.randVars.len_ = task.numTrials;
+  else
+    task.randVars.len_ = 250;
+  end
 end
 % check the variable names for known randomization types
 randVarNames = fieldnames(task.randVars);
@@ -225,52 +229,61 @@ for i = 1:length(randVarNames)
   % if we got one, then first initialize the randomization procedure
   if any(strcmp(randVarNames{i},randTypes))
     vars = [];
-    disp(sprintf('Computing randVars with %sRandomization.m',randVarNames{i}));
-					  % we first loop over the length of the array, this is so
-					  % that, in the case of block, for example, we can have
-					  % randVars.block{1...n} so that we can have groups of blocked params
-					  % if the variable is not already a cell array then make a
-					  % cell array
-					  thisRandVar = {};
-					  if ~iscell(eval(sprintf('task.randVars.%s',randVarNames{i})))
-					    thisRandVar{1} = eval(sprintf('task.randVars.%s',randVarNames{i}));
-					    thisIsCell = 0;
-					  else
-					    thisRandVar = eval(sprintf('task.randVars.%s',randVarNames{i}));
-					    thisIsCell = 1;
-					  end
-					  for varNum = 1:length(thisRandVar)
-
-					    eval(sprintf('vars = %sRandomization(thisRandVar{varNum});',randVarNames{i}));
-								 % compute blocks of trials until we have enough
-								 varBlock = [];totalTrials = 0;
-								 % init variables
-								 for vnum = 1:vars.n_
-								   eval(sprintf('task.randVars.%s = [];',vars.names_{vnum}));
-											       % now get original names
-											       if thisIsCell
-												 shortNames{end+1} = vars.names_{vnum};
-												 originalNames{end+1} = sprintf('task.randVars.%s{%i}.%s',randVarNames{i},varNum,vars.names_{vnum});
-											       else
-												 shortNames{end+1} = vars.names_{vnum};
-												 originalNames{end+1} = sprintf('task.randVars.%s.%s',randVarNames{i},vars.names_{vnum});
-											       end
-								 end
-								 % now keep calculating blocks of the randvars until we have enough
-								 while totalTrials < task.randVars.len_
-								   eval(sprintf('varBlock = %sRandomization(vars,varBlock);',randVarNames{i}));
-								   totalTrials = totalTrials+varBlock.trialn;
-								   for vnum = 1:vars.n_
-								     eval(sprintf('task.randVars.%s = [task.randVars.%s varBlock.parameter.%s];',vars.names_{vnum},vars.names_{vnum},vars.names_{vnum}));
-								   end
-								 end
-					  end
-					  % we need this to rapidly iterate and copy the calculated vals
-					  if strcmp(randVarNames{i},'calculated')
-					    task.randVars.calculated_n_ = vars.n_;
-					    task.randVars.calculated_names_ = vars.names_;
-					  end
+    disp(sprintf('(initTask) Computing randVars with %sRandomization.m',randVarNames{i}));
+    % we first loop over the length of the array, this is so
+    % that, in the case of block, for example, we can have
+    % randVars.block{1...n} so that we can have groups of blocked params
+    % if the variable is not already a cell array then make a
+    % cell array
+    thisRandVar = {};
+    if ~iscell(eval(sprintf('task.randVars.%s',randVarNames{i})))
+      thisRandVar{1} = eval(sprintf('task.randVars.%s',randVarNames{i}));
+      thisIsCell = 0;
+    else
+      thisRandVar = eval(sprintf('task.randVars.%s',randVarNames{i}));
+      thisIsCell = 1;
+    end
+    for varNum = 1:length(thisRandVar)
+      eval(sprintf('vars = %sRandomization(thisRandVar{varNum});',randVarNames{i}));
+      % compute blocks of trials until we have enough
+      varBlock = [];totalTrials = 0;
+      % init variables
+      for vnum = 1:vars.n_
+	eval(sprintf('task.randVars.%s = [];',vars.names_{vnum}));
+        % now get original names
+	if thisIsCell
+	  shortNames{end+1} = vars.names_{vnum};
+	  originalNames{end+1} = sprintf('task.randVars.%s{%i}.%s',randVarNames{i},varNum,vars.names_{vnum});
+	else
+	  shortNames{end+1} = vars.names_{vnum};
+	  originalNames{end+1} = sprintf('task.randVars.%s.%s',randVarNames{i},vars.names_{vnum});
+	end
+      end
+      % now keep calculating blocks of the randvars until we have enough
+      while totalTrials < task.randVars.len_
+	eval(sprintf('varBlock = %sRandomization(vars,varBlock);',randVarNames{i}));
+	totalTrials = totalTrials+varBlock.trialn;
+	for vnum = 1:vars.n_
+	  eval(sprintf('task.randVars.%s = [task.randVars.%s varBlock.parameter.%s];',vars.names_{vnum},vars.names_{vnum},vars.names_{vnum}));
+	end
+      end
+    end
+    % we need this to rapidly iterate and copy the calculated vals
+    if strcmp(randVarNames{i},'calculated')
+      task.randVars.calculated_n_ = vars.n_;
+      task.randVars.calculated_names_ = vars.names_;
+    end
   end
+end
+
+% check to make sure that we don't use a reserved variable name
+reservedVarNames = {'thisphase','thisseg','gotResponse','segstart','startvolnum','seglen','waitForBacktick','buttonState','waitingToInit','trialstart','synchVol','segStartSeconds','whichButton','reactionTime'};
+conflictNames = intersect(lower(reservedVarNames),lower(shortNames));
+if ~isempty(conflictNames)
+  for i = 1:length(conflictNames)
+    disp(sprintf('(initTask) ****%s randVar name conflicts with a reserved name****',conflictNames{i}));
+  end
+  keyboard
 end
 
 % now go through all of our variables and make a list of names
