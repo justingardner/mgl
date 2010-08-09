@@ -30,7 +30,7 @@
 %                   be atleast 8 to 16 times minimum stepsize
 %             >> s = upDownStaircase(1,2,thresh,[initStepsize minStepsize maxStepsize],'pest');
 %         
-%             to update the staricase, where response is 1 or 0 for correct or incorrect
+%             to update the staircase, where response is 1 or 0 for correct or incorrect
 %             >> s = upDownStaircase(s,response)
 %
 %             s.threshold holds the current estimate of the threshold 
