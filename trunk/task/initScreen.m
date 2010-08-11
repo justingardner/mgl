@@ -116,6 +116,9 @@ for pnum = 1:length(screenParams)
   end
 end
 
+% display hail string
+disp(sprintf('%s Begin initScreen %s',repmat('=+',1,20),repmat('=+',1,20)));
+
 % check to make sure that we have found the computer in the table
 if foundComputer
   % display the match
@@ -594,6 +597,8 @@ else
   mglDisplayCursor(1);
 end
 
+% display hail string
+disp(sprintf('%s End initScreen %s',repmat('=+',1,20),repmat('=+',1,20)));
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % gets the name of the gamma calibration
