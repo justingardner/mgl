@@ -31,9 +31,6 @@ end
 if ~exist('usenum','var'),usenum = 1;,end
 if ~exist('segnum','var'),segnum = 1;,end
 
-% get the experimental parameters
-experiment = getTaskParameters(myscreen,task);
-
 % init trace
 trace = zeros(1,myscreen.tick);
 
@@ -44,6 +41,10 @@ else
   % otherwise cycle through tasks
   allTasks = task;
 end
+
+% get the experimental parameters
+experiment = getTaskParameters(myscreen,allTasks);
+
 
 for tnum = 1:length(allTasks)
   task = allTasks{tnum};
