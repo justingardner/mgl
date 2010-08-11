@@ -9,6 +9,9 @@
 %             To specify taskNum (default=1) and phaseNum (default=1)
 %             addCalculatedVar('newvar',[1 3 4 5 6 2 8 10','100728_stim01','taskNum=2','phaseNum=2');
 %   
+%             You may also want to specify all possible values a variable can take (useful if in
+%             each particular stimfile you won't necessarily encounter each value the variable can take);
+%             addCalculatedVar('newvar',[1 3 4 5 6 2 8 10],'100727_stim01','taskNum=2','phaseNum=2','allval',1:10);
 %
 function retval = addCalculatedVar(varname,varval,stimfile,varargin)
 
@@ -21,7 +24,8 @@ end
 taskNum=[];
 phaseNum=[];
 force=[];
-getArgs(varargin,{'taskNum=1','phaseNum=1','force=0'});
+allval=[];
+getArgs(varargin,{'taskNum=1','phaseNum=1','force=0','allval=[]'});
 
 stimfile = setext(stimfile,'mat');
 if ~isfile(stimfile)
@@ -78,6 +82,14 @@ s.task{taskNum}{phaseNum}.randVars.n_ = s.task{taskNum}{phaseNum}.randVars.n_+1;
 s.task{taskNum}{phaseNum}.randVars.names_{end+1} = varname;
 s.task{taskNum}{phaseNum}.randVars.varlen_(end+1) = length(varval);
 s.task{taskNum}{phaseNum}.randVars.(varname) = varval;
+
+% add it to calculated
+if isempty(allval)
+  s.task{taskNum}{phaseNum}.randVars.calculated.(varname) = varval;
+else
+  s.task{taskNum}{phaseNum}.randVars.calculated.(varname) = allval;
+end
+  
 
 % and save
 disp(sprintf('(addCalculatedVar) Saving variable %s into %s for taskNum=%i phaseNum=%i',varname,stimfile,taskNum,phaseNum));

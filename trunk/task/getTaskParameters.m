@@ -341,3 +341,27 @@ for i = 1:length(taskParameters)
     end
   end
 end
+
+% now do the same for randVars. Works the same way, but get what the parameters were originaly set to - i.e. in the task variable. This gives a record
+randVarTypes = {'uniform','block','calculated'};
+for iRandVarType = 1:length(randVarTypes)
+  if isfield(task.randVars,randVarTypes{iRandVarType})
+    randVars = fieldnames(task.randVars.(randVarTypes{iRandVarType}));
+    for i = 1:length(randVars)
+      % only use fields that don't end in _ 
+      if randVars{i}(end) ~= '_'
+	% check to see if there is a variable with the same name except with an underscore after
+	% it, that will contain the variables all possible settings.
+	allSettings = find(strcmp(sprintf('%s_',randVars{i}),randVars));
+	if ~isempty(allSettings)
+	  experiment(phaseNum).originalRandVars.(randVars{i}) = task.randVars.(randVarTypes{iRandVarType}).(randVars{allSettings});
+	else
+	  % otherwise just set to whatever it was set to
+	  experiment(phaseNum).originalRandVars.(randVars{i}) = task.randVars.(randVarTypes{iRandVarType}).(randVars{i});
+	end
+      end
+    end
+  end
+end
+
+

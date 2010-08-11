@@ -50,6 +50,17 @@ end
 
 % get the correct task and phase
 e = e{taskNum}(phaseNum);
+
+% keep stimfile
+e.stimfile = stimfile;
+e.stimfile.taskNum = taskNum;
+e.stimfile.phaseNum = phaseNum;
+
+% check for taskID
+if ~isfield(stimfile.task{taskNum}{phaseNum},'taskID')
+  disp(sprintf('(getTaskEyeTraces) **** No taskID field found in task. This stimfile was probably generated with an older version of mgl/task. You need to update your mgl code. ****'));
+  return
+end
 taskID = stimfile.task{taskNum}{phaseNum}.taskID;
 
 % check eye tracker type
@@ -106,7 +117,12 @@ end
 endTime(1:length(startTime)-1) = startTime(2:end);
 % make the end time of the last trial, at most as long as the longest trial so far
 maxTrialLen = max(endTime-startTime(1:end-1));
-endTime(end+1) = min(max(edf.d(timeTraceNum,:)),startTime(end)+maxTrialLen);
+if ~isempty(maxTrialLen)
+  endTime(end+1) = min(max(edf.d(timeTraceNum,:)),startTime(end)+maxTrialLen);
+else
+  % if we have only one trial, then use till the end of the data
+  endTime(end+1) = max(edf.d(timeTraceNum,:));
+end
 
 % now get time between samples
 timeBetweenSamples = median(diff(edf.d(timeTraceNum,:)));
@@ -140,11 +156,7 @@ yPix2Deg = stimfile.myscreen.imageHeight/h;
 e.eye.hPos = (e.eye.hPos-(w/2))*xPix2Deg;
 e.eye.vPos = ((h/2)-e.eye.vPos)*yPix2Deg;
 
-% keep stimfile
-e.stimfile = stimfile;
-e.stimfile.taskNum = taskNum;
-e.stimfile.phaseNum = phaseNum;
-
+% display figure
 if dispFig
   displayEyeTraces(e);
 end

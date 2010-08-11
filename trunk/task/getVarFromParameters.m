@@ -90,7 +90,12 @@ for i = 1:length(e)
     elseif isfield(e{i}(j),'randVars') && isfield(e{i}(j).randVars,varname)
       % get the variable
       if allPossibleVals
-	varval = unique(e{i}(j).randVars.(varname));
+	% look for it in the "originalRandVars" field
+	if isfield(e{i}(j),'originalRandVars') && isfield(e{i}(j).originalRandVars,varname)
+	  varval = unique(e{i}(j).originalRandVars.(varname));
+	else
+	  varval = unique(e{i}(j).randVars.(varname));
+	end
       else
 	varval = e{i}(j).randVars.(varname);
       end
