@@ -5,7 +5,7 @@
 %       date: 04/04/10
 %    purpose: Function to read EyeLink eye-tracker files into matlab
 %
-function retval = mglEyelinkReadEDF(filename,verbose)
+function retval = mglEyelinkREadEDF(filename,verbose)
 
 % default return argument
 retval = [];
@@ -18,6 +18,12 @@ end
 
 % default arguments
 if nargin < 2,verbose = 1;end
+
+% check for compiled file
+if exist('mglPrivateEyelinkReadEDF')~=3
+  disp(sprintf('(mglEyelinkReadEDF) You must compile the eyelink files: mglMake(''Eyelink'')'));
+  return
+end
 
 [p,n,e] = fileparts(filename);
 if isempty(e)
