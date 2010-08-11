@@ -216,8 +216,8 @@ task.randVars.calculated_n_ = 0;
 
 % default to computing a length of 250
 if ~isfield(task.randVars,'len_')
-  if isfinite(task.numTrials)
-    task.randVars.len_ = task.numTrials;
+  if isfield(task,'numTrials') && isfinite(task.numTrials)
+    task.randVars.len_ = max(task.numTrials,250);;
   else
     task.randVars.len_ = 250;
   end
