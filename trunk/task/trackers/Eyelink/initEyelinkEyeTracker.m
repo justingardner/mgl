@@ -63,17 +63,16 @@ mglEyelinkCMDPrintF('screen_distance = %6.2f, %6.2f', ...
 		    ((myscreen.displayDistance^2 + (myscreen.displaySize(2)/2)^2)^0.5)*10,...
 		    ((myscreen.displayDistance^2 + (myscreen.displaySize(2)/2)^2)^0.5)*10);
 % select calibration type
-% TODO: allow calibration type to be specified in myscreen.eyetracker
-mglEyelinkCMDPrintF('calibration_type = HV9');
+eyelinkParams = mglEyelinkParams([]);
+mglEyelinkCMDPrintF(sprintf('calibration_type = %s',eyelinkParams.calibrationType));
 % select events to save
-% TODO: allow events to be specified in myscreen.eyetracker
-mglEyelinkCMDPrintF('file_event_filter = RIGHT,FIXATION,SACCADE,BLINK,MESSAGE,BUTTON'); 
+%mglEyelinkCMDPrintF('file_event_filter = RIGHT,FIXATION,SACCADE,BLINK,MESSAGE,BUTTON'); 
+mglEyelinkCMDPrintF('file_event_filter = %s',eyelinkParams.eventFilter); 
 % select data to save
-% TODO: allow data to be specified in myscreen.eyetracker
-mglEyelinkCMDPrintF('file_sample_data = RIGHT,GAZE,AREA,GAZERES,STATUS');
+%mglEyelinkCMDPrintF('file_sample_data = RIGHT,GAZE,AREA,GAZERES,STATUS');
+mglEyelinkCMDPrintF('file_sample_data = %s',eyelinkParams.sampleData);
 % set the sample rate
-% TODO: allow sample rate to be specified in myscreen.eyetracker
-mglEyelinkCMDPrintF('sample_rate = 500');
+mglEyelinkCMDPrintF(sprintf('sample_rate = %i',eyelinkParams.sampleRate));
 
 myscreen.eyetracker.callback.getPosition    = @mglEyelinkCallbackGetPosition;
 myscreen.eyetracker.callback.nextTask       = @mglEyelinkCallbackNextTask;
