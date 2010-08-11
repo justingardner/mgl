@@ -28,7 +28,7 @@ myscreen = endScreen(myscreen);
 % This funciton will check for existing stim files and update the save
 % number appropriately. This should ensure that the eyelink data will always
 % matched, as the stim and eyelink will have the same file number.
-saveStimData(myscreen,task);
+myscreen = saveStimData(myscreen,task);
 
 if myscreen.eyetracker.init && isfield(myscreen.eyetracker.callback, 'endTracking')
   feval(myscreen.eyetracker.callback.endTracking,task,myscreen);
