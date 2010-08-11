@@ -6,10 +6,10 @@
 %    purpose: get the task parameters, reaction times etc,
 %             out of the screen and task variables
 %
-function experiment = getTaskParameters(myscreen,task)
+function [experiment stimfile] = getTaskParameters(myscreen,task)
 
 % check arguments
-experiment = [];
+experiment = [];stimfile=[];
 if ~any(nargin == [1 2])
   help getTaskParameters
   return
@@ -19,13 +19,21 @@ end
 if (nargin == 1) && isstr(myscreen)
   % check for file
   [pathStr filename ext] = fileparts(myscreen);
-  filename = sprintf('%s.mat',fullfile(pathStr,filename));
+  if ~isempty(pathStr)
+    filename = sprintf('%s.mat',fullfile(pathStr,filename));
+  else
+    filename = sprintf('%s.mat',fullfile(pwd,filename));
+  end
+    
   if ~isfile(filename)
     disp(sprintf('(getTaskParameters) Could not find file %s',filename));
     return
   end
   % load file
   load(filename);
+  stimfileName = filename;
+else
+  stimfileName = '';
 end
 
 % so you can pass in stimfile strucuture from MLR
@@ -259,7 +267,22 @@ for taskNum = 1:length(allTasks)
   end
 end
 
+
 experiment = retval;
+
+% save stimfile
+stimfile.stimfilePath = '';
+if ~isempty(stimfileName)
+  [stimfile.stimfilePath stimfile.stimfile] = fileparts(stimfileName);
+else
+  if isfield(myscreen,'stimfile');
+    stimfile.stimfile = myscreen.stimfile;
+  else
+    stimfile.stimfile = '';
+  end
+end
+stimfile.myscreen = myscreen;
+stimfile.task = allTasks;
 
 % set the traces in the return value if they exist
 if isfield(myscreen,'traces')
