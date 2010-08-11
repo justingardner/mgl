@@ -20,11 +20,11 @@ if nargin == 0
 end
 
 % trace numbers from mglEyelinkReadEDF
-gazeXTraceNum = 1;
-gazeYTraceNum = 2;
-pupilTraceNum = 3;
+timeTraceNum = 1;
+gazeXTraceNum = 2;
+gazeYTraceNum = 3;
+pupilTraceNum = 4;
 
-timeTraceNum = 5;
 mglTimeTraceNum = 1;
 segmentNumTraceNum = 2;
 trialNumTraceNum = 3;
