@@ -1,4 +1,4 @@
-function  = mglEyelinkOpenEDF(filename)
+function  mglEyelinkOpenEDF(filename)
 %   MGLEYELINKOPENEDF   Opens an edf file on the Eyelink computer for writing
 %     [] = MGLEYELINKOPENEDF(FILENAME)
 % 
