@@ -55,7 +55,7 @@
 function calib = moncalib(screenNumber,stepsize,numRepeats,testTable,bitTest,initWaitTime)
 
 % check arguments
-if ~any(nargin == [0 1 2 3 4 5])
+if ~any(nargin == [0 1 2 3 4 5 6])
   help moncalib
   return
 end
