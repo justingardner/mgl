@@ -40,7 +40,7 @@ end
 % check for mrParamsDialog
 if ~exist('mrParamsDialog')
   disp(sprintf('(mglEditScreenParams) You must have mrTools in your path to run the GUI for this function.'));
-  disp(sprintf('(mglEditScreenParams) You can download the mrTools utilties by doing the following from a shell:\n\nsvn checkout http://cbi.nyu.edu/svn/mrToosl/trunk/mrUtilities/MatlabUtilities mrToolsUtilities\n\nand then add the path in matlab:\n\naddpath(''mrToolsUtilities'')'));
+  disp(sprintf('(mglEditScreenParams) You can download the mrTools utilties by doing the following from a shell:\n\nsvn checkout http://cbi.nyu.edu/svn/mrTools/trunk/mrUtilities/MatlabUtilities mrToolsUtilities\n\nand then add the path in matlab:\n\naddpath(''mrToolsUtilities'')'));
   return
 end
 
