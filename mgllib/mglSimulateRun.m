@@ -21,7 +21,7 @@
 %             mglSimulateRun(1.5,375,0,'a');
 %
 %             Note that if you want to stop the keyboard events in the middle,
-%             you need to do:
+%             you need to do OR press the ESC key.
 %
 %             mglPostEvent('quit');
 %

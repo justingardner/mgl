@@ -49,6 +49,7 @@
 void* eventDispatcher(void *data);
 void launchEventDispatcherAsThread();
 double getCurrentTimeInSeconds();
+double isEscKeyDown();
 void quitPostEvent(void);
  
 ////////////////////////
@@ -339,6 +340,8 @@ void* eventDispatcher(void *data)
   double currentTimeInSeconds;
 
   while(1) {
+    // if we have the esc key down, then quit
+    if (isEscKeyDown()) quitPostEvent();
     // get the current time in seconds
     currentTimeInSeconds = getCurrentTimeInSeconds();
     // lock the mutex to avoid concurrent access to the global variables
@@ -392,6 +395,24 @@ double getCurrentTimeInSeconds()
   return(0.000001*doubleValue);
 }
 
+////////////////////////
+//    isEscKeyDown    //
+////////////////////////
+double isEscKeyDown()
+{
+  // This line just checks for a shiftKey down using a Carbon call
+  //  return ((GetCurrentKeyModifiers() & shiftKey) != 0) ? 1: 0;
+
+  // This is old carbon code way of checking keys and the ESC key
+  // is hardcoded to key number 53.
+  KeyMap theKeys;
+  GetKeys(theKeys);
+  unsigned char *keybytes = (unsigned char *) theKeys;
+  short k = 53;
+
+  // get the esc key
+  return ((keybytes[k>>3] & (1 << (k&7))) != 0);
+}
 /////////////////////////////////////
 //   launchEventDispatcherAsThread //
 /////////////////////////////////////

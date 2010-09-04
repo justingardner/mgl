@@ -27,6 +27,8 @@
 %             To shut down the thread that dispatches the events (which
 %             is started either with 'init', or simply by posting an event):
 %             mglPostEvent('quit');
+%             OR hit the ESC key to quit.
+%
 function mglPostEvent(command,time,arg1,arg2,arg3)
 
 % check arguments
