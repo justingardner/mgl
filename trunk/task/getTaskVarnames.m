@@ -2,11 +2,19 @@
 %
 %        $id:
 %      usage: [varnames varnamesStr] = getTaskVarnames(task)
+%             [varnames varnamesStr] = getTaskVarnames(v)
 %         by: justin gardner
 %       date: 03/14/07
 %    purpose: returns all the names of the variables in the task
 %             as a cell array (second optional output returns
 %             a single string with the name of the variables)
+%
+%             Can also be called on a view:
+%
+%             v = newView;
+%             v = viewSet(v,'curGroup','Concatenation');
+%             v = viewSet(v,'curScan',1); 
+%             [varnames varnameStr] = getTaskVarnames(v);
 %
 function [varnames varnamesStr] = getTaskVarnames(task)
 
@@ -16,6 +24,29 @@ if ~any(nargin == [1])
   return
 end
 
+% if passed in view, then lookup varnames for the view
+if (exist('isview')==2) && isview(task)
+  % task is really a view
+  v = task;
+  % get the stimfiles
+  s = viewGet(v,'stimfile');
+  % get the varnames for each stimfile
+  varnames = {};
+  for i = 1:length(s)
+    [thisVarnames] = getTaskVarnames(s{i}.task);
+    varnames = union(thisVarnames,varnames);
+  end
+  % create the varnamesStr
+  varnamesStr = '';
+  if ~isempty(varnames)
+    varnamesStr = varnames{1};
+    for j = 2:length(varnames)
+      varnamesStr = sprintf('%s, %s',varnamesStr,varnames{j});
+    end
+  end
+  return
+end
+  
 % make into a cell array of cell arrays
 task = cellArray(task,2);
 
