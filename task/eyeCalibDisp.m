@@ -8,12 +8,16 @@
 %    purpose: run eye calibration routine, dispText is optional argument that
 %             will display the passed in text before the eye calibration routinei
 %
-
-% TODO: make this function generic with respect to the eyetracker used
 function myscreen = eyeCalibDisp(myscreen,dispText)
 
 if nargin < 1
   help eyeCalibDisp;
+  return
+end
+
+% nothing to do with no eye tracker
+if strcmp(lower(myscreen.eyeTrackerType),'none')
+  disp(sprintf('(eyeCalibDisp) Eye tracker type set to none. You can change this in mglEditScreenParams'));
   return
 end
 
@@ -48,10 +52,8 @@ if (myscreen.eyecalib.prompt)
     if any(keyCodes == myscreen.keyboard.return)
       mglClearScreen;myscreen = tickScreen(myscreen);
       % starting experiment, start the eye tracker
-%XXX      writeDigPort(16,2);
-      %myscreen.fishcamp = bitor(myscreen.fishcamp,1);
-      %fishcamp(1,myscreen.fishcamp);
-      % reset fliptime
+      % but without calibration
+      myscreen = startTracker(myscreen,0);
       mglClearScreen;myscreen = tickScreen(myscreen);
       myscreen.fliptime = inf;
       return
@@ -65,13 +67,20 @@ if ~isfield(myscreen,'eyeTrackerType')
   return;
 end
 
+myscreen = startTracker(myscreen,1);
+
+%%%%%%%%%%%%%%%%%%%%%%
+%%   startTracker   %%
+%%%%%%%%%%%%%%%%%%%%%%
+function myscreen = startTracker(myscreen,calibrate)
+
 if strcmp(lower(myscreen.eyeTrackerType),'eyelink')
   % set up eye tracker
   myscreen.eyetracker.savedata = true;
   myscreen.eyetracker.data = [1 1 1 0]; % don't need link events
   myscreen = initEyeTracker(myscreen, 'Eyelink');
-  myscreen = calibrateEyeTracker(myscreen);
-
+  % run calibration
+  if calibrate,myscreen = calibrateEyeTracker(myscreen);end
   % start recording
   if (myscreen.eyetracker.init) && (myscreen.eyetracker.collectEyeData == 1)
     if  ~mglEyelinkRecordingCheck
@@ -81,7 +90,10 @@ if strcmp(lower(myscreen.eyeTrackerType),'eyelink')
     mglPrivateEyelinkRecordingStart(myscreen.eyetracker.data);
   end
 elseif strcmp(lower(myscreen.eyeTrackerType),'calibrate')
-  doCalibration(myscreen);
+  if calibrate,doCalibration(myscreen);end
+elseif strcmp(lower(myscreen.eyeTrackerType),'asl')
+  myscreen = initEyeTracker(myscreen, 'ASL');
+  if calibrate,doCalibration(myscreen);end
 elseif isempty(myscreen.eyeTrackerType)
   disp(sprintf('(eyeCalibDisp) No eyeTracker type set in mglEditScreenParams'));
 else
