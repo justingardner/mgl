@@ -116,12 +116,13 @@ end
 % get the end times
 endTime(1:length(startTime)-1) = startTime(2:end);
 % make the end time of the last trial, at most as long as the longest trial so far
-maxTrialLen = max(endTime-startTime(1:end-1));
-if ~isempty(maxTrialLen)
-  endTime(end+1) = min(max(edf.d(timeTraceNum,:)),startTime(end)+maxTrialLen);
+if ~isempty(endTime)
+  maxTrialLen = max(endTime-startTime(1:end-1))+1;
+  endTime(end+1) = min(max(edf.d(timeTraceNum,:)),startTime(end)+maxTrialLen-1);
 else
   % if we have only one trial, then use till the end of the data
   endTime(end+1) = max(edf.d(timeTraceNum,:));
+  maxTrialLen = endTime-startTime+1;;
 end
 
 % now get time between samples
