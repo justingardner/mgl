@@ -62,6 +62,9 @@ mglEyelinkCMDPrintF('screen_phys_coords = %6.2f, %6.2f, %6.2f, %6.2f', ...
 mglEyelinkCMDPrintF('screen_distance = %6.2f, %6.2f', ...
 		    ((myscreen.displayDistance^2 + (myscreen.displaySize(2)/2)^2)^0.5)*10,...
 		    ((myscreen.displayDistance^2 + (myscreen.displaySize(2)/2)^2)^0.5)*10);
+
+% load the parameters for the eyelink
+params = mglEyelinkParams([]);
 % select calibration type
 eyelinkParams = mglEyelinkParams([]);
 mglEyelinkCMDPrintF(sprintf('calibration_type = %s',eyelinkParams.calibrationType));
@@ -74,6 +77,9 @@ mglEyelinkCMDPrintF('file_sample_data = %s',eyelinkParams.sampleData);
 % set the sample rate
 mglEyelinkCMDPrintF(sprintf('sample_rate = %i',eyelinkParams.sampleRate));
 
+% Callbacks. Note that it is *required* now to set all of these eye
+% tracker callbacks. If one does not exist for some other eye
+% tracker, then a dummy function should be installed
 myscreen.eyetracker.callback.getPosition    = @mglEyelinkCallbackGetPosition;
 myscreen.eyetracker.callback.nextTask       = @mglEyelinkCallbackNextTask;
 myscreen.eyetracker.callback.startBlock     = @mglEyelinkCallbackStartBlock;
