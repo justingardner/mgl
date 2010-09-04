@@ -64,7 +64,7 @@ function [myscreen task] = tickScreen(myscreen,task)
     %  disp(sprintf('myscreen.volnum = %i',myscreen.volnum));
   end
 
-  if myscreen.eyetracker.init && isfield(myscreen.eyetracker.callback, 'getPosition')
+  if myscreen.eyetracker.init
     %% get eye position 
     [task myscreen] = feval(myscreen.eyetracker.callback.getPosition,task,myscreen);
   end
