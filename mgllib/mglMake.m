@@ -52,10 +52,10 @@ else
   elseif isequal(rebuild,'cocoa')
     varargin = {'-D__cocoa__', varargin{:}};
     rebuild = 1;
-  elseif isequal(rebuild,'digio')
+  elseif isequal(lower(rebuild),'digio')
     rebuild = 0;
     digio = 1;
-  elseif isequal(rebuild,'eyelink')
+  elseif isequal(lower(rebuild),'eyelink')
     rebuild = 0;
     eyelink = 1;
   elseif ischar(rebuild) && isequal(rebuild(1), '-')
