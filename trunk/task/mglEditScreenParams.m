@@ -145,7 +145,7 @@ for i= 1:length(addFields)
 end
 
 % eye tracker types
-eyeTrackerTypes = {'None','Eyelink','Calibrate'};
+eyeTrackerTypes = {'None','Eyelink','Calibrate','ASL'};
 
 %set up the paramsInfo
 paramsInfo = {};

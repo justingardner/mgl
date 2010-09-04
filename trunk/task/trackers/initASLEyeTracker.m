@@ -31,6 +31,17 @@ function myscreen = initASLEyeTracker(myscreen, bkcolor, configuration)
     myscreen.fishcamp = bitshift(tracknum,1);
     myscreen.eyetracker.prompt = 1;
 
+    % Callbacks. Note that it is *required* now to set all of these eye
+    % tracker callbacks. If one does not exist for some other eye
+    % tracker, then a dummy function should be installed
+    myscreen.eyetracker.callback.getPosition    = @aslDefaultCallback;
+    myscreen.eyetracker.callback.nextTask       = @aslDefaultCallback;
+    myscreen.eyetracker.callback.startBlock     = @aslDefaultCallback;
+    myscreen.eyetracker.callback.startTrial     = @aslDefaultCallback;
+    myscreen.eyetracker.callback.endTrial       = @aslDefaultCallback;
+    myscreen.eyetracker.callback.startSegment   = @aslDefaultCallback;
+    myscreen.eyetracker.callback.saveEyeData    = @aslDefaultCallback;
+    myscreen.eyetracker.callback.endTracking    = @aslDefaultCallback;
     % default paramaters for eye calibration
 
     switch configuration
