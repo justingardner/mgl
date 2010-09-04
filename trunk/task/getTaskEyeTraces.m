@@ -91,21 +91,21 @@ end
 disppercent(-inf,sprintf('(getTaskEyeTraces) Opening edf file %s',eyeTrackerFilename));
 edf = mglEyelinkReadEDF(eyeTrackerFilename,0);
 disppercent(inf);
+if isempty(edf),return,end
 
 % get all the messages that match our taskID
-edf.m = edf.m(:,edf.m(taskIDTraceNum,:) == taskID);
 % get the number of trials
-edf.nTrials = max(edf.m(trialNumTraceNum,:));
+edf.nTrials = max(edf.mgl.trialNum(find(edf.mgl.taskID == taskID)));
 
 % now process each trial
 disppercent(-inf,sprintf('(getTaskEyeTraces) Extracting trial by trial data for %i trials',edf.nTrials));
 % get the start times
 for i = 1:edf.nTrials
   % get start tiem
-  thisTrialMessages = find(edf.m(trialNumTraceNum,:)==i);
+  thisTrialMessages = find((edf.mgl.trialNum==i) & (edf.mgl.taskID == taskID));
   % find the segment 0 message
-  segmentZeroMessage = thisTrialMessages(find(edf.m(segmentNumTraceNum,thisTrialMessages)==0));
-  segmentZeroTime = edf.m(mglTimeTraceNum,segmentZeroMessage);
+  segmentZeroMessage = thisTrialMessages(find(edf.mgl.segmentNum(thisTrialMessages)==0));
+  segmentZeroTime = edf.mgl.time(segmentZeroMessage);
   % call this the startTime
   if ~isempty(segmentZeroTime)
     startTime(i) = segmentZeroTime;
@@ -115,18 +115,19 @@ for i = 1:edf.nTrials
 end
 % get the end times
 endTime(1:length(startTime)-1) = startTime(2:end);
+
 % make the end time of the last trial, at most as long as the longest trial so far
 if ~isempty(endTime)
   maxTrialLen = max(endTime-startTime(1:end-1))+1;
-  endTime(end+1) = min(max(edf.d(timeTraceNum,:)),startTime(end)+maxTrialLen-1);
+  endTime(end+1) = min(max(edf.gaze.time),startTime(end)+maxTrialLen-1);
 else
   % if we have only one trial, then use till the end of the data
-  endTime(end+1) = max(edf.d(timeTraceNum,:));
+  endTime(end+1) = max(edf.gaze.time);
   maxTrialLen = endTime-startTime+1;;
 end
 
 % now get time between samples
-timeBetweenSamples = median(diff(edf.d(timeTraceNum,:)));
+timeBetweenSamples = median(diff(edf.gaze.time));
 
 % figure out how large to make data array
 e.eye.hPos = nan(edf.nTrials,ceil(maxTrialLen/timeBetweenSamples));
@@ -137,15 +138,17 @@ e.eye.pupil = nan(edf.nTrials,ceil(maxTrialLen/timeBetweenSamples));
 e.eye.time = (0:(size(e.eye.hPos,2)-1))*timeBetweenSamples/1000;
 
 % go through each trial and populate traces
+warning('off','MATLAB:interp1:NaNinY');
 for iTrial = 1:edf.nTrials
   disppercent(iTrial/edf.nTrials);
   % the times for this trial
   thisTrialTimes = startTime(iTrial):timeBetweenSamples:endTime(iTrial);
   % get data for hPos, vPos and pupil traces form edf data 
-  e.eye.hPos(iTrial,1:length(thisTrialTimes)) = interp1(edf.d(timeTraceNum,:),edf.d(gazeXTraceNum,:),thisTrialTimes,'linear',nan);
-  e.eye.vPos(iTrial,1:length(thisTrialTimes)) = interp1(edf.d(timeTraceNum,:),edf.d(gazeYTraceNum,:),thisTrialTimes,'linear',nan);
-  e.eye.pupil(iTrial,1:length(thisTrialTimes)) = interp1(edf.d(timeTraceNum,:),edf.d(pupilTraceNum,:),thisTrialTimes,'linear',nan);
+  e.eye.hPos(iTrial,1:length(thisTrialTimes)) = interp1(edf.gaze.time,edf.gaze.h,thisTrialTimes,'linear',nan);
+  e.eye.vPos(iTrial,1:length(thisTrialTimes)) = interp1(edf.gaze.time,edf.gaze.v,thisTrialTimes,'linear',nan);
+  e.eye.pupil(iTrial,1:length(thisTrialTimes)) = interp1(edf.gaze.time,edf.gaze.pupil,thisTrialTimes,'linear',nan);
 end
+warning('on','MATLAB:interp1:NaNinY');
 disppercent(inf);
 
 % convert to device coordinates
@@ -213,17 +216,3 @@ ylabel('V. eyepos (deg)');
 title('Median eye position by trial type');
 axis square
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%    getInterpolatedEyepos    %
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function [hPos vPos pupil] = getInterpolatedEye(edf,time)
-
-hPos = nan;vPos = nan;pupil = nan;
-sampleNum = find(edf.d(5,:)==time);
-if ~isempty(sampleNum)
-  hPos(iTrial,k) = edf.d(1,sampleNum);
-  vPos(iTrial,k) = edf.d(2,sampleNum);
-  pupil(iTrial,k) = edf.d(3,sampleNum);
-else
-  disp(sprintf('(getTaskEyeTraces) Missing sample %i form trial %i',iSampleTime,iTrial));
-end
