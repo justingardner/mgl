@@ -25,7 +25,7 @@ if (task{tnum}.trialnum > task{tnum}.numTrials)
   tnum = tnum+1;
   % write out the phase
   myscreen = writeTrace(tnum,task{tnum-1}.phaseTrace,myscreen);
-  if myscreen.eyetracker.init && isfield(myscreen.eyetracker.callback, 'nextTask') && tnum <= numel(task)
+  if myscreen.eyetracker.init && tnum <= numel(task)
     [task{tnum} myscreen] = feval(myscreen.eyetracker.callback.nextTask,task{tnum},myscreen);
   end
   [task myscreen tnum] = updateTask(task,myscreen,tnum);
@@ -42,7 +42,7 @@ if (task{tnum}.blocknum == 0) || (task{tnum}.blockTrialnum > task{tnum}.block(ta
     tnum = tnum+1;
     % write out the phase
     myscreen = writeTrace(tnum,task{tnum-1}.phaseTrace,myscreen);
-    if myscreen.eyetracker.init && isfield(myscreen.eyetracker.callback, 'nextTask') && tnum <= numel(task)
+    if myscreen.eyetracker.init && tnum <= numel(task)
       [task{tnum} myscreen] = feval(myscreen.eyetracker.callback.nextTask,task{tnum},myscreen);
     end
     [task myscreen tnum] = updateTask(task, myscreen, tnum);
@@ -112,7 +112,7 @@ if task{tnum}.thistrial.segstart == -inf
   task{tnum} = resetSegmentClock(task{tnum},myscreen);
   % call segment start callback
   [task{tnum} myscreen] = feval(task{tnum}.callback.startSegment,task{tnum},myscreen);
-  if myscreen.eyetracker.init && isfield(myscreen.eyetracker.callback, 'startSegment')
+  if myscreen.eyetracker.init 
     %% call eyetracker segment callback
     [task{tnum} myscreen] = feval(myscreen.eyetracker.callback.startSegment,task{tnum},myscreen);
   end
@@ -245,7 +245,7 @@ if (segover)
     if isfield(task{tnum}.callback,'endTrial')
       [task{tnum} myscreen]= feval(task{tnum}.callback.endTrial,task{tnum},myscreen);
     end
-    if myscreen.eyetracker.init && isfield(myscreen.eyetracker.callback, 'endTrial')
+    if myscreen.eyetracker.init 
       %% call eyetracker endTrial callback
       [task{tnum} myscreen] = feval(myscreen.eyetracker.callback.endTrial,task{tnum},myscreen);
     end
@@ -280,7 +280,7 @@ if (segover)
   myscreen = writeTrace(task{tnum}.thistrial.thisseg,task{tnum}.segmentTrace,myscreen,1);
 
   % call segment start callback
-  if myscreen.eyetracker.init && isfield(myscreen.eyetracker.callback, 'startSegment')
+  if myscreen.eyetracker.init
     %% call eyetracker trial callback
     [task{tnum} myscreen] = feval(myscreen.eyetracker.callback.startSegment,task{tnum},myscreen);
   end
@@ -371,7 +371,7 @@ task.blockTrialnum = 1;
 if isfield(task.callback,'startBlock')
   [task myscreen] = feval(task.callback.startBlock,task,myscreen);
 end
-if myscreen.eyetracker.init && isfield(myscreen.eyetracker.callback, 'startBlock')
+if myscreen.eyetracker.init
   %% call eyetracker block callback
   [task myscreen] = feval(myscreen.eyetracker.callback.startBlock,task,myscreen);
 end
@@ -462,7 +462,7 @@ end
 if isfield(task.callback,'startTrial')
   [task myscreen] = feval(task.callback.startTrial,task,myscreen);
 end    
-if myscreen.eyetracker.init && isfield(myscreen.eyetracker.callback, 'startTrial')
+if myscreen.eyetracker.init
   %% call eyetracker trial callback
   [task myscreen] = feval(myscreen.eyetracker.callback.startTrial,task,myscreen);
 end
