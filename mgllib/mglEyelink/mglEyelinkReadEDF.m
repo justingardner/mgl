@@ -5,7 +5,7 @@
 %       date: 04/04/10
 %    purpose: Function to read EyeLink eye-tracker files into matlab
 %
-function retval = mglEyelinkREadEDF(filename,verbose)
+function retval = mglEyelinkReadEDF(filename,verbose)
 
 % default return argument
 retval = [];
@@ -30,11 +30,8 @@ if isempty(e)
     filename = fullfile(p, [n '.edf']);
 end
 if isfile(filename)
-  % mglPrivateEleyinkReadEDF returns two matrices. The first
-  % is the eye data with rows time, gaze x, gaze y, pupil, whichEye
-  % The second contains Mgl messages which has rows:
-  % time, segmentNum, trialNum, blockNum, phaseNum, taskID
-  [retval.d retval.m] = mglPrivateEyelinkReadEDF(filename,verbose);
+  % mglPrivateEleyinkReadEDF returns a structre
+  retval = mglPrivateEyelinkReadEDF(filename,verbose);
 else
   disp(sprintf('(mglEyelinkReadEDF) Could not open file %s',filename));
 end
