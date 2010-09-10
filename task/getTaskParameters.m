@@ -6,6 +6,11 @@
 %    purpose: get the task parameters, reaction times etc,
 %             out of the screen and task variables
 %
+%             Note that all volume numbers represent the beginning of a trial or a segment
+%             and are rounded to the **closest** volume number. Thus if your trial or segment
+%             started at time 0.76 seconds and your frame period (TR) was 1.5 seconds, then 
+%             you would see a volume number of 2 rather than 1.
+%
 function [experiment stimfile] = getTaskParameters(myscreen,task)
 
 % check arguments
