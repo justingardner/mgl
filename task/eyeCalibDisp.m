@@ -121,6 +121,9 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%
 function doCalibration(myscreen)
 
+% put a pulse out if we are using digio
+if myscreen.useDigIO, mglDigIO('digout',0,0);end
+
 % put fixation in center of screen to allow subject to get there in time
 mglClearScreen;
 mglGluDisk(0,0,myscreen.eyecalib.size/2,myscreen.eyecalib.color);
@@ -137,9 +140,9 @@ for j = 1:myscreen.eyecalib.n
   mglGluDisk(myscreen.eyecalib.x(j),myscreen.eyecalib.y(j),myscreen.eyecalib.size/2,myscreen.eyecalib.color);
   mglFlush;
   if ((myscreen.eyecalib.x(j) ~= 0) || (myscreen.eyecalib.y(j) ~= 0))
-%XXX    writeDigPort(48,2);
+    if myscreen.useDigIO, mglDigIO('digout',0,255);end
   else
-%XXX    writeDigPort(16,2);
+    if myscreen.useDigIO, mglDigIO('digout',0,0);end
   end
   startTime = mglGetSecs;
   if ~isinf(myscreen.eyecalib.waittime)
