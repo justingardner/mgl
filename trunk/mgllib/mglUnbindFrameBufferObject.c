@@ -24,6 +24,6 @@ $Id: mglUnbindFrameBufferObject.c 18 2010-09-07 15:41:18Z cgb $
 //////////////
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
-	glPopAttrib;
+	glPopAttrib();
 	glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
 }
