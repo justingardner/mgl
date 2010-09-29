@@ -43,6 +43,12 @@ end
 % make sure task is a cell array
 s.task = cellArray(s.task,2);
 
+% add default fields if they do not yet exist
+if ~isfield(s.task{taskNum}{phaseNum}.randVars,'names_')
+  s.task{taskNum}{phaseNum}.randVars.names_ = {};
+  s.task{taskNum}{phaseNum}.randVars.varlen_ = [];
+end
+
 % check whether variable already exist
 if any(strcmp(varname,s.task{taskNum}{phaseNum}.randVars.names_))
   if force
