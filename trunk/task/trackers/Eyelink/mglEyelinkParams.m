@@ -1,4 +1,4 @@
-% mglEyelinkParams.m
+% mglEyelinkParams.mglEyelink
 %
 %      usage: mglEyelinkParams()
 %         by: justin gardner
@@ -42,7 +42,7 @@ if (nargin == 1)
     return
   else 
     % if one argument and empty, just return parameters
-  params = mglEyelinkValidateParams(mglGetParam('eyelinkParams'));
+    params = mglEyelinkValidateParams(mglGetParam('eyelinkParams'));
   end
 end
 
@@ -56,6 +56,8 @@ paramsInfo{1} = {'calibrationType',putOnTopOfList(params.calibrationType,{'HV9',
 % get sampleRate
 paramsInfo{end+1} = {'sampleRate',putOnTopOfList(params.sampleRate,{500,1000,2000}),'Set the sample rate at which you would like to acquire data'};
 
+paramsInfo{end+1} = {'parserSensitivity', params.parserSensitivity,'type=checkbox','Click for more sensitivity event parsing, better for psychophysics'};
+  
 % get field names, and look for eventFilter and sampleData fileds
 thisFieldNames = fieldnames(params);
 for i = 1:length(thisFieldNames)
@@ -66,6 +68,7 @@ for i = 1:length(thisFieldNames)
     paramsInfo{end+1} = {thisFieldNames{i},params.(thisFieldNames{i}),'type=checkbox',sprintf('Click to save samples for: %s',thisFieldNames{i}(11:end))};
   end
 end
+
 
 % bring up dialog
 params = mrParamsDialog(paramsInfo,'Set Eyelink parameters');
@@ -93,9 +96,10 @@ necessaryFields = {'calibrationType','HV9';
   'sampleDataRight',1;
   'sampleDataGaze',1;
   'sampleDataArea',1;
-  'sampleDataGazers',1;
+  'sampleDataGazeres',1;
   'sampledataStatus',1;
   'sampleRate',500;
+  'parserSensitivity',1;
   };
 
 % look for fields and set defaults if the do not exist
