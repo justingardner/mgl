@@ -2,7 +2,6 @@ function [myscreen] = initEyelinkEyeTracker(myscreen, conntype)
 % initEyeLinkEyeTracker - initializes a the myscreen and tracker for use
 %
 %
-
 % initEyeLinkEyeTracker.m
 %
 %        $Id: initEyeLinkEyeTracker.m 203 2007-03-19 15:41:00Z justin $
@@ -48,7 +47,6 @@ end
 if ~mglEyelinkOpen('100.1.1.1', conntype)
   return
 end
-
 % pixels [left top width height]
 mglEyelinkCMDPrintF('screen_pixel_coords = 0, 0, %d, %d',...
 		    mglGetParam('screenWidth'), mglGetParam('screenHeight'));
@@ -76,6 +74,9 @@ mglEyelinkCMDPrintF('file_event_filter = %s',eyelinkParams.eventFilter);
 mglEyelinkCMDPrintF('file_sample_data = %s',eyelinkParams.sampleData);
 % set the sample rate
 mglEyelinkCMDPrintF(sprintf('sample_rate = %i',eyelinkParams.sampleRate));
+% set the sensitivity of the parser (1 is more sensitive than 0)
+mglEyelinkCMDPrintF(sprintf('select_parser_configuration = %i', eyelinkParams.parserSensitivity));
+
 
 % Callbacks. Note that it is *required* now to set all of these eye
 % tracker callbacks. If one does not exist for some other eye
@@ -108,7 +109,6 @@ if ~isfield(myscreen.eyetracker, 'savedata') || myscreen.eyetracker.savedata
   % get filename
   thedate = [datestr(now,'yy') datestr(now,'mm') datestr(now,'dd')];
   myscreen.eyetracker.datafilename = sprintf('%s%02i',thedate,nSaves);
-  
   disp(sprintf('(initEyeLinkEyeTracker) Eyelink output file is %s',myscreen.eyetracker.datafilename));
   
   % make sure we don't have an existing file in the directory
