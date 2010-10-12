@@ -25,17 +25,21 @@ usage:   mglPrivateEyelinkClose(ipaddress, trackedwindow, displaywindow)
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
 
-    if (nrhs!=0) /* What arguments should this take? */
+  if (nrhs!=0) /* What arguments should this take? */
     {
-        usageError("mglPrivateEyelinkClose");
-        return;
+      usageError("mglPrivateEyelinkClose");
+      return;
     }
-
-    close_eyelink_connection();
-    // I don't believe we need this.
-    // close_eyelink_system();
-    mexPrintf("(mglPrivateEyelinkClose) MGL Eyelink tracker link closed.\n");
-    
+  
+  // the close used to call close_eyelink_connection();
+  // but that caused problems with the 64bit libraries (like, bad matlab crashing)
+  // eyelink_close(1) seems to do the trick. -Eli, 9/30/2010
+  //close_eyelink_connection();
+  eyelink_close(1);
+  // I don't believe we need this.
+  // close_eyelink_system();
+  mexPrintf("(mglPrivateEyelinkClose) MGL Eyelink tracker link closed.\n");
+  
 }
 
 
