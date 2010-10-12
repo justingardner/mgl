@@ -73,9 +73,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
   // initialize the output structure
   const char *mglFieldname = "mgl";
-  const char *fieldNames[] =  {"filename","numElements","numTrials","EDFAPI","preamble","gaze","fixations","saccades","blinks",mglFieldname,"gazeCoords"};
+  const char *fieldNames[] =  {"filename","numElements","numTrials","EDFAPI","preamble","gaze","fixations","saccades","blinks",mglFieldname,"gazeCoords","frameRate"};
   int outDims[2] = {1,1};
-  plhs[0] = mxCreateStructArray(1,outDims,11,fieldNames);
+  plhs[0] = mxCreateStructArray(1,outDims,12,fieldNames);
   
   // save some info about the EDF file in the output
   mxSetField(plhs[0],0,"filename",mxCreateString(filename));
@@ -119,28 +119,69 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mexPrintf("(mglPrivateEyelinkReadEDF) MGL Version %i messages\n",mglEyelinkVersion);
 
   // set an output fields for the gaze data
-  const char *fieldNames2[] =  {"time","h","v","pupil","whichEye"};
+  const char *fieldNamesGaze[] =  {"time","x","y","pupil","pix2degX","pix2degY","velocityX","velocityY","whichEye"};
   int outDims2[2] = {1,1};
-  mxSetField(plhs[0],0,"gaze",mxCreateStructArray(1,outDims2,5,fieldNames2));
+  mxSetField(plhs[0],0,"gaze",mxCreateStructArray(1,outDims2,9,fieldNamesGaze));
   mxSetField(mxGetField(plhs[0],0,"gaze"),0,"time",mxCreateDoubleMatrix(1,numSamples,mxREAL));
   double *outptrTime = (double *)mxGetPr(mxGetField(mxGetField(plhs[0],0,"gaze"),0,"time"));
-  mxSetField(mxGetField(plhs[0],0,"gaze"),0,"h",mxCreateDoubleMatrix(1,numSamples,mxREAL));
-  double *outptrH = (double *)mxGetPr(mxGetField(mxGetField(plhs[0],0,"gaze"),0,"h"));
-  mxSetField(mxGetField(plhs[0],0,"gaze"),0,"v",mxCreateDoubleMatrix(1,numSamples,mxREAL));
-  double *outptrV = (double *)mxGetPr(mxGetField(mxGetField(plhs[0],0,"gaze"),0,"v"));
+  mxSetField(mxGetField(plhs[0],0,"gaze"),0,"x",mxCreateDoubleMatrix(1,numSamples,mxREAL));
+  double *outptrX = (double *)mxGetPr(mxGetField(mxGetField(plhs[0],0,"gaze"),0,"x"));
+  mxSetField(mxGetField(plhs[0],0,"gaze"),0,"y",mxCreateDoubleMatrix(1,numSamples,mxREAL));
+  double *outptrY = (double *)mxGetPr(mxGetField(mxGetField(plhs[0],0,"gaze"),0,"y"));
   mxSetField(mxGetField(plhs[0],0,"gaze"),0,"pupil",mxCreateDoubleMatrix(1,numSamples,mxREAL));
   double *outptrPupil = (double *)mxGetPr(mxGetField(mxGetField(plhs[0],0,"gaze"),0,"pupil"));
+  mxSetField(mxGetField(plhs[0],0,"gaze"),0,"pix2degX",mxCreateDoubleMatrix(1,numSamples,mxREAL));
+  double *outptrPix2DegX = (double *)mxGetPr(mxGetField(mxGetField(plhs[0],0,"gaze"),0,"pix2degX"));
+  mxSetField(mxGetField(plhs[0],0,"gaze"),0,"pix2degY",mxCreateDoubleMatrix(1,numSamples,mxREAL));
+  double *outptrPix2DegY = (double *)mxGetPr(mxGetField(mxGetField(plhs[0],0,"gaze"),0,"pix2degY"));
+  mxSetField(mxGetField(plhs[0],0,"gaze"),0,"velocityX",mxCreateDoubleMatrix(1,numSamples,mxREAL));
+  double *outptrVelX = (double *)mxGetPr(mxGetField(mxGetField(plhs[0],0,"gaze"),0,"velocityX"));
+  mxSetField(mxGetField(plhs[0],0,"gaze"),0,"velocityY",mxCreateDoubleMatrix(1,numSamples,mxREAL));
+  double *outptrVelY = (double *)mxGetPr(mxGetField(mxGetField(plhs[0],0,"gaze"),0,"velocityY"));
   mxSetField(mxGetField(plhs[0],0,"gaze"),0,"whichEye",mxCreateDoubleMatrix(1,numSamples,mxREAL));
   double *outptrWhichEye = (double *)mxGetPr(mxGetField(mxGetField(plhs[0],0,"gaze"),0,"whichEye"));
-  // fixations
-  mxSetField(plhs[0],0,"fixations",mxCreateDoubleMatrix(4,numFix,mxREAL));
-  double *outptrFix = (double *)mxGetPr(mxGetField(plhs[0],0,"fixations"));
-  // saccades
-  mxSetField(plhs[0],0,"saccades",mxCreateDoubleMatrix(7,numSac,mxREAL));
-  double *outptrSac = (double *)mxGetPr(mxGetField(plhs[0],0,"saccades"));
-  // blinks
-  mxSetField(plhs[0],0,"blinks",mxCreateDoubleMatrix(2,numBlink,mxREAL));
-  double *outptrBlink = (double *)mxGetPr(mxGetField(plhs[0],0,"blinks"));
+
+  // set output fields for fixations
+  const char *fieldNamesFix[] =  {"startTime","endTime","aveH","aveV"};
+  int outDimsFix[2] = {1,1};
+  mxSetField(plhs[0],0,"fixations",mxCreateStructArray(1,outDimsFix,4,fieldNamesFix));
+  mxSetField(mxGetField(plhs[0],0,"fixations"),0,"startTime",mxCreateDoubleMatrix(1,numFix,mxREAL));
+  double *outptrFixStartTime = (double *)mxGetPr(mxGetField(mxGetField(plhs[0],0,"fixations"),0,"startTime"));
+  mxSetField(mxGetField(plhs[0],0,"fixations"),0,"endTime",mxCreateDoubleMatrix(1,numFix,mxREAL));
+  double *outptrFixEndTime = (double *)mxGetPr(mxGetField(mxGetField(plhs[0],0,"fixations"),0,"endTime"));
+  mxSetField(mxGetField(plhs[0],0,"fixations"),0,"aveH",mxCreateDoubleMatrix(1,numFix,mxREAL));
+  double *outptrFixAvgH = (double *)mxGetPr(mxGetField(mxGetField(plhs[0],0,"fixations"),0,"aveH"));
+  mxSetField(mxGetField(plhs[0],0,"fixations"),0,"aveV",mxCreateDoubleMatrix(1,numFix,mxREAL));
+  double *outptrFixAvgV = (double *)mxGetPr(mxGetField(mxGetField(plhs[0],0,"fixations"),0,"aveV"));
+
+  // set output fields for saccades
+  const char *fieldNamesSac[] =  {"startTime","endTime","startH","startV","endH","endV","peakVel"};
+  int outDimsSac[2] = {1,1};
+  mxSetField(plhs[0],0,"saccades",mxCreateStructArray(1,outDimsFix,7,fieldNamesSac));
+  mxSetField(mxGetField(plhs[0],0,"saccades"),0,"startTime",mxCreateDoubleMatrix(1,numSac,mxREAL));
+  double *outptrSacStartTime = (double *)mxGetPr(mxGetField(mxGetField(plhs[0],0,"saccades"),0,"startTime"));
+  mxSetField(mxGetField(plhs[0],0,"saccades"),0,"endTime",mxCreateDoubleMatrix(1,numSac,mxREAL));
+  double *outptrSacEndTime = (double *)mxGetPr(mxGetField(mxGetField(plhs[0],0,"saccades"),0,"endTime"));
+  mxSetField(mxGetField(plhs[0],0,"saccades"),0,"startH",mxCreateDoubleMatrix(1,numSac,mxREAL));
+  double *outptrSacStartH = (double *)mxGetPr(mxGetField(mxGetField(plhs[0],0,"saccades"),0,"startH"));
+  mxSetField(mxGetField(plhs[0],0,"saccades"),0,"startV",mxCreateDoubleMatrix(1,numSac,mxREAL));
+  double *outptrSacStartV = (double *)mxGetPr(mxGetField(mxGetField(plhs[0],0,"saccades"),0,"startV"));
+  mxSetField(mxGetField(plhs[0],0,"saccades"),0,"endH",mxCreateDoubleMatrix(1,numSac,mxREAL));
+  double *outptrSacEndH = (double *)mxGetPr(mxGetField(mxGetField(plhs[0],0,"saccades"),0,"endH"));
+  mxSetField(mxGetField(plhs[0],0,"saccades"),0,"endV",mxCreateDoubleMatrix(1,numSac,mxREAL));
+  double *outptrSacEndV = (double *)mxGetPr(mxGetField(mxGetField(plhs[0],0,"saccades"),0,"endV"));
+  mxSetField(mxGetField(plhs[0],0,"saccades"),0,"peakVel",mxCreateDoubleMatrix(1,numSac,mxREAL));
+  double *outptrSacPeakVel = (double *)mxGetPr(mxGetField(mxGetField(plhs[0],0,"saccades"),0,"peakVel"));
+
+  // set output fields for blinks
+  const char *fieldNamesBlinks[] =  {"startTime","endTime"};
+  int outDimsBlinks[2] = {1,1};
+  mxSetField(plhs[0],0,"blinks",mxCreateStructArray(1,outDimsBlinks,2,fieldNamesBlinks));
+  mxSetField(mxGetField(plhs[0],0,"blinks"),0,"startTime",mxCreateDoubleMatrix(1,numBlink,mxREAL));
+  double *outptrBlinkStartTime = (double *)mxGetPr(mxGetField(mxGetField(plhs[0],0,"blinks"),0,"startTime"));
+  mxSetField(mxGetField(plhs[0],0,"blinks"),0,"endTime",mxCreateDoubleMatrix(1,numBlink,mxREAL));
+  double *outptrBlinkEndTime = (double *)mxGetPr(mxGetField(mxGetField(plhs[0],0,"blinks"),0,"endTime"));
+
   // MGL trials
   double *outptrMGLtrial;
   // for version 0, we just have trial markers, and will save those
@@ -150,13 +191,18 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   }
   // for version 1, we have various fields that get set
   else {
-    const char *fieldNames[] =  {"time","segmentNum","trialNum","blockNum","phaseNum","taskID"};
+    const char *fieldNamesMGL[] =  {"time","segmentNum","trialNum","blockNum","phaseNum","taskID"};
     int outDims[2] = {1,1};
-    mxSetField(plhs[0],0,mglFieldname,mxCreateStructArray(1,outDims,6,fieldNames));
+    mxSetField(plhs[0],0,mglFieldname,mxCreateStructArray(1,outDims,6,fieldNamesMGL));
   }
+
   // gaze coordinates
   mxSetField(plhs[0],0,"gazeCoords",mxCreateDoubleMatrix(1,4,mxREAL));
   double *outptrCoords = (double *)mxGetPr(mxGetField(plhs[0],0,"gazeCoords"));
+
+  // gaze coordinates
+  mxSetField(plhs[0],0,"frameRate",mxCreateDoubleMatrix(1,1,mxREAL));
+  double *outptrFrameRate = (double *)mxGetPr(mxGetField(plhs[0],0,"frameRate"));
 
   // go back go beginning of file
   edf_goto_bookmark(edf,&startOfFile);
@@ -173,41 +219,50 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     if (verbose>2) dispEventType(eventType);
     if (verbose>1) dispEvent(eventType,data); 
     // grab which eye we are recording from
-    if (isEyeUsedMessage(eventType,data)) currentEye = (int)data->fe.eye;
+    /* if (isEyeUsedMessage(eventType,data)) currentEye = (int)data->fe.eye; */
+    currentEye = 1;
     // get samples
     switch(eventType) {
     case SAMPLE_TYPE:
       *outptrTime++ = (double)data->fs.time;
-      if ((int)data->fs.gx[currentEye]==NaN) {
-          *outptrH++ = mxGetNaN();
-          *outptrV++ = mxGetNaN();
+      *outptrWhichEye++ = currentEye;
+      if ((int)data->fs.gxvel[currentEye]==NaN) {
+          *outptrX++ = mxGetNaN();
+          *outptrY++ = mxGetNaN();
           *outptrPupil++ = mxGetNaN();
+          *outptrPix2DegX++ = mxGetNaN();
+          *outptrPix2DegY++ = mxGetNaN();
+          *outptrVelX++ = mxGetNaN();
+          *outptrVelY++ = mxGetNaN();
         }
       else{
-        *outptrH++ = (double)data->fs.gx[currentEye];
-        *outptrV++ = (double)data->fs.gy[currentEye];
+        *outptrX++ = (double)data->fs.gx[currentEye];
+        *outptrY++ = (double)data->fs.gy[currentEye];
         *outptrPupil++ = (double)data->fs.pa[currentEye];
+        *outptrPix2DegX++ = (double)data->fs.rx;
+        *outptrPix2DegY++ = (double)data->fs.ry;
+        *outptrVelX++ = (double)data->fs.gxvel[currentEye];
+        *outptrVelY++ = (double)data->fs.gyvel[currentEye];
       }
-      *outptrWhichEye++ = currentEye;
       break;
     case ENDFIX:
-      *outptrFix++ = (double)data->fe.sttime;
-      *outptrFix++ = (double)data->fe.entime;
-      *outptrFix++ = (double)data->fe.gavx;
-      *outptrFix++ = (double)data->fe.gavy;
+      *outptrFixStartTime++ = (double)data->fe.sttime;
+      *outptrFixEndTime++ = (double)data->fe.entime;
+      *outptrFixAvgH++ = (double)data->fe.gavx;
+      *outptrFixAvgV++ = (double)data->fe.gavy;
       break;
     case ENDSACC:
-      *outptrSac++ = (double)data->fe.sttime;
-      *outptrSac++ = (double)data->fe.entime;
-      *outptrSac++ = (double)data->fe.gstx;
-      *outptrSac++ = (double)data->fe.gsty;
-      *outptrSac++ = (double)data->fe.genx;
-      *outptrSac++ = (double)data->fe.geny;
-      *outptrSac++ = (double)data->fe.pvel;
+      *outptrSacStartTime++ = (double)data->fe.sttime;
+      *outptrSacEndTime++ = (double)data->fe.entime;
+      *outptrSacStartH++ = (double)data->fe.gstx;
+      *outptrSacStartV++ = (double)data->fe.gsty;
+      *outptrSacEndH++ = (double)data->fe.genx;
+      *outptrSacEndV++ = (double)data->fe.geny;
+      *outptrSacPeakVel++ = (double)data->fe.pvel;
       break;
     case ENDBLINK:
-      *outptrBlink++ = (double)data->fe.sttime;
-      *outptrBlink++ = (double)data->fe.entime;
+      *outptrBlinkStartTime++ = (double)data->fe.sttime;
+      *outptrBlinkEndTime++ = (double)data->fe.entime;
       break;
     case MESSAGEEVENT:
       if (mglEyelinkVersion == 0) {
@@ -223,9 +278,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 	}
       }
       if ((strncmp(&(data->fe.message->c),"GAZE_COORDS",11) == 0) && (setGazeCoords == 0)) {
-        char *mglMessage = &(data->fe.message->c);
+        char *gazeCoords = &(data->fe.message->c);
         char *tok;
-        tok = strtok(mglMessage," ");
+        tok = strtok(gazeCoords," ");
         tok = strtok(NULL," ");
         *outptrCoords++ = (double)atoi(tok);
         tok = strtok(NULL," ");
@@ -236,6 +291,20 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         *outptrCoords++ = (double)atoi(tok);
         setGazeCoords = 1;
       }
+      if (strncmp(&(data->fe.message->c),"FRAMERATE",9) == 0){
+        char *msg = &(data->fe.message->c);
+        char *tok;
+        tok = strtok(msg, " ");
+        tok = strtok(NULL," ");
+        *outptrFrameRate++ = (double)atof(tok);
+      }
+      /* if (strncmp(&(data->fe.message->c),"!CAL",4) == 0){ */
+      /*   char *calMessage = &(data->fe.message->c); */
+      /*   char *tok; */
+      /*   tok = strtok(calMessage, " "); */
+      /*   tok = strtok(NULL," "); */
+      /*   mexPrintf("%s\n", tok); */
+      /* } */
       break;
     }
   }
