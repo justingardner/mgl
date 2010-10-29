@@ -11,7 +11,7 @@
 function [] = mglEyelinkEDFPrintF(message, varargin)
 
 % check arguments
-if ~any(nargin == [1])
+if ~any(nargin == [1:10])
   help mglEyelinkEDFPrintF
   return
 end
