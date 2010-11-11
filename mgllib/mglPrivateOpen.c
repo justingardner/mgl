@@ -39,7 +39,7 @@ void mglPrivateOpenOnExit(void);
 // whatever the display size was after opening. For displayNumber of 0, the size
 // of the window should be set to the passed in screenWidth/screenHeight. A display
 // number >0 and <1 indicates to open in a window with the alpha set to the displayNumber
-unsigned long openDisplay(double *displayNumber, int *screenWidth, int *screenHeight);
+MGL_CONTEXT_PTR openDisplay(double *displayNumber, int *screenWidth, int *screenHeight);
 
 //////////////
 //   main   //
@@ -59,7 +59,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   // the pointer will be set to 0 which will
   // be as sign for mglSwitchDisplay that the context
   // cannot be switched
-  unsigned long contextPointer = 0;
+  MGL_CONTEXT_PTR contextPointer = 0;
 
   // check to make sure something already isn't open
   if (mglIsGlobal("displayNumber") && (mglGetGlobalDouble("displayNumber") >= 0)) {
@@ -788,7 +788,7 @@ LRESULT	CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
 GLvoid WinResizeGLScene(GLsizei width, GLsizei height);
 GLvoid WinKillGLWindow(HDC hDC, HGLRC hRC, HWND hWnd, HINSTANCE hInstance);
 
-unsigned long openDisplay(double *displayNumber, int *screenWidth, int *screenHeight)
+MGL_CONTEXT_PTR openDisplay(double *displayNumber, int *screenWidth, int *screenHeight)
 {
   HDC	hDC = NULL;				// Private GDI Device Context
   HGLRC hRC= NULL;			// Permanent Rendering Context
@@ -802,7 +802,7 @@ unsigned long openDisplay(double *displayNumber, int *screenWidth, int *screenHe
   PIXELFORMATDESCRIPTOR pfd;	// Pixel format descriptor.
   RECT WindowRect;			// Grabs Rectangle Upper Left / Lower Right Values
   int bitDepth = 32;			// Default bit depth.
-  unsigned int ref;
+  MGL_CONTEXT_PTR ref;
 
   WindowRect.left = (long)0;				// Set Left Value To 0
   WindowRect.right = (long)*screenWidth;	// Set Right Value To Requested Width
@@ -928,11 +928,11 @@ unsigned long openDisplay(double *displayNumber, int *screenWidth, int *screenHe
   WinResizeGLScene(*screenWidth, *screenHeight);  // Set Up Our Perspective GL Screen
   SwapBuffers(hDC);
 
-  ref = (unsigned int)hWnd;
+  ref = (MGL_CONTEXT_PTR)hWnd;
   mglSetGlobalDouble("winWindowPointer", (double)ref);
-  ref = (unsigned int)hDC;
+  ref = (MGL_CONTEXT_PTR)hDC;
   mglSetGlobalDouble("winDeviceContext", (double)ref);
-  ref = (unsigned int)hInstance;
+  ref = (MGL_CONTEXT_PTR)hInstance;
   mglSetGlobalDouble("winAppInstance", (double)ref);
   mglSetGlobalDouble("fullScreen", (double)fullScreen);
 

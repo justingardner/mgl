@@ -26,7 +26,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
   //  CGLContextObj contextObj = CGLGetCurrentContext();
   double *x, *y, *size, color[4];
-  int i, n, nsize;
+  size_t n, nsize;
+  int i;
   int nslices = 60; // default angular resolution
   int nloops = 10; // default radial resolution
 
@@ -60,13 +61,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   // set color of points
   if (nrhs < 4)
     // set default color
-    glColor3f(1.0,1.0,1.0); 
+    glColor3d(1.0,1.0,1.0); 
   else {
     // get color
     if (mglGetColor(prhs[3],color) == 0) 
-      glColor3f(1.0,1.0,1.0);
+      glColor3d(1.0,1.0,1.0);
     else
-      glColor3f(color[0],color[1],color[2]);
+      glColor3d(color[0],color[1],color[2]);
   }
 
   // make a disk

@@ -79,14 +79,14 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 // ****************************** Windows specific code  **************************** //
 //-----------------------------------------------------------------------------------///
 #ifdef __WINDOWS__
-unsigned int ref;
+MGL_CONTEXT_PTR ref;
 HGLRC hRC;
 HDC hDC;
 
 // Grab the rendering and device contexts.
-ref = (unsigned int)mglGetGlobalDouble("GLContext");
+ref = (MGL_CONTEXT_PTR)mglGetGlobalDouble("GLContext");
 hRC = (HGLRC)ref;
-ref = (unsigned int)mglGetGlobalDouble("winDeviceContext");
+ref = (MGL_CONTEXT_PTR)mglGetGlobalDouble("winDeviceContext");
 hDC = (HDC)ref;
 
 // Make the rendering context current.

@@ -113,7 +113,7 @@ void cocoaClose(displayNumber,verbose)
 
   // bring back task and menu bar if hidden
   if (mglGetGlobalDouble("hideTaskAndMenu")) {
-    if (verbose) mexPrintf("(mglPrivateOpen) Hiding task and menu bar\n");
+    if (verbose) mexPrintf("(mglPrivateClose) Hiding task and menu bar\n");
     OSStatus setSystemUIModeStatus = SetSystemUIMode(kUIModeNormal,0);
   }
 
@@ -277,39 +277,39 @@ void closeDisplay(int displayNumber,int verbose)
 void closeDisplay(int displayNumber, int verbose)
 {
   // Get window parameters.
-  unsigned long v;
-  v = (unsigned long)mglGetGlobalDouble("GLContext");
+  MGL_CONTEXT_PTR v;
+  v = (MGL_CONTEXT_PTR)mglGetGlobalDouble("GLContext");
   HGLRC hRC = (HGLRC)v;
-  v = (unsigned long)mglGetGlobalDouble("winWindowPointer");
+  v = (MGL_CONTEXT_PTR)mglGetGlobalDouble("winWindowPointer");
   HWND hWnd = (HWND)v;
-  v = (unsigned long)mglGetGlobalDouble("winDeviceContext");
+  v = (MGL_CONTEXT_PTR)mglGetGlobalDouble("winDeviceContext");
   HDC hDC = (HDC)v;
-  v = (unsigned long)mglGetGlobalDouble("winAppInstance");
+  v = (MGL_CONTEXT_PTR)mglGetGlobalDouble("winAppInstance");
   HINSTANCE hInstance = (HINSTANCE)v;
   
   if (hRC) {											// Do We Have A Rendering Context?
     if (!wglMakeCurrent(NULL, NULL)) {				// Are We Able To Release The DC And RC Contexts?
-      mexPrintf("(mglPrivateOpen) Release Of DC And RC Failed.\n");
+      mexPrintf("(mglPrivateClose) Release Of DC And RC Failed.\n");
     }
 
     if (!wglDeleteContext(hRC))	{					// Are We Able To Delete The RC?
-      mexPrintf("(mglPrivateOpen) Release Rendering Context Failed.\n");
+      mexPrintf("(mglPrivateClose) Release Rendering Context Failed.\n");
     }
     hRC = NULL;										// Set RC To NULL
   }
 
   if (hDC && !ReleaseDC(hWnd, hDC)) {					// Are We Able To Release The DC
-    mexPrintf("(mglPrivateOpen) Release Device Context Failed.\n");
+    mexPrintf("(mglPrivateClose) Release Device Context Failed.\n");
     hDC = NULL;										// Set DC To NULL
   }
 
   if (hWnd && !DestroyWindow(hWnd)) {					// Are We Able To Destroy The Window?
-    mexPrintf("(mglPrivateOpen) Could Not Release hWnd.\n");
+    mexPrintf("(mglPrivateClose) Could Not Release hWnd.\n");
     hWnd = NULL;									// Set hWnd To NULL
   }
 
   if (!UnregisterClass("MGL", hInstance)) {		// Are We Able To Unregister Class
-    mexPrintf("(mglPrivateOpen) Could Not Unregister Class.\n");
+    mexPrintf("(mglPrivateClose) Could Not Unregister Class.\n");
     hInstance = NULL;									// Set hInstance To NULL
   }
 }
