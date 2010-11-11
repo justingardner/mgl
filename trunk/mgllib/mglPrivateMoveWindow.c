@@ -70,12 +70,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 // **************************** Windows specific code  ****************************** //
 //-----------------------------------------------------------------------------------///
 #ifdef __WINDOWS__
+  MGL_CONTEXT_PTR winRef;
   u_int ref;
   HWND hWND;
   int w, h;
   
   // Get the window pointer and its dimensions.
-  ref = (u_int)mglGetGlobalDouble("winWindowPointer");
+  winRef = (MGL_CONTEXT_PTR)mglGetGlobalDouble("winWindowPointer");
   hWND = (HWND)ref;
   ref = (u_int)mglGetGlobalDouble("screenWidth");
   w = (int)ref;

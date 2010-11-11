@@ -62,7 +62,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   formulaResults = getGammaFormula(&redMin,&redMax,&redGamma,&greenMin,&greenMax,&greenGamma,&blueMin,&blueMax,&blueGamma);
 
   if (result) {    
-    int ndims[] = {1};int nFormulaFields = 9;int nTableFields = 3;
+    mwSize ndims[] = {1};int nFormulaFields = 9;int nTableFields = 3;
     const char *formulaFieldNames[] = {"redMin","redMax","redGamma","greenMin","greenMax","greenGamma","blueMin","blueMax","blueGamma","redTable","greenTable","blueTable"};
     const char *tableFieldNames[] = {"redTable","greenTable","blueTable"};
     if (formulaResults)
@@ -302,7 +302,7 @@ Bool getGammaFormula(GAMMAVALUE *redMin,GAMMAVALUE *redMax,GAMMAVALUE *redGamma,
 Bool getGammaTable(int *gammaTableSize, GAMMAVALUE **redTable, GAMMAVALUE **greenTable, GAMMAVALUE **blueTable)
 {
   HDC hDC;
-  unsigned int ref;
+  MGL_CONTEXT_PTR ref;
   int i;
   GAMMAVALUE ramp[256*3];
   
@@ -314,7 +314,7 @@ Bool getGammaTable(int *gammaTableSize, GAMMAVALUE **redTable, GAMMAVALUE **gree
   *blueTable = (GAMMAVALUE*)malloc(sizeof(GAMMAVALUE) * (*gammaTableSize));
   
   // Grab the current device context.
-  ref = (unsigned int)mglGetGlobalDouble("winDeviceContext");
+  ref = (MGL_CONTEXT_PTR)mglGetGlobalDouble("winDeviceContext");
   hDC = (HDC)ref;
   
   if (GetDeviceGammaRamp(hDC, ramp) == TRUE) {

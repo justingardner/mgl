@@ -69,9 +69,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   }
 
   // variables for dimensions
-  const int *dims = mxGetDimensions(prhs[0]); // rows cols
-  const int ndims = mxGetNumberOfDimensions(prhs[0]); 
-  const int n = mxGetNumberOfElements(prhs[0]);
+  const mwSize *dims = mxGetDimensions(prhs[0]); // rows cols
+  const mwSize ndims = mxGetNumberOfDimensions(prhs[0]); 
+  const size_t n = mxGetNumberOfElements(prhs[0]);
 
   // do some checks to see if the input arguments are valid
   // check if we have the right type
@@ -93,7 +93,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   }
 
   // get image size and type
-  int imageWidth = dims[1], imageHeight = dims[0]; // 
+  int imageWidth = (int)dims[1], imageHeight = (int)dims[0];
 
   // set what kind of texture this is
   if (imageHeight == 1)
@@ -110,7 +110,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   }
 
   
-  int imageType;
+  size_t imageType;
   if (ndims == 2) imageType = 1; else imageType = dims[2];
 
   // if everything is ok, in verbose mode display some info
@@ -178,9 +178,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     // No support for non-power of two textures
     int po2Width=imageWidth;
     int po2Height=imageHeight;
-    double lw=log(imageWidth)/log(2);
-    double lh=log(imageHeight)/log(2);
-    if (lw!=round(lw) | lh!=round(lh)) {
+    double lw=log((double)imageWidth)/log(2.0);
+    double lh=log((double)imageHeight)/log(2.0);
+    if ((lw !=round(lw)) | (lh !=round(lh))) {
       po2Width=(int) pow(2,round(lw));
       po2Height=(int) pow(2,round(lh));
       if (verbose) {
@@ -264,7 +264,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
   // create the output structure
   const char *fieldNames[] =  {"textureNumber","imageWidth","imageHeight","textureAxes","textureType","liveBuffer" };
-  int outDims[2] = {1, 1};
+  mwSize outDims[2] = {1, 1};
   plhs[0] = mxCreateStructArray(1,outDims,6,fieldNames);
   
   // now set the textureNumber field

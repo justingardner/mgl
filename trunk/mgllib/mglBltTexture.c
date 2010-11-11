@@ -119,7 +119,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   }
 
   // declarae some variables
-  int numTextures = mxGetNumberOfElements(prhs[0]);
+  size_t numTextures = mxGetNumberOfElements(prhs[0]);
   char textureAxesString[3];
   double xPixelsToDevice, yPixelsToDevice,deviceHDirection,deviceVDirection;
   int verbose;
@@ -303,7 +303,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     double displayRectDefaults[] = {0,0,tex[texnum].imageWidth*xPixelsToDevice,tex[texnum].imageHeight*yPixelsToDevice};
     int i;
     for (i = 0;i < 4;i++)
-      if (isnan(tex[texnum].displayRect[i]))
+      if (mxIsNaN(tex[texnum].displayRect[i]))
 	tex[texnum].displayRect[i] = displayRectDefaults[i];
 
 
@@ -516,30 +516,30 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       glBegin(GL_QUADS);
       if (tex[texnum].textureAxes==YX) {
 	// default texture axes (yx, using matlab coordinates) does not require swapping y and x in texture coords.
-	glTexCoord2f(0.0, 0.0);
-	glVertex3f(tex[texnum].displayRect[0],tex[texnum].displayRect[1], 0.0);
+	glTexCoord2d(0.0, 0.0);
+	glVertex3d(tex[texnum].displayRect[0],tex[texnum].displayRect[1], 0.0);
     
-	glTexCoord2f(0.0, 1.0);
-	glVertex3f(tex[texnum].displayRect[0], tex[texnum].displayRect[3], 0.0);
+	glTexCoord2d(0.0, 1.0);
+	glVertex3d(tex[texnum].displayRect[0], tex[texnum].displayRect[3], 0.0);
     
-	glTexCoord2f(1.0, 1.0);
-	glVertex3f(tex[texnum].displayRect[2], tex[texnum].displayRect[3], 0.0);
+	glTexCoord2d(1.0, 1.0);
+	glVertex3d(tex[texnum].displayRect[2], tex[texnum].displayRect[3], 0.0);
     
-	glTexCoord2f(1.0, 0.0);
-	glVertex3f(tex[texnum].displayRect[2], tex[texnum].displayRect[1], 0.0);
+	glTexCoord2d(1.0, 0.0);
+	glVertex3d(tex[texnum].displayRect[2], tex[texnum].displayRect[1], 0.0);
       } else if (tex[texnum].textureAxes==XY) {
 	//  using reverse ordered coordinates does require swapping y and x in texture coords.
-	glTexCoord2f(0.0, 0.0);
-	glVertex3f(tex[texnum].displayRect[0],tex[texnum].displayRect[1], 0.0);
+	glTexCoord2d(0.0, 0.0);
+	glVertex3d(tex[texnum].displayRect[0],tex[texnum].displayRect[1], 0.0);
     
-	glTexCoord2f(0.0, 1.0);
-	glVertex3f(tex[texnum].displayRect[2], tex[texnum].displayRect[1], 0.0);
+	glTexCoord2d(0.0, 1.0);
+	glVertex3d(tex[texnum].displayRect[2], tex[texnum].displayRect[1], 0.0);
     
-	glTexCoord2f(1.0, 1.0);
-	glVertex3f(tex[texnum].displayRect[2], tex[texnum].displayRect[3], 0.0);
+	glTexCoord2d(1.0, 1.0);
+	glVertex3d(tex[texnum].displayRect[2], tex[texnum].displayRect[3], 0.0);
     
-	glTexCoord2f(1.0, 0.0);
-	glVertex3f(tex[texnum].displayRect[0], tex[texnum].displayRect[3], 0.0);
+	glTexCoord2d(1.0, 0.0);
+	glVertex3d(tex[texnum].displayRect[0], tex[texnum].displayRect[3], 0.0);
     
       }
       glEnd();
@@ -555,17 +555,17 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       // and set the transformation
       glBegin(GL_QUADS);
 
-      glTexCoord1f(0.0);
-      glVertex3f(tex[texnum].displayRect[0],tex[texnum].displayRect[1], 0.0);
+      glTexCoord1d(0.0);
+      glVertex3d(tex[texnum].displayRect[0],tex[texnum].displayRect[1], 0.0);
     
-      glTexCoord1f(0.0);
-      glVertex3f(tex[texnum].displayRect[0], tex[texnum].displayRect[3], 0.0);
+      glTexCoord1d(0.0);
+      glVertex3d(tex[texnum].displayRect[0], tex[texnum].displayRect[3], 0.0);
     
-      glTexCoord1f(1.0);
-      glVertex3f(tex[texnum].displayRect[2], tex[texnum].displayRect[3], 0.0);
+      glTexCoord1d(1.0);
+      glVertex3d(tex[texnum].displayRect[2], tex[texnum].displayRect[3], 0.0);
     
-      glTexCoord1f(1.0);
-      glVertex3f(tex[texnum].displayRect[2], tex[texnum].displayRect[1], 0.0);
+      glTexCoord1d(1.0);
+      glVertex3d(tex[texnum].displayRect[2], tex[texnum].displayRect[1], 0.0);
 
       glEnd();
       glDisable(GL_TEXTURE_1D);

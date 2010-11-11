@@ -42,9 +42,21 @@
 // OS-independent includes
 /////////////////////////
 #include <mex.h>
+		
+// 64 bit OSes shouldn't define these so turn them off for certain systems.
+#ifndef WIN64
 #define mwIndex int
 #define mwSize int
-
+#endif
+		
+// 64 bit Windows a 64 bit size value to store any context pointers, e.g. OpenGL, hardware, etc.
+// Other platforms seem currently happy with a 32 bit value.
+#ifdef WIN64
+#define MGL_CONTEXT_PTR INT64
+#else
+#define MGL_CONTEXT_PTR unsigned long
+#endif
+		
 /////////////////////////
 // OS-specific includes
 /////////////////////////
@@ -104,6 +116,10 @@
 #include <GL\glu.h>
 //#include <GL\glaux.h>
 #include <math.h>
+		
+#ifdef WIN64
+#define round(x) floor(x+0.5)
+#endif
 
 // Make sure that these extensions are defined.
 #ifndef GL_TEXTURE_RECTANGLE_EXT
@@ -210,7 +226,8 @@ void usageError(char *functionName)
 /////////////////////////
 void mglCreateGlobal(void)
 {
-  int ndims[] = {1};int nfields = 1;
+  mwSize ndims[] = {1};
+  int nfields = 1;
   const char *field_names[] = {"version"};
      
   // create the global with version number set

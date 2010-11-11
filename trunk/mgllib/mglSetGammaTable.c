@@ -418,12 +418,12 @@ void setGammaTableWithTable(int displayNumber, int verbose, int gammaTableSize, 
                             GAMMAVALUE *redTable, GAMMAVALUE *greenTable, GAMMAVALUE *blueTable)
 {
   int i;
-  unsigned int ref;
+  MGL_CONTEXT_PTR ref;
   HDC hDC;
   GAMMAVALUE ramp[256*3];
   
   // Grab the current device context.
-  ref = (unsigned int)mglGetGlobalDouble("winDeviceContext");
+  ref = (MGL_CONTEXT_PTR)mglGetGlobalDouble("winDeviceContext");
   hDC = (HDC)ref;
   
   // Copy the gamma components into the giant data structure we'll pass to the Windows API.
