@@ -8,13 +8,24 @@
 %    purpose: This is a mac specific command that is used to control a NI digital
 %             IO board. It has been tested with the NI USB-6501. It runs as a thread
 %             that reads digital port 2 and logs any change in state (either up or down)
-%             It can also be used to set digital lines on port 1 at a time of your choosing
+%             It can also be used to set digital lines on port 1 at a time of your choosing.
+%
+%             You can use the function testDigPort to test ability to read and write ports.
+%             Note that due to the way the NI-DAQ mxBase library reads/writes the ports,
+%             it seems that accuracy is on the order of 1/2 ms. Meaning that you can
+%             pretty reliably read events (e.g. square wave pulse) of about 250Hz. At 500Hz
+%             you will likely drop a few events and it gets worse from there.
+%     
+%             You will need to compile the mglPrivateDigIO.c function using mglMake('digio') 
+%             for this to work. See instructions on the wiki.
 %
 %             Here are the commands it accepts:
 %             
 %             1:'init' Init the digIO thread. You need to run this before anything else will work. You
 %                      can optional specify input and output ports which default to 1 and 2 respectively
 %                      mglDigIO('init',inputPortNum,outputPortNum);
+%                      You can call init with different port numbers to reset what ports you want
+%                      to listen/write to/from without calling quit inbetween.
 %             2:'digin' Returns all changes on the input digital port
 %             3:'digout' Set the output digital port a time of your choosing. This takes
 %                        2 other values. The time in seconds that you want the digital port
@@ -23,7 +34,14 @@
 %                        relative to now if it is a negative value:
 %                        mglDigIO('digout',-5,0) -> Sets the output port to 0 five secs from now.
 %             4:'list' Lists all pending digout events
-%             0:'quit' Quits the digIO thread, after this you won't be able to run other commands
+%             0:'quit' Closes the nidaq ports, after this you won't be able to run other commands. Note
+%                      that this does not shutdown the digIO thread. The reason for this is that the
+%                      NIDAQ library is not thread safe, so you can only call its functions from one
+%                      thread, so to be able to keep starting and stopping reading from the card,
+%                      the thread is set to continue to run, and quit simply shuts down the nidaq tasks
+%                      and stops logging events. After you call quit, you can use init again to restart
+%                      reading/writing. If you need to shutdown the thread, use 'shutdown'
+%             -1:'shutdown' Quits the digIO thread if it is running, after this you won't be able to run other commands
 %
 %
 function retval = mglDigIO(command,arg1,arg2)
@@ -39,7 +57,7 @@ if ~any(nargin == [1 2 3])
 end
 
 if isstr(command)
-  commandNum = find(strcmp(lower(command),{'quit','init','digin','digout','list'}))-1;
+  commandNum = find(strcmp(lower(command),{'shutdown','quit','init','digin','digout','list'}))-2;
   if isempty(commandNum)
     disp(sprintf('(mglDigIO) Unknown command %s',command));
     return
