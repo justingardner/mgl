@@ -252,9 +252,15 @@ if (segover)
     % if there are calculated random variables, save them
     if task{tnum}.randVars.calculated_n_
       for nVar = 1:task{tnum}.randVars.calculated_n_
-	eval(sprintf('task{tnum}.randVars.%s(task{tnum}.trialnum) = task{tnum}.thistrial.%s;', ...
-		     task{tnum}.randVars.calculated_names_{nVar}, ...
-		     task{tnum}.randVars.calculated_names_{nVar}));
+	% check to make sure that the value in the calculated variable is not
+	% set to empty (if it is, then we warn and ignore), otherwise
+	% we set the stored calculated variable was set to (in the user
+	% program) in task.thistrial
+	if ~isempty(task{tnum}.thistrial.(task{tnum}.randVars.calculated_names_{nVar}))
+	  eval(sprintf('task{tnum}.randVars.%s(task{tnum}.trialnum) = task{tnum}.thistrial.%s;',task{tnum}.randVars.calculated_names_{nVar},task{tnum}.randVars.calculated_names_{nVar}));
+	else
+	  disp(sprintf('(updateTask) !!! randVar %s set to empty for trial %i, leaving as default value of %s',task{tnum}.randVars.calculated_names_{nVar},task{tnum}.trialnum,task{tnum}.randVars.(task{tnum}.randVars.calculated_names_{nVar})(task{tnum}.trialnum)));
+	end
       end
     end
     % we collect the calculated randVars from thistrial and place them
