@@ -237,8 +237,33 @@ end
 
 if ~isdir(myscreen.datadir)
   disp(sprintf('(initScreen) Could not find directory %s. Using current directory',myscreen.datadir));
-						      % use current directory instead
-						      myscreen.datadir = '';
+  % use current directory instead
+  myscreen.datadir = '';
+end
+
+
+% if subjectID is set then make a special data dir
+if isfield(myscreen,'subjectID')
+  % first get calling function name
+  [st,i] = dbstack;
+  callingFunName = st(min(i+1,length(st))).file;
+  [dummy1 callingFunName dummy2] = fileparts(callingFunName);
+  % if this is not initScreen (i.e. if it is called from a task program)
+  if ~isempty(callingFunName) && ~isequal(lower(callingFunName),'initscreen')
+    % set data directory to be ~/data / functionname / subjectID
+    myscreen.datadir = fullfile(myscreen.datadir,callingFunName);
+    if ~isdir(myscreen.datadir)
+      mkdir(myscreen.datadir);
+    end
+    % add subjectID
+    if ~isempty(myscreen.subjectID)
+      myscreen.datadir = fullfile(myscreen.datadir,myscreen.subjectID);
+      if ~isdir(myscreen.datadir)
+	mkdir(myscreen.datadir);
+      end
+    end
+  end
+  disp(sprintf('(initScreen) Saving data into %s',myscreen.datadir));
 end
 
 % compute the time per frame
