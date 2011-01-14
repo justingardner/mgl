@@ -1,13 +1,19 @@
 % savestimdata.m
 %
 %        $Id$
-%      usage: savestimdata.m(myscreen,task)
+%      usage: savestimdata.m(myscreen,task,<forceSave>)
 %         by: justin gardner
 %       date: 12/22/04
 %  copyright: (c) 2006 Justin Gardner (GPL see mgl/COPYING)
-%    purpose: saves the myscreen/task/stimulus
+%    purpose: saves the myscreen/task/stimulus. This will normally obey settings
+%             from mglEditScreenParams on whether to save the stim file (or ask
+%             the user whether to save). If you set forceSave=1, then it will
+%             save the stim file regardless of what the settings are.
 %
-function myscreen = saveStimData(myscreen,task)
+function myscreen = saveStimData(myscreen,task,forceSave)
+
+% default not to override file save settings from myscreen/mglEditScreenParams
+if nargin<3,forceSave = false;end
 
 global gNumSaves;
 myscreen.stimfile = '';
@@ -43,25 +49,29 @@ end
 filename = fullfile(myscreen.datadir,filename);
 
 % ask user if they want to save
-if (myscreen.saveData == -1)
-  % ask whether to save
-  response = '';
-  while ~strcmp(response,'y') && ~strcmp(response,'n')
-    response = input(sprintf('Save data %s? (y/n) ',filename),'s');
-  end
-elseif (myscreen.saveData == 0)
-  % don't save
-  response = 'n';
+if forceSave
+  response = 'y';
 else
-  % if we have exceeded the number of volumes expected for 
-  % a run (set in initscreen), then save automatically,
-  % otherwise ask whether to save
-  if (myscreen.volnum > myscreen.saveData)
-    response = 'y';
-  else
+  if (myscreen.saveData == -1)
+    % ask whether to save
     response = '';
     while ~strcmp(response,'y') && ~strcmp(response,'n')
       response = input(sprintf('Save data %s? (y/n) ',filename),'s');
+    end
+  elseif (myscreen.saveData == 0)
+    % don't save
+    response = 'n';
+  else
+    % if we have exceeded the number of volumes expected for 
+    % a run (set in initscreen), then save automatically,
+    % otherwise ask whether to save
+    if (myscreen.volnum > myscreen.saveData)
+      response = 'y';
+    else
+      response = '';
+      while ~strcmp(response,'y') && ~strcmp(response,'n')
+	response = input(sprintf('Save data %s? (y/n) ',filename),'s');
+      end
     end
   end
 end
