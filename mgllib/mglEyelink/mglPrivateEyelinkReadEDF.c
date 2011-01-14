@@ -51,7 +51,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   mxGetString(prhs[0], filename, STRLEN);
 
   // get verbose
-  int verbose = (int)*(double*)mxGetPr(prhs[1]);
+  int verbose = 1;
+  /* verbose = (int) *mxGetPr(prhs[1]); */
 
   // open file
   if (verbose) mexPrintf("(mglPrivateEyelinkReadEDF) Opening EDF file %s\n",filename);
@@ -226,7 +227,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     case SAMPLE_TYPE:
       *outptrTime++ = (double)data->fs.time;
       *outptrWhichEye++ = currentEye;
-      if ((int)data->fs.gxvel[currentEye]==NaN) {
+      if ((int)data->fs.gx[currentEye]==NaN) {
           *outptrX++ = mxGetNaN();
           *outptrY++ = mxGetNaN();
           *outptrPupil++ = mxGetNaN();
