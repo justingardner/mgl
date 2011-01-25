@@ -1,4 +1,4 @@
-function  mglEyelinkOpenEDF(filename)
+function mglEyelinkOpenEDF(filename)
 %   MGLEYELINKOPENEDF   Opens an edf file on the Eyelink computer for writing
 %     [] = MGLEYELINKOPENEDF(FILENAME)
 % 
@@ -8,11 +8,23 @@ function  mglEyelinkOpenEDF(filename)
 %   Created by Eric DeWitt on 2010-03-25.
 %   Copyright (c)  Eric DeWitt. All rights reserved.
 
-  % check for filename valididty. This could be more robust
-  if numel(filename) > 8
-    fprintf(2,'(mglEyelinkOpenEDF) Invalid DOS filename. Filename must be under 8char.');
-    return;
-  end
-  mglPrivateEyelinkOpenEDF(filename);
+% Make sure a filename was passed.
+if nargin ~= 1
+  fprintf(2, '(mglEyelinkOpenEDF) A filename must be provided.');
+  return;
+end
 
-end %  function
+% Make sure the filename is actually a string.  A string is defined as a
+% row vector of characters.
+if ~ischar(filename) || ndims(filename) ~= 2 || size(filename, 1) ~= 1
+  fprintf(2, '(mglEyelinkOpenEDF) filename must be a row vector of characters, i.e. a string.');
+  return;
+end
+
+% Make sure the length of the filename is DOS compatible.
+if length(filename) > 8
+  fprintf(2, '(mglEyelinkOpenEDF) Invalid DOS filename. Filename must be under 8 characters.');
+  return;
+end
+
+mglPrivateEyelinkOpenEDF(filename);
