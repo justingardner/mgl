@@ -18,32 +18,32 @@ function mglEyelinkRecordingStart(varargin)
 %
 %               'edf-sample' and 'edf-event' are equivilant to 'file-*'
 
-if ~any(nargin==[1:4])
-  help mglEyelinkRecordingStart
-  return;
+if ~any(nargin == 1:4)
+	help mglEyelinkRecordingStart
+	return;
 end
 
 recordingState = [0 0 0 0];
 if nargin == 1 && isvector(varargin{1}) && length(varargin{1}) == 4
-  recordingState = varargin{1};
+	recordingState = varargin{1};
 else
-  for nArg = 1:nargin
-    if ischar(varargin{nArg})
-      switch lower(varargin{nArg})
-       case {'edf-sample', 'file-sample'}
-	recordingState = recordingState | [1 0 0 0];
-       case {'edf-event', 'file-event'}
-	recordingState = recordingState | [0 1 0 0];
-       case {'link-sample', 'link-sample'}
-	recordingState = recordingState | [0 0 1 0];
-       case {'link-event', 'link-event'}
-	recordingState = recordingState | [0 0 0 1];
-       otherwise
-	error('(mglEyelinkRecordingStart) Incorrect arguments.');
-      end
-    else
-      error('(mglEyelinkRecordingStart) Incorrect arguments.');
-    end
-  end
+	for nArg = 1:nargin
+		if ischar(varargin{nArg})
+			switch lower(varargin{nArg})
+				case {'edf-sample', 'file-sample'}
+					recordingState = recordingState | [1 0 0 0];
+				case {'edf-event', 'file-event'}
+					recordingState = recordingState | [0 1 0 0];
+				case 'link-sample'
+					recordingState = recordingState | [0 0 1 0];
+				case 'link-event'
+					recordingState = recordingState | [0 0 0 1];
+				otherwise
+					error('(mglEyelinkRecordingStart) Incorrect arguments.');
+			end
+		else
+			error('(mglEyelinkRecordingStart) Incorrect arguments.');
+		end
+	end
 end
 mglPrivateEyelinkRecordingStart(recordingState);
