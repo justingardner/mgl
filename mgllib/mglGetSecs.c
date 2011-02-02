@@ -54,6 +54,30 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   doubleValue = (upperHalf * twoPower32) + lowerHalf; 
   currtime = 0.000001*doubleValue;
 #endif//__APPLE__
+  
+  //-----------------------------------------------------------------------------------///
+// ******************************* Windows specific code  ******************************* //
+//-----------------------------------------------------------------------------------///
+#ifdef __WINDOWS__
+  LARGE_INTEGER frequency, counterTime;
+
+  // Get the hardware counter clock frequency.  We use this to convert the
+  // counter clock time into seconds.
+  if (QueryPerformanceFrequency(&frequency) == FALSE) {
+	mexPrintf("(mglGetSecs) Could not get clock frequency.\n");
+	return;
+  }
+
+  // Get the hardware clock value.
+  if (QueryPerformanceCounter(&counterTime) == FALSE) {
+	mexPrintf("(mglGetSecs) Could not get hardware counter time.\n");
+	return;
+  }
+
+  // Convert the counter time into seconds.
+  currtime = (double)counterTime.QuadPart / (double)frequency.QuadPart;
+#endif
+  
 //-----------------------------------------------------------------------------------///
 // ***************************** end os-specific code  ****************************** //
 //-----------------------------------------------------------------------------------///
