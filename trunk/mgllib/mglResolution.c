@@ -16,11 +16,6 @@
 /////////////////////////
 #include "mgl.h"
 
-///////////////////////////////
-//   function declarations   //
-///////////////////////////////
-void mglPrivateOpenOnExit(void);
-
 /////////////////////////
 //   OS Specific calls //
 /////////////////////////
@@ -108,7 +103,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
     // check for match with requested
     if ((requestedScreenWidth != screenWidth) || (requestedScreenHeight != screenHeight)||(requestedFrameRate != frameRate) || (requestedBitDepth != bitDepth)) {
-      mexPrintf("(mglPrivateOpen) Could not set display parameters to [%ix%i], frameRate: %i bitDepth: %i\n                 Display parameters are set to: [%ix%i], frameRate=%i, bitDepth=%i\n",requestedScreenWidth,requestedScreenHeight,requestedFrameRate,requestedBitDepth,screenWidth,screenHeight,frameRate,bitDepth);
+      mexPrintf("(mglResolution) Could not set display parameters to [%ix%i], frameRate: %i bitDepth: %i\n                 Display parameters are set to: [%ix%i], frameRate=%i, bitDepth=%i\n",requestedScreenWidth,requestedScreenHeight,requestedFrameRate,requestedBitDepth,screenWidth,screenHeight,frameRate,bitDepth);
     }
   }
 
@@ -140,6 +135,16 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 //   define section   //
 ////////////////////////
 #define kMaxDisplays 8
+//#define MACOS106
+
+///////////////////////////////
+//   function declarations   //
+///////////////////////////////
+#ifdef MACOS106
+int getBitDepth(CGDisplayModeRef displayMode);
+void printDisplayModes(CGDirectDisplayID whichDisplay);
+boolean_t setBestMode(CGDirectDisplayID whichDisplay,int screenWidth,int screenHeight,int frameRate,int bitDepth);
+#endif
 
 ///////////////////////
 //   getResolution   //
@@ -189,17 +194,35 @@ void getResolution(int *displayNumber, int *screenWidth, int *screenHeight, int 
   // get the display
   whichDisplay = displays[*displayNumber-1];
 
+#ifdef MACOS106
   // get the display settings
-  *bitDepth=(int)CGDisplayBitsPerPixel(whichDisplay);
+  CGDisplayModeRef displayMode;
+  displayMode = CGDisplayCopyDisplayMode(whichDisplay);
+  
+  // get bit rate
+  *bitDepth = getBitDepth(displayMode);
+  // get frame rate
+  *frameRate = (int)CGDisplayModeGetRefreshRate(displayMode);
 
-  // and the refresh rate
+  // release the display settings
+  CGDisplayModeRelease(displayMode);
+
+  // print the display modes
+  //  printDisplayModes(whichDisplay);
+#else
+  // old way of getting bitDepth
+  *bitDepth=(int)CGDisplayBitsPerPixel(whichDisplay);
+  
+  // old way of getting the refresh rate
   *frameRate = 0;
   modeInfo = CGDisplayCurrentMode(whichDisplay);
   if (modeInfo != NULL) {
-    CFNumberRef value = (CFNumberRef)CFDictionaryGetValue(modeInfo, kCGDisplayRefreshRate);
-    if (value != NULL)
-      CFNumberGetValue(value, kCFNumberIntType, frameRate);
+      CFNumberRef value = (CFNumberRef)CFDictionaryGetValue(modeInfo, kCGDisplayRefreshRate);
+      if (value != NULL)
+        CFNumberGetValue(value, kCFNumberIntType, frameRate);
   }
+#endif
+
   // assume 60, if the above fails
   if (*frameRate == 0) {
     if (verbose)
@@ -248,20 +271,36 @@ void setResolution(int *displayNumber, int *screenWidth, int *screenHeight, int 
 
   // Switch the display mode
   boolean_t success=false;
+#ifdef MACOS106
+  success = setBestMode(whichDisplay,*screenWidth,*screenHeight,*frameRate,*bitDepth);
+#else
   CGDisplaySwitchToMode(whichDisplay,CGDisplayBestModeForParametersAndRefreshRate(whichDisplay,*bitDepth,*screenWidth,*screenHeight,*frameRate,&success));
-
+#endif
   // check to see if it found the right setting
   if (!success) {
-    mexPrintf("(mglPrivateOpen) Warning: failed to set requested display parameters.\n");
+    mexPrintf("(mglResolution) Warning: failed to set requested display parameters.\n");
   }
 
   // get the display settings
   *screenWidth=(int)CGDisplayPixelsWide(whichDisplay);
   *screenHeight=(int)CGDisplayPixelsHigh(whichDisplay);
+
+  int requestedFrameRate = *frameRate;
+
+#ifdef MACOS106
+  // get bit and frame rate
+  CGDisplayModeRef displayMode;
+  displayMode = CGDisplayCopyDisplayMode(whichDisplay);
+  // bit depth
+  *bitDepth = getBitDepth(displayMode);
+  // get frame rate
+  *frameRate = (int)CGDisplayModeGetRefreshRate(displayMode);
+  CGDisplayModeRelease(displayMode);
+#else
+  // deprecated way
   *bitDepth=(int)CGDisplayBitsPerPixel(whichDisplay);
 
   // and the refresh rate
-  int requestedFrameRate = *frameRate;
   *frameRate = 0;
   modeInfo = CGDisplayCurrentMode(whichDisplay);
   if (modeInfo != NULL) {
@@ -269,6 +308,8 @@ void setResolution(int *displayNumber, int *screenWidth, int *screenHeight, int 
     if (value != NULL)
       CFNumberGetValue(value, kCFNumberIntType, frameRate);
   }
+#endif
+
   // assume 60, if the above fails
   if (*frameRate == 0) {
     if (verbose)
@@ -296,6 +337,145 @@ void getNumDisplaysAndDefault(int *numDisplays, int *defaultDisplayNum)
   [pool release];
 }
 
+#ifdef MACOS106
+/////////////////////
+//   getBitDepth   //
+/////////////////////
+int getBitDepth(CGDisplayModeRef displayMode)
+{
+  int bitDepth = 0;
+
+  // get bit depth
+  CFStringRef pixelEncoding;
+  pixelEncoding = CGDisplayModeCopyPixelEncoding(displayMode);
+  // return an appropriate bit depth for each one of these strings
+  // defined in IOGraphicsTypes.h
+  if (CFStringCompare(pixelEncoding,CFSTR(IO32BitDirectPixels),0)==kCFCompareEqualTo)
+    bitDepth = 32;
+  else if (CFStringCompare(pixelEncoding,CFSTR(IO16BitDirectPixels),0)==kCFCompareEqualTo)
+    bitDepth = 16;
+  else if (CFStringCompare(pixelEncoding,CFSTR(IO8BitIndexedPixels),0)==kCFCompareEqualTo)
+    bitDepth = 8;
+  else if (CFStringCompare(pixelEncoding,CFSTR(kIO30BitDirectPixels),0)==kCFCompareEqualTo)
+    bitDepth = 30;
+  else if (CFStringCompare(pixelEncoding,CFSTR(kIO64BitDirectPixels),0)==kCFCompareEqualTo)
+    bitDepth = 64;
+  // release the pixel encoding
+  CFRelease(pixelEncoding);
+  return(bitDepth);
+}
+
+//////////////////////////
+//   printDisplayModes  //
+//////////////////////////
+void printDisplayModes(CGDirectDisplayID whichDisplay)
+{
+  CGDisplayModeRef mode;
+  CFArrayRef modeList;
+  CFIndex index, count;
+
+  mexPrintf("(mglResolution) Available video modes\n");
+
+  // get all available display modes
+  modeList = CGDisplayCopyAllDisplayModes(whichDisplay, NULL);
+  count = CFArrayGetCount(modeList);
+
+  // cycle through each available mode
+  for (index = 0; index < count; index++) {
+    // display info about each mode
+    mode = (CGDisplayModeRef)CFArrayGetValueAtIndex(modeList, index);
+    mexPrintf("%i: %i x %i %i bits\n",index,CGDisplayModeGetWidth(mode),CGDisplayModeGetHeight(mode),getBitDepth(mode));
+  }
+  CFRelease(modeList);
+}
+/////////////////////
+//   setBestMode   //
+/////////////////////
+boolean_t setBestMode(CGDirectDisplayID whichDisplay,int screenWidth,int screenHeight,int frameRate,int bitDepth)
+{
+  CGDisplayModeRef mode;
+  CFArrayRef modeList;
+  CFIndex index, count;
+  int bestWidth, bestHeight, bestBitDepth, thisBitDepth, bestFrameRate, thisFrameRate;
+  boolean_t retval = false;
+
+  // get all available display modes
+  modeList = CGDisplayCopyAllDisplayModes(whichDisplay, NULL);
+  count = CFArrayGetCount(modeList);
+
+  // check for closest match in width, height
+  double minDifference = DBL_MAX,thisDifference;
+  for (index = 0; index < count; index++) {
+    // get the mode
+    mode = (CGDisplayModeRef)CFArrayGetValueAtIndex(modeList, index);
+    // check how close the pixel match is
+    thisDifference = pow(((double)CGDisplayModeGetWidth(mode)-(double)screenWidth),2)+pow(((double)CGDisplayModeGetHeight(mode)-(double)screenHeight),2);
+    if (thisDifference<minDifference) {
+      bestWidth = (int)CGDisplayModeGetWidth(mode);
+      bestHeight = (int)CGDisplayModeGetHeight(mode);
+      minDifference = thisDifference;
+    }
+  }
+  
+  // now that we found the mode with the closest width/height match
+  // check for best match in number of bits
+  minDifference = DBL_MAX;
+  for (index = 0; index < count; index++) {
+    // get the mode
+    mode = (CGDisplayModeRef)CFArrayGetValueAtIndex(modeList, index);
+    // check that the width/height are matched to the best
+    if ((bestWidth == (int)CGDisplayModeGetWidth(mode)) && (bestHeight == (int)CGDisplayModeGetHeight(mode))) {
+      thisBitDepth = getBitDepth(mode);
+      if (abs((double)bitDepth-(double)thisBitDepth) < minDifference) {
+	minDifference = abs((double)bitDepth-(double)thisBitDepth);
+	bestBitDepth = thisBitDepth;
+      }
+    }
+  }
+
+  // now that we found the mode with the closest width/height match
+  // and the best number of bits, choose the best refresh rate
+  minDifference = DBL_MAX;
+  for (index = 0; index < count; index++) {
+    // get the mode
+    mode = (CGDisplayModeRef)CFArrayGetValueAtIndex(modeList, index);
+    // check that the width/height and bitDepth are matched to the best
+    if ((bestWidth == (int)CGDisplayModeGetWidth(mode)) && (bestHeight == (int)CGDisplayModeGetHeight(mode)) && (bestBitDepth == getBitDepth(mode))) {
+      thisFrameRate = (int)CGDisplayModeGetRefreshRate(mode);
+      if (thisFrameRate == 0) thisFrameRate = 60;
+      if (abs((double)frameRate-(double)thisFrameRate) < minDifference) {
+	minDifference = abs((double)frameRate-(double)thisFrameRate);
+	bestFrameRate = thisFrameRate;
+      }
+    }
+  }
+
+  // now go set the best matching mode
+  for (index = 0; index < count; index++) {
+    // get the mode
+    mode = (CGDisplayModeRef)CFArrayGetValueAtIndex(modeList, index);
+    thisFrameRate = (int)CGDisplayModeGetRefreshRate(mode);
+    if (thisFrameRate == 0) thisFrameRate = bestFrameRate;
+    // check that the width/height and bitDepth are matched to the best
+    if ((bestWidth == (int)CGDisplayModeGetWidth(mode)) && (bestHeight == (int)CGDisplayModeGetHeight(mode)) && (bestBitDepth == getBitDepth(mode)) && (bestFrameRate == thisFrameRate))  {
+      // set the video mode
+      CGDisplaySetDisplayMode(whichDisplay,mode,NULL);
+      retval = true;
+    }
+  }
+  // releast the mode list
+  CFRelease(modeList);
+
+  if ((bestWidth != screenWidth) || (bestHeight != screenHeight) || (bestBitDepth != bitDepth) || (bestFrameRate != frameRate)) {
+    printDisplayModes(whichDisplay);
+    mexPrintf("(mglResolution:setBestMode) No exact mode match found (see avaliable modes printed above). Using closest match: %ix%i %i bits %iHz\n",bestWidth,bestHeight,bestBitDepth,bestFrameRate);
+  }
+
+  return(retval);
+}
+
+
+#endif
 #else // __cocoa__
 //-----------------------------------------------------------------------------------///
 // **************************** mac carbon specific code  *************************** //
@@ -394,7 +574,7 @@ void setResolution(int *displayNumber, int *screenWidth, int *screenHeight, int 
 
   // check to see if it found the right setting
   if (!success) {
-    mexPrintf("(mglPrivateOpen) Warning: failed to set requested display parameters.\n");
+    mexPrintf("(mglResolution) Warning: failed to set requested display parameters.\n");
   }
 
   // get the display settings
