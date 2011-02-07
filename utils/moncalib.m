@@ -17,6 +17,10 @@
 %               exponent = Set to 1 to fit the gamma with an exponential, default is 0
 %               tableTest = Test the inverted table for linearization, default = 1
 %               bitTest = Test for 10 bit gamma, default = 0
+%               bitTestBits = Change number of bits to test gamma table for, default=10
+%               bitTestNumRepeats = Number of repeated measurements to take, default = 4
+%               bitTestN = Number of increments in luminance to test, default=12
+%               bitTestBase = Base luminance to test from, default = 0.5
 %               reset = Set to 1 to reset settings, otherwise this will use the same communication settings each time you run
 %               verbose = Set to 1 for minimal messages, 2 for messages about each measurement, 0 for quiet. Default=1
 %         by: justin gardner & jonas larsson
@@ -919,7 +923,7 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %    initSeriaPortUsingSerial    %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function portNum = initSerialPortUsingSerial(baudRate,parity,dataLen,stopBits)
+function portNum = initSerialPortUsingSerial(baudRate,parity,dataLen,stopBits,portNum)
 
 portNum = 0;
 disp(sprintf('This does not work yet!!!!'));
@@ -1735,15 +1739,6 @@ calib.monitor.screenHeight = mglGetParam('screenHeight');
 calib.monitor.frameRate = mglGetParam('frameRate');
 calib.monitor.bitDepth = mglGetParam('bitDepth');
 
-% choose the range of values over which to test for the number
-% of bits the gamma table can be set to
-if ~isfield(calib,'bittest'),
-  calib.bittest.stepsize = 2^10;
-  calib.bittest.base = 0.5;
-  calib.bittest.n = 10;
-  calib.bittest.numRepeats = 16;
-end
-
 % set the date of the calibration
 if ~isfield(calib,'date'),calib.date = datestr(now);end
 
@@ -1995,14 +1990,14 @@ end
 %%%%%%%%%%%%%%%%%
 function calib = bitTest(calib,portNum,photometerNum)
 
-dispMessage('Testing for 10 bit gamma table');
+dispMessage(sprintf('Testing for %i bit gamma table',calib.bittest.bits));
 
 % test to see how many bits we have in the gamma table
 if ~isfield(calib.bittest,'data')
   % The range will start at bittest.base and then go through bittest.n
-  % steps of size bittest.stepsize. A 10 bit monitor should step up
+  % steps of size 1/(2^bittest.bits). A 10 bit monitor should step up
   % luninance for every output increment of 1/1024
-  bitTestRange = calib.bittest.base:(1/calib.bittest.stepsize):calib.bittest.base+calib.bittest.n*(1/calib.bittest.stepsize);
+  bitTestRange = calib.bittest.base:(1/(2^calib.bittest.bits)):calib.bittest.base+(calib.bittest.n-1)*(1/(2^calib.bittest.bits));
   calib.bittest.data = measureOutput(portNum,photometerNum,bitTestRange,calib.bittest.numRepeats);
 end
 
@@ -2014,7 +2009,7 @@ function displayBitTest(calib)
 if isfield(calib,'bittest') && isfield(calib.bittest,'data')
   subplot(1,2,2);
   dispLuminanceFigure(calib.bittest.data);
-  title(sprintf('Output starting at %0.2f\nin steps of 1/%i',calib.bittest.base,calib.bittest.stepsize));
+  title(sprintf('%i bit gamma test: Values should increase linearly\nOutput starting at %0.2f in steps of 1/%i',calib.bittest.bits,calib.bittest.base,2^calib.bittest.bits));
 end
 
 %%%%%%%%%%%%%%%%%%%
@@ -2045,6 +2040,11 @@ bitTest = 0;
 reset = 0;
 justDisplay = 0;
 
+bitTestBits = 10;
+bitTestN = 12;
+bitTestNumRepeats = 4;
+bitTestBase = 0.5;
+
 calib = [];
 % see if we were actually passed in a calib structure
 if (nargs == 1) && isfield(vars{1},'screenNumber')
@@ -2074,7 +2074,7 @@ if oldStyleArgs
   if nargs < 6,initWaitTime = 0; else initWaitTime = vars{6};end
 else
   if exist('getArgs') == 2
-    getArgs(vars,{'numRepeats=4','stepsize=1/32','initWaitTime=0','screenNumber=[]','spectrum=0','gamma=1','exponent=0','tableTest=1','bitTest=0','reset=0','gammaEachChannel=0','verbose=1'});
+    getArgs(vars,{'numRepeats=4','stepsize=1/32','initWaitTime=0','screenNumber=[]','spectrum=0','gamma=1','exponent=0','tableTest=1','bitTest=0','reset=0','gammaEachChannel=0','verbose=1','bitTestBits=10','bitTestNumRepeats=4','bitTestN=12','bitTestBase=0.5'});
   else
     disp(sprintf('(moncalib) To parse string arguments you need getArgs from the mrTools distribution'));
   end
@@ -2196,6 +2196,16 @@ if justDisplay
   todo.displayBitTest = 1;
 end
 
+% choose the range of values over which to test for the number
+% of bits the gamma table can be set to
+if ~isfield(calib,'bittest'),
+  calib.bittest.bits = bitTestBits;
+  calib.bittest.base = bitTestBase;
+  calib.bittest.n = bitTestN;
+  calib.bittest.numRepeats = bitTestNumRepeats;
+end
+
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 %    fitGammaExponent    %
 %%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -2278,7 +2288,7 @@ if ~todo.photometerTest && ~todo.measureSpectrum && ~todo.testExponent && ~todo.
     disp(sprintf('(moncalib) Measured gamma with stepsize: %f (1/%i), numRepeats: %i',calib.stepsize,round(1/calib.stepsize),calib.numRepeats));
   end
   if isfield(calib,'bittest') && isfield(calib.bittest,'data')
-    disp(sprintf('(moncalib) Measured bittest with stepsize: 1/%i, numRepeats: %i, n: %i, base: %0.f',calib.bittest.stepsize,calib.bittest.numRepeats,calib.bittest.n,calib.bittest.base));
+    disp(sprintf('(moncalib) Measured bittest for %i bits, numRepeats: %i, n: %i, base: %0.f',calib.bittest.bits,calib.bittest.numRepeats,calib.bittest.n,calib.bittest.base));
   end
   if isfield(calib,'tableCorrected')
     disp(sprintf('(moncalib) Measured table correction with stepsize: %f (1/%i), numRepeats: %i',calib.stepsize,round(1/calib.stepsize),calib.numRepeats));
@@ -2313,7 +2323,7 @@ if todo.testTable
 end
 
 if todo.bitTest
-  disp(sprintf('%i: Test for 10 bit gamma card',i));
+  disp(sprintf('%i: Test for %i bit gamma card with numRepeats: %i n: %i baseValue: %0.3f',i,calib.bittest.bits,calib.bittest.numRepeats,calib.bittest.n,calib.bittest.base));
   i = i+1;
 end
 
