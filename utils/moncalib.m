@@ -1,6 +1,24 @@
 % moncalib.m
 %
-%      usage: moncalib(screenNumber,stepsize,numRepeats,testTable,bitTest,initWaitTime)
+%      usage: calib = moncalib(screenNumber,stepsize,numRepeats,testTable,bitTest,initWaitTime)
+%
+%             % to display a previously run calibration
+%             moncalib(calib);
+%
+%             % new calling style
+%             calib = moncalib('numRepeats=4','stepsize=1/32',...
+%               numRepeats = number of repeats of each measurement to make when measuring luminance
+%               stepsize = step size to measure luminance values in. Use 1/256 to check every value in an 8 bit display
+%               initWaitTime = number of seconds to wait at beginning for prep time
+%               screenNumber = The screen number to test, default is [].
+%               spectrum = Set to 1 to measure spectrum for basic colors, default to 0
+%               gamma = Set to 1 to measure the monitor gamma, default is 1
+%               gammaEachChannel = Set to 1 to measure the monitor gamma for each color channel separately, default is 0
+%               exponent = Set to 1 to fit the gamma with an exponential, default is 0
+%               tableTest = Test the inverted table for linearization, default = 1
+%               bitTest = Test for 10 bit gamma, default = 0
+%               reset = Set to 1 to reset settings, otherwise this will use the same communication settings each time you run
+%               verbose = Set to 1 for minimal messages, 2 for messages about each measurement, 0 for quiet. Default=1
 %         by: justin gardner & jonas larsson
 %       date: 10/02/06
 %    purpose: routine to do monitor calibration
@@ -52,13 +70,7 @@
 %             initWaitTime can be set so that you have however many seconds you set
 %             it to to leave the room before the calibration starts. (default 0)
 %
-function calib = moncalib(screenNumber,stepsize,numRepeats,testTable,bitTest,initWaitTime)
-
-% check arguments
-if ~any(nargin == [0 1 2 3 4 5 6])
-  help moncalib
-  return
-end
+function calib = moncalib(varargin)
 
 global gSerialPortFun
 gSerialPortFun = 'comm';
@@ -69,244 +81,118 @@ gSerialPortFun = 'comm';
 % Topcon is expecting, so that seems ok. Seems to default to synchronous buffered full
 % duplex, so not sure what the problem is.
 
-global verbose;
-verbose = 1;
-doGamma = 1;
-doExponent = 0;
-testExponent = 0;
-if nargin < 4,testTable = 1;end
-if nargin < 5,bitTest = 0;end
-if nargin < 6,initWaitTime = 0;end
-
-% see if we were actually passed in a calib structure
-if (nargin > 0) && isfield(screenNumber,'screenNumber')
-  calib = screenNumber;
-else
-  if ~exist('screenNumber','var')
-    calib.screenNumber = [];
-  else
-    calib.screenNumber = screenNumber;
-  end
-  if ~exist('stepsize','var')
-    calib.stepsize = 1/32;
-  else
-    calib.stepsize = stepsize;
-  end
-  if ~exist('numRepeats','var')
-    calib.numRepeats = 4;
-  else
-    calib.numRepeats = numRepeats;
-  end
-end
+% parse arguments
+[calib todo] = parseArgs(nargin,varargin);
 
 % test photometer
-if (nargin>=1) &&isequal(screenNumber,-1)
+if todo.photometerTest
   photometerTest;
   return
 end
 
-justdisplay = 1;
-if ~isfield(calib,'bittest') || ~isfield(calib,'uncorrected') || ...
-      (~isfield(calib,'corrected') && testExponent) || ...
-      (~isfield(calib,'tableCorrected') && testTable)
-  justdisplay = 0;
-  % open the serial port
-  if askuser('Do you want to do an auto calibration using the serial port')
-    % ask user what photometer they want to use
-    photometerNum = getPhotometerNum;
-    if photometerNum == 0,return,end
-    portnum = initSerialPort(photometerNum);
-    if (portnum == 0),return,end
-    % init the device
-    if (photometerInit(portnum,photometerNum) == -1)
-      closeSerialPort(portnum);
-      return
-    end
-  else
-    % manual calibration
-    portnum = [];
-    photometerNum = [];
-    verbose = 0;
-    % ask the user if they want to do these things, since they
-    % take a long time
-    testTable = askuser('After calibration you can test the calibration, but this will force you to measure the luminances twice, do you want to test the calibration');
-    bitTest = askuser('Do you want to test whether you have a 10 bit gamma table');
-  end
-
-  % ask to see if we want to save
-  if askuser('Do you want to save the calibration')
-    calib.filename = getSaveFilename(getHostName);
-  end
-
-  % ask user to chose screen parameters for calibration:
-  % these parameters will be then saved in the calibration structure
-  % for future reference:
-
-  if ~askuser('Do you want to use current monitor settings? ');
-    response = 0;
-    while response==0
-      monitorParameters = setMonitorParameters(calib.screenNumber);
-      response = askuser(sprintf('Monitor "%s" will be set to: [%ix%i] frameRate: %i bitDepth: %i', monitorParameters.ID,monitorParameters.screenWidth, monitorParameters.screenHeight, monitorParameters.frameRate, monitorParameters.bitDepth));
-    end
-    calib.monitor = monitorParameters;
-
-    % close screen, just in case it is open so we can open at new resolution
-    mglClose;
-    % now open the screen
-    mglOpen(calib.screenNumber,monitorParameters.screenWidth, monitorParameters.screenHeight, monitorParameters.frameRate, monitorParameters.bitDepth);
-  else
-    calib.monitor.ID = input('Enter a name for the monitor (this is optional and only really necessary for a system with multiple displays): ','s');
-    mglOpen(calib.screenNumber);
-  end
-
-  % save monitor settings that mgl actually opened the monitor to
-  calib.screenNumber = mglGetParam('displayNumber');
-  calib.monitor.screenWidth = mglGetParam('screenWidth');
-  calib.monitor.screenHeight = mglGetParam('screenHeight');
-  calib.monitor.frameRate = mglGetParam('frameRate');
-  calib.monitor.bitDepth = mglGetParam('bitDepth');
+if todo.setupCalib
+  % setup the calibration / i.e. ask user about
+  % whether to use serial port or manual, open
+  % up serial port and initialize photometer
+  % and get save names, etc.
+  [calib portNum photometerNum todo] = setupCalib(calib,todo);
+  if photometerNum == -1,return,end
 end
 
-if ~justdisplay && ~isempty(portnum)
-  if initWaitTime > 0
-    disp(sprintf('Starting in %i seconds',initWaitTime));
-    mglWaitSecs(initWaitTime);
-  end
+% initial wait time.
+if todo.initWaitTime > 0
+  disp(sprintf('(moncalib) Starting in %i seconds',initWaitTime));
+  mglWaitSecs(initWaitTime);
 end
 
-% choose the range of values over which to do the gamma testing
-testRange = 0:calib.stepsize:1;
-% choose the range of values over which to test for the number
-% of bits the gamma table can be set to
-if ~isfield(calib,'bittest'),
-  calib.bittest.stepsize = 2^10;
-  calib.bittest.base = 0.5;
-  calib.bittest.n = 10;
-  calib.bittest.numRepeats = 16;
-end
-% The range will start at bittest.base and then go through bittest.n
-% steps of size bittest.stepsize. A 10 bit monitor should step up
-% luninance for every output increment of 1/1024
-bitTestRange = calib.bittest.base:(1/calib.bittest.stepsize):calib.bittest.base+calib.bittest.n*(1/calib.bittest.stepsize);
-
-% set the date of the calibration
-if ~isfield(calib,'date'),calib.date = datestr(now);end
-
-if doGamma
-  % do the gamma measurements
-  if ~isfield(calib,'uncorrected')
-    calib.uncorrected = measureOutput(portnum,photometerNum,testRange,calib.numRepeats);
-    if isfield(calib,'filename')
-      eval(sprintf('save %s calib',calib.filename));
-    end
-  else
-    disp(sprintf('Uncorrected luminance measurement already done'));
-  end
-  figure;subplot(1,2,1);
-  dispLuminanceFigure(calib.uncorrected);
-  title(calib.date);
-  hold on
-  if doExponent
-    % get the exponent
-    calib.fit = fitExponent(calib.uncorrected.outputValues,calib.uncorrected.luminance,1);
-    calib.gamma = -1/calib.fit.fitparams(2);
-    calib.minval = calib.fit.minx;
-    calib.maxval = calib.fit.maxx;
-    gammaStr = sprintf('%s\nMonitor gamma = %f minval=%0.1f maxval = %0.1f',calib.filename,calib.gamma,calib.minval,calib.maxval);
-    title(gammaStr,'interpreter','none');disp(gammaStr);drawnow
-  end
-
-  % now build a reverse lookup table
-  % use linear interpolation
-  desiredOutput = min(calib.uncorrected.luminance):(max(calib.uncorrected.luminance)-min(calib.uncorrected.luminance))/255:max(calib.uncorrected.luminance);
-  % check to make sure that we have unique values,
-  % otherwise interp1 will fail
-  while length(calib.uncorrected.luminance) ~= length(unique(calib.uncorrected.luminance))
-    disp(sprintf('Adjusting luminance values to make them unique'));
-    % slight hack here, adding a bit of noise to keep the values
-    % unique, shouldn't really distort anything though since the
-    % noise is very small.
-    calib.uncorrected.luminance = calib.uncorrected.luminance + rand(size(calib.uncorrected.luminance))/1000000;
-  end
-  % interpolate table
-  calib.table = interp1(calib.uncorrected.luminance,calib.uncorrected.outputValues,desiredOutput,'linear')';
-  if ~justdisplay
-    if isfield(calib,'filename')
-      eval(sprintf('save %s calib',calib.filename));
-    end
-  end
-
-  if testExponent
-    % now reset the gamma table with the exponent
-    disp(sprintf('Using function values to linearize gamma'));
-    mglSetGammaTable(calib.minval,calib.maxval,1/calib.gamma,calib.minval,calib.maxval,1/calib.gamma,calib.minval,calib.maxval,1/calib.gamma);
-
-    %and see how well we have done
-    if ~isfield(calib,'corrected')
-      calib.corrected = measureOutput(portnum,photometerNum,calib.uncorrected.outputValues,calib.numRepeats,0);
-      if isfield(calib,'filename')
-	eval(sprintf('save %s calib',calib.filename));
-      end
-    else
-      disp(sprintf('Function corrected luminance measurement already done'));
-    end
-    dispLuminanceFigure(calib.corrected,'r');
-  end
-
-  if testTable
-    % now reset the gamma table with the calculated table
-    disp(sprintf('Using table values to linearize gamma'));
-    mglSetGammaTable(calib.table);
-
-    %and see how well we have done
-    if ~isfield(calib,'tableCorrected')
-      calib.tableCorrected = measureOutput(portnum,photometerNum,calib.uncorrected.outputValues,calib.numRepeats,0);
-      if isfield(calib,'filename')
-	eval(sprintf('save %s calib',calib.filename));
-      end
-    else
-      disp(sprintf('Table corrected luminance measurement already done'));
-    end
-    dispLuminanceFigure(calib.tableCorrected,'c');
-  end
-  if testTable || testExponent
-    % plot the ideal
-    plot(calib.uncorrected.outputValues,calib.uncorrected.outputValues*(max(calib.uncorrected.luminance)-min(calib.uncorrected.luminance))+min(calib.uncorrected.luminance),'g-');
-    if isfield(calib,'gamma')
-      mylegend({'uncorrected','corrected (gamma)','corrected (table)','ideal'},{'ko','ro','co','go'},2);
-    else
-      mylegend({'uncorrected','corrected (table)','ideal'},{'ko','co','go'},2);
-    end
-  end
+% display settings
+if todo.dispSettings
+  dispSettings(calib,todo);
 end
 
-if bitTest
-  % test to see how many bits we have in the gamma table
-  disp(sprintf('Testing how many bits the gamma table is'));
-  if ~isfield(calib.bittest,'data') && ~justdisplay
-    calib.bittest.data = measureOutput(portnum,photometerNum,bitTestRange,calib.bittest.numRepeats);
-  end
-  if isfield(calib.bittest,'data')
-    subplot(1,2,2);
-    dispLuminanceFigure(calib.bittest.data);
-    title(sprintf('Output starting at %0.2f\nin steps of 1/%i',calib.bittest.base,calib.bittest.stepsize));
-  end
+% collect spectrum for various colors
+if todo.measureSpectrum
+  % measure the spectrum for each color value
+  calib = measureSpectrum(calib,portNum,photometerNum,{[1 0 0],[0 1 0],[0 0 1],[0 0 0],[1 1 1],[1 1 0],[1 0 1],[0 1 1]});
+  % save the file
+  saveCalib(calib);
+end
+% display spectrum
+if todo.displaySpectrum,displaySpectrum(calib);end
+
+% measure the gamma output of each color channel separately
+if todo.measureGammaEachChannel
+  % run the calibration
+  calib = measureGammaEachChannel(calib,portNum,photometerNum);
+  % save the file
+  saveCalib(calib);
+end
+if todo.displayGammaEachChannel,displayGammaEachChannel(calib),end
+
+% measure the gamma output of the monitor and build inverse table for linearizing output
+if todo.measureGamma
+  % run the calibration
+  calib = measureGamma(calib,portNum,photometerNum);
+  % save the file
+  saveCalib(calib);
 end
 
-if ~justdisplay
+% fit an exponent
+if todo.fitExponent,calib = fitGammaExponent(calib);end
+
+% display the gamma
+if todo.displayGamma,displayGamma(calib);end
+
+% display the exponent
+if todo.displayExponent,displayExponent(calib);end
+
+
+if todo.testExponent
+  % test the exponent fit
+  calib = testExponent(calib,portNum,photometerNum);
+  % save the file
+  saveCalib(calib);
+end
+
+% display the testExponent
+if todo.displayTestExponent,displayTestExponent(calib);end
+  
+if todo.testTable
+  % test the inverse table
+  calib = testTable(calib,portNum,photometerNum);
+  % save the file
+  saveCalib(calib);
+end
+
+% display the test of the inverted table
+if todo.displayTestTable,displayTestTable(calib);end
+
+if todo.bitTest
+  % run the bit test
+  calib = bitTest(calib,portNum,photometerNum);
+  % save the file
+  saveCalib(calib);
+end
+
+% display the bit test
+if todo.displayBitTest,displayBitTest(calib);end
+
+if todo.setupCalib
+  % finish up
   % close the serial port, it may be better to just leave it
   % open, so that it you don't have to restart the photometer each time
-  %if ~isempty(portnum)
-  %  closeSerialPort(portnum);
+  %if ~isempty(portNum)
+  %  closeSerialPort(portNum);
   %mglCend
 
   % close the screen
   mglClose;
 
-  % save file
-  if isfield(calib,'filename')
-    eval(sprintf('save %s calib',calib.filename));
-  end
+  % set end time
+  calib.finishedAt = datestr(now);
+
+  % save the file
+  saveCalib(calib);
 end
 
 
@@ -314,7 +200,7 @@ end
 % function that sets the gamma table to all the values in val
 % and checks the luminance
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function retval = measureOutput(portnum,photometerNum,outputValues,numRepeats,setGamma)
+function retval = measureOutput(portNum,photometerNum,outputValues,numRepeats,setGamma)
 
 global verbose;
 
@@ -325,9 +211,10 @@ if ~exist('setGamma','var'),setGamma=1;,end
 mglClearScreen(0);mglFlush;
 
 measuredLuminanceSte = [];measuredLuminance = [];
-if verbose == 1,disppercent(-inf,'Measuring luminance');end
+measuredXSte = [];measuredX = [];
+measuredYSte = [];measuredY = [];
+if verbose == 1,disppercent(-inf,'(moncalib) Measuring luminance');end
 for val = outputValues
-  if verbose == 1,disppercent((find(val==outputValues)-1)/length(outputValues));end
   % set the gamma table so that we display this luminance value
   if setGamma
     if (verbose>1),disp(sprintf('Setting gamma table output to %f',val));end
@@ -342,8 +229,8 @@ for val = outputValues
   for repeatNum = 1:numRepeats
     gotMeasurement = 0;badMeasurements = 0;
     while ~gotMeasurement
-      % get the measurement from the photometer
-      thisMeasuredLuminance(repeatNum) = photometerMeasure(portnum,photometerNum);
+      % get the measurement from the photometer 
+      [thisMeasuredLuminance(repeatNum) thisMeasuredX(repeatNum) thisMeasuredY(repeatNum)] = photometerMeasure(portNum,photometerNum);
       % check to see if it is a bad measurement
       if isnan(thisMeasuredLuminance(repeatNum))
 	% if it is and, we have already tried three times, then give up
@@ -362,49 +249,158 @@ for val = outputValues
   % now take median over all repeats of measurement
   measuredLuminance(end+1) = median(thisMeasuredLuminance(1:numRepeats));
   measuredLuminanceSte(end+1) = std(thisMeasuredLuminance(1:numRepeats))/sqrt(numRepeats);
+  measuredX(end+1) = median(thisMeasuredX(1:numRepeats));
+  measuredXSte(end+1) = std(thisMeasuredX(1:numRepeats))/sqrt(numRepeats);
+  measuredY(end+1) = median(thisMeasuredY(1:numRepeats));
+  measuredYSte(end+1) = std(thisMeasuredY(1:numRepeats))/sqrt(numRepeats);
   if (verbose>1),disp(sprintf('Luminance = %0.4f',measuredLuminance(end)));end
+  if verbose == 1,disppercent((find(val==outputValues)-1)/length(outputValues));end
 end
 if (verbose == 1),disppercent(inf);end
 
 % pack it up
 retval.outputValues = outputValues;
 retval.luminance = measuredLuminance;
+retval.x = measuredX;
+retval.y = measuredY;
 retval.luminanceSte = measuredLuminanceSte;
+retval.xSte = measuredXSte;
+retval.ySte = measuredYSte;
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% function that sets the gamma table to all the values in val
+% and checks the luminance, this version is similar to above
+% but allows for color input triplets rather than a single 
+% luminance value for outputValues
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function retval = measureOutputColor(portNum,photometerNum,outputValues,numRepeats,setGamma)
+
+global verbose;
+
+% default to setting gamma values, not clor values
+if ~exist('setGamma','var'),setGamma=1;,end
+
+% clear and flush screen
+mglClearScreen(0);mglFlush;
+
+measuredLuminanceSte = [];measuredLuminance = [];
+measuredXSte = [];measuredX = [];
+measuredYSte = [];measuredY = [];
+if verbose == 1,disppercent(-inf,'(moncalib:measureOutputColor) Measuring luminance');end
+for i = 1:length(outputValues)
+  val = outputValues{i};
+  % set the gamma table so that we display this luminance value
+  if setGamma
+    if (verbose>1),disp(sprintf('(moncalib:measureOutputColor) Setting gamma table output to %s',num2str(val)));end
+    mglSetGammaTable(repmat(val(:),1,256)');
+  else
+    if (verbose>1),disp(sprintf('(moncalib:measureOutputColor) Setting screen output to %s',num2str(val)));end
+    mglClearScreen(val);mglFlush;
+  end
+  % wait a bit to make sure it has changed
+  mglWaitSecs(0.1);
+  % measure the luminace
+  for repeatNum = 1:numRepeats
+    gotMeasurement = 0;badMeasurements = 0;
+    while ~gotMeasurement
+      % get the measurement from the photometer
+      [thisMeasuredLuminance(repeatNum) thisMeasuredX(repeatNum) thisMeasuredY(repeatNum)] = photometerMeasure(portNum,photometerNum);
+      % check to see if it is a bad measurement
+      if isnan(thisMeasuredLuminance(repeatNum))
+	% if it is and, we have already tried three times, then give up
+	badMeasurements = badMeasurements+1;
+	if (badMeasurements > 3)
+	  disp(sprintf('(moncalib:measureOutputColor) UHOH: Failed to get measurement 3 times, settint to 0'));
+	  thisMeasuredLuminance(repeatNum) = 0;
+	  gotMeasurement = 1;
+	end
+	% otherwise we whave the measurement, so keep going
+      else
+	gotMeasurement = 1;
+      end
+    end
+  end
+  % now take median over all repeats of measurement
+  measuredLuminance(end+1) = median(thisMeasuredLuminance(1:numRepeats));
+  measuredLuminanceSte(end+1) = std(thisMeasuredLuminance(1:numRepeats))/sqrt(numRepeats);
+  measuredX(end+1) = median(thisMeasuredX(1:numRepeats));
+  measuredXSte(end+1) = std(thisMeasuredX(1:numRepeats))/sqrt(numRepeats);
+  measuredY(end+1) = median(thisMeasuredY(1:numRepeats));
+  measuredYSte(end+1) = std(thisMeasuredY(1:numRepeats))/sqrt(numRepeats);
+  if (verbose>1),disp(sprintf('(moncalib:measureOutputColor) Luminance = %0.4f',measuredLuminance(end)));end
+  if verbose == 1,disppercent(i/length(outputValues));end
+end
+if (verbose == 1),disppercent(inf);end
+
+% pack it up
+retval.outputValues = outputValues;
+retval.luminance = measuredLuminance;
+retval.x = measuredX;
+retval.y = measuredY;
+retval.luminanceSte = measuredLuminanceSte;
+retval.xSte = measuredXSte;
+retval.ySte = measuredYSte;
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % display a figure that shows measurements
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function dispLuminanceFigure(table,color)
+function dispLuminanceFigure(table,color,normalize)
+
+if nargin < 3,normalize = 0;end
+if iscell(table.outputValues)
+  % for color values choose max output value
+  for i = 1:length(table.outputValues)
+    outputValues(i) = max(table.outputValues{i});
+  end
+else
+  outputValues = table.outputValues;
+end
+  
+% normalize to 1
+if normalize
+  luminance = (table.luminance-min(table.luminance))/(max(table.luminance)-min(table.luminance));
+else
+  luminance = table.luminance;
+end
 
 if ~exist('color','var'),color = 'k';end
-
-errorbar(table.outputValues,table.luminance,table.luminanceSte,sprintf('%so-',color));
+if ~all(table.luminanceSte==0)
+  errorbar(outputValues,luminance,table.luminanceSte,sprintf('%so-',color));
+else
+  plot(outputValues,luminance,sprintf('%so-',color));
+end
 xlabel('output value');
-ylabel('luminance (cd/m^-2)');
+
+if normalize
+  ylabel('Normalized luminance');
+else
+  ylabel('luminance (cd/m^-2)');
+end
 
 drawnow;
 
 %%%%%%%%%%%%%%%%%%%%%%%%
 %%   photometerInit   %%
 %%%%%%%%%%%%%%%%%%%%%%%%
-function retval = photometerInit(portnum,photometerNum)
+function retval = photometerInit(portNum,photometerNum)
 
 switch photometerNum
  case {1}
-  retval = photometerInitPR650(portnum);
+  retval = photometerInitPR650(portNum);
  case {2,3}
-  retval = photometerInitMinolta(portnum);
+  retval = photometerInitMinolta(portNum);
  case {4}
-  retval = photometerInitTopcon(portnum);
+  retval = photometerInitTopcon(portNum);
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%   photometerMeasure   %%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%
-function [luminance x y] = photometerMeasure(portnum,photometerNum)
+function [luminance x y] = photometerMeasure(portNum,photometerNum)
 
 % if doing manual input
-if isempty(portnum)
+if isempty(portNum)
   luminance = getnum('Enter luminance measurement: ');
   x = 0;
   y = 0;
@@ -414,17 +410,41 @@ end
 % otherwise choose the right photometer
 switch photometerNum
  case {1}
-  [luminance x y] = photometerMeasurePR650(portnum);
+  [luminance x y] = photometerMeasurePR650(portNum);
  case {2,3}
-  [luminance x y] = photometerMeasureMinolta(portnum,photometerNum);
- case {3,4}
-  [luminance x y] = photometerMeasureTopcon(portnum);
+  [luminance x y] = photometerMeasureMinolta(portNum,photometerNum);
+ case {4}
+  [luminance x y] = photometerMeasureTopcon(portNum);
+end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%   photometerSpectrumMeasure   %%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function [wavelength radiance] = photometerSpectrumMeasure(portNum,photometerNum)
+
+wavelength = [];
+radiance = [];
+
+% if doing manual input
+if isempty(portNum)
+  disp(sprintf('(photometerSpectrumMeasure) Spectrum measurement disabled in auto mode'));
+  return
+end
+
+% otherwise choose the right photometer
+switch photometerNum
+ case {1}
+  disp(sprintf('(photometerSpectrumMeasure) Spectrum measurement not yet implemented for PR650'));
+ case {2,3}
+  disp(sprintf('(photometerSpectrumMeasure) Spectrum measurement not available for Minolta'));
+ case {4}
+  [wavelength radiance] = photometerSpectrumMeasureTopcon(portNum);
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % init the pr650 photometer
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function retval = photometerInitPR650(portnum)
+function retval = photometerInitPR650(portNum)
 
 clc
 retval = -1;
@@ -433,7 +453,7 @@ while(response == 0)
 
   input(sprintf('Please turn on the PR650 and within 5 seconds press enter: '));
   % send a command, any command will do. We set the backlight on
-  writeSerialPort(portnum,sprintf('B3\n'));
+  writeSerialPort(portNum,sprintf('B3\n'));
   % tell the user what to expect
   disp(sprintf('\nThe backlight on the back panel of the PR650'))
   disp(sprintf('should be on and it should now say:\n'));
@@ -454,7 +474,7 @@ while(response == 0)
 end
 
 % turn off the backlight
-writeSerialPort(portnum,sprintf('B0\n'));
+writeSerialPort(portNum,sprintf('B0\n'));
 
 % set up measurement parameters
 % integrate over how many ms. 0 is adaptive, otherwise 10-6000 is
@@ -464,7 +484,7 @@ integrationTime = 0;
 averageCount = 1;
 % the last 1 here specifies measuring in unis of cd*m-2 or lux
 % set to 0 for footLamberts/footcandles
-writeSerialPort(portnum,sprintf('S,,,,,%i,%i,1\n',integrationTime,averageCount));
+writeSerialPort(portNum,sprintf('S,,,,,%i,%i,1\n',integrationTime,averageCount));
 
 retval = 1;
 clc
@@ -472,19 +492,19 @@ clc
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % measure luminance with the PR650 photometer
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function [luminance x y] = photometerMeasurePR650(portnum)
+function [luminance x y] = photometerMeasurePR650(portNum)
 
 % retrieve any info that is pending from the photometer
-readSerialPort(portnum,1024);
+readSerialPort(portNum,1024);
 % now take a measurement and read
-writeSerialPort(portnum,sprintf('M1\n'));
-writeSerialPort(portnum,sprintf('D1\n'));
+writeSerialPort(portNum,sprintf('M1\n'));
+writeSerialPort(portNum,sprintf('D1\n'));
 
 % read the masurement
 len = length('QQ,U,Y.YYYYEsee,.xxxx,.yyyy');
 str = '';readstr = 'start';
 while ~isempty(readstr) || (length(str)<len)
-  readstr = readSerialPort(portnum,256);
+  readstr = readSerialPort(portNum,256);
   str = [str readstr];
   mglWaitSecs(0.1);
 end
@@ -525,7 +545,7 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % init the minolta photometer
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function retval = photometerInitMinolta(portnum)
+function retval = photometerInitMinolta(portNum)
 
 clc
 retval = -1;
@@ -548,17 +568,17 @@ clc
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % measure luminance with the minolta photometer
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function [luminance x y] = photometerMeasureMinolta(portnum,photometerNum)
+function [luminance x y] = photometerMeasureMinolta(portNum,photometerNum)
 
 % retrieve any info that is pending from the photometer
-readSerialPort(portnum,1024);
+readSerialPort(portNum,1024);
 % now take a measurement and read
-writeSerialPort(portnum,['MES',13,10]);  % send a measure signal to LS100
+writeSerialPort(portNum,['MES',13,10]);  % send a measure signal to LS100
 
 % read the masurement
 str = '';readstr = 'start';
 while isempty(str) || ~isempty(readstr) 
-   readstr = readSerialPort(portnum,16);
+   readstr = readSerialPort(portNum,16);
    str = [str readstr];
    mglWaitSecs(0.2);
 end
@@ -611,7 +631,7 @@ if verbose, disp(sprintf('%s Luminance=%f cd/m^-2 ',thisMessage, luminance));end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % init the topcon photometer
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function retval = photometerInitTopcon(portnum)
+function retval = photometerInitTopcon(portNum)
 
 retval = -1;
 
@@ -625,17 +645,17 @@ end
 disp(sprintf('If the program hangs after this, you may want to try again after rebooting the computer'));
 
 % retrieve any info that is pending from the photometer
-response = readLineSerialPort(portnum);
+response = readLineSerialPort(portNum);
 while ~isempty(response)
-  response = readLineSerialPort(portnum);
+  response = readLineSerialPort(portNum);
 end
 
 disp(sprintf('(moncalib:photometerInitTopcon) Sending RM to set photometer into remote mode.'));
 % set to remote mode
-writeSerialPort(portnum,['RM' char(13) char(10)]);
+writeSerialPort(portNum,['RM' char(13) char(10)]);
 response = '';
 while isempty(response)
-  response = readLineSerialPort(portnum);
+  response = readLineSerialPort(portNum);
 end
 if ~strcmp(response(1:2),'OK')
   disp(sprintf('(moncalib:photometerInitTopcon) Got %s, rather than OK. Somethingis wrong',response(1:max(1,end-2))));
@@ -646,41 +666,45 @@ end
 
 % Don't need the spectral radiance data, so set to D1 data mode
 disp(sprintf('(moncalib:photometerInitTopcon) Sending D1 to photometer to set data output mode to not return spectral radiance data.'));
-writeSerialPort(portnum,['D1' char(13) char(10)]);
+writeSerialPort(portNum,['D1' char(13) char(10)]);
 response = '';
 while isempty(response)
-  response = readLineSerialPort(portnum);
+  response = readLineSerialPort(portNum);
 end
 if ~strcmp(response(1:2),'OK')
   disp(sprintf('(moncalib:photometerInitTopcon) Got %s, rather than OK from TOPCON when trying to set data output mode to D1 (no spectral radiance data)',response(1:max(1,end-2))));
   if ~askuser('Do you still want to continue ');
     return
   end
+else
+  disp(sprintf('(moncalib:photometerInitTopcon) Received response: %s',response));
 end
 retval = 1;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%   photometerMeasureTopcon   %%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function [luminance x y] = photometerMeasureTopcon(portnum)
+function [luminance x y] = photometerMeasureTopcon(portNum)
+
+global verbose;
 
 luminance = -1;x = 0;y = 0;
 % retrieve any info that is pending from the photometer
-response = readLineSerialPort(portnum);
+response = readLineSerialPort(portNum);
 while ~isempty(response)
-  response = readLineSerialPort(portnum);
+  response = readLineSerialPort(portNum);
 end
 
 % now send measurement
-writeSerialPort(portnum,['ST',13,10]);
+writeSerialPort(portNum,['ST',13,10]);
 
 % make sure we got an ok
 response = '';
 while isempty(response)
-  response = readLineSerialPort(portnum);
+  response = readLineSerialPort(portNum);
 end
 if ~strcmp(response(1:2),'OK')
-  disp(sprintf('(moncalib:photometerInitTopcon) Got %s, rather than OK from TOPCON when trying to make a measurement',response));
+  disp(sprintf('(moncalib:photometerMeasureTopcon) Got %s, rather than OK from TOPCON when trying to make a measurement',response));
   keyboard
 end
 
@@ -689,7 +713,7 @@ values = [];thisline = '';keepReading = 2;
 % keep reading until we get the END signal
 while keepReading
   % try to read the next line of data
-  thisline = readLineSerialPort(portnum);
+  thisline = readLineSerialPort(portNum);
    % if we got something grab it.
    if ~isempty(thisline)
      if ~isempty(str2num(thisline))
@@ -701,7 +725,9 @@ while keepReading
 end
 
 if length(values) >= 11
-  disp(sprintf('(moncalib) Measuring field: %i Integral time: %i ms Radiance: %f Wm-^2sr^-1\nLuminance: %f cd/m^2\nX: %f Y: %f Z: %f x: %f y: %f u: %f v: %f',values(1),values(2),values(3),values(4),values(5),values(6),values(7),values(8),values(9),values(10),values(11)));
+  if verbose>1
+    disp(sprintf('(moncalib) Measuring field: %i Integral time: %i ms Radiance: %f Wm-^2sr^-1\nLuminance: %f cd/m^2\nX: %f Y: %f Z: %f x: %f y: %f u: %f v: %f',values(1),values(2),values(3),values(4),values(5),values(6),values(7),values(8),values(9),values(10),values(11)));
+  end
   luminance = values(4);
   x = values(8);
   y = values(9);
@@ -709,10 +735,107 @@ else
   disp(sprintf('(moncalib:photometerMeasureTopcon) Uhoh, not enough data values read'));
 end
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%   photometerSpectrumMeasure   %%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function [wavelength radiance] = photometerSpectrumMeasureTopcon(portNum)
+
+global verbose;
+wavelength = [];
+radiance = [];
+
+% retrieve any info that is pending from the photometer
+response = readLineSerialPort(portNum);
+while ~isempty(response)
+  response = readLineSerialPort(portNum);
+end
+
+% set mode to make spectrum measurement
+writeSerialPort(portNum,['D0',13,10]);
+response = '';
+while isempty(response)
+  response = readLineSerialPort(portNum);
+end
+if ~strcmp(response(1:2),'OK')
+  disp(sprintf('(moncalib:photometerSpectrumMeasureTopcon) Got %s, rather than OK from TOPCON when trying to set data output mode to D0 (spectral radiance data)',response(1:max(1,end-2))));
+  if ~askuser('Do you still want to continue ');
+    return
+  end
+else
+  if verbose>1
+    disp(sprintf('(moncalib:photometerSpectrumMeasureTopcon) Received response: %s',response));
+  end
+end
+
+% now send measurement
+writeSerialPort(portNum,['ST',13,10]);
+
+% make sure we got an ok
+response = '';
+while isempty(response)
+  response = readLineSerialPort(portNum);
+end
+if ~strcmp(response(1:2),'OK')
+  disp(sprintf('(moncalib:photometerSpectrumMeasureTopcon) Got %s, rather than OK from TOPCON when trying to make a measurement',response));
+  keyboard
+end
+
+% read the measurement
+values = [];thisline = '';keepReading = 2;valuepairs = [];
+% keep reading until we get the END signal
+while keepReading
+  % try to read the next line of data
+  thisline = readLineSerialPort(portNum);
+   % if we got something grab it.
+   if ~isempty(thisline)
+     if ~isempty(str2num(thisline))
+       if length(str2num(thisline)) == 2
+	 % get wavelength and radiance data
+	 valuepairs(1:2,end+1) = str2num(thisline);
+       else
+	 %get regular luminance measurements
+	 values(end+1) = str2num(thisline);
+       end
+     elseif (length(thisline)>=3) && strcmp(thisline(1:3),'END')
+       keepReading = 0;
+     end
+   end
+end
+
+if length(values) >= 11
+  if verbose>1
+    disp(sprintf('(moncalib) Measuring field: %i Integral time: %i ms Radiance: %f Wm-^2sr^-1\nLuminance: %f cd/m^2\nX: %f Y: %f Z: %f x: %f y: %f u: %f v: %f',values(1),values(2),values(3),values(4),values(5),values(6),values(7),values(8),values(9),values(10),values(11)));
+  end
+end
+
+if ~isempty(valuepairs)
+  wavelength = valuepairs(1,:);
+  radiance = valuepairs(2,:);
+  if verbose>1
+    disp(sprintf('(moncalib:photometerSpectrumMeasureTopcon) Measured spectrum from wavelength %0.1f:%0.1f',min(wavelength),max(wavelength)));
+  end
+end
+
+% set mode back to color measurement
+writeSerialPort(portNum,['D1',13,10]);
+response = '';
+while isempty(response)
+  response = readLineSerialPort(portNum);
+end
+if ~strcmp(response(1:2),'OK')
+  disp(sprintf('(moncalib:photometerSpectrumMeasureTopcon) Got %s, rather than OK from TOPCON when trying to set data output mode to D1 (no spectral radiance data)',response(1:max(1,end-2))));
+else
+  if verbose>1
+    disp(sprintf('(moncalib:photometerSpectrumMeasureTopcon) Received response: %s',response));
+  end
+end
+
 %%%%%%%%%%%%%%%%%%%%%%%
 %    initSeriaPort    %
 %%%%%%%%%%%%%%%%%%%%%%%
-function portnum = initSerialPort(photometerNum)
+function portNum = initSerialPort(photometerNum,portNum)
+
+if nargin < 2, portNum = [];end
 
 % minolta uses 4800/e/7/2
 if any(photometerNum == [2 3])
@@ -729,24 +852,24 @@ end
 
 global gSerialPortFun
 if strcmp(gSerialPortFun,'comm')
-  portnum = initSerialPortUsingComm(baudRate,parity,dataLen,stopBits);
+  portNum = initSerialPortUsingComm(baudRate,parity,dataLen,stopBits,portNum);
 elseif strcmp(gSerialPortFun,'serial')
-  portnum = initSerialPortUsingSerial(baudRate,parity,dataLen,stopBits);
+  portNum = initSerialPortUsingSerial(baudRate,parity,dataLen,stopBits,portNum);
 else
   disp(sprintf('(moncalib:initSerialPort) Unknown serial device program %s',gSerialPortFun));
-  portnum = 0;
+  portNum = 0;
 end
   
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % close the serial port
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function closeSerialPort(portnum)
+function closeSerialPort(portNum)
 
 global gSerialPortFun
 if strcmp(gSerialPortFun,'comm')
-  closeSerialPortUsingComm(portnum);
+  closeSerialPortUsingComm(portNum);
 elseif strcmp(gSerialPortFun,'serial')
-  closeSerialPortUsingSerial(portnum);
+  closeSerialPortUsingSerial(portNum);
 else
   disp(sprintf('(moncalib:closeSerialPort) Unknown serial device program %s',gSerialPortFun));
 end
@@ -754,13 +877,13 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % write to the serial port
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function writeSerialPort(portnum, str)
+function writeSerialPort(portNum, str)
 
 global gSerialPortFun
 if strcmp(gSerialPortFun,'comm')
-  writeSerialPortUsingComm(portnum,str);
+  writeSerialPortUsingComm(portNum,str);
 elseif strcmp(gSerialPortFun,'serial')
-  writeSerialPortUsingSerial(portnum,str);
+  writeSerialPortUsingSerial(portNum,str);
 else
   disp(sprintf('(moncalib:writeSerialPort) Unknown serial device program %s',gSerialPortFun));
 end
@@ -768,13 +891,13 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % read from the serial port
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function str = readSerialPort(portnum, numbytes)
+function str = readSerialPort(portNum, numbytes)
 
 global gSerialPortFun
 if strcmp(gSerialPortFun,'comm')
-  str = readSerialPortUsingComm(portnum,numbytes);
+  str = readSerialPortUsingComm(portNum,numbytes);
 elseif strcmp(gSerialPortFun,'serial')
-  str = readSerialPortUsingSerial(portnum,numbytes);
+  str = readSerialPortUsingSerial(portNum,numbytes);
 else
   disp(sprintf('(moncalib:readSerialPort) Unknown serial device program %s',gSerialPortFun));
 end
@@ -782,13 +905,13 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % read one line (ending in 0xA) from the serial port
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function str = readLineSerialPort(portnum)
+function str = readLineSerialPort(portNum)
 
 global gSerialPortFun
 if strcmp(gSerialPortFun,'comm')
-  str = readLineSerialPortUsingComm(portnum);
+  str = readLineSerialPortUsingComm(portNum);
 elseif strcmp(gSerialPortFun,'serial')
-  str = readLineSerialPortUsingSerial(portnum);
+  str = readLineSerialPortUsingSerial(portNum);
 else
   disp(sprintf('(moncalib:readSerialPort) Unknown serial device program %s',gSerialPortFun));
 end
@@ -796,9 +919,9 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %    initSeriaPortUsingSerial    %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function portnum = initSerialPortUsingSerial(baudRate,parity,dataLen,stopBits)
+function portNum = initSerialPortUsingSerial(baudRate,parity,dataLen,stopBits)
 
-portnum = 0;
+portNum = 0;
 disp(sprintf('This does not work yet!!!!'));
 
 % display all serial devices
@@ -818,46 +941,46 @@ set(s,'StopBits',stopBits);
 set(s,'DataBits',dataLen);
 set(s,'Terminator','CR/LF');
 fopen(s);
-portnum = s;
+portNum = s;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % close the serial port
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function closeSerialPortUsingSerial(portnum)
+function closeSerialPortUsingSerial(portNum)
 
-if portnum
-  fclose(portnum);
+if portNum
+  fclose(portNum);
 end
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % write to the serial port
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function writeSerialPortUsingSerial(portnum, str)
+function writeSerialPortUsingSerial(portNum, str)
 
-fprintf(portnum,str);
+fprintf(portNum,str);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % read from the serial port
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function str = readSerialPortUsingSerial(portnum, numbytes)
+function str = readSerialPortUsingSerial(portNum, numbytes)
 
-str = char(fread(portnum,numbytes));
+str = char(fread(portNum,numbytes));
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % read one line (ending in 0xA) from the serial port
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function str = readLineSerialPortUsingSerial(portnum)
+function str = readLineSerialPortUsingSerial(portNum)
 
-str = fgetl(portnum);
+str = fgetl(portNum);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % init the serial port
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function portnum = initSerialPortUsingComm(baudRate,parity,dataLen,stopBits)
+function portNum = initSerialPortUsingComm(baudRate,parity,dataLen,stopBits,portNum)
 
 clc
-portnum = 0;
+if isempty(portNum),portNum = 0;end
 
 % check to see if we have comm functions
 if exist('comm')~=3
@@ -886,54 +1009,54 @@ disp(sprintf('\nIt is a bit of a guessing game which port number 1-%i',length(cu
 disp(sprintf('goes with which port name listed above, you just have to try'));
 disp(sprintf('numbers until you get it right.\n'));
 
-while (portnum == 0)
+while (portNum == 0)
 
-  portnum = getnum(sprintf('Enter port number to use (0=quit or 1-%i) ',length(cudir)),0:length(cudir));
+  portNum = getnum(sprintf('Enter port number to use (0=quit or 1-%i) ',length(cudir)),0:length(cudir));
 
-  if portnum == 0
+  if portNum == 0
     disp(sprintf('Quit'));
     return;
   else
-    comm('open',portnum,sprintf('%i,%s,%i,%i',baudRate,parity(1),dataLen,stopBits));
+    comm('open',portNum,sprintf('%i,%s,%i,%i',baudRate,parity(1),dataLen,stopBits));
     response = askuser;
     if response
       return
     end
-    comm('close',portnum);
-    portnum = 0;
+    comm('close',portNum);
+    portNum = 0;
   end
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % close the serial port
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function closeSerialPortUsingComm(portnum)
+function closeSerialPortUsingComm(portNum)
 
-if portnum
-  comm('close',portnum);
+if portNum
+  comm('close',portNum);
 end
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % write to the serial port
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function writeSerialPortUsingComm(portnum, str)
+function writeSerialPortUsingComm(portNum, str)
 
-comm('write',portnum,str);
+comm('write',portNum,str);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % read from the serial port
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function str = readSerialPortUsingComm(portnum, numbytes)
+function str = readSerialPortUsingComm(portNum, numbytes)
 
-str = char(comm('read',portnum,numbytes))';
+str = char(comm('read',portNum,numbytes))';
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % read one line (ending in 0xA) from the serial port
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function str = readLineSerialPortUsingComm(portnum)
+function str = readLineSerialPortUsingComm(portNum)
 
-str = comm('readl',portnum);
+str = comm('readl',portNum);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % gets the user to input a number
@@ -1080,15 +1203,6 @@ if verbose==1,disppercent(inf);end
 
 bestparams.fit = -(experr(bestparams.fitparams,bestparams.x,bestparams.y,bestparams.minx,bestparams.maxx)-y);
 bestparams.r2 = 1-var(bestparams.residual)/var(bestparams.y);
-
-% display the fit
-if (dispfit)
-  plot(bestparams.x,bestparams.y,'ko');
-  hold on
-  plot(x,bestparams.fit,'k-');
-  xlabel('x');
-  title(sprintf('amp=%0.2f tau=%0.2f offset=%0.2f linear till %0.2f (%0.2f) linear after %0.2f (%0.2f)',bestparams.fitparams(1),bestparams.fitparams(2),bestparams.fitparams(3),bestparams.minx,bestparams.fitparams(4),bestparams.maxx,bestparams.fitparams(5)));
-end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % function for fitting exponent
@@ -1429,24 +1543,777 @@ photometerNum = getPhotometerNum;
 if photometerNum == 0,return,end
 
 % open the serial port
-portnum = initSerialPort(photometerNum);
-if (portnum == 0),return,end
+portNum = initSerialPort(photometerNum);
+if (portNum == 0),return,end
 
 % init the device
-if (photometerInit(portnum,photometerNum) == -1)
-  closeSerialPort(portnum);
+if (photometerInit(portNum,photometerNum) == -1)
+  closeSerialPort(portNum);
   return
 end
 
-disp(sprintf('(moncalib:photomterTest) Trying to make a measurement from your photometer.\nIf the code hangs here, there is probably a communication problem. A few things to try:\n1) Unplug your serial adaptor from the computer and plug it back in again.\n2) Restart Matlab\n3) Reboot the computer (sometimes the serial adaptor needs a good kick in the pants)\n4) Check to make sure you have the correct cable (For example, the Topcon needs a null-modem cable that crosses read/write lines, while other photometers may need a simple pass through cable).\n5) Make sure that your communication mode on the device is setup correctly. Minolta can only use 4800/even/7 bits/2 stop bits. Other photometers have different settings, but should be set to 9600/none/8/1\n6) Power cycle your photometer and try again.'));
+disp(sprintf('(moncalib:photometerTest) Trying to make a measurement from your photometer.\nIf the code hangs here, there is probably a communication problem. A few things to try:\n1) Unplug your serial adaptor from the computer and plug it back in again.\n2) Restart Matlab\n3) Reboot the computer (sometimes the serial adaptor needs a good kick in the pants)\n4) Check to make sure you have the correct cable (For example, the Topcon needs a null-modem cable that crosses read/write lines, while other photometers may need a simple pass through cable).\n5) Make sure that your communication mode on the device is setup correctly. Minolta can only use 4800/even/7 bits/2 stop bits. Other photometers have different settings, but should be set to 9600/none/8/1\n6) Power cycle your photometer and try again.'));
 
 % make a measurement
 for i = 1
-  [l x y] = photometerMeasure(portnum,photometerNum);
+  [l x y] = photometerMeasure(portNum,photometerNum);
   disp(sprintf('============================ Photometer measurement has been made ==============================='));
   disp(sprintf('(moncalib:photometerTest) Measured luminace=%f x=%f y=%f',l,x,y));
   disp(sprintf('================================================================================================='));
 end
 
 % and close
-closeSerialPort(portnum);
+closeSerialPort(portNum);
+
+%%%%%%%%%%%%%%%%%%%%%%%%%
+%    measureSpectrum    %
+%%%%%%%%%%%%%%%%%%%%%%%%%
+function calib = measureSpectrum(calib,portNum,photometerNum,testColors)
+
+global verbose;
+dispMessage('Measuring spectrum');
+
+mglSetGammaTable(0:1/255:1);
+calib.spectrum.testColors = testColors;
+if verbose == 1,disppercent(-inf,'Measuring spectrum');end
+for i = 1:length(calib.spectrum.testColors)
+  mglClearScreen(calib.spectrum.testColors{i});mglFlush;
+  % measure spectrum
+  [calib.spectrum.wavelength{i} calib.spectrum.radiance{i}] = photometerSpectrumMeasure(portNum,photometerNum);
+  % measure luminance x/y
+  [calib.spectrum.luminance(i) calib.spectrum.x(i) calib.spectrum.y(i)] = photometerMeasure(portNum,photometerNum);
+  if verbose == 1,disppercent(i/length(calib.spectrum.testColors));end
+end
+if verbose==1,disppercent(inf);end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%
+%    displaySpectrum    %
+%%%%%%%%%%%%%%%%%%%%%%%%%
+function displaySpectrum(calib)
+
+if ~isfield(calib,'spectrum'),return,end
+
+if exist('smartfig') == 2
+  smartfig('moncalib_displaySpectrum','reuse');
+else
+  figure;
+end
+
+% get wavelength
+w = calib.spectrum.wavelength{1};
+
+% get RGB spectrums
+R = calib.spectrum.radiance{1};
+G = calib.spectrum.radiance{2};
+B = calib.spectrum.radiance{3};
+
+for i = 1:3
+  subplot(5,1,1);
+  plot(w,calib.spectrum.radiance{i},'k-','Color',calib.spectrum.testColors{i});
+  hold on;
+end
+legend(sprintf('Red: lum=%0.4f x=%0.4f y=%0.4f',calib.spectrum.luminance(1),calib.spectrum.x(1),calib.spectrum.y(1)),sprintf('Green: lum=%0.4f x=%0.4f y=%0.4f',calib.spectrum.luminance(2),calib.spectrum.x(2),calib.spectrum.y(2)),sprintf('Blue: lum=%0.4f x=%0.4f y=%0.4f',calib.spectrum.luminance(3),calib.spectrum.x(3),calib.spectrum.y(3)));
+title(calib.date);
+
+subplot(5,1,2);
+plot(w,calib.spectrum.radiance{4},'k--');
+hold on;
+plot(w,calib.spectrum.radiance{5},'k-');
+plot(w,R+G+B,'k:');
+
+legend(sprintf('Black: lum=%0.4f x=%0.4f y=%0.4f',calib.spectrum.luminance(4),calib.spectrum.x(4),calib.spectrum.y(4)),sprintf('White: lum=%0.4f x=%0.4f y=%0.4f',calib.spectrum.luminance(5),calib.spectrum.x(5),calib.spectrum.y(5)),'linear fit from RGB');
+
+for i = 6:8
+  subplot(5,1,i-3);
+  c = calib.spectrum.testColors{i};
+  plot(w,calib.spectrum.radiance{i},'k-','Color',c);
+  hold on;
+  % plot linear fit
+  plot(w,c(1)*R+c(2)*G+c(3)*B,'k:','Color',c);
+  hold on;
+  legend(sprintf('lum=%0.4f x=%0.4f y=%0.4f',calib.spectrum.luminance(i),calib.spectrum.x(i),calib.spectrum.y(i)));
+end
+
+subplot(5,1,5);
+xlabel('Wavelength (nm)');
+subplot(5,1,3);
+ylabel('Spectral radiance (W m^-2 x nm^-1 x sr^-1)');
+drawnow
+
+% display on cieXY 1931 plot (if fucntion exists - lives in justin's matlab directory
+if exist('ciexyplot') == 2
+  ciexyplot;
+  % plot the RGB triangle
+  plot(calib.spectrum.x([1:3 1]),calib.spectrum.y([1:3 1]),'k-');
+  % plot each point set to have its face color as the color tested
+  for i = 1:8
+    plot(calib.spectrum.x(i),calib.spectrum.y(i),'ko','MarkerFaceColor',calib.spectrum.testColors{i},'MarkerEdgeColor','k');
+  end
+end
+
+%%%%%%%%%%%%%%%%%%%%%
+%    setupCalib
+%%%%%%%%%%%%%%%%%%%%%
+function [calib portNum photometerNum todo] = setupCalib(calib,todo)
+
+global verbose;
+global lastSettings;
+lastSettings = [];
+
+% open the serial port
+if isequal(todo.useSerialPort,1) || askuser('Do you want to do an auto calibration using the serial port')
+  % ask user what photometer they want to use
+  if isempty(todo.photometerNum)
+    photometerNum = getPhotometerNum;
+  else
+    photometerNum = todo.photometerNum;
+  end
+  if photometerNum == 0,return,end
+  portNum = initSerialPort(photometerNum,todo.portNum);
+  if (portNum == 0),return,end
+  % init the device
+  if (photometerInit(portNum,photometerNum) == -1)
+    closeSerialPort(portNum);
+    disp(sprintf('(moncalib:setupCalibParams) Could not init photometer'));
+    photometerNum = -1;
+    return
+  end
+else
+  % manual calibration
+  portNum = [];
+  photometerNum = [];
+  verbose = 0;
+  % ask the user if they want to do these things, since they
+  % take a long time
+  if todo.testTable
+    todo.testTable = askuser('After calibration you can test the calibration, but this will force you to measure the luminances twice, do you want to test the calibration');
+  end
+  if todo.bitTest
+    todo.bitTest = askuser('Do you want to test whether you have a 10 bit gamma table (this also will require a lot of measurements)');
+  end
+  if (calib.numRepeats>1) && askuser(sprintf('Number of repeats is set to %i. Would you rather collect only 1 repeat of each measurement',calib.numRepeats))
+    calib.numRepeats = 1;
+  end
+end
+
+% ask to see if we want to save
+if askuser('Do you want to save the calibration')
+  calib.filename = getSaveFilename(getHostName);
+end
+
+% ask user to chose screen parameters for calibration:
+% these parameters will be then saved in the calibration structure
+% for future reference:
+if (~isequal(todo.useCurrentMonitorSettings,1) && ~askuser('Do you want to use current monitor settings? '))
+  response = 0;
+  while response==0
+    monitorParameters = setMonitorParameters(calib.screenNumber);
+    response = askuser(sprintf('Monitor "%s" will be set to: [%ix%i] frameRate: %i bitDepth: %i', monitorParameters.ID,monitorParameters.screenWidth, monitorParameters.screenHeight, monitorParameters.frameRate, monitorParameters.bitDepth));
+  end
+  calib.monitor = monitorParameters;
+
+  % close screen, just in case it is open so we can open at new resolution
+  mglClose;
+  % now open the screen
+  mglOpen(calib.screenNumber,monitorParameters.screenWidth, monitorParameters.screenHeight, monitorParameters.frameRate, monitorParameters.bitDepth);
+else
+  lastSettings.useCurrentMonitorSettings = 1;
+  if todo.getMonitorName
+    lastSettings.getMonitorName = 1;
+    calib.monitor.ID = input('Enter a name for the monitor (this is optional and only really necessary for a system with multiple displays): ','s');
+  else
+    lastSettings.getMonitorName = 0;
+    calib.monitor.ID = todo.monitorName;
+  end
+  mglOpen(calib.screenNumber);
+end
+
+% save monitor settings that mgl actually opened the monitor to
+calib.screenNumber = mglGetParam('displayNumber');
+calib.monitor.screenWidth = mglGetParam('screenWidth');
+calib.monitor.screenHeight = mglGetParam('screenHeight');
+calib.monitor.frameRate = mglGetParam('frameRate');
+calib.monitor.bitDepth = mglGetParam('bitDepth');
+
+% choose the range of values over which to test for the number
+% of bits the gamma table can be set to
+if ~isfield(calib,'bittest'),
+  calib.bittest.stepsize = 2^10;
+  calib.bittest.base = 0.5;
+  calib.bittest.n = 10;
+  calib.bittest.numRepeats = 16;
+end
+
+% set the date of the calibration
+if ~isfield(calib,'date'),calib.date = datestr(now);end
+
+if ~isempty(portNum)
+  lastSettings.portNum = portNum;
+  lastSettings.photometerNum = photometerNum;
+  lastSettings.useSerialPort = 1;
+else
+  lastSettings.useSerialPort = 0;
+end
+lastSettings.monitorName = todo.monitorName;
+
+  
+
+%%%%%%%%%%%%%%%%%%%%%%
+%    measureGamma    %
+%%%%%%%%%%%%%%%%%%%%%%
+function calib = measureGamma(calib,portNum,photometerNum);
+
+dispMessage('Measuring gamma');
+
+% choose the range of values over which to do the gamma testing
+testRange = 0:calib.stepsize:1;
+
+% display what we are doing
+disp(sprintf('(moncalib:measureGamma) Measuring %i output luminance values from %0.1f to %0.2f in steps of: %0.4f with %i repeats',length(testRange),min(testRange),max(testRange),calib.stepsize,calib.numRepeats));
+
+
+% do the gamma measurements
+if ~isfield(calib,'uncorrected')
+  calib.uncorrected = measureOutput(portNum,photometerNum,testRange,calib.numRepeats);
+  saveCalib(calib);
+else
+  disp(sprintf('(moncalib:measureGamma) Uncorrected luminance measurement already done'));
+end
+
+% now build a reverse lookup table
+% use linear interpolation
+desiredOutput = min(calib.uncorrected.luminance):(max(calib.uncorrected.luminance)-min(calib.uncorrected.luminance))/255:max(calib.uncorrected.luminance);
+% check to make sure that we have unique values,
+% otherwise interp1 will fail
+while length(calib.uncorrected.luminance) ~= length(unique(calib.uncorrected.luminance))
+  disp(sprintf('(moncalib:measureGamma) Adjusting luminance values to make them unique'));
+  % slight hack here, adding a bit of noise to keep the values
+  % unique, shouldn't really distort anything though since the
+  % noise is very small.
+  calib.uncorrected.luminance = calib.uncorrected.luminance + rand(size(calib.uncorrected.luminance))/1000000;
+end
+% interpolate table
+calib.table = interp1(calib.uncorrected.luminance,calib.uncorrected.outputValues,desiredOutput,'linear')';
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%    measureGammaEachChannel    %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function calib = measureGammaEachChannel(calib,portNum,photometerNum);
+
+% choose the range of values over which to do the gamma testing
+testRange = 0:calib.stepsize:1;
+
+% display what we are doing
+disp(sprintf('(moncalib:measureGammaEachChannel) Measuring %i output luminance values from %0.1f to %0.2f in steps of: %0.4f with %i repeats',length(testRange),min(testRange),max(testRange),calib.stepsize,calib.numRepeats));
+
+% do the gamma measurements
+if ~isfield(calib,'uncorrectedEachChannel')
+  calib.uncorrectedEachChannel = [];
+end
+
+% test red
+if ~isfield(calib.uncorrectedEachChannel,'R')
+  dispMessage('Measuring red gamma');
+  for i = 1:length(testRange)
+    testColors{i} = [testRange(i) 0 0];
+  end
+  calib.uncorrectedEachChannel.R = measureOutputColor(portNum,photometerNum,testColors,calib.numRepeats);
+  saveCalib(calib);
+else
+  disp(sprintf('(moncalib:measureGammaForEachChannel) Uncorrected luminance measurement for red ready done'));
+end
+  
+if ~isfield(calib.uncorrectedEachChannel,'G')
+  dispMessage('Measuring green gamma');
+  % test green
+  for i = 1:length(testRange)
+    testColors{i} = [0 testRange(i) 0];
+  end
+  calib.uncorrectedEachChannel.G = measureOutputColor(portNum,photometerNum,testColors,calib.numRepeats);
+  saveCalib(calib);
+else
+  disp(sprintf('(moncalib:measureGammaForEachChannel) Uncorrected luminance measurement for green ready done'));
+end
+  
+if ~isfield(calib.uncorrectedEachChannel,'B')
+  dispMessage('Measuring blue gamma');
+  % test blue
+  for i = 1:length(testRange)
+    testColors{i} = [0 0 testRange(i)];
+  end
+  calib.uncorrectedEachChannel.B = measureOutputColor(portNum,photometerNum,testColors,calib.numRepeats);
+  saveCalib(calib);
+else
+  disp(sprintf('(moncalib:measureGammaForEachChannel) Uncorrected luminance measurement for blue ready done'));
+end
+
+% now build a reverse lookup table
+% use linear interpolation
+%desiredOutput = min(calib.uncorrected.luminance):(max(calib.uncorrected.luminance)-min(calib.uncorrected.luminance))/255:max(calib.uncorrected.luminance);
+% check to make sure that we have unique values,
+% otherwise interp1 will fail
+%while length(calib.uncorrected.luminance) ~= length(unique(calib.uncorrected.luminance))
+%  disp(sprintf('Adjusting luminance values to make them unique'));
+  % slight hack here, adding a bit of noise to keep the values
+  % unique, shouldn't really distort anything though since the
+  % noise is very small.
+%  calib.uncorrected.luminance = calib.uncorrected.luminance + rand(size(calib.uncorrected.luminance))/1000000;
+%end
+% interpolate table
+%calib.table = interp1(calib.uncorrected.luminance,calib.uncorrected.outputValues,desiredOutput,'linear')';
+
+
+%%%%%%%%%%%%%%%%%%%%%%
+%    displayGamma    %
+%%%%%%%%%%%%%%%%%%%%%%
+function displayGamma(calib)
+
+if isfield(calib,'uncorrected')
+  if exist('smartfig') == 2
+    smartfig('moncalib_displayGamma','reuse');
+  else
+    figure;
+  end
+  subplot(1,2,1);
+  dispLuminanceFigure(calib.uncorrected);
+  title(calib.date);
+  hold on
+end
+
+%%%%%%%%%%%%%%%%%%%%%%
+%    displayGamma    %
+%%%%%%%%%%%%%%%%%%%%%%
+function displayGammaEachChannel(calib)
+
+if isfield(calib,'uncorrectedEachChannel');
+  if exist('smartfig') == 2
+    smartfig('moncalib_displayGammaEachChannel','reuse');
+  else
+    figure;
+  end
+  subplot(1,5,1);
+  dispLuminanceFigure(calib.uncorrectedEachChannel.R,'r');
+  title(sprintf('%s\nRed',calib.date));
+  hold on
+  subplot(1,5,2);
+  dispLuminanceFigure(calib.uncorrectedEachChannel.G,'g');
+  title(sprintf('%s\nGreen',calib.date));
+  hold on
+  subplot(1,5,3);
+  dispLuminanceFigure(calib.uncorrectedEachChannel.B,'b');
+  title(sprintf('%s\nBlue',calib.date));
+  hold on
+  subplot(1,5,4);
+  dispLuminanceFigure(calib.uncorrectedEachChannel.R,'r');
+  hold on
+  dispLuminanceFigure(calib.uncorrectedEachChannel.G,'g');
+  dispLuminanceFigure(calib.uncorrectedEachChannel.B,'b');
+  title(sprintf('%s\nRGB',calib.date));
+  subplot(1,5,5);
+  dispLuminanceFigure(calib.uncorrectedEachChannel.R,'r',1);
+  hold on
+  dispLuminanceFigure(calib.uncorrectedEachChannel.G,'g',1);
+  dispLuminanceFigure(calib.uncorrectedEachChannel.B,'b',1);
+  title('Normalized luminance');
+end
+
+%%%%%%%%%%%%%%%%%%%%%%
+%    testExponent    %
+%%%%%%%%%%%%%%%%%%%%%%
+function calib = testExponent(calib,portNum,photometerNum);
+
+% now reset the gamma table with the exponent
+disp(sprintf('Using function values to linearize gamma'));
+mglSetGammaTable(calib.minval,calib.maxval,1/calib.gamma,calib.minval,calib.maxval,1/calib.gamma,calib.minval,calib.maxval,1/calib.gamma);
+
+%and see how well we have done
+if ~isfield(calib,'corrected')
+  calib.corrected = measureOutput(portNum,photometerNum,calib.uncorrected.outputValues,calib.numRepeats,0);
+  saveCalib(calib);
+else
+  disp(sprintf('Function corrected luminance measurement already done'));
+end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%    displayTestExponent    %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function displayTestExponent(calib)
+
+dispLuminanceFigure(calib.corrected,'r');
+
+% plot the ideal
+plot(calib.uncorrected.outputValues,calib.uncorrected.outputValues*(max(calib.uncorrected.luminance)-min(calib.uncorrected.luminance))+min(calib.uncorrected.luminance),'g-');
+if isfield(calib,'gamma')
+  mylegend({'uncorrected','corrected (gamma)','corrected (table)','ideal'},{'ko','ro','co','go'},2);
+else
+  mylegend({'uncorrected','corrected (table)','ideal'},{'ko','co','go'},2);
+end
+
+%%%%%%%%%%%%%%%%%%%
+%    testTable    %
+%%%%%%%%%%%%%%%%%%%
+function calib = testTable(calib,portNum,photometerNum);
+
+dispMessage('Testing table corrected gamma');
+
+if ~isfield(calib,'table')
+  disp(sprintf('(moncalib:testTable) No table to test'));
+  return
+end
+
+% now reset the gamma table with the calculated table
+disp(sprintf('Using table values to linearize gamma'));
+mglSetGammaTable(calib.table);
+
+%and see how well we have done
+if ~isfield(calib,'tableCorrected')
+  calib.tableCorrected = measureOutput(portNum,photometerNum,calib.uncorrected.outputValues,calib.numRepeats,0);
+  saveCalib(calib);
+else
+  disp(sprintf('Table corrected luminance measurement already done'));
+end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+%    displayTestTable    %
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+function displayTestTable(calib)
+
+if isfield(calib,'tableCorrected')
+  dispLuminanceFigure(calib.tableCorrected,'c');
+
+  % plot the ideal
+  plot(calib.uncorrected.outputValues,calib.uncorrected.outputValues*(max(calib.uncorrected.luminance)-min(calib.uncorrected.luminance))+min(calib.uncorrected.luminance),'g-');
+  if isfield(calib,'gamma')
+    mylegend({'uncorrected','corrected (gamma)','corrected (table)','ideal'},{'ko','ro','co','go'},2);
+  else
+    mylegend({'uncorrected','corrected (table)','ideal'},{'ko','co','go'},2);
+  end
+end
+
+%%%%%%%%%%%%%%%%%
+%    bitTest    %
+%%%%%%%%%%%%%%%%%
+function calib = bitTest(calib,portNum,photometerNum)
+
+dispMessage('Testing for 10 bit gamma table');
+
+% test to see how many bits we have in the gamma table
+if ~isfield(calib.bittest,'data')
+  % The range will start at bittest.base and then go through bittest.n
+  % steps of size bittest.stepsize. A 10 bit monitor should step up
+  % luninance for every output increment of 1/1024
+  bitTestRange = calib.bittest.base:(1/calib.bittest.stepsize):calib.bittest.base+calib.bittest.n*(1/calib.bittest.stepsize);
+  calib.bittest.data = measureOutput(portNum,photometerNum,bitTestRange,calib.bittest.numRepeats);
+end
+
+%%%%%%%%%%%%%%%%%%%%%%%%
+%    displayBitTest    %
+%%%%%%%%%%%%%%%%%%%%%%%%
+function displayBitTest(calib)
+
+if isfield(calib,'bittest') && isfield(calib.bittest,'data')
+  subplot(1,2,2);
+  dispLuminanceFigure(calib.bittest.data);
+  title(sprintf('Output starting at %0.2f\nin steps of 1/%i',calib.bittest.base,calib.bittest.stepsize));
+end
+
+%%%%%%%%%%%%%%%%%%%
+%    saveCalib    %
+%%%%%%%%%%%%%%%%%%%
+function saveCalib(calib)
+
+if isfield(calib,'filename')
+  eval(sprintf('save %s calib',calib.filename));
+end
+
+%%%%%%%%%%%%%%%%%%%
+%    parseArgs    %
+%%%%%%%%%%%%%%%%%%%
+function [calib todo] = parseArgs(nargs,vars)
+
+global verbose;
+numRepeats = [];
+stepsize = [];
+initWaitTime = [];
+screenNumber = [];
+spectrum = 0;
+gamma = 1;
+gammaEachChannel = 0;
+exponent = 0;
+tableTest = 1;
+bitTest = 0;
+reset = 0;
+justDisplay = 0;
+
+calib = [];
+% see if we were actually passed in a calib structure
+if (nargs == 1) && isfield(vars{1},'screenNumber')
+  % grab calib off the input arguments
+  calib = vars{1};
+  vars = {vars{2:end}};
+  nargs = nargs-1;
+  justDisplay = 1;
+end
+
+%(screenNumber,stepsize,numRepeats,testTable,bitTest,initWaitTime)
+%check if all arguments are numeric
+oldStyleArgs = 1;
+for i = 1:nargs
+  if ~isnumeric(vars{i})
+    oldStyleArgs = 0;
+  end
+end
+
+% parse old style arguments
+if oldStyleArgs    
+  if nargs < 1,screenNumber = [];else screenNumber = vars{1};end
+  if nargs < 2,stepsize = 1/32;else stepsize = vars{2};end
+  if nargs < 3,numRepeats = 4;else numRepeats = vars{3};end
+  if nargs < 4,testTable = 1;else testTable = vars{4};end
+  if nargs < 5,bitTest = 0; else bitTest = vars{5};end
+  if nargs < 6,initWaitTime = 0; else initWaitTime = vars{6};end
+else
+  if exist('getArgs') == 2
+    getArgs(vars,{'numRepeats=4','stepsize=1/32','initWaitTime=0','screenNumber=[]','spectrum=0','gamma=1','exponent=0','tableTest=1','bitTest=0','reset=0','gammaEachChannel=0','verbose=1'});
+  else
+    disp(sprintf('(moncalib) To parse string arguments you need getArgs from the mrTools distribution'));
+  end
+end
+
+% setup things that we need to do
+todo.setupCalib = 1;
+
+todo.dispSettings = 1;
+todo.photometerTest = 0;
+todo.initWaitTime = initWaitTime;
+todo.measureSpectrum = spectrum;
+todo.displaySpectrum = spectrum;
+todo.measureGamma = gamma;
+todo.displayGamma = gamma;
+todo.measureGammaEachChannel = gammaEachChannel;
+todo.displayGammaEachChannel = gammaEachChannel;
+todo.fitExponent = exponent;
+todo.displayExponent = exponent;
+todo.testExponent = exponent;
+todo.displayTestExponent = exponent;
+todo.testTable = tableTest;
+todo.displayTestTable = tableTest;
+todo.bitTest = bitTest;
+todo.displayBitTest = bitTest;
+
+% settings used to setup photometer and serial port
+todo.useCurrentMonitorSettings = [];
+todo.getMonitorName = [];
+todo.portNum = [];
+todo.photometerNum = [];
+todo.useSerialPort = [];
+todo.monitorName = '';
+
+% see if we have settings from last run for the above settings
+global lastSettings;
+if reset,lastSettings = [];end
+if isstruct(lastSettings) && ~isempty(lastSettings)
+  lastSettingsFields = fields(lastSettings);
+else
+  lastSettingsFields = [];
+end
+for i = 1:length(lastSettingsFields)
+  todo.(lastSettingsFields{i}) = lastSettings.(lastSettingsFields{i});
+  if isnumeric(todo.(lastSettingsFields{i}))
+    disp(sprintf('(moncalib:parseArgs) Using previous setting for %s: %s',lastSettingsFields{i},num2str(todo.(lastSettingsFields{i}))));
+  else
+    disp(sprintf('(moncalib:parseArgs) Using previous setting for %s',lastSettingsFields{i}));
+  end
+end
+
+% set parameters of calib structure
+if ~isfield(calib,'screenNumber'),calib.screenNumber = screenNumber;end
+if ~isfield(calib,'stepsize'),calib.stepsize = stepsize;end
+if ~isfield(calib,'numRepeats'),calib.numRepeats = numRepeats;end
+
+% decide whether we need to run anything or not
+if isfield(calib,'corrected')
+  disp(sprintf('(moncalib) Found exponent corrected gamma table'));
+  todo.testExponent = 0;
+end
+
+if isfield(calib,'table')
+  disp(sprintf('(moncalib) Found table corrected gamma table'));
+  todo.testTable = 0;
+end
+
+if isfield(calib,'bittest') && isfield(calib.bittest,'data')
+  disp(sprintf('(moncalib) Found bit test'));
+  todo.bitTest = 0;
+  todo.displayBitTest = 1;
+end
+
+if isfield(calib,'uncorrected')
+  disp(sprintf('(moncalib) Found uncorrected gamma measurement table'));
+  todo.measureGamma = 0;
+end
+
+% if there are no test to run, then we just display
+if ~todo.photometerTest && ~todo.measureSpectrum && ~todo.testExponent && ~todo.testTable && ~todo.bitTest && ~todo.measureGamma && ~todo.measureGammaEachChannel
+  todo.setupCalib = 0;
+end
+
+if calib.numRepeats < 1
+  disp(sprintf('(moncalib:parseArgs) numRepeats must be 1 or more'));
+  calib.numRepeats = 1;
+end
+
+% this is just a photometer test, set everybode to 0
+if screenNumber == -1
+  todolist = fields(todo);
+  for i = 1:length(todolist)
+    todo.(todolist{i}) = 0;
+  end
+  todo.photometerTest = 1;
+  lastSettings = 0;
+end
+
+% this will be set if passed in a calib structure, set todo list to do display
+if justDisplay
+  todo.setupCalib = 0;
+  todo.dispSettings;
+
+  todo.photometerTest = 0;
+  todo.initWaitTime = 0;
+  todo.measureSpectrum = 0;
+  todo.displaySpectrum = 1;
+  todo.measureGamma = 0;
+  todo.displayGamma = 1;
+  todo.measureGammaEachChannel = 0;
+  todo.displayGammaEachChannel = 1;
+  todo.fitExponent = 0;
+  todo.displayExponent = 0;
+  todo.testExponent = 0;
+  todo.displayTestExponent = 0;
+  todo.testTable = 0;
+  todo.displayTestTable = 1;
+  todo.bitTest = 0;
+  todo.displayBitTest = 1;
+end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+%    fitGammaExponent    %
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+function calib = fitGammaExponent(calib)
+
+% get the exponent
+if isfield(calib,'uncorrected')
+  calib.fit = fitExponent(calib.uncorrected.outputValues,calib.uncorrected.luminance,1);
+  calib.gamma = -1/calib.fit.fitparams(2);
+  calib.minval = calib.fit.minx;
+  calib.maxval = calib.fit.maxx;
+else
+  disp(sprintf('(moncalib:fitGammaExponent) No uncorrected gamma data to fit'));
+end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%
+%    displayExponent   %%
+%%%%%%%%%%%%%%%%%%%%%%%%%
+function displayExponent(calib)
+
+if isfield(calib,'fit')
+  plot(calib.fit.x,calib.fit.y,'ko');
+  hold on
+  plot(calib.fit.x,calib.fit.fit,'k-');
+  xlabel('x');
+
+  if isfield(calib,'filename')
+    gammaStr = sprintf('%s\nMonitor gamma = %f minval=%0.1f maxval = %0.1f',calib.filename,calib.gamma,calib.minval,calib.maxval);
+  else
+    gammaStr = sprintf('Monitor gamma = %f minval=%0.1f maxval = %0.1f',calib.gamma,calib.minval,calib.maxval);
+  end
+  title(gammaStr,'interpreter','none');disp(gammaStr);drawnow
+else
+  disp(sprintf('(moncalib:dispGammaFit) No fit gamma to display'));
+end
+
+
+
+%%%%%%%%%%%%%%%%%%%%%
+%    dispMessage    %
+%%%%%%%%%%%%%%%%%%%%%
+function dispMessage(s)
+global verbose
+
+if verbose > 0
+  disp(sprintf(repmat('=',1,80)));
+  if ~isempty(s)
+    disp(sprintf(s));
+    disp(sprintf(repmat('=',1,80)));
+  end
+end
+
+%%%%%%%%%%%%%%%%%%%%%%
+%    dispSettings    %
+%%%%%%%%%%%%%%%%%%%%%%
+function dispSettings(calib,todo)
+
+clc;
+dispMessage('(moncalib) Settings');
+
+if ~todo.photometerTest && ~todo.measureSpectrum && ~todo.testExponent && ~todo.testTable && ~todo.bitTest && ~todo.measureGamma && ~todo.measureGammaEachChannel
+  disp(sprintf('(moncalib) Displaying data for calibration file %s',calib.filename));
+  disp(sprintf('(moncalib) Calibration measured on %s',calib.date));
+  % get how long it took to do the calibration
+  [filepath filename] = fileparts(calib.filename);
+  filename = fullfile(filepath,sprintf('%s.mat',filename));
+  if isfile(filename)
+    d = dir(filename);
+    if isfield(d,'datenum') && ~isempty(d.datenum)
+      disp(sprintf('(moncalib) Calibration took %s',datestr(d.datenum-datenum(calib.date),13)));
+    end
+  end
+  if isfield(calib,'spectrum')
+    disp(sprintf('(moncalib) Measured spectrum'));
+  end
+  if isfield(calib,'uncorrectedEachChannel')
+    disp(sprintf('(moncalib) Measured gamma for each channel with stepsize: %f (1/%i), numRepeats: %i',calib.stepsize,round(1/calib.stepsize),calib.numRepeats));
+  end
+  if isfield(calib,'uncorrected')
+    disp(sprintf('(moncalib) Measured gamma with stepsize: %f (1/%i), numRepeats: %i',calib.stepsize,round(1/calib.stepsize),calib.numRepeats));
+  end
+  if isfield(calib,'bittest') && isfield(calib.bittest,'data')
+    disp(sprintf('(moncalib) Measured bittest with stepsize: 1/%i, numRepeats: %i, n: %i, base: %0.f',calib.bittest.stepsize,calib.bittest.numRepeats,calib.bittest.n,calib.bittest.base));
+  end
+  if isfield(calib,'tableCorrected')
+    disp(sprintf('(moncalib) Measured table correction with stepsize: %f (1/%i), numRepeats: %i',calib.stepsize,round(1/calib.stepsize),calib.numRepeats));
+  end
+else
+  if isfield(calib,'filename')
+    disp(sprintf('Saving to: %s',calib.filename));
+  else
+    disp(sprintf('Not saving output'));
+  end  
+end
+
+i = 1;
+if todo.measureSpectrum
+  disp(sprintf('%i: Measure spectrum',i));
+  i = i+1;
+end
+
+if  todo.measureGammaEachChannel
+  disp(sprintf('%i: Measure gamma for each channel with stepsize: %f (1/%i), numRepeats: %i',i,calib.stepsize,round(1/calib.stepsize),calib.numRepeats));
+  i = i+1;
+end
+
+if  todo.measureGamma
+  disp(sprintf('%i: Measure gamma with stepsize: %f (1/%i), numRepeats: %i',i,calib.stepsize,round(1/calib.stepsize),calib.numRepeats));
+  i = i+1;
+end
+
+if todo.testTable
+  disp(sprintf('%i: Test table',i));
+  i = i+1;
+end
+
+if todo.bitTest
+  disp(sprintf('%i: Test for 10 bit gamma card',i));
+  i = i+1;
+end
+
