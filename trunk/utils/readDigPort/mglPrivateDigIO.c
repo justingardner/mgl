@@ -96,8 +96,11 @@ static int stopNidaqThread = 0;
 //////////////
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
-  // start auto release pool
-  NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+  // start auto release pool - I don't _think_ I need this autorelease
+  //pool, since we make a global one when we init. This one was not
+  // getting cleaned up properly and causing a memory fault. So
+  // commenting out.
+  //NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
 
   // get which command this is
   int command = mxGetScalar(prhs[0]);
