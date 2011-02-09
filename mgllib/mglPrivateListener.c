@@ -90,8 +90,11 @@ static int gavewarning = 0;
 //////////////
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
-  // start auto release pool
-  NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+  // start auto release pool - I don't _think_ I need this autorelease
+  //pool, since we make a global one when we init. This one was not
+  // getting cleaned up properly and causing a memory fault. So
+  // commenting out.
+  // NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
 
   // get which command this is
   int command = mxGetScalar(prhs[0]);
@@ -113,40 +116,44 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     // start the thread that will have a callback that gets called every
     // time there is a keyboard or mouse event of interest
     if (!eventTapInstalled) {
-      // first check if the accessibility API is enabled, cause otherwise we are F*&%ed.
-      if (!AXAPIEnabled() & !gavewarning) {
-        mexPrintf("(mglPrivateListener) **WARNING** To get keyboard events, you must have the Accessibility API enabled. From System Preferences open Universal Access and make sure that \"Enable access for assistive devices\" is checked **WARNING **\n");
-        int ret = NSRunAlertPanel (@"To get keyboard events, you must have the Accessibility API enabled.  Would you like to launch System Preferences so that you can turn on \"Enable access for assistive devices\".", @"", @"OK",@"", @"Cancel");
-        switch (ret) {
-          case NSAlertDefaultReturn:
-          [[NSWorkspace sharedWorkspace] openFile:@"/System/Library/PreferencePanes/UniversalAccessPref.prefPane"];
-      // busy wait until accessibility is activated
-          while (!AXAPIEnabled());
-          break;
-          default:
-          [pool drain];
-          return;
-          break;
-        }
-      }
       // init pthread_mutex
       pthread_mutex_init(&mut,NULL);
-      // init the event queue
-      gListenerPool = [[NSAutoreleasePool alloc] init];
-      gKeyboardEventQueue = [[NSMutableArray alloc] init];
-      gMouseEventQueue = [[NSMutableArray alloc] init];
-      // default to no keys to eat
-      gEatKeys[0] = 0;
-      // set up the event tap
-      launchSetupEventTapAsThread();
-      // and remember that we have an event tap thread running
-      eventTapInstalled = TRUE;
-      // and clear the gKeyStatus array
-      for (i = 0; i < MAXKEYCODES; i++)
-        gKeyStatus[i] = 0;
-      mexPrintf("(mglPrivateListener) Starting keyboard and mouse event tap. End with mglListener('quit').\n");
-      // tell matlab to call this function to cleanup properly
-      mexAtExit(mglPrivateListenerOnExit);
+      pthread_mutex_lock(&mut);
+      if (~eventTapInstalled) {
+	// first check if the accessibility API is enabled, cause otherwise we are F*&%ed.
+	if (!AXAPIEnabled() & !gavewarning) {
+	  mexPrintf("(mglPrivateListener) **WARNING** To get keyboard events, you must have the Accessibility API enabled. From System Preferences open Universal Access and make sure that \"Enable access for assistive devices\" is checked **WARNING **\n");
+	  int ret = NSRunAlertPanel (@"To get keyboard events, you must have the Accessibility API enabled.  Would you like to launch System Preferences so that you can turn on \"Enable access for assistive devices\".", @"", @"OK",@"", @"Cancel");
+	  switch (ret) {
+          case NSAlertDefaultReturn:
+	    [[NSWorkspace sharedWorkspace] openFile:@"/System/Library/PreferencePanes/UniversalAccessPref.prefPane"];
+	    // busy wait until accessibility is activated
+	    while (!AXAPIEnabled());
+	    break;
+          default:
+	    pthread_mutex_unlock(&mut);
+	    return;
+	    break;
+	  }
+	}
+	// init the event queue
+	gListenerPool = [[NSAutoreleasePool alloc] init];
+	gKeyboardEventQueue = [[NSMutableArray alloc] init];
+	gMouseEventQueue = [[NSMutableArray alloc] init];
+	// default to no keys to eat
+	gEatKeys[0] = 0;
+	// set up the event tap
+	launchSetupEventTapAsThread();
+	// and remember that we have an event tap thread running
+	eventTapInstalled = TRUE;
+	// and clear the gKeyStatus array
+	for (i = 0; i < MAXKEYCODES; i++)
+	  gKeyStatus[i] = 0;
+	mexPrintf("(mglPrivateListener) Starting keyboard and mouse event tap. End with mglListener('quit').\n");
+	// tell matlab to call this function to cleanup properly
+	mexAtExit(mglPrivateListenerOnExit);
+      }
+      pthread_mutex_unlock(&mut);
       // started running, return 1
       *mxGetPr(plhs[0]) = 1;
     }
@@ -165,18 +172,18 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       // if we have more than one,
       if (count >= 1) {
         queueEvent *qEvent;
-    // get the last event
+	// get the last event
         qEvent = [gKeyboardEventQueue objectAtIndex:0];
-    // and get the keycode,flags and timestamp
+	// and get the keycode,flags and timestamp
         keycode = [qEvent keycode];
         timestamp = [qEvent timestamp];
         eventFlags = [qEvent eventFlags];
         keyboardType = [qEvent keyboardType];
-    // remove it from the queue
+	// remove it from the queue
         [gKeyboardEventQueue removeAllObjects];
-    // release the mutex
+	// release the mutex
         pthread_mutex_unlock(&mut);
-    // return event as a matlab structure
+	// return event as a matlab structure
         const char *fieldNames[] =  {"when","keyCode","shift","control","alt","command","capslock","keyboard"};
         int outDims[2] = {1, 1};
         plhs[0] = mxCreateStructArray(1,outDims,8,fieldNames);
@@ -199,7 +206,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         *(double*)mxGetPr(mxGetField(plhs[0],0,"keyboard")) = (double)keyboardType;
       }
       else {
-    // no event found, unlock mutex and return empty
+	// no event found, unlock mutex and return empty
         pthread_mutex_unlock(&mut);
         plhs[0] = mxCreateDoubleMatrix(0,0,mxREAL);
       }
@@ -219,7 +226,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       // if we have more than one,
       if (count > 0) {
         int i = 0;
-    // return event as a matlab structure
+	// return event as a matlab structure
         const char *fieldNames[] =  {"when","keyCode"};
         int outDims[2] = {1, 1};
         plhs[0] = mxCreateStructArray(1,outDims,2,fieldNames);
@@ -230,19 +237,19 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         double *keycodeOut = (double*)mxGetPr(mxGetField(plhs[0],0,"keyCode"));
         while (count--) {
           queueEvent *qEvent;
-      // get the last event
+	  // get the last event
           qEvent = [gKeyboardEventQueue objectAtIndex:0];
-      // and get the keycode,flags and timestamp
+	  // and get the keycode,flags and timestamp
           keycodeOut[i] = [qEvent keycode];
           timestampOut[i++] = [qEvent timestamp];
-      // remove it from the queue
+	  // remove it from the queue
           [gKeyboardEventQueue removeObjectAtIndex:0];
         }
-    // release the mutex
+	// release the mutex
         pthread_mutex_unlock(&mut);
       }
       else {
-    // no event found, unlock mutex and return empty
+	// no event found, unlock mutex and return empty
         pthread_mutex_unlock(&mut);
         plhs[0] = mxCreateDoubleMatrix(0,0,mxREAL);
       }
@@ -445,8 +452,7 @@ void* setupEventTap(void *data)
 
   // Create an event tap. We are interested in key presses and mouse presses
   eventMask = ((1 << kCGEventKeyDown) | (1 << kCGEventKeyUp) | (1 << kCGEventLeftMouseDown) | (1 << kCGEventRightMouseDown));
-  //  gEventTap = CGEventTapCreate(kCGSessionEventTap, kCGHeadInsertEventTap, kCGEventTapOptionListenOnly, eventMask, myCGEventCallback, NULL);
-  gEventTap = CGEventTapCreate(kCGSessionEventTap, kCGHeadInsertEventTap, kCGEventTapOptionDefault, eventMask, myCGEventCallback, NULL);
+  gEventTap = CGEventTapCreate(kCGSessionEventTap, kCGHeadInsertEventTap, kCGEventTapOptionListenOnly, eventMask, myCGEventCallback, NULL);
 
   // see if it was created properly
   if (!gEventTap) {
@@ -481,11 +487,11 @@ void* setupEventTap(void *data)
 ////////////////////////
 CGEventRef myCGEventCallback(CGEventTapProxy proxy, CGEventType type, CGEventRef event, void *refcon)
 {
+  // record the event in the globals, first lock the mutex
+  // to avoid concurrent access to the global variables
+  pthread_mutex_lock(&mut);
   // check for keyboard event
   if (type == kCGEventKeyDown) {
-    // record the event in the globals, first lock the mutex
-    // to avoid concurrent access to the global variables
-    pthread_mutex_lock(&mut);
     // save the event in the queue
     queueEvent *qEvent;
     qEvent = [[queueEvent alloc] initWithEventAndType:event :type];
@@ -497,13 +503,8 @@ CGEventRef myCGEventCallback(CGEventTapProxy proxy, CGEventType type, CGEventRef
     event = eatEvent(event,qEvent);
     // release qEvent as it is now in the keyboard event queue
     [qEvent release];
-    // unlock mutex
-    pthread_mutex_unlock(&mut);
-
   }
   else if (type == kCGEventKeyUp) {
-    // remove the key from the gKeyStatus
-    pthread_mutex_lock(&mut);
     // convert to a queueEvent to get fields easier
     queueEvent *qEvent;
     qEvent = [[queueEvent alloc] initWithEventAndType:event :type];
@@ -514,21 +515,16 @@ CGEventRef myCGEventCallback(CGEventTapProxy proxy, CGEventType type, CGEventRef
     event = eatEvent(event,qEvent);
     // release qEvent
     [qEvent release];
-    // unlock mutex
-    pthread_mutex_unlock(&mut);
   }
   else if ((type == kCGEventLeftMouseDown) || (type == kCGEventRightMouseDown)){
-    // record the event in the globals, first lock the mutex
-    // to avoid concurrent access to the global variables
-    pthread_mutex_lock(&mut);
     // save the event in the queue
     queueEvent *qEvent;
     qEvent = [[queueEvent alloc] initWithEventAndType:event :type];
     [gMouseEventQueue addObject:qEvent];
-    // unlock mutex
-    pthread_mutex_unlock(&mut);
   }
 
+  // unlock mutex
+  pthread_mutex_unlock(&mut);
   // return the event for normal OS processing
   return event;
 }
