@@ -103,15 +103,16 @@ if todo.setupCalib
   if photometerNum == -1,return,end
 end
 
-% initial wait time.
-if todo.initWaitTime > 0
-  disp(sprintf('(moncalib) Starting in %i seconds',initWaitTime));
-  mglWaitSecs(initWaitTime);
-end
-
 % display settings
 if todo.dispSettings
   dispSettings(calib,todo);
+end
+
+% initial wait time.
+if todo.initWaitTime > 0
+  disp(sprintf('(moncalib) Starting in %i seconds',todo.initWaitTime));
+  drawnow;
+  mglWaitSecs(todo.initWaitTime);
 end
 
 % collect spectrum for various colors
@@ -145,7 +146,7 @@ end
 if todo.fitExponent,calib = fitGammaExponent(calib);end
 
 % display the gamma
-if todo.displayGamma,displayGamma(calib);end
+if todo.displayGamma,displayGamma(calib,todo);end
 
 % display the exponent
 if todo.displayExponent,displayExponent(calib);end
@@ -1861,7 +1862,7 @@ end
 %%%%%%%%%%%%%%%%%%%%%%
 %    displayGamma    %
 %%%%%%%%%%%%%%%%%%%%%%
-function displayGamma(calib)
+function displayGamma(calib,todo)
 
 if isfield(calib,'uncorrected')
   if exist('smartfig') == 2
@@ -1869,7 +1870,9 @@ if isfield(calib,'uncorrected')
   else
     figure;
   end
-  subplot(1,2,1);
+  if (isfield(calib,'bittest') && isfield(calib.bittest,'data')) || todo.bitTest
+    subplot(1,2,1);
+  end
   dispLuminanceFigure(calib.uncorrected);
   title(calib.date);
   hold on
@@ -2007,7 +2010,12 @@ end
 function displayBitTest(calib)
 
 if isfield(calib,'bittest') && isfield(calib.bittest,'data')
-  subplot(1,2,2);
+  if exist('smartfig') == 2
+    smartfig('moncalib_displayGamma','reuse');
+  end
+  if isfield(calib,'uncorrected')
+    subplot(1,2,2);
+  end
   dispLuminanceFigure(calib.bittest.data);
   title(sprintf('%i bit gamma test: Values should increase linearly\nOutput starting at %0.2f in steps of 1/%i',calib.bittest.bits,calib.bittest.base,2^calib.bittest.bits));
 end
@@ -2053,6 +2061,15 @@ if (nargs == 1) && isfield(vars{1},'screenNumber')
   vars = {vars{2:end}};
   nargs = nargs-1;
   justDisplay = 1;
+  % check for old parameterization of bittest
+  if isfield(calib,'bittest') && isfield(calib.bittest,'data') && ~isfield(calib.bittest,'bits')
+    if isfield(calib.bittest,'stepsize')
+      calib.bittest.bits = log2(calib.bittest.stepsize);
+    else
+      disp(sprintf('(moncalib) Bittest does not have number of bits tested. Setting to 10'));
+      calib.bittest.bits = 10;
+    end
+  end    
 end
 
 %(screenNumber,stepsize,numRepeats,testTable,bitTest,initWaitTime)
@@ -2267,17 +2284,21 @@ clc;
 dispMessage('(moncalib) Settings');
 
 if ~todo.photometerTest && ~todo.measureSpectrum && ~todo.testExponent && ~todo.testTable && ~todo.bitTest && ~todo.measureGamma && ~todo.measureGammaEachChannel
-  disp(sprintf('(moncalib) Displaying data for calibration file %s',calib.filename));
-  disp(sprintf('(moncalib) Calibration measured on %s',calib.date));
-  % get how long it took to do the calibration
-  [filepath filename] = fileparts(calib.filename);
-  filename = fullfile(filepath,sprintf('%s.mat',filename));
-  if isfile(filename)
-    d = dir(filename);
-    if isfield(d,'datenum') && ~isempty(d.datenum)
-      disp(sprintf('(moncalib) Calibration took %s',datestr(d.datenum-datenum(calib.date),13)));
+  if isfield(calib,'filename')
+    disp(sprintf('(moncalib) Displaying data for calibration file %s',calib.filename));
+    % get how long it took to do the calibration
+    [filepath filename] = fileparts(calib.filename);
+    filename = fullfile(filepath,sprintf('%s.mat',filename));
+    if isfile(filename)
+      d = dir(filename);
+      if isfield(d,'datenum') && ~isempty(d.datenum)
+	disp(sprintf('(moncalib) Calibration took %s',datestr(d.datenum-datenum(calib.date),13)));
+      end
     end
-  end
+  else
+    disp(sprintf('(moncalib) Displaying data for calibration'));
+  end    
+  disp(sprintf('(moncalib) Calibration measured on %s',calib.date));
   if isfield(calib,'spectrum')
     disp(sprintf('(moncalib) Measured spectrum'));
   end
