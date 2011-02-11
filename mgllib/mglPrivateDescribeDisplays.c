@@ -121,7 +121,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     // Grab the IOKit service for the display.
     io_service_t displayService = CGDisplayIOServicePort(displays[i]);
 
-#define MACOS106
+    //#define MACOS106
 #ifdef MACOS106
     // get the displayMode for this display
     CGDisplayModeRef displayMode = CGDisplayCopyDisplayMode(displays[i]);
