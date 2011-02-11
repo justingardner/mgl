@@ -115,9 +115,69 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     kern_return_t kr;
     mxArray *m;
     double *ptr;
+    double bitsPerPixel = 0,bitsPerSample = 0,samplesPerPixel = 0;
+    int refreshRate = 60; // Assume LCD screen.
 
     // Grab the IOKit service for the display.
     io_service_t displayService = CGDisplayIOServicePort(displays[i]);
+
+#define MACOS106
+#ifdef MACOS106
+    // get the displayMode for this display
+    CGDisplayModeRef displayMode = CGDisplayCopyDisplayMode(displays[i]);
+
+    // get bit depth
+    CFStringRef pixelEncoding;
+    pixelEncoding = CGDisplayModeCopyPixelEncoding(displayMode);
+    // return an appropriate bit depth for each one of these strings
+    // defined in IOGraphicsTypes.h
+    if (CFStringCompare(pixelEncoding,CFSTR(IO32BitDirectPixels),0)==kCFCompareEqualTo) {
+      bitsPerPixel = 32;
+      bitsPerSample = 8;
+      samplesPerPixel = 3;
+    }
+    else if (CFStringCompare(pixelEncoding,CFSTR(IO16BitDirectPixels),0)==kCFCompareEqualTo) {
+      bitsPerPixel = 16;
+      bitsPerSample = 5;
+      samplesPerPixel = 3;
+    }
+    else if (CFStringCompare(pixelEncoding,CFSTR(IO8BitIndexedPixels),0)==kCFCompareEqualTo) {
+      bitsPerPixel = 8;
+      bitsPerSample = 8;
+      samplesPerPixel = 3;
+    }
+    else if (CFStringCompare(pixelEncoding,CFSTR(kIO30BitDirectPixels),0)==kCFCompareEqualTo) {
+      bitsPerPixel = 30;
+      bitsPerSample = 10;
+      samplesPerPixel = 3;
+    }
+    else if (CFStringCompare(pixelEncoding,CFSTR(kIO64BitDirectPixels),0)==kCFCompareEqualTo) {
+      bitsPerPixel = 64;
+      bitsPerSample = 16;
+      samplesPerPixel = 3;
+    }
+    // release the pixel encoding
+    CFRelease(pixelEncoding);
+
+    // get refreshRate
+    refreshRate = (int)CGDisplayModeGetRefreshRate(displayMode);
+
+    // release the display settings
+    CGDisplayModeRelease(displayMode);
+#else
+    // get number of bits per pixel
+    bitsPerPixel = (double)CGDisplayBitsPerPixel(displays[i]);
+    // get number of bits per each color
+    bitsPerSample = (double)CGDisplayBitsPerSample(displays[i]);
+    // get number of colors
+    samplesPerPixel = (double)CGDisplaySamplesPerPixel(displays[i]);
+    // Get the refresh rate.
+    modeInfo = CGDisplayCurrentMode(displays[i]);
+    if (modeInfo != NULL) {
+      CFNumberRef value = (CFNumberRef)CFDictionaryGetValue(modeInfo, kCGDisplayRefreshRate);
+      if (value) CFNumberGetValue(value, kCFNumberIntType, &refreshRate);
+    }
+#endif
 
     // Determine if display is the main display.
     mxSetField(displayStruct, i, "isMain", mxCreateDoubleScalar((double)CGDisplayIsMain(displays[i])));
@@ -144,13 +204,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mxSetField(displayStruct, i, "isCaptured", mxCreateDoubleScalar((double)CGDisplayIsCaptured(displays[i])));
     
     // Set bits per pixel.
-    mxSetField(displayStruct, i, "bitsPerPixel", mxCreateDoubleScalar((double)CGDisplayBitsPerPixel(displays[i])));
+    mxSetField(displayStruct, i, "bitsPerPixel", mxCreateDoubleScalar(bitsPerPixel));
     
     // Set the number of bits used to represent a pixel component in the frame buffer
-    mxSetField(displayStruct, i, "bitsPerSample", mxCreateDoubleScalar((double)CGDisplayBitsPerSample(displays[i])));
+    mxSetField(displayStruct, i, "bitsPerSample", mxCreateDoubleScalar(bitsPerSample));
     
     // Set the number of color components used to represent a pixel.
-    mxSetField(displayStruct, i, "samplesPerPixel", mxCreateDoubleScalar((double)CGDisplaySamplesPerPixel(displays[i])));
+    mxSetField(displayStruct, i, "samplesPerPixel", mxCreateDoubleScalar(samplesPerPixel));
     
     // Screen size in millimeters.
     sizeVal = CGDisplayScreenSize(displays[i]);
@@ -164,19 +224,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     ptr = mxGetPr(m);
     ptr[0] = (double)CGDisplayPixelsWide(displays[i]); ptr[1] = (double)CGDisplayPixelsHigh(displays[i]);
     mxSetField(displayStruct, i, "screenSizePixel", m);
-    
-    // Get the refresh rate.
-    modeInfo = CGDisplayCurrentMode(displays[i]);
-    int refreshRate = 60; // Assume LCD screen.
-    if (modeInfo != NULL) {
-      CFNumberRef value = (CFNumberRef)CFDictionaryGetValue(modeInfo, kCGDisplayRefreshRate);
-      if (value) {
-        CFNumberGetValue(value, kCFNumberIntType, &refreshRate);
-        if (refreshRate == 0) {
-          refreshRate = 60;
-        }
-      }
-    }
+  
+    // set refesh rate, default to 60
+    if (refreshRate == 0) refreshRate = 60;
     mxSetField(displayStruct, i, "refreshRate", mxCreateDoubleScalar((double)refreshRate));
 #ifndef __cocoa__
     // Get the gamma table width and length.
