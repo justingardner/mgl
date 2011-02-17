@@ -89,13 +89,12 @@ edf.nTrials = max(edf.mgl.trialNum(find(edf.mgl.taskID == taskID)));
 % now process each trial
 disppercent(-inf,sprintf('(getTaskEyeTraces) Extracting trial by trial data for %i trials',edf.nTrials));
 % get the start times
-keyboard
 
 for i = 1:edf.nTrials
   % get start time
   thisTrialMessages = find((edf.mgl.trialNum==i) & (edf.mgl.taskID == taskID));
   % find the segment 0 message
-  segmentZeroMessage = thisTrialMessages(find(edf.mgl.segmentNum(thisTrialMessages)==1));
+  segmentZeroMessage = thisTrialMessages(find(edf.mgl.segmentNum(thisTrialMessages)==0));
   segmentZeroTime = edf.mgl.time(segmentZeroMessage);
   % call this the startTime
   if ~isempty(segmentZeroTime)
