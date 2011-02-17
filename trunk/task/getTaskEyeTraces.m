@@ -19,17 +19,6 @@ if nargin == 0
   return
 end
 
-% trace numbers from mglEyelinkReadEDF
-timeTraceNum = 1;
-gazeXTraceNum = 2;
-gazeYTraceNum = 3;
-pupilTraceNum = 4;
-
-mglTimeTraceNum = 1;
-segmentNumTraceNum = 2;
-trialNumTraceNum = 3;
-taskIDTraceNum = 6;
-
 taskNum=[];phaseNum=[];
 getArgs(varargin,{'taskNum=1','phaseNum=1','dispFig=1'});
 
@@ -100,11 +89,13 @@ edf.nTrials = max(edf.mgl.trialNum(find(edf.mgl.taskID == taskID)));
 % now process each trial
 disppercent(-inf,sprintf('(getTaskEyeTraces) Extracting trial by trial data for %i trials',edf.nTrials));
 % get the start times
+keyboard
+
 for i = 1:edf.nTrials
-  % get start tiem
+  % get start time
   thisTrialMessages = find((edf.mgl.trialNum==i) & (edf.mgl.taskID == taskID));
   % find the segment 0 message
-  segmentZeroMessage = thisTrialMessages(find(edf.mgl.segmentNum(thisTrialMessages)==0));
+  segmentZeroMessage = thisTrialMessages(find(edf.mgl.segmentNum(thisTrialMessages)==1));
   segmentZeroTime = edf.mgl.time(segmentZeroMessage);
   % call this the startTime
   if ~isempty(segmentZeroTime)
@@ -130,12 +121,12 @@ end
 timeBetweenSamples = median(diff(edf.gaze.time));
 
 % figure out how large to make data array
-e.eye.hPos = nan(edf.nTrials,ceil(maxTrialLen/timeBetweenSamples));
-e.eye.vPos = nan(edf.nTrials,ceil(maxTrialLen/timeBetweenSamples));
+e.eye.xPos = nan(edf.nTrials,ceil(maxTrialLen/timeBetweenSamples));
+e.eye.yPos = nan(edf.nTrials,ceil(maxTrialLen/timeBetweenSamples));
 e.eye.pupil = nan(edf.nTrials,ceil(maxTrialLen/timeBetweenSamples));
 
 % put in time in seconds
-e.eye.time = (0:(size(e.eye.hPos,2)-1))*timeBetweenSamples/1000;
+e.eye.time = (0:(size(e.eye.xPos,2)-1))*timeBetweenSamples/1000;
 
 % go through each trial and populate traces
 warning('off','MATLAB:interp1:NaNinY');
@@ -143,9 +134,9 @@ for iTrial = 1:edf.nTrials
   disppercent(iTrial/edf.nTrials);
   % the times for this trial
   thisTrialTimes = startTime(iTrial):timeBetweenSamples:endTime(iTrial);
-  % get data for hPos, vPos and pupil traces form edf data 
-  e.eye.hPos(iTrial,1:length(thisTrialTimes)) = interp1(edf.gaze.time,edf.gaze.h,thisTrialTimes,'linear',nan);
-  e.eye.vPos(iTrial,1:length(thisTrialTimes)) = interp1(edf.gaze.time,edf.gaze.v,thisTrialTimes,'linear',nan);
+  % get data for xPos, yPos and pupil traces form edf data 
+  e.eye.xPos(iTrial,1:length(thisTrialTimes)) = interp1(edf.gaze.time,edf.gaze.x,thisTrialTimes,'linear',nan);
+  e.eye.yPos(iTrial,1:length(thisTrialTimes)) = interp1(edf.gaze.time,edf.gaze.y,thisTrialTimes,'linear',nan);
   e.eye.pupil(iTrial,1:length(thisTrialTimes)) = interp1(edf.gaze.time,edf.gaze.pupil,thisTrialTimes,'linear',nan);
 end
 warning('on','MATLAB:interp1:NaNinY');
@@ -157,8 +148,8 @@ h = stimfile.myscreen.screenHeight;
 xPix2Deg = stimfile.myscreen.imageWidth/w;
 yPix2Deg = stimfile.myscreen.imageHeight/h;
 
-e.eye.hPos = (e.eye.hPos-(w/2))*xPix2Deg;
-e.eye.vPos = ((h/2)-e.eye.vPos)*yPix2Deg;
+e.eye.xPos = (e.eye.xPos-(w/2))*xPix2Deg;
+e.eye.yPos = ((h/2)-e.eye.yPos)*yPix2Deg;
 
 % display figure
 if dispFig
@@ -181,17 +172,17 @@ for iTrialType = 1:length(trialNums)
   c = getSmoothColor(iTrialType,length(trialNums),'hsv');
   % display horizontal eye trace
   subplot(2,3,1:2);
-  plot(e.eye.time,e.eye.hPos(trialNums{iTrialType},:)','Color',c);
+  plot(e.eye.time,e.eye.xPos(trialNums{iTrialType},:)','Color',c);
   hold on
   % display vertical eye trace
   subplot(2,3,4:5);
-  plot(e.eye.time,e.eye.vPos(trialNums{iTrialType},:)','Color',c);
+  plot(e.eye.time,e.eye.yPos(trialNums{iTrialType},:)','Color',c);
   hold on
   % display as an x/y plot the median eye trace for this condition
   subplot(2,3,[3 6]);
-  hPos = nanmedian(e.eye.hPos(trialNums{iTrialType},:));
-  vPos = nanmedian(e.eye.vPos(trialNums{iTrialType},:));
-  plot(hPos,vPos,'.','Color',c);
+  xPos = nanmedian(e.eye.xPos(trialNums{iTrialType},:));
+  yPos = nanmedian(e.eye.yPos(trialNums{iTrialType},:));
+  plot(xPos,yPos,'.','Color',c);
   hold on
 end
 
