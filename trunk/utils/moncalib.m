@@ -18,9 +18,9 @@
 %               tableTest = Test the inverted table for linearization, default = 1
 %               bitTest = Test for 10 bit gamma, default = 0
 %               bitTestBits = Change number of bits to test gamma table for, default=10
-%               bitTestNumRepeats = Number of repeated measurements to take, default = 4
+%               bitTestNumRepeats = Number of repeated measurements to take, default = 16
 %               bitTestN = Number of increments in luminance to test, default=12
-%               bitTestBase = Base luminance to test from, default = 0.5
+%               bitTestBase = Base luminance to test from, default = 0.8
 %               reset = Set to 1 to reset settings, otherwise this will use the same communication settings each time you run
 %               verbose = Set to 1 for minimal messages, 2 for messages about each measurement, 0 for quiet. Default=1
 %         by: justin gardner & jonas larsson
@@ -2050,8 +2050,8 @@ justDisplay = 0;
 
 bitTestBits = 10;
 bitTestN = 12;
-bitTestNumRepeats = 4;
-bitTestBase = 0.5;
+bitTestNumRepeats = 16;
+bitTestBase = 0.8;
 
 calib = [];
 % see if we were actually passed in a calib structure
@@ -2309,7 +2309,7 @@ if ~todo.photometerTest && ~todo.measureSpectrum && ~todo.testExponent && ~todo.
     disp(sprintf('(moncalib) Measured gamma with stepsize: %f (1/%i), numRepeats: %i',calib.stepsize,round(1/calib.stepsize),calib.numRepeats));
   end
   if isfield(calib,'bittest') && isfield(calib.bittest,'data')
-    disp(sprintf('(moncalib) Measured bittest for %i bits, numRepeats: %i, n: %i, base: %0.f',calib.bittest.bits,calib.bittest.numRepeats,calib.bittest.n,calib.bittest.base));
+    disp(sprintf('(moncalib) Measured bittest for %i bits, numRepeats: %i, n: %i, base: %0.2f',calib.bittest.bits,calib.bittest.numRepeats,calib.bittest.n,calib.bittest.base));
   end
   if isfield(calib,'tableCorrected')
     disp(sprintf('(moncalib) Measured table correction with stepsize: %f (1/%i), numRepeats: %i',calib.stepsize,round(1/calib.stepsize),calib.numRepeats));
