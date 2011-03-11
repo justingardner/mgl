@@ -2017,7 +2017,7 @@ if isfield(calib,'bittest') && isfield(calib.bittest,'data')
     subplot(1,2,2);
   end
   dispLuminanceFigure(calib.bittest.data);
-  title(sprintf('%i bit gamma test: Values should increase linearly\nOutput starting at %0.2f in steps of 1/%i',calib.bittest.bits,calib.bittest.base,2^calib.bittest.bits));
+  title(sprintf('%i bit gamma test: Values should increase linearly\nOutput starting at %0.2f in steps of 1/%i (n=%i)',calib.bittest.bits,calib.bittest.base,2^calib.bittest.bits,calib.bittest.numRepeats));
 end
 
 %%%%%%%%%%%%%%%%%%%
