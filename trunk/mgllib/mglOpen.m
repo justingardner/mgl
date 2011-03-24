@@ -55,7 +55,7 @@ if mglGetParam('movieMode')
     % set default display
     if isempty(whichScreen),whichScreen = length(displays);end
     if whichScreen > length(displays)
-      disp(sprintf('(mglOpen) Display number out of range: %i',whichScreen));
+      disp(sprintf('(mglOpen) Display number out of range: i',whichScreen));
       return
     end
     % hide task and menu bar for main screen
@@ -68,7 +68,7 @@ if mglGetParam('movieMode')
     ypos = displays(1).screenSizePixel(2);
     % displayBounds contains position of display relative to main (i.e. 1)
     if isfield(displays(whichScreen),'displayBounds')
-      ypos = ypos+displays(whichScreen).displayBounds(2);
+      ypos = ypos-displays(whichScreen).displayBounds(2);
     end
     xpos = 0;
     if isfield(displays(whichScreen),'displayBounds')
