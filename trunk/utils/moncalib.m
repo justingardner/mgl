@@ -23,6 +23,12 @@
 %               bitTestBase = Base luminance to test from, default = 0.8
 %               reset = Set to 1 to reset settings, otherwise this will use the same communication settings each time you run
 %               verbose = Set to 1 for minimal messages, 2 for messages about each measurement, 0 for quiet. Default=1
+%               serialPortFun = Changes which function to use for serial communications. This defaults to 
+%                               comm, which is distributed with mgl. You can set to 'comm:SerialComm' to use
+%                               the SerialComm function provided with PsychToolbox. Or you can set to 'serial'
+%                               for using the Matlab serial port object - but note that this still has bugs (see code
+%                               comments below in parseArgs function...
+%               commTest = Set to 1 if you just want to test communication with the photometer
 %         by: justin gardner & jonas larsson
 %       date: 10/02/06
 %    purpose: routine to do monitor calibration
@@ -76,15 +82,6 @@
 %
 function calib = moncalib(varargin)
 
-global gSerialPortFun
-gSerialPortFun = 'comm';
-%gSerialPortFun = 'serial'; 
-% serial port function still seems busted. It crashes on fclose on my system and while
-% it can write RM to the Topcon and get it into remote mode, it only ever receives a one
-% character 0 in return, instead of OK. fprintf seems to send both RM and the CR/LF that
-% Topcon is expecting, so that seems ok. Seems to default to synchronous buffered full
-% duplex, so not sure what the problem is.
-
 % parse arguments
 [calib todo] = parseArgs(nargin,varargin);
 
@@ -101,6 +98,7 @@ if todo.setupCalib
   % and get save names, etc.
   [calib portNum photometerNum todo] = setupCalib(calib,todo);
   if photometerNum == -1,return,end
+  if portNum == 0,return,end
 end
 
 % display settings
@@ -609,7 +607,6 @@ elseif strcmp(str(1:2),'ER')
    data=nan;
 else
   thisMessage = sprintf('(Unknwon error) %s',str);
-  keyboard
   data = nan;
 end
 
@@ -856,7 +853,7 @@ else
 end  
 
 global gSerialPortFun
-if strcmp(gSerialPortFun,'comm')
+if strcmp(strtok(gSerialPortFun,':'),'comm')
   portNum = initSerialPortUsingComm(baudRate,parity,dataLen,stopBits,portNum);
 elseif strcmp(gSerialPortFun,'serial')
   portNum = initSerialPortUsingSerial(baudRate,parity,dataLen,stopBits,portNum);
@@ -871,7 +868,7 @@ end
 function closeSerialPort(portNum)
 
 global gSerialPortFun
-if strcmp(gSerialPortFun,'comm')
+if strcmp(strtok(gSerialPortFun,':'),'comm')
   closeSerialPortUsingComm(portNum);
 elseif strcmp(gSerialPortFun,'serial')
   closeSerialPortUsingSerial(portNum);
@@ -885,7 +882,7 @@ end
 function writeSerialPort(portNum, str)
 
 global gSerialPortFun
-if strcmp(gSerialPortFun,'comm')
+if strcmp(strtok(gSerialPortFun,':'),'comm')
   writeSerialPortUsingComm(portNum,str);
 elseif strcmp(gSerialPortFun,'serial')
   writeSerialPortUsingSerial(portNum,str);
@@ -899,7 +896,7 @@ end
 function str = readSerialPort(portNum, numbytes)
 
 global gSerialPortFun
-if strcmp(gSerialPortFun,'comm')
+if strcmp(strtok(gSerialPortFun,':'),'comm')
   str = readSerialPortUsingComm(portNum,numbytes);
 elseif strcmp(gSerialPortFun,'serial')
   str = readSerialPortUsingSerial(portNum,numbytes);
@@ -913,7 +910,7 @@ end
 function str = readLineSerialPort(portNum)
 
 global gSerialPortFun
-if strcmp(gSerialPortFun,'comm')
+if strcmp(strtok(gSerialPortFun,':'),'comm')
   str = readLineSerialPortUsingComm(portNum);
 elseif strcmp(gSerialPortFun,'serial')
   str = readLineSerialPortUsingSerial(portNum);
@@ -945,6 +942,7 @@ set(s,'Parity',parity);
 set(s,'StopBits',stopBits);
 set(s,'DataBits',dataLen);
 set(s,'Terminator','CR/LF');
+set(s,'InputBufferSize',2048);
 fopen(s);
 portNum = s;
 
@@ -970,7 +968,7 @@ fprintf(portNum,str);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function str = readSerialPortUsingSerial(portNum, numbytes)
 
-str = char(fread(portNum,numbytes));
+str = char(fread(portNum,numbytes,'uint8'));
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % read one line (ending in 0xA) from the serial port
@@ -987,8 +985,17 @@ function portNum = initSerialPortUsingComm(baudRate,parity,dataLen,stopBits,port
 clc
 if isempty(portNum),portNum = 0;end
 
+% get the comm function, this is so that the comm function
+% can be called like comm:SerialComm on systems in which this
+% comm function has been renamed to SerialCom (e.g. PsychToolbox)
+global gSerialPortFun;
+global gCommFun;
+[dummy gCommFun] = strread(gSerialPortFun,'%s%s','delimiter',':');
+if isempty(gCommFun),gCommFun = 'comm';end
+if iscell(gCommFun),gCommFun = gCommFun{1};end
+
 % check to see if we have comm functions
-if exist('comm')~=3
+if exist(gCommFun)~=3
   disp(sprintf('(moncalib) comm not found\n'));
   disp(sprintf('These functions need the comm.mexmac function to be'));
   disp(sprintf('able to talk to the serial port. You can get the comm'));
@@ -997,6 +1004,14 @@ if exist('comm')~=3
   return
 end
 
+disp(sprintf('===================================================='));
+disp(sprintf('(moncalib) Using serial port function: %s',gCommFun));
+disp(sprintf('===================================================='));
+
+% since we do have it, turn the gCommFun into a function handle so we can run it
+gCommFun = str2func(gCommFun);
+
+% now start up serial function
 cudir = dir('/dev/cu.*');
 disp(sprintf('You will first have to choose which serial port to use.\n'));
 disp('To use the Keyspan USB/serial converter USA-28, you');
@@ -1022,12 +1037,12 @@ while (portNum == 0)
     disp(sprintf('Quit'));
     return;
   else
-    comm('open',portNum,sprintf('%i,%s,%i,%i',baudRate,parity(1),dataLen,stopBits));
+    gCommFun('open',portNum,sprintf('%i,%s,%i,%i',baudRate,parity(1),dataLen,stopBits));
     response = askuser;
     if response
       return
     end
-    comm('close',portNum);
+    gCommFun('close',portNum);
     portNum = 0;
   end
 end
@@ -1037,8 +1052,9 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function closeSerialPortUsingComm(portNum)
 
+global gCommFun;
 if portNum
-  comm('close',portNum);
+  gCommFun('close',portNum);
 end
 
 
@@ -1047,21 +1063,24 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function writeSerialPortUsingComm(portNum, str)
 
-comm('write',portNum,str);
+global gCommFun;
+gCommFun('write',portNum,str);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % read from the serial port
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function str = readSerialPortUsingComm(portNum, numbytes)
 
-str = char(comm('read',portNum,numbytes))';
+global gCommFun;
+str = char(gCommFun('read',portNum,numbytes))';
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % read one line (ending in 0xA) from the serial port
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function str = readLineSerialPortUsingComm(portNum)
 
-str = comm('readl',portNum);
+global gCommFun;
+str = gCommFun('readl',portNum);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % gets the user to input a number
@@ -2081,6 +2100,16 @@ for i = 1:nargs
   end
 end
 
+% default serial port function
+serialPortFun = 'comm';
+commTest = 0;
+% gSerialPortFun = 'serial'; 
+% Note that the serial port function still seems busted. It crashes on fclose on my system and while
+% it can write RM to the Topcon and get it into remote mode, it only ever receives a one
+% character 0 in return, instead of OK. fprintf seems to send both RM and the CR/LF that
+% Topcon is expecting, so that seems ok. Seems to default to synchronous buffered full
+% duplex, so not sure what the problem is.
+
 % parse old style arguments
 if oldStyleArgs    
   if nargs < 1,screenNumber = [];else screenNumber = vars{1};end
@@ -2091,11 +2120,18 @@ if oldStyleArgs
   if nargs < 6,initWaitTime = 0; else initWaitTime = vars{6};end
 else
   if exist('getArgs') == 2
-    getArgs(vars,{'numRepeats=4','stepsize=1/32','initWaitTime=0','screenNumber=[]','spectrum=0','gamma=1','exponent=0','tableTest=1','bitTest=0','reset=0','gammaEachChannel=0','verbose=1','bitTestBits=10','bitTestNumRepeats=4','bitTestN=12','bitTestBase=0.5'});
+    getArgs(vars,{'numRepeats=4','stepsize=1/32','initWaitTime=0','screenNumber=[]','spectrum=0','gamma=1','exponent=0','tableTest=1','bitTest=0','reset=0','gammaEachChannel=0','verbose=1','bitTestBits=10','bitTestNumRepeats=4','bitTestN=12','bitTestBase=0.5','serialPortFun=comm','commTest=0'});
   else
     disp(sprintf('(moncalib) To parse string arguments you need getArgs from the mrTools distribution'));
   end
 end
+
+% set serial port function
+global gSerialPortFun;
+gSerialPortFun = serialPortFun;
+
+% screenNumber -1 means to test comm
+if commTest,screenNumber = -1;end
 
 % setup things that we need to do
 todo.setupCalib = 1;
