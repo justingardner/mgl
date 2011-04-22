@@ -387,6 +387,7 @@ drawnow;
 %%   photometerInit   %%
 %%%%%%%%%%%%%%%%%%%%%%%%
 function retval = photometerInit(portNum,photometerNum)
+global gCommFun
 
 switch photometerNum
  case {1}
@@ -448,7 +449,7 @@ end
 % init the pr650 photometer
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function retval = photometerInitPR650(portNum)
-
+global gCommFun
 clc
 retval = -1;
 response = 0;
@@ -881,7 +882,8 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function writeSerialPort(portNum, str)
 
-global gSerialPortFun
+global gSerialPortFun gCommFun
+
 if strcmp(strtok(gSerialPortFun,':'),'comm')
   writeSerialPortUsingComm(portNum,str);
 elseif strcmp(gSerialPortFun,'serial')
@@ -1008,7 +1010,8 @@ disp(sprintf('===================================================='));
 disp(sprintf('(moncalib) Using serial port function: %s',gCommFun));
 disp(sprintf('===================================================='));
 
-% since we do have it, turn the gCommFun into a function handle so we can run it
+% since we do have it, turn the gCommFun into a function handle so we can
+% run it
 gCommFun = str2func(gCommFun);
 
 % now start up serial function
@@ -1039,6 +1042,10 @@ while (portNum == 0)
   else
     gCommFun('open',portNum,sprintf('%i,%s,%i,%i',baudRate,parity(1),dataLen,stopBits));
     response = askuser;
+    
+    % ADDED BY FRANCO
+    gCommFun('hshake', portNum, 'n');
+
     if response
       return
     end
@@ -1062,8 +1069,8 @@ end
 % write to the serial port
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function writeSerialPortUsingComm(portNum, str)
+global gCommFun
 
-global gCommFun;
 gCommFun('write',portNum,str);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1560,6 +1567,7 @@ photometerNum = getnum(sprintf('Which photometer are you using?\n  0=quit\n  1-P
 %    photometerTest    %
 %%%%%%%%%%%%%%%%%%%%%%%%
 function photometerTest
+global gSerialPortFun
 
 disp(sprintf('(moncalib) PhotometerTest using serial port. Make sure your device is connected and ready to go'));
 % ask user what photometer they want to use
