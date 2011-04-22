@@ -330,7 +330,8 @@ myscreen.paused = 0;
 % init the mgl screen
 if ~isempty(myscreen.screenNumber)
   % setting with specified screenNumber
-  mglOpen(myscreen.screenNumber, myscreen.screenWidth, myscreen.screenHeight, myscreen.framesPerSecond);
+  mglOpen(0);
+%   mglOpen(myscreen.screenNumber, myscreen.screenWidth, myscreen.screenHeight, myscreen.framesPerSecond);
   % move the screen if it is a windowed context, and displayPos has been set.
   if myscreen.screenNumber < 1
     if length(myscreen.displayPos) == 2

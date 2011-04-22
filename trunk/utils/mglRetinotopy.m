@@ -75,6 +75,10 @@ myscreen.displayname = displayName;
 myscreen.background = 'gray';
 myscreen = initScreen(myscreen);
 
+% FP: columbia
+myscreen.keyboard.backtick = 76;
+
+
 % set the first task to be the fixation staircase task
 global fixStimulus;
 if ~easyFixTask
