@@ -387,7 +387,7 @@ drawnow;
 %%   photometerInit   %%
 %%%%%%%%%%%%%%%%%%%%%%%%
 function retval = photometerInit(portNum,photometerNum)
-global gCommFun
+
 
 switch photometerNum
  case {1}
@@ -449,7 +449,7 @@ end
 % init the pr650 photometer
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function retval = photometerInitPR650(portNum)
-global gCommFun
+
 clc
 retval = -1;
 response = 0;
@@ -882,7 +882,7 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function writeSerialPort(portNum, str)
 
-global gSerialPortFun gCommFun
+global gSerialPortFun
 
 if strcmp(strtok(gSerialPortFun,':'),'comm')
   writeSerialPortUsingComm(portNum,str);
