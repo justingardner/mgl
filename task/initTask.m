@@ -250,7 +250,8 @@ for i = 1:length(randVarNames)
       % init variables
       for vnum = 1:vars.n_
 	eval(sprintf('task.randVars.%s = [];',vars.names_{vnum}));
-        % now get original names
+        % now get original names, i.e. shortNames is just the name of the variable: e.g. varname
+	% originalNames is the full name e.g.: task.randVars.calculated.varname 
 	if thisIsCell
 	  shortNames{end+1} = vars.names_{vnum};
 	  originalNames{end+1} = sprintf('task.randVars.%s{%i}.%s',randVarNames{i},varNum,vars.names_{vnum});
@@ -259,7 +260,15 @@ for i = 1:length(randVarNames)
 	  originalNames{end+1} = sprintf('task.randVars.%s.%s',randVarNames{i},vars.names_{vnum});
 	end
       end
-      % now keep calculating blocks of the randvars until we have enough
+      % now keep calculating blocks of the randvars until we have enough. That is, we use the
+      % routine xxxxRandomization to compute each block of the stimulus. So, for example
+      % if we are using blockRandomization - then blockRandomization gets called to 
+      % initialize a number of blocks. This is done to precompute blocks at the beginning which
+      % results in time savings when running since we have precomputed arrays that don't grow with each 
+      % trial (until we run out of precomputed blocks - in which case the system goes back to the
+      % beginning of the list of precomputed blocks and starts over - so, if you need to insure
+      % that you have enough precomputed trials, you will need to set the len_ parameter for your
+      % variable longer.
       while totalTrials < task.randVars.len_
 	eval(sprintf('varBlock = %sRandomization(vars,varBlock);',randVarNames{i}));
 	totalTrials = totalTrials+varBlock.trialn;
