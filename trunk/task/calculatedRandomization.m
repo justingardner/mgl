@@ -25,9 +25,19 @@ end
 %%%%%%%%%%%%%%%%%%%%%%
 block.trialn = parameter.blocklen_;
 for i = 1:parameter.n_
-  % get a sequence of the parameter values
-  eval(sprintf(['block.parameter.%s = repmat(parameter.%s,1,' ...
-    'ceil(parameter.blocklen_/parameter.size_(i)));'], ...
-    parameter.names_{i},parameter.names_{i}));
+  % get which parameter name we are working on
+  thisParameterName = parameter.names_{i};
+  % and how many repeats we need.
+  nRepeats = ceil(parameter.blocklen_/parameter.size_(i));
+  % now init the stimulus
+  if isscalar(parameter.(thisParameterName))
+    % get a sequence of the parameter values
+    block.parameter.(thisParameterName) = repmat(parameter.(thisParameterName),1,nRepeats);
+  else
+    for j = 1:nRepeats
+      % get a sequence of the parameter values
+      block.parameter.(thisParameterName){j} = parameter.(thisParameterName);
+    end
+  end    
 end
 retval = block;

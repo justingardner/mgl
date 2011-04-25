@@ -257,7 +257,13 @@ if (segover)
 	% we set the stored calculated variable was set to (in the user
 	% program) in task.thistrial
 	if ~isempty(task{tnum}.thistrial.(task{tnum}.randVars.calculated_names_{nVar}))
-	  eval(sprintf('task{tnum}.randVars.%s(task{tnum}.trialnum) = task{tnum}.thistrial.%s;',task{tnum}.randVars.calculated_names_{nVar},task{tnum}.randVars.calculated_names_{nVar}));
+	  if isscalar(task{tnum}.thistrial.(task{tnum}.randVars.calculated_names_{nVar}))
+	    % scalar calculated var gets an array
+	    eval(sprintf('task{tnum}.randVars.%s(task{tnum}.trialnum) = task{tnum}.thistrial.%s;',task{tnum}.randVars.calculated_names_{nVar},task{tnum}.randVars.calculated_names_{nVar}));
+	  else
+	    % non-scalar calculated var gets a *cell* array
+	    eval(sprintf('task{tnum}.randVars.%s{task{tnum}.trialnum} = task{tnum}.thistrial.%s;',task{tnum}.randVars.calculated_names_{nVar},task{tnum}.randVars.calculated_names_{nVar}));
+	  end
 	else
 	  disp(sprintf('(updateTask) !!! randVar %s set to empty for trial %i, leaving as default value of %s',task{tnum}.randVars.calculated_names_{nVar},task{tnum}.trialnum,task{tnum}.randVars.(task{tnum}.randVars.calculated_names_{nVar})(task{tnum}.trialnum)));
 	end
@@ -461,7 +467,15 @@ end
 
 % get randomization parameters
 for i = 1:task.randVars.n_
-  eval(sprintf('task.thistrial.%s = task.randVars.%s(mod(task.trialnum-1,task.randVars.varlen_(%i))+1);',task.randVars.names_{i},task.randVars.names_{i},i));
+  % get the variable name we are working on
+  thisRandVarName = task.randVars.names_{i};
+  if iscell(task.randVars.(thisRandVarName))
+    % if the precomputed list is a cell array then grab from that cell array
+    task.thistrial.(thisRandVarName) = task.randVars.(thisRandVarName){mod(task.trialnum-1,task.randVars.varlen_(i))+1};
+  else
+    % otherwise grab from a regular array
+    task.thistrial.(thisRandVarName) = task.randVars.(thisRandVarName)(mod(task.trialnum-1,task.randVars.varlen_(i))+1);
+  end
 end
 
 % call the init trial callback

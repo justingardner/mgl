@@ -64,9 +64,17 @@ else
   if task.randVars.calculated_n_
     for nVar = 1:task.randVars.calculated_n_
       if isfield(task.thistrial,task.randVars.calculated_names_{nVar})
-	eval(sprintf('task.randVars.%s(task.trialnum) = task.thistrial.%s;', ...
-		     task.randVars.calculated_names_{nVar}, ...
-		     task.randVars.calculated_names_{nVar}));
+	% get the variable name we are working on
+	thisRandVarName = task.randVars.calculated_names_{nVar};
+	% then store away the value calculated on the last trial
+	if iscell(task.randVars.(thisRandVarName))
+	  % cell array
+	  task.randVars.(thisRandVarName){task.trialnum} = task.thistrial.(thisRandVarName);
+	else
+	  % regular array
+	  task.randVars.(thisRandVarName)(task.trialnum) = task.thistrial.(thisRandVarName);
+	end
+	  
       end
     end
   end
