@@ -1,95 +1,119 @@
 #ifdef documentation
 =========================================================================
 
-   program:mglFillRect3D.c
-        by:Christopher Broussard
-      date:05 / 10 / 2011
- copyright:(c) 2006 Justin     Gardner, Jonas Larsson(GPL see mgl / COPYING)
-   purpose: mex function to plot an rect on an OpenGL screen opened with mglOpen
-     usage:mglFillRect(x, y, z, size, color,[antialias])
-	  
-$Id: mglFillRect3D.c 334 2008 - 12 - 28 02: 49:05 Z justin $
-=========================================================================
+  program:mglFillRect3D.c
+       by:Christopher Broussard
+     date:05 / 10 / 2011
+copyright:(c) 2006 Justin     Gardner, Jonas Larsson(GPL see mgl / COPYING)
+  purpose: mex function to plot an rect on an OpenGL screen opened with mglOpen
+    usage:mglFillRect(x, y, z, size, [color], [rotation], [antialias])
+
+  $Id: mglFillRect3D.c 334 2008 - 12 - 28 02: 49:05 Z justin $
+
+  =========================================================================
 #endif
 
 
 /////////////////////////
-//include section //
+//include section      //
 /////////////////////////
 #include "mgl.h"
 
-/////////////
-//main //
+// Defines to help us index arguments out of the prhs.
+#define XI 0
+#define YI 1
+#define ZI 2
+#define SIZEI 3
+#define COLORI 4
+#define ROTI 5
+#define AAI 6
+#define MAX_ARGS 7
+#define MIN_ARGS 4
+
+//////////////
+//main      //
 //////////////
 void mexFunction(int nlhs, mxArray * plhs[], int nrhs, const mxArray * prhs[])
 {
-  double         *x, *y, *z, *size, color[4];
+  double         *x, *y, *z, *size, color[4], *rotData;
   int             i, n, nsize, antiAliasFlag;
   int             numX, numY, numZ; //Number of x, y, and z points.
 
-  // check input arguments
-  if ((nrhs < 4) || (nrhs > 6)) {
-    mexPrintf("(mglFillRect) Wrong number of arguments!\n\n");
-    usageError("mglFillRect");
+  // Validate the number of arguments passed.
+  if (nrhs < MIN_ARGS || nrhs > MAX_ARGS) {
+    mexPrintf("(mglFillRect3D) Wrong number of arguments!\n\n");
+    usageError("mglFillRect3D");
     return;
   }
+
   // Get the number of each coordinate.
-  numX = mxGetNumberOfElements(prhs[0]);
-  numY = mxGetNumberOfElements(prhs[1]);
-  numZ = mxGetNumberOfElements(prhs[2]);
+  numX = mxGetNumberOfElements(prhs[XI]);
+  numY = mxGetNumberOfElements(prhs[YI]);
+  numZ = mxGetNumberOfElements(prhs[ZI]);
 
   // Make sure that they all have the same number of points.
   if (numX != numY || numX != numZ) {
-    mexPrintf("(mglFillRect) UHOH: Number of x points (%i) must match with y (%i) and z (%i)\n\n", numX, numY, numZ);
-    usageError("mglFillRect");
+    mexPrintf("(mglFillRect3D) UHOH: Number of x points (%i) must match with y (%i) and z (%i)\n\n", numX, numY, numZ);
+    usageError("mglFillRect3D");
     return;
   }
-  
+
   // Grab the coordinates data.
-  x = (double *) mxGetPr(prhs[0]);
-  y = (double *) mxGetPr(prhs[1]);
-  z = (double *) mxGetPr(prhs[2]);
+  x = (double*)mxGetPr(prhs[XI]);
+  y = (double*)mxGetPr(prhs[YI]);
+  z = (double*)mxGetPr(prhs[ZI]);
 
   // Get the size data.
-  nsize = mxGetNumberOfElements(prhs[3]);
+  nsize = mxGetNumberOfElements(prhs[SIZEI]);
   if (nsize != 2) {
-    mexPrintf("(mglFillRect) UHOH: size needs to have x and y dims\n");
+    mexPrintf("(mglFillRect3D) UHOH: size needs to have x and y dims\n");
     return;
   }
-  size = (double *) mxGetPr(prhs[3]);
+  size = (double*)mxGetPr(prhs[SIZEI]);
 
-  // Set color of points.
-  if (nrhs < 5) {
-    // set default color
-    glColor3f(1.0, 1.0, 1.0);
+  // Set the color of the points.
+  if (nrhs <= COLORI) {
+    // Default to white.
+    glColor3d(1.0, 1.0, 1.0);
   }
   else {
     // Grab the RGB value and set it to the default if it's messed up.
-    if (mglGetColor(prhs[4], color) == 0) {
-      glColor3f(1.0, 1.0, 1.0);
-	}
+    if (mglGetColor(prhs[COLORI], color) == 0) {
+      glColor3d(1.0, 1.0, 1.0);
+    }
     else {
-      glColor3f(color[0], color[1], color[2]);
-	}
+      glColor4d(color[0], color[1], color[2], color[3]);
+    }
   }
 
-  // Look for the antialiasing flag.
-  if (nrhs < 6)
+  // Set the rotation value.
+  if (nrhs <= ROTI) {
+    // Default to zero about the y-axis.
+    rotData = (double*)mxMalloc(4*sizeof(double));
+    rotData[0] = 0.0; rotData[1] = 0.0; rotData[2] = 1.0; rotData[3] = 0.0;;
+  }
+  else {
+    // Validate the input dims.
+    if (mxGetNumberOfElements(prhs[ROTI]) != 4 || mxGetM(prhs[ROTI]) != 1 || mxGetN(prhs[ROTI]) != 4) {
+      mexPrintf("(mglFillRect3D) rotation must be a 1x4.\n");
+      return;
+    }
+
+    rotData = mxGetPr(prhs[ROTI]); 
+  }
+
+  // Set antialiasing.
+  if (nrhs <= AAI) {
     antiAliasFlag = 0;
+  }
   else {
     if ((int) *mxGetPr(prhs[5]) == 1) {
       antiAliasFlag = 1;
-	}
+    }
     else {
-	  antiAliasFlag = 0;
-	}
+      antiAliasFlag = 0;
+    }
   }
-  
-  //enable and disable some things
-  // glDisable(GL_DEPTH_TEST);
-  //glDisable(GL_TEXTURE_2D);
-  //glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-  //glEnable(GL_BLEND);
 
   // Switch back to the modelview matrix.
   glMatrixMode(GL_MODELVIEW);
@@ -97,8 +121,11 @@ void mexFunction(int nlhs, mxArray * plhs[], int nrhs, const mxArray * prhs[])
   // Render the rectangles.
   for (i = 0; i < n; i++) {
     glPushMatrix();
+
     glTranslated(x[i], y[i], z[i]);
     glScaled(size[0] / 2, size[1] / 2, 1.0);
+    glRotated(rotData[0], rotData[1], rotData[2], rotData[3]);
+
     glBegin(GL_QUADS);
     glVertex2d(-1.0, -1.0);
     glVertex2d(-1.0, +1.0);
