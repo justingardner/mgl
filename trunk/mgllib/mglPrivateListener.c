@@ -452,7 +452,7 @@ void* setupEventTap(void *data)
 
   // Create an event tap. We are interested in key presses and mouse presses
   eventMask = ((1 << kCGEventKeyDown) | (1 << kCGEventKeyUp) | (1 << kCGEventLeftMouseDown) | (1 << kCGEventRightMouseDown));
-  gEventTap = CGEventTapCreate(kCGSessionEventTap, kCGHeadInsertEventTap, kCGEventTapOptionListenOnly, eventMask, myCGEventCallback, NULL);
+  gEventTap = CGEventTapCreate(kCGSessionEventTap, kCGHeadInsertEventTap, kCGEventTapOptionDefault, eventMask, myCGEventCallback, NULL);
 
   // see if it was created properly
   if (!gEventTap) {
