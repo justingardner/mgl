@@ -28,4 +28,9 @@ if mglGetParam('displayNumber') ~= 0
   return
 end
 
-mglPrivateMoveWindow(leftPos, topPos);
+% move the window
+if isscalar(leftPos) && isscalar(topPos)
+  mglPrivateMoveWindow(leftPos, topPos);
+else
+  disp(sprintf('(mglMoveWindow) leftPos and topPos must both be scalars'));
+end
