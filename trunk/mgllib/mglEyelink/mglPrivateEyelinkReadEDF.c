@@ -32,7 +32,6 @@ int getMGLMessage(int eventType,ALLF_DATA *event, double *timePtr,double *segmen
 /* it is undocumented in the EyeLink code */
 #define NaN 1e8                  /* missing floating-point values*/
 
-
 //////////////
 //   main   //
 //////////////
@@ -41,11 +40,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   int err;
 
   // parse input arguments
-  if (nrhs<1) {
+  if (nrhs < 1) {
     usageError("mglEyelinkReadEDF");
     return;
   }
- 
+
   // get filename
   char filename[STRLEN];
   mxGetString(prhs[0], filename, STRLEN);
@@ -66,7 +65,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   }
 
   // initialize some variables
-  int i,eventType,numSamples=0,numFix=0,numSac=0,numBlink=0,numMGLTrials=0,numMGLMessages=0;;
+  int i,eventType,numSamples=0,numFix=0,numSac=0,numBlink=0,numMGLTrials=0,numMGLMessages=0;
+  int numMessages = 0;
   int numElements = edf_get_element_count(edf);
   int numTrials = edf_get_trial_count(edf);
   int setGazeCoords = 0;
@@ -74,10 +74,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
   // initialize the output structure
   const char *mglFieldname = "mgl";
-  const char *fieldNames[] =  {"filename","numElements","numTrials","EDFAPI","preamble","gaze","fixations","saccades","blinks",mglFieldname,"gazeCoords","frameRate"};
+  const char *fieldNames[] =  {"filename","numElements","numTrials","EDFAPI","preamble","gaze","fixations","saccades","blinks","messages",mglFieldname,"gazeCoords","frameRate"};
   int outDims[2] = {1,1};
-  plhs[0] = mxCreateStructArray(1,outDims,12,fieldNames);
-  
+  plhs[0] = mxCreateStructArray(1,outDims,13,fieldNames);
+
   // save some info about the EDF file in the output
   mxSetField(plhs[0],0,"filename",mxCreateString(filename));
   mxSetField(plhs[0],0,"numElements",mxCreateDoubleScalar(numElements));
@@ -105,12 +105,17 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     if (eventType == ENDBLINK) numBlink++;
     // count MGL messages
     if (eventType == MESSAGEEVENT){
+      // We'll keep track of all messages in addition to purely MGL ones.
+      numMessages++;
+
       // new style messages
-      if (isMGLMessage(eventType,data)) 
-      	numMGLMessages++;
+      if (isMGLMessage(eventType,data)) {
+        numMGLMessages++;
+      }
       // old style messages
-      else if (strncmp(&(data->fe.message->c),"MGL BEGIN TRIAL",15) == 0) 
+      else if (strncmp(&(data->fe.message->c),"MGL BEGIN TRIAL",15) == 0) {
         numMGLTrials++;
+      }
     }
   }
 
@@ -197,6 +202,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mxSetField(plhs[0],0,mglFieldname,mxCreateStructArray(1,outDims,6,fieldNamesMGL));
   }
 
+  // Messages
+  const char *fieldNamesMessages[] = {"message", "time"};
+  int outDimsMessages[2] = {1, numMessages};
+  size_t messagesCounter = 0;
+  mxArray *messagesStruct = mxCreateStructArray(2, outDimsMessages, 2, fieldNamesMessages);
+  mxSetField(plhs[0], 0, "messages", messagesStruct); 
+
   // gaze coordinates
   mxSetField(plhs[0],0,"gazeCoords",mxCreateDoubleMatrix(1,4,mxREAL));
   double *outptrCoords = (double *)mxGetPr(mxGetField(plhs[0],0,"gazeCoords"));
@@ -207,7 +219,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
   // go back go beginning of file
   edf_goto_bookmark(edf,&startOfFile);
-  
+
   int currentEye = -1;
   // go through all data in file
   if (verbose) mexPrintf("(mglPrivateEyelinkReadEDF) Looping over samples and events \n");
@@ -224,10 +236,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     currentEye = 1;
     // get samples
     switch(eventType) {
-    case SAMPLE_TYPE:
-      *outptrTime++ = (double)data->fs.time;
-      *outptrWhichEye++ = currentEye;
-      if ((int)data->fs.gx[currentEye]==NaN) {
+      case SAMPLE_TYPE:
+        *outptrTime++ = (double)data->fs.time;
+        *outptrWhichEye++ = currentEye;
+        if ((int)data->fs.gx[currentEye]==NaN) {
           *outptrX++ = mxGetNaN();
           *outptrY++ = mxGetNaN();
           *outptrPupil++ = mxGetNaN();
@@ -236,77 +248,82 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
           *outptrVelX++ = mxGetNaN();
           *outptrVelY++ = mxGetNaN();
         }
-      else{
-        *outptrX++ = (double)data->fs.gx[currentEye];
-        *outptrY++ = (double)data->fs.gy[currentEye];
-        *outptrPupil++ = (double)data->fs.pa[currentEye];
-        *outptrPix2DegX++ = (double)data->fs.rx;
-        *outptrPix2DegY++ = (double)data->fs.ry;
-        *outptrVelX++ = (double)data->fs.gxvel[currentEye];
-        *outptrVelY++ = (double)data->fs.gyvel[currentEye];
-      }
-      break;
-    case ENDFIX:
-      *outptrFixStartTime++ = (double)data->fe.sttime;
-      *outptrFixEndTime++ = (double)data->fe.entime;
-      *outptrFixAvgH++ = (double)data->fe.gavx;
-      *outptrFixAvgV++ = (double)data->fe.gavy;
-      break;
-    case ENDSACC:
-      *outptrSacStartTime++ = (double)data->fe.sttime;
-      *outptrSacEndTime++ = (double)data->fe.entime;
-      *outptrSacStartH++ = (double)data->fe.gstx;
-      *outptrSacStartV++ = (double)data->fe.gsty;
-      *outptrSacEndH++ = (double)data->fe.genx;
-      *outptrSacEndV++ = (double)data->fe.geny;
-      *outptrSacPeakVel++ = (double)data->fe.pvel;
-      break;
-    case ENDBLINK:
-      *outptrBlinkStartTime++ = (double)data->fe.sttime;
-      *outptrBlinkEndTime++ = (double)data->fe.entime;
-      break;
-    case MESSAGEEVENT:
-      if (mglEyelinkVersion == 0) {
-	if (strncmp(&(data->fe.message->c),"MGL BEGIN TRIAL",15) == 0) {
-	  char *mglMessage = &(data->fe.message->c);
-	  char *tok;
-	  tok = strtok(mglMessage," ");
-	  tok = strtok(NULL," ");
-	  tok = strtok(NULL," ");
-	  tok = strtok(NULL," ");
-	  *outptrMGLtrial++ = (double)data->fe.sttime;
-	  if (tok != NULL) *outptrMGLtrial++ = (double)atoi(tok);
-	}
-      }
-      if ((strncmp(&(data->fe.message->c),"GAZE_COORDS",11) == 0) && (setGazeCoords == 0)) {
-        char *gazeCoords = &(data->fe.message->c);
-        char *tok;
-        tok = strtok(gazeCoords," ");
-        tok = strtok(NULL," ");
-        *outptrCoords++ = (double)atoi(tok);
-        tok = strtok(NULL," ");
-        *outptrCoords++ = (double)atoi(tok);
-        tok = strtok(NULL," ");
-        *outptrCoords++ = (double)atoi(tok);
-        tok = strtok(NULL," ");
-        *outptrCoords++ = (double)atoi(tok);
-        setGazeCoords = 1;
-      }
-      if (strncmp(&(data->fe.message->c),"FRAMERATE",9) == 0){
-        char *msg = &(data->fe.message->c);
-        char *tok;
-        tok = strtok(msg, " ");
-        tok = strtok(NULL," ");
-        *outptrFrameRate++ = (double)atof(tok);
-      }
-      /* if (strncmp(&(data->fe.message->c),"!CAL",4) == 0){ */
-      /*   char *calMessage = &(data->fe.message->c); */
-      /*   char *tok; */
-      /*   tok = strtok(calMessage, " "); */
-      /*   tok = strtok(NULL," "); */
-      /*   mexPrintf("%s\n", tok); */
-      /* } */
-      break;
+        else{
+          *outptrX++ = (double)data->fs.gx[currentEye];
+          *outptrY++ = (double)data->fs.gy[currentEye];
+          *outptrPupil++ = (double)data->fs.pa[currentEye];
+          *outptrPix2DegX++ = (double)data->fs.rx;
+          *outptrPix2DegY++ = (double)data->fs.ry;
+          *outptrVelX++ = (double)data->fs.gxvel[currentEye];
+          *outptrVelY++ = (double)data->fs.gyvel[currentEye];
+        }
+        break;
+      case ENDFIX:
+        *outptrFixStartTime++ = (double)data->fe.sttime;
+        *outptrFixEndTime++ = (double)data->fe.entime;
+        *outptrFixAvgH++ = (double)data->fe.gavx;
+        *outptrFixAvgV++ = (double)data->fe.gavy;
+        break;
+      case ENDSACC:
+        *outptrSacStartTime++ = (double)data->fe.sttime;
+        *outptrSacEndTime++ = (double)data->fe.entime;
+        *outptrSacStartH++ = (double)data->fe.gstx;
+        *outptrSacStartV++ = (double)data->fe.gsty;
+        *outptrSacEndH++ = (double)data->fe.genx;
+        *outptrSacEndV++ = (double)data->fe.geny;
+        *outptrSacPeakVel++ = (double)data->fe.pvel;
+        break;
+      case ENDBLINK:
+        *outptrBlinkStartTime++ = (double)data->fe.sttime;
+        *outptrBlinkEndTime++ = (double)data->fe.entime;
+        break;
+      case MESSAGEEVENT:
+        // Store all messages including MGL specific ones.
+        mxSetField(messagesStruct, messagesCounter, "message", mxCreateString(&(data->fe.message->c)));
+        mxSetField(messagesStruct, messagesCounter, "time", mxCreateDoubleScalar((double)data->fe.sttime));
+        messagesCounter++;
+
+        if (mglEyelinkVersion == 0) {
+          if (strncmp(&(data->fe.message->c),"MGL BEGIN TRIAL",15) == 0) {
+            char *mglMessage = &(data->fe.message->c);
+            char *tok;
+            tok = strtok(mglMessage," ");
+            tok = strtok(NULL," ");
+            tok = strtok(NULL," ");
+            tok = strtok(NULL," ");
+            *outptrMGLtrial++ = (double)data->fe.sttime;
+            if (tok != NULL) *outptrMGLtrial++ = (double)atoi(tok);
+          }
+        }
+        if ((strncmp(&(data->fe.message->c),"GAZE_COORDS",11) == 0) && (setGazeCoords == 0)) {
+          char *gazeCoords = &(data->fe.message->c);
+          char *tok;
+          tok = strtok(gazeCoords," ");
+          tok = strtok(NULL," ");
+          *outptrCoords++ = (double)atoi(tok);
+          tok = strtok(NULL," ");
+          *outptrCoords++ = (double)atoi(tok);
+          tok = strtok(NULL," ");
+          *outptrCoords++ = (double)atoi(tok);
+          tok = strtok(NULL," ");
+          *outptrCoords++ = (double)atoi(tok);
+          setGazeCoords = 1;
+        }
+        if (strncmp(&(data->fe.message->c),"FRAMERATE",9) == 0){
+          char *msg = &(data->fe.message->c);
+          char *tok;
+          tok = strtok(msg, " ");
+          tok = strtok(NULL," ");
+          *outptrFrameRate++ = (double)atof(tok);
+        }
+        /* if (strncmp(&(data->fe.message->c),"!CAL",4) == 0){ */
+        /*   char *calMessage = &(data->fe.message->c); */
+        /*   char *tok; */
+        /*   tok = strtok(calMessage, " "); */
+        /*   tok = strtok(NULL," "); */
+        /*   mexPrintf("%s\n", tok); */
+        /* } */
+        break;
     }
   }
 
@@ -338,15 +355,15 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       data = edf_get_float_data(edf); 
       // get the MGL message 
       if (isMGLMessage(eventType,data))  {
-      	if (getMGLMessage(eventType,data,timePtr,segmentNumPtr,trialNumPtr,blockNumPtr,phaseNumPtr,taskIDPtr)) {
-	  // valid message, update pointers
-	  timePtr++;
-	  segmentNumPtr++;
-	  trialNumPtr++;
-	  blockNumPtr++;
-	  phaseNumPtr++;
-	  taskIDPtr++;
-	}
+        if (getMGLMessage(eventType,data,timePtr,segmentNumPtr,trialNumPtr,blockNumPtr,phaseNumPtr,taskIDPtr)) {
+          // valid message, update pointers
+          timePtr++;
+          segmentNumPtr++;
+          trialNumPtr++;
+          blockNumPtr++;
+          phaseNumPtr++;
+          taskIDPtr++;
+        }
       }
     } 
   } 
@@ -362,7 +379,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   }
 }
 
-   
+
 ///////////////////////
 //   dispEventType   //
 ///////////////////////
@@ -423,7 +440,7 @@ int isEyeUsedMessage(int eventType,ALLF_DATA *event)
   if (eventType == MESSAGEEVENT) {
     if (strlen(&(event->fe.message->c)) > 8) {
       if (strncmp(&(event->fe.message->c),"EYE_USED",8) == 0) {
-	return 1;
+        return 1;
       }
     }
   }
@@ -442,18 +459,18 @@ int isMGLMessage(int eventType,ALLF_DATA *event)
       int numSpaces = 0;
       char *mglMessage = &(event->fe.message->c);
       while(*mglMessage)
-	if (*mglMessage++ == ' ')
-	  numSpaces++;
+        if (*mglMessage++ == ' ')
+          numSpaces++;
       // if we have more than 3 tokens
       if (numSpaces>3) {
-	// and the third token is trial, then we should have 7 tokens
-	if (strncmp(&(event->fe.message->c),"MGL BEGIN TRIAL",15) == 0) {
-	  return((numSpaces==6) ? 1 : 0);
-	}
-	// otherwise we should have 8 tokens
-	else {
-	  return((numSpaces==7) ? 1 : 0);
-	}
+        // and the third token is trial, then we should have 7 tokens
+        if (strncmp(&(event->fe.message->c),"MGL BEGIN TRIAL",15) == 0) {
+          return((numSpaces==6) ? 1 : 0);
+        }
+        // otherwise we should have 8 tokens
+        else {
+          return((numSpaces==7) ? 1 : 0);
+        }
       }
     }
   }
