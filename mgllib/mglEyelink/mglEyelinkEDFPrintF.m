@@ -18,5 +18,3 @@ end
 
 formattedMessage = sprintf(message, varargin{:});
 mglPrivateEyelinkEDFPrintF(formattedMessage);
-
-

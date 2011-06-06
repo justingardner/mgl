@@ -52,7 +52,5 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     // in the messsage string
     
     eyemsg_printf(message);
-    
 }
-
 
