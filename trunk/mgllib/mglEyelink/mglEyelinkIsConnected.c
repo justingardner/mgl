@@ -29,5 +29,5 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 	connectionStatus = eyelink_is_connected();
   
 	// Stick the result into the return array.
-	prhs[0] = mxCreateDoubleScalar((double)connectionStatus);
+	plhs[0] = mxCreateDoubleScalar((double)connectionStatus);
 }
