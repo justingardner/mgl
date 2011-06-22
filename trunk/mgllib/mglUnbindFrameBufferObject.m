@@ -1,7 +1,7 @@
 % mglUnbindFrameBufferObject.m
 %
 %        $Id: mglUnbindFrameBufferObject.m cgb $
-%      usage: mglUnbindFrameBufferObject(width, height)
+%      usage: mglUnbindFrameBufferObject
 %         by: Christopher Broussard
 %       date: 09/07/10
 %  copyright: (c) 2006 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)

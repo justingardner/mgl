@@ -1,12 +1,12 @@
 % mglGetParam.m
 %
-%        $Id: mglMovie.m,v 1.1 2007/10/23 22:21:23 justin Exp $
+%        $Id: mglGetParam.m,v 1.1 2007/10/23 22:21:23 justin Exp $
 %      usage: mglGetParam(paramName);
 %         by: justin gardner
 %       date: 12/30/08
 %    purpose: Get MGL parameters
 %
-%verbose = mglGetParam('verbose');
+% verbose = mglGetParam('verbose');
 function retval  = mglGetParam(paramName)
 
 % default to returning empty
