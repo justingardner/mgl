@@ -49,17 +49,17 @@ if ~mglEyelinkOpen('100.1.1.1', conntype)
 end
 % pixels [left top width height]
 mglEyelinkCMDPrintF('screen_pixel_coords = 0, 0, %d, %d',...
-		    mglGetParam('screenWidth'), mglGetParam('screenHeight'));
+            mglGetParam('screenWidth'), mglGetParam('screenHeight'));
 % physical size from center, starting with center to left edge dist,
 % proceeding clockwise (all physical values are in mm)
 mglEyelinkCMDPrintF('screen_phys_coords = %6.2f, %6.2f, %6.2f, %6.2f', ...
-		    -(myscreen.displaySize(1)/2)*10, (myscreen.displaySize(2)/2)*10, ...
-		    (myscreen.displaySize(1)/2)*10, -(myscreen.displaySize(2)/2)*10);
+            -(myscreen.displaySize(1)/2)*10, (myscreen.displaySize(2)/2)*10, ...
+            (myscreen.displaySize(1)/2)*10, -(myscreen.displaySize(2)/2)*10);
 % distance between the eye and the top and bottom center of the display
 % (to allow for angled displays)
 mglEyelinkCMDPrintF('screen_distance = %6.2f, %6.2f', ...
-		    ((myscreen.displayDistance^2 + (myscreen.displaySize(2)/2)^2)^0.5)*10,...
-		    ((myscreen.displayDistance^2 + (myscreen.displaySize(2)/2)^2)^0.5)*10);
+            ((myscreen.displayDistance^2 + (myscreen.displaySize(2)/2)^2)^0.5)*10,...
+            ((myscreen.displayDistance^2 + (myscreen.displaySize(2)/2)^2)^0.5)*10);
 
 % load the parameters for the eyelink
 params = mglEyelinkParams([]);
@@ -131,11 +131,11 @@ if ~isfield(myscreen.eyetracker, 'savedata') || myscreen.eyetracker.savedata
   
   % get a data file
   mglPrivateEyelinkOpenEDF(sprintf('%s.edf', myscreen.eyetracker.datafilename));
-  mglEyelinkCMDPrintF(sprintf('add_file_preamble_text ''RECORDED BY MGL'''));
+  mglEyelinkCMDPrintF(sprintf('add_file_preamble_text ''RECORDED BY MGL V2.0 (mglEyelink V2.0)'''));
   
   % Basic data file info
   mglEyelinkEDFPrintF('DISPLAY_COORDS 0 0 %d %d',...
-		      mglGetParam('screenWidth'), mglGetParam('screenHeight'));
+              mglGetParam('screenWidth'), mglGetParam('screenHeight'));
   mglEyelinkEDFPrintF('FRAMERATE %f4.2', 1/mglGetParam('frameRate'));
   
 end
