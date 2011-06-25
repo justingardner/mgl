@@ -47,10 +47,20 @@ e.stimfile.phaseNum = phaseNum;
 
 % check for taskID
 if ~isfield(stimfile.task{taskNum}{phaseNum},'taskID')
-  disp(sprintf('(getTaskEyeTraces) **** No taskID field found in task. This stimfile was probably generated with an older version of mgl/task. You need to update your mgl code. ****'));
-  return
+  if ~isfield(stimfile.task{taskNum}{phaseNum},'collectEyeData')
+    disp(sprintf('(getTaskEyeTraces) **** No taskID field found in task. This stimfile was probably generated with an older version of mgl/task. You need to update your mgl code. ****'));
+    return
+  else
+    % for mglEyelink V1 messages only one task could collect data
+    if (stimfile.task{taskNum}{phaseNum}.collectEyeData == 1)
+      taskID = 0;
+    else
+      taskID = NaN;
+    end
+  end
+else
+  taskID = stimfile.task{taskNum}{phaseNum}.taskID;
 end
-taskID = stimfile.task{taskNum}{phaseNum}.taskID;
 
 % check eye tracker type
 eyeTrackerType = stimfile.myscreen.eyeTrackerType;
@@ -189,18 +199,24 @@ end
 hMin = -15;hMax = 15;
 vMin = -15;vMax = 15;
 subplot(2,3,1:2);
-yaxis(hMin,hMax);
-xaxis(0,max(e.eye.time));
+% yaxis(hMin,hMax);
+ylim([hMin,hMax]);
+% xaxis(0,max(e.eye.time));
+xlim([0,max(e.eye.time)]);
 xlabel('Time (sec)');
 ylabel('H. eyepos (deg)');
 subplot(2,3,4:5);
-yaxis(vMin,vMax);
-xaxis(0,max(e.eye.time));
+% yaxis(vMin,vMax);
+ylim([vMin,vMax]);
+% xaxis(0,max(e.eye.time));
+xlim([0,max(e.eye.time)]);
 xlabel('Time (sec)');
 ylabel('V. eyepos (deg)');
 subplot(2,3,[3 6]);
-xaxis(hMin,hMax);
-yaxis(vMin,vMax);
+% xaxis(hMin,hMax);
+xlim([hMin,hMax]);
+% yaxis(vMin,vMax);
+ylim([vMin,vMax]);
 xlabel('H. eyepos (deg)');
 ylabel('V. eyepos (deg)');
 title('Median eye position by trial type');
