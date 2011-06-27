@@ -1,11 +1,12 @@
 % moncalib.m
 %
-%      usage: calib = moncalib(screenNumber,stepsize,numRepeats,testTable,bitTest,initWaitTime)
+%      usage: To run a calibration:
+%             calib = moncalib; 
 %
-%             % to display a previously run calibration
+%             To display a previously run calibration
 %             moncalib(calib);
 %
-%             % new calling style
+%             Options that you can use:
 %             calib = moncalib('numRepeats=4','stepsize=1/32',...
 %               numRepeats = number of repeats of each measurement to make when measuring luminance
 %               stepsize = step size to measure luminance values in. Use 1/256 to check every value in an 8 bit display
@@ -29,6 +30,11 @@
 %                               for using the Matlab serial port object - but note that this still has bugs (see code
 %                               comments below in parseArgs function...
 %               commTest = Set to 1 if you just want to test communication with the photometer
+%
+%             Old calling style:
+%               calib = moncalib(screenNumber,stepsize,numRepeats,testTable,bitTest,initWaitTime)
+%               stepsize is how finely you want to measure luminance changes (value < 1.0) (default is 1/32)
+%               numRepeats is the number of repeats you want to make of the measurements (default is 4)
 %         by: justin gardner & jonas larsson
 %       date: 10/02/06
 %    purpose: routine to do monitor calibration
@@ -37,12 +43,6 @@
 %             To test the serial port connection to your device, run like:
 %
 %             moncalib(-1);
-%
-%             stepsize is how finely you want to measure
-%             luminance changes (value < 1.0) (default is 1/32)
-%
-%             numRepeats is the number of repeats you want
-%             to make of the measurements (default is 4)
 %
 %             This works by using the serial port interface
 %             to the PR650 and the comm library from the
@@ -59,7 +59,7 @@
 %
 %             If you want to change this function to use a different
 %             photometer then you need to add specific
-%             photometerInit and photometerMeasure for
+%             photometerInit and photometerMeasure (and optionally photometerSpectrumMeasure) for
 %             your photometer 
 %
 %             If you pass it in a calib matlab structure that it has
