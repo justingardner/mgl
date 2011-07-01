@@ -15,7 +15,7 @@ if task.collectEyeData
     % if we are recording & we want to reset at blocks, stop
     mglEyelinkRecordingStop();
   end
-  mglPrivateEyelinkRecordingStart(myscreen.eyetracker.data);
+  mglEyelinkRecordingStart(myscreen.eyetracker.data);
   mglEyelinkEDFPrintF('MGL BEGIN BLOCK %i', task.blocknum);
 end
-    
+
