@@ -18,11 +18,11 @@
 //   function declarations   //
 ///////////////////////////////
 void dispEventType(int eventType);
-void dispEvent(int eventType,ALLF_DATA *event);
-int isEyeUsedMessage(int eventType,ALLF_DATA *event);
-int isMGLV1Message(int eventType,ALLF_DATA *event);
-int isMGLV2Message(int eventType,ALLF_DATA *event);
-int getMGLV1Message(int eventType,ALLF_DATA *event, double *timePtr,
+void dispEvent(int eventType, ALLF_DATA *event);
+int isEyeUsedMessage(int eventType, ALLF_DATA *event);
+int isMGLV1Message(int eventType, ALLF_DATA *event);
+int isMGLV2Message(int eventType, ALLF_DATA *event);
+int getMGLV1Message(int eventType, ALLF_DATA *event, int nmsg, double *timePtr,
   double *segmentNumPtr, double *trialNumPtr, double *blockNumPtr, 
   double *phaseNumPtr) ;
 int getMGLV2Message(int eventType,ALLF_DATA *event, double *timePtr,
@@ -362,6 +362,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   if (mglEyelinkVersion >= 1) {
     // display number of MGL messages
     int mglCurrentVersionMessages = (mglEyelinkVersion==1) ? numMGLV1Messages : numMGLV2Messages;
+    int nMsg = 0;
     if (verbose>0) mexPrintf("(mglPrivateEyelinkReadEDF) Parsing %i MGL messages.\n",
       mglCurrentVersionMessages);
     
@@ -382,7 +383,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     
     // go back to beginning of file 
     edf_goto_bookmark(edf,&startOfFile); 
-    // now cycle through events again, and pick out MGL messages 
+    // now cycle through events again, and pick out MGL messages
     for (i=0;i<numElements;i++) { 
       // get the event type and event pointer 
       eventType = edf_get_next_data(edf); 
@@ -393,13 +394,14 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
           // we need to extract time/seg/trial/etc
           // the big difference is that in V1 we could only have one task active (or the
           // messages were uninterpretable)
-          if (getMGLV1Message(eventType,data,timePtr,segmentNumPtr,trialNumPtr,blockNumPtr,phaseNumPtr)) {
+          if (getMGLV1Message(eventType,data,nMsg,timePtr,segmentNumPtr,trialNumPtr,blockNumPtr,phaseNumPtr)) {
             // valid message, update pointers
             timePtr++;
             segmentNumPtr++;
             trialNumPtr++;
             blockNumPtr++;
             phaseNumPtr++;
+            nMsg++;
           }
         }
       }
@@ -412,6 +414,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
           blockNumPtr++;
           phaseNumPtr++;
           taskIDPtr++;
+          nMsg++;
         }
       }
     }
@@ -603,11 +606,10 @@ int getMGLV2Message(int eventType,ALLF_DATA *event, double *timePtr,double *segm
 /////////////////////////
 //   getMGLV1Message   //
 /////////////////////////
-int getMGLV1Message(int eventType,ALLF_DATA *event, double *timePtr, 
+int getMGLV1Message(int eventType, ALLF_DATA *event, int nmsg, double *timePtr, 
   double *segmentNumPtr, double *trialNumPtr, double *blockNumPtr, 
   double *phaseNumPtr) 
 {
-  static int nMsg = 0; // to solve the initial condition problem
   char *mglMessage = &(event->fe.message->c);
   char *tok;
   tok = strtok(mglMessage," "); // MGL
@@ -620,15 +622,15 @@ int getMGLV1Message(int eventType,ALLF_DATA *event, double *timePtr,
   // the big difference between v1 and v2 is that we need to persist values
   // forward. We also have to check for the base case
   // set 0 for the 0th segment 
-    // set the segmentPtr to have the correct segment 
-  if (strncmp(tok,"PHASE",5) == 0) { 
-    // a bit of a hack, we are going to use the fact that a block always exists
-    // following a phase so we must be in a positive block if we're not at the
-    // first phase...
-    *phaseNumPtr = nMsg==0 ? 1 : *(phaseNumPtr-1)+1;
+  // set the segmentPtr to have the correct segment 
+  if (strncmp(tok,"PHASE",5) == 0) {
+    // we don't get the phase num and therefor there can be an initial condition
+    // problem
+    *phaseNumPtr = (nmsg==0) ? 1 : *(phaseNumPtr-1)+1;
     *blockNumPtr = 0;
     *trialNumPtr = 0;
     *segmentNumPtr = 0;
+    
   } 
   else if (strncmp(tok,"BLOCK",5) == 0) {
     tok = strtok(NULL," "); 
@@ -673,6 +675,5 @@ int getMGLV1Message(int eventType,ALLF_DATA *event, double *timePtr,
     mexPrintf("(mglPrivateEyelinkReadEDF) Unknown MGL message %s\n",mglMessage); 
     return(0); 
   }
-  nMsg++;
   return(1);
 }
