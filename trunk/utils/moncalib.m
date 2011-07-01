@@ -84,6 +84,7 @@ function calib = moncalib(varargin)
 
 % parse arguments
 [calib todo] = parseArgs(nargin,varargin);
+if isempty(calib),return,end
 
 % test photometer
 if todo.photometerTest
@@ -1625,7 +1626,7 @@ function displaySpectrum(calib)
 
 if ~isfield(calib,'spectrum'),return,end
 
-if exist('smartfig') == 2
+if (exist('smartfig') == 2) && (exist('fixBadChars')==2)
   smartfig('moncalib_displaySpectrum','reuse');
 else
   figure;
@@ -1892,7 +1893,7 @@ end
 function displayGamma(calib,todo)
 
 if isfield(calib,'uncorrected')
-  if exist('smartfig') == 2
+  if (exist('smartfig') == 2) && (exist('fixBadChars')==2)
     smartfig('moncalib_displayGamma','reuse');
   else
     figure;
@@ -1911,7 +1912,7 @@ end
 function displayGammaEachChannel(calib)
 
 if isfield(calib,'uncorrectedEachChannel');
-  if exist('smartfig') == 2
+  if (exist('smartfig') == 2) && (exist('fixBadChars')==2)
     smartfig('moncalib_displayGammaEachChannel','reuse');
   else
     figure;
@@ -2037,7 +2038,7 @@ end
 function displayBitTest(calib)
 
 if isfield(calib,'bittest') && isfield(calib.bittest,'data')
-  if exist('smartfig') == 2
+  if (exist('smartfig') == 2) && (exist('fixBadChars')==2)
     smartfig('moncalib_displayGamma','reuse');
   end
   if isfield(calib,'uncorrected')
@@ -2130,7 +2131,10 @@ else
   if exist('getArgs') == 2
     getArgs(vars,{'numRepeats=4','stepsize=1/32','initWaitTime=0','screenNumber=[]','spectrum=0','gamma=1','exponent=0','tableTest=1','bitTest=0','reset=0','gammaEachChannel=0','verbose=1','bitTestBits=10','bitTestNumRepeats=4','bitTestN=12','bitTestBase=0.5','serialPortFun=comm','commTest=0'});
   else
-    disp(sprintf('(moncalib) To parse string arguments you need getArgs from the mrTools distribution'));
+    disp(sprintf('(moncalib) To parse string arguments you need getArgs from the mrTools distribution. \nSee here: http://gru.brain.riken.jp/doku.php/mgl/gettingStarted#initial_setup'));
+    todo = [];
+    calib = [];
+    return
   end
 end
 
