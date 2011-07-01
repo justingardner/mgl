@@ -1,6 +1,6 @@
 #ifdef documentation
 =========================================================================
-program: mglPrivateEyelinkOpenEDF.c
+program: mglPrivateEyelinkEDFOpen.c
 by:      eric dewitt and eli merriam
 date:    02/08/09
 copyright: (c) 2009, Eric DeWitt, 
@@ -28,7 +28,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     
     if (nrhs<1) /* What arguments should this take? */
     {
-        usageError("mglPrivateEyelinkOpenEDF");
+        usageError("mglPrivateEyelinkEDFOpen");
         return;
     }
     

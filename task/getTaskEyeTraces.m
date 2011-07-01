@@ -28,7 +28,7 @@ end
 
 taskNum=[];phaseNum=[];
 if exist('getArgs') == 2
-  getArgs(varargin,{'taskNum=1','phaseNum=1','dispFig=1'});
+  getArgs(varargin,{'taskNum=1','phaseNum=1','dispFig=1','dataPad=3'});
 else
   disp(sprintf('(getTaskEyeTraces) To run this program you need functions from the mrTools distribution. \nSee here: http://gru.brain.riken.jp/doku.php/mgl/gettingStarted#initial_setup'));
   return
@@ -102,7 +102,7 @@ end
 % load the file
 disppercent(-inf,sprintf('(getTaskEyeTraces) Opening edf file %s',eyeTrackerFilename));
 sprintf('\n');
-edf = mglEyelinkReadEDF(eyeTrackerFilename,0);
+edf = mglEyelinkEDFRead(eyeTrackerFilename,0);
 disppercent(inf);
 if isempty(edf),return,end
 
