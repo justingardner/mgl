@@ -20,7 +20,12 @@ if nargin == 0
 end
 
 taskNum=[];phaseNum=[];
-getArgs(varargin,{'taskNum=1','phaseNum=1','dispFig=1'});
+if exist('getArgs') == 2
+  getArgs(varargin,{'taskNum=1','phaseNum=1','dispFig=1'});
+else
+  disp(sprintf('(getTaskEyeTraces) To run this program you need functions from the mrTools distribution. \nSee here: http://gru.brain.riken.jp/doku.php/mgl/gettingStarted#initial_setup'));
+  return
+end
 
 % if we are passed in the name of a file then assume it is a stimfile and load it through
 % getTaskParameters
