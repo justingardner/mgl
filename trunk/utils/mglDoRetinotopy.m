@@ -15,8 +15,7 @@ if ~any(nargin == [0])
 end
 
 if ~exist('mrParamsDialog')
-  disp(sprintf('(mglDoRetinotopy) You must have mrTools in your path to run the GUI for this function.'));
-  disp(sprintf('(mglDoRetinotopy) You can download the mrTools utilties by doing the following from a shell:\n\nsvn checkout http://cbi.nyu.edu/svn/mrToosl/trunk/mrUtilities/MatlabUtilities mrToolsUtilities\n\nand then add the path in matlab:\n\naddpath(''mrToolsUtilities'')'));
+  disp(sprintf('(mglDoRetinotopy) You must have mrTools in your path to run the GUI for this function.\nSee here: http://gru.brain.riken.jp/doku.php/mgl/gettingStarted#initial_setup'));
   return
 end
 
