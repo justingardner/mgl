@@ -87,7 +87,7 @@ if strcmp(lower(myscreen.eyeTrackerType),'eyelink')
       % if we are recording stop to reset.
       mglEyelinkRecordingStop();
     end
-    mglPrivateEyelinkRecordingStart(myscreen.eyetracker.data);
+    mglEyelinkRecordingStart(myscreen.eyetracker.data);
   end
 elseif strcmp(lower(myscreen.eyeTrackerType),'calibrate')
   if calibrate,doCalibration(myscreen);end
