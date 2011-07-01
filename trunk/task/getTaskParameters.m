@@ -62,7 +62,7 @@ end
 if ~iscell(task)
   allTasks{1}{1} = task;
   multiTask = 0;
-elseif ~iscell(task{1})
+elseif ~iscell(task{1}) % assumes multiple phases, not tasks
   allTasks{1} = task;
   multiTask = 0;
 else

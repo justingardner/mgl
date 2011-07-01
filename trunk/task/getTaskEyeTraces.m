@@ -1,15 +1,22 @@
 % getTaskEyeTraces.m
 %
 %        $Id:$ 
-%      usage: e = getTaskEyeTraces(stimfileName,<taskNum=1>,<phaseNum=1>,<dispFig=1>)
+%      usage: e = getTaskEyeTraces(stimfileName,<taskNum=1>,<phaseNum=1>,<dispFig=1>,<dataPad=3>)
 %         by: justin gardner
 %       date: 06/23/10
 %    purpose: get the eye traces for a task. Pass in a stimfile name and the taskNum and phaseNum
-%             you want. The eye traces will be returned in e.eye with units of degrees of visual angle
+%             you want. The eye traces will be returned in e.eye with units of degrees of visual angle.
+%             Data will be exracted by up to dataPad(=3) seconds beyond the end of the trial so that you
+%             can extract data around the last event in the trial if it's close to the trial end.
 %
-%    e = getTaskEyeTraces('100616_stim01','taskNum=1','phaseNum=1');
+%    e = getTaskEyeTraces('100616_stim01','taskNum=1','phaseNum=1','dataPad=3');
 %
 function e = getTaskEyeTraces(stimfileName,varargin)
+
+% it would be nice if this was fully compatible with getTaskParameters, which
+% would require it to be able to take the myscreen & task structs... and also
+% simply provide the 'eye' struct when there is data and not without. this seems
+% too complicated and not in line with the simplicity of the base task funs
 
 e = [];
 
@@ -59,6 +66,7 @@ if ~isfield(stimfile.task{taskNum}{phaseNum},'taskID')
     % for mglEyelink V1 messages only one task could collect data
     if (stimfile.task{taskNum}{phaseNum}.collectEyeData == 1)
       taskID = 0;
+      phaseNum = 1; % start with phase 1 in the recorded mgl messages 
     else
       taskID = NaN;
     end
@@ -93,6 +101,7 @@ end
 
 % load the file
 disppercent(-inf,sprintf('(getTaskEyeTraces) Opening edf file %s',eyeTrackerFilename));
+sprintf('\n');
 edf = mglEyelinkReadEDF(eyeTrackerFilename,0);
 disppercent(inf);
 if isempty(edf),return,end
@@ -107,10 +116,14 @@ disppercent(-inf,sprintf('(getTaskEyeTraces) Extracting trial by trial data for 
 
 for i = 1:edf.nTrials
   % get start time
-  thisTrialMessages = find((edf.mgl.trialNum==i) & (edf.mgl.taskID == taskID));
   % find the segment 0 message
-  segmentZeroMessage = thisTrialMessages(find(edf.mgl.segmentNum(thisTrialMessages)==0));
-  segmentZeroTime = edf.mgl.time(segmentZeroMessage);
+  %%% I think this should be segment 1--at least in my code segment 1 == seg1
+  %%% and that seems to be what updateTask writes out. The seg==0 often includes
+  %%% deadtime related to waiting for backtics, user start, etc
+  segmentZeroTime = edf.mgl.time((edf.mgl.taskID == taskID) &  ...
+                                   (edf.mgl.phaseNum==phaseNum) &  ...
+                                   (edf.mgl.trialNum==i) &  ...
+                                   (edf.mgl.segmentNum==1));
   % call this the startTime
   if ~isempty(segmentZeroTime)
     startTime(i) = segmentZeroTime;
@@ -128,11 +141,14 @@ if ~isempty(endTime)
 else
   % if we have only one trial, then use till the end of the data
   endTime(end+1) = max(edf.gaze.time);
-  maxTrialLen = endTime-startTime+1;;
+  maxTrialLen = endTime-startTime+1;
 end
+maxTrialLen = maxTrialLen+dataPad;
 
-% now get time between samples
-timeBetweenSamples = median(diff(edf.gaze.time));
+% now get time between samples (isn't the sample rate availible?)
+% timeBetweenSamples = median(diff(edf.gaze.time));
+% get the time between samples in milliseconds
+timeBetweenSamples = (1/edf.samplerate)*1000;
 
 % figure out how large to make data array
 e.eye.xPos = nan(edf.nTrials,ceil(maxTrialLen/timeBetweenSamples));
@@ -140,7 +156,7 @@ e.eye.yPos = nan(edf.nTrials,ceil(maxTrialLen/timeBetweenSamples));
 e.eye.pupil = nan(edf.nTrials,ceil(maxTrialLen/timeBetweenSamples));
 
 % put in time in seconds
-e.eye.time = (0:(size(e.eye.xPos,2)-1))*timeBetweenSamples/1000;
+e.eye.time = (0:(size(e.eye.xPos,2)-1))/edf.samplerate;
 
 % go through each trial and populate traces
 warning('off','MATLAB:interp1:NaNinY');
