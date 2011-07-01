@@ -130,7 +130,7 @@ if ~isfield(myscreen.eyetracker, 'savedata') || myscreen.eyetracker.savedata
   myscreen.eyetracker.datafilename = sprintf('%s%02i',thedate,nSaves);
   
   % get a data file
-  mglPrivateEyelinkOpenEDF(sprintf('%s.edf', myscreen.eyetracker.datafilename));
+  mglPrivateEyelinkEDFOpen(sprintf('%s.edf', myscreen.eyetracker.datafilename));
   mglEyelinkCMDPrintF(sprintf('add_file_preamble_text ''RECORDED BY MGL V2.0 (mglEyelink V2.0)'''));
   
   % Basic data file info

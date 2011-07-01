@@ -1,18 +1,18 @@
-% mglEyelinkReadEDF.m
+% mglEyelinkEDFRead.m
 %
-%      usage: mglEyelinkReadEDF(filename,<verbose>)
+%      usage: mglEyelinkEDFRead(filename,<verbose>)
 %         by: justin gardner
 %       date: 04/04/10
 %    purpose: Function to read EyeLink eye-tracker files into matlab
 %
-function retval = mglEyelinkReadEDF(filename,verbose)
+function retval = mglEyelinkEDFRead(filename,verbose)
 
 % default return argument
 retval = [];
 
 % check arguments
 if ~any(nargin == [1 2])
-  help mglEyelinkReadEDF
+  help mglEyelinkEDFRead
   return
 end
 
@@ -20,8 +20,8 @@ end
 if nargin < 2,verbose = 1;end
 
 % check for compiled file
-if exist('mglPrivateEyelinkReadEDF')~=3
-  disp(sprintf('(mglEyelinkReadEDF) You must compile the eyelink files: mglMake(''Eyelink'')'));
+if exist('mglPrivateEyelinkEDFRead')~=3
+  disp(sprintf('(mglEyelinkEDFRead) You must compile the eyelink files: mglMake(''Eyelink'')'));
   return
 end
 
@@ -31,9 +31,9 @@ if isempty(e)
 end
 if isfile(filename)
   % mglPrivateEleyinkReadEDF returns a structre
-  retval = mglPrivateEyelinkReadEDF(filename,verbose);
+  retval = mglPrivateEyelinkEDFRead(filename,verbose);
 else
-  disp(sprintf('(mglEyelinkReadEDF) Could not open file %s',filename));
+  disp(sprintf('(mglEyelinkEDFRead) Could not open file %s',filename));
 end
 
 %% let's parse some additional info
@@ -44,7 +44,7 @@ retval.mode = strtrim(retval.messages(strmatch('!MODE',{retval.messages.message}
 [t,m] = strtok(retval.mode); % should be !MODE
 [t,m] = strtok(m); % should be RECORD
 if ~strcmp(t,'RECORD')
-    warning('mglEyelinkReadEDF:UnknownMode', 'Unknown mode encountered in edf file.');
+    warning('mglEyelinkEDFRead:UnknownMode', 'Unknown mode encountered in edf file.');
 end
 [retval.trackmode,m] = strtok(m); % will be CR or P? (pupil only)
 [t,m] = strtok(m); % sample rate
@@ -66,7 +66,7 @@ end
 return
 
 % TEST CODE
-d = mglEyelinkReadEDF('10043009.edf');
+d = mglEyelinkEDFRead('10043009.edf');
 load 100430_stim09;
 e = getTaskParameters(myscreen,task);
 
@@ -95,7 +95,7 @@ for trialNum = 1:numTrials
   % find closest matching time
   [trialStartTimeDiscrepancy(trialNum) trialStartIndex(trialNum)] = min(abs(d.d(timeLine,:) - trialStartTime(trialNum)));
   if (trialStartTimeDiscrepancy(trialNum) > 1)
-    disp(sprintf('(mglEyelinkReadEDF) Discrepancy for trial %i and recorded time is: %f',trialNum,trialStartTimeDiscrepancy(trialNum)));
+    disp(sprintf('(mglEyelinkEDFRead) Discrepancy for trial %i and recorded time is: %f',trialNum,trialStartTimeDiscrepancy(trialNum)));
   end
 end
 

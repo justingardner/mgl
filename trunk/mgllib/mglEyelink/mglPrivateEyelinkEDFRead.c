@@ -1,7 +1,7 @@
 #ifdef documentation
 =========================================================================
 
-     program: mglPrivateEyelinkReadEDF.c
+     program: mglPrivateEyelinkEDFRead.c
           by: justin gardner
         date: 04/04/10
 
@@ -47,7 +47,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
   // parse input arguments
   if (nrhs<1) {
-    usageError("mglEyelinkReadEDF");
+    usageError("mglEyelinkEDFRead");
     return;
   }
  
@@ -60,13 +60,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   /* verbose = (int) *mxGetPr(prhs[1]); */
 
   // open file
-  if (verbose) mexPrintf("(mglPrivateEyelinkReadEDF) Opening EDF file %s\n",filename);
+  if (verbose) mexPrintf("(mglPrivateEyelinkEDFRead) Opening EDF file %s\n",filename);
 
   int errval;
   EDFFILE *edf = edf_open_file(filename,verbose,1,1,&errval);
   // and check that we opened correctly
   if (edf == NULL) {
-    mexPrintf("(mglPrivateEyelinkReadEDF) Could not open file %s (error %i)\n",filename,errval);
+    mexPrintf("(mglPrivateEyelinkEDFRead) Could not open file %s (error %i)\n",filename,errval);
     return;
   }
 
@@ -146,7 +146,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   }
   
   if (verbose)
-    mexPrintf("(mglPrivateEyelinkReadEDF) MGL Version %i messages\n",mglEyelinkVersion);
+    mexPrintf("(mglPrivateEyelinkEDFRead) MGL Version %i messages\n",mglEyelinkVersion);
 
   // set an output fields for the gaze data
   const char *fieldNamesGaze[] =  {"time","x","y","pupil","pix2degX","pix2degY","velocityX","velocityY","whichEye"};
@@ -253,7 +253,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   
   int currentEye = -1;
   // go through all data in file
-  if (verbose) mexPrintf("(mglPrivateEyelinkReadEDF) Looping over samples and events \n");
+  if (verbose) mexPrintf("(mglPrivateEyelinkEDFRead) Looping over samples and events \n");
 
   for (i=0;i<numElements;i++) {
     // get the event type and event pointer
@@ -363,7 +363,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     // display number of MGL messages
     int mglCurrentVersionMessages = (mglEyelinkVersion==1) ? numMGLV1Messages : numMGLV2Messages;
     int nMsg = 0;
-    if (verbose>0) mexPrintf("(mglPrivateEyelinkReadEDF) Parsing %i MGL messages.\n",
+    if (verbose>0) mexPrintf("(mglPrivateEyelinkEDFRead) Parsing %i MGL messages.\n",
       mglCurrentVersionMessages);
     
     //    const char *fieldNames[] =  {"time","segmentNum","trialNum","blockNum","phaseNum","taskID"};
@@ -426,7 +426,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   // close file
   err = edf_close_file(edf);
   if (err) {
-    mexPrintf("(mglPrivateEyelinkReadEDF) Error %i closing file %s\n",err,filename);
+    mexPrintf("(mglPrivateEyelinkEDFRead) Error %i closing file %s\n",err,filename);
   }
 }
 
@@ -436,7 +436,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 ///////////////////////
 void dispEventType(int dataType)
 {
-  mexPrintf("(mglPrivateEyelinkReadEDF) DataType is %i: ",dataType); 
+  mexPrintf("(mglPrivateEyelinkEDFRead) DataType is %i: ",dataType); 
   switch(dataType)  {
     case STARTBLINK:
       mexPrintf("start blink");break;
@@ -553,8 +553,8 @@ void dispEvent(int eventType,ALLF_DATA *event)
   else if (isMGLV1Message(eventType,event)) 
     mexPrintf("NOT IMPLEMENTED YET");
   else if (eventType == SAMPLE_TYPE) {
-    //    fprintf(fid,"(mglPrivateEyelinkReadEDF) Sample eye 0 is %i: pupil [%f %f] head [%f %f] screen [%f %f] pupil size [%f]\n",event->fs.time,event->fs.px[0],event->fs.py[0],event->fs.hx[0],event->fs.hy[0],event->fs.gx[0],event->fs.gy[0],event->fs.pa[0]);
-    //    fprintf(fid,"(mglPrivateEyelinkReadEDF) Sample eye 1 is %i: pupil [%f %f] head [%f %f] screen [%f %f] pupil size [%f]\n",event->fs.time,event->fs.px[1],event->fs.py[1],event->fs.hx[1],event->fs.hy[1],event->fs.gx[1],event->fs.gy[1],event->fs.pa[1]);
+    //    fprintf(fid,"(mglPrivateEyelinkEDFRead) Sample eye 0 is %i: pupil [%f %f] head [%f %f] screen [%f %f] pupil size [%f]\n",event->fs.time,event->fs.px[0],event->fs.py[0],event->fs.hx[0],event->fs.hy[0],event->fs.gx[0],event->fs.gy[0],event->fs.pa[0]);
+    //    fprintf(fid,"(mglPrivateEyelinkEDFRead) Sample eye 1 is %i: pupil [%f %f] head [%f %f] screen [%f %f] pupil size [%f]\n",event->fs.time,event->fs.px[1],event->fs.py[1],event->fs.hx[1],event->fs.hy[1],event->fs.gx[1],event->fs.gy[1],event->fs.pa[1]);
   }
 }
 
@@ -585,7 +585,7 @@ int getMGLV2Message(int eventType,ALLF_DATA *event, double *timePtr,double *segm
     return(0); 
   }    
   else { 
-    mexPrintf("(mglPrivateEyelinkReadEDF) Unknown MGL message %s\n",mglMessage); 
+    mexPrintf("(mglPrivateEyelinkEDFRead) Unknown MGL message %s\n",mglMessage); 
     return(0); 
   } 
   // get the trial umber
@@ -638,7 +638,7 @@ int getMGLV1Message(int eventType, ALLF_DATA *event, int nmsg, double *timePtr,
       *blockNumPtr = (double)atoi(tok);
     }
     else {
-      mexPrintf("(mglPrivateEyelinkReadEDF) Unknown MGL message %s\n",mglMessage);
+      mexPrintf("(mglPrivateEyelinkEDFRead) Unknown MGL message %s\n",mglMessage);
       return(0);
     }
     *phaseNumPtr = *(phaseNumPtr-1);
@@ -651,7 +651,7 @@ int getMGLV1Message(int eventType, ALLF_DATA *event, int nmsg, double *timePtr,
        *trialNumPtr = (double)atoi(tok);
     }
     else {
-      mexPrintf("(mglPrivateEyelinkReadEDF) Unknown MGL message %s\n",mglMessage);
+      mexPrintf("(mglPrivateEyelinkEDFRead) Unknown MGL message %s\n",mglMessage);
       return(0);
     }
     *phaseNumPtr = *(phaseNumPtr-1);
@@ -664,7 +664,7 @@ int getMGLV1Message(int eventType, ALLF_DATA *event, int nmsg, double *timePtr,
       *segmentNumPtr = (double)atoi(tok);
     }
     else {
-      mexPrintf("(mglPrivateEyelinkReadEDF) Unknown MGL message %s\n",mglMessage);
+      mexPrintf("(mglPrivateEyelinkEDFRead) Unknown MGL message %s\n",mglMessage);
       return(0);
     }
     *phaseNumPtr = *(phaseNumPtr-1);
@@ -672,7 +672,7 @@ int getMGLV1Message(int eventType, ALLF_DATA *event, int nmsg, double *timePtr,
     *trialNumPtr = *(trialNumPtr-1);
   }    
   else { 
-    mexPrintf("(mglPrivateEyelinkReadEDF) Unknown MGL message %s\n",mglMessage); 
+    mexPrintf("(mglPrivateEyelinkEDFRead) Unknown MGL message %s\n",mglMessage); 
     return(0); 
   }
   return(1);

@@ -34,7 +34,7 @@ mglEyelinkCMDPrintF('sample_rate = 500');
 mglPrivateEyelinkSetup()
 
 % open up a data file
-mglPrivateEyelinkOpenEDF('foo.edf');
+mglPrivateEyelinkEDFOpen('foo.edf');
 % mglEyelinkEDFPrintf()
 % eyemsg_printf("DISPLAY_COORDS %ld %ld %ld %ld", dispinfo.left, dispinfo.top, dispinfo.right, dispinfo.bottom); 
 % eyemsg_printf("FRAMERATE %1.2f Hz.", dispinfo.refresh);
