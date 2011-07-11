@@ -541,6 +541,8 @@ if ((verbose>1) || thisMessageNum),disp(sprintf('%s Luminance=%f cd/m^-2 (1931 C
 
 if quality(i) ~= 0
   luminance = nan;
+  x = nan;
+  y = nan;
 else
   luminance = Y(i);
   x = x(i);
