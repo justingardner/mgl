@@ -406,15 +406,17 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         }
       }
       else if (mglEyelinkVersion>=2) {
-        if (getMGLV2Message(eventType,data,timePtr,segmentNumPtr,trialNumPtr,blockNumPtr,phaseNumPtr,taskIDPtr)) {
-          // valid message, update pointers
-          timePtr++;
-          segmentNumPtr++;
-          trialNumPtr++;
-          blockNumPtr++;
-          phaseNumPtr++;
-          taskIDPtr++;
-          nMsg++;
+        if (isMGLV2Message(eventType,data)) {
+          if (getMGLV2Message(eventType,data,timePtr,segmentNumPtr,trialNumPtr,blockNumPtr,phaseNumPtr,taskIDPtr)) {
+            // valid message, update pointers
+            timePtr++;
+            segmentNumPtr++;
+            trialNumPtr++;
+            blockNumPtr++;
+            phaseNumPtr++;
+            taskIDPtr++;
+            nMsg++;
+          }
         }
       }
     }
