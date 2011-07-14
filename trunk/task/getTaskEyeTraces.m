@@ -114,7 +114,7 @@ edf.nTrials = max(edf.mgl.trialNum(find(edf.mgl.taskID == taskID)));
 disppercent(-inf,sprintf('(getTaskEyeTraces) Extracting trial by trial data for %i trials',edf.nTrials));
 % get the start times
 
-for i = 1:edf.nTrials
+for i = 1:max(edf.mgl.trialNum)
   % get start time
   % find the segment 0 message
   %%% I think this should be segment 1--at least in my code segment 1 == seg1
@@ -124,6 +124,7 @@ for i = 1:edf.nTrials
                                    (edf.mgl.phaseNum==phaseNum) &  ...
                                    (edf.mgl.trialNum==i) &  ...
                                    (edf.mgl.segmentNum==1));
+  
   % call this the startTime
   if ~isempty(segmentZeroTime)
     startTime(i) = segmentZeroTime;
@@ -131,6 +132,7 @@ for i = 1:edf.nTrials
     startTime(i) = nan;
   end
 end
+
 % get the end times
 endTime(1:length(startTime)-1) = startTime(2:end);
 
