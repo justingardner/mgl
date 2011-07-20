@@ -79,6 +79,28 @@ if isstr(varargin{1})
     if length(varargin{2}) >= 3,position(3) = varargin{2}(3);,end
     if length(varargin{2}) >= 4,position(4) = varargin{2}(4);,end
   end
+  % check for tilde reference, since that is not supported
+  if (length(filename) > 1) && (filename(1) == '~')
+    % get the home directory name
+    thispwd = pwd;
+    cd ~;
+    homedir = pwd;
+    cd(thispwd);
+    filename = fullfile(homedir,filename(2:end));
+  end
+  % check for file
+  if ~isfile(filename)
+    % change extension to .mov and try again
+    [filepath filenameCheck ext] = fileparts(filename);
+    filenameCheck = sprintf('%s.mov',fullfile(filepath,filenameCheck));
+    % if not there, give a warning and give up
+    if ~isfile(filenameCheck)
+      disp(sprintf('(mglMovie) Could not find file: %s',filename));
+      return;
+    else
+      filename = filenameCheck;
+    end
+  end
   % create the movie structure
   movieStruct = mglPrivateMovie(filename,position);
   % if we got a non-empty
