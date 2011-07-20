@@ -117,7 +117,7 @@ unsigned long openMovie(char *filename, int xpos, int ypos, int width, int heigh
 {
   // check for cocoa window
   if (!mglGetGlobalDouble("isCocoaWindow")) {
-    mexPrintf("(mglPrivateMovie) mglMovie is only available for cocoa based windows. On the desktop this means you have to open with mglOpen(0). If you want to use movies with a full screen context, try running matlab -nodesktop on -nojvm\n");
+    mexPrintf("(mglPrivateMovie) mglMovie is only available for cocoa based windows. On the desktop this means you have to open with mglOpen(0). If you want to use movies with a full screen context, try running matlab -nodesktop or -nojvm. Then make sure to set movieMode before running:\nmglSetParam('movieMode',1);\nmglOpen;\n");
     return 0;
   }
 
