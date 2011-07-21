@@ -32,6 +32,7 @@ $Id: mglPrivateOpen.c,v 1.14 2007/10/25 20:31:43 justin Exp $
 #define GET_CURRENT_TIME 10
 #define SET_CURRENT_TIME 11
 #define GET_FRAME 12
+#define MOVE 13
 
 /////////////////////////
 //   OS Specific calls //
@@ -270,7 +271,20 @@ mxArray *doMovieCommand(int command, unsigned long moviePointer, const mxArray *
 	}
       }
       break;
-    default:
+  case MOVE:
+    ;
+    double *position = mxGetPr(arg1);
+    NSWindow *myWindow = (NSWindow*)(unsigned long)mglGetGlobalDouble("cocoaWindowPointer");
+    // not clear why, but it seems you have to remove from the superview first before moving
+    [movieView removeFromSuperview];
+    // set the frame
+    [movieView setFrame:NSMakeRect(position[0],position[1],position[2],position[3])];
+    // add it back
+    [[myWindow contentView] addSubview:movieView];
+    // and set it to display
+    [[myWindow contentView] display];
+    break;
+  default:
       mexPrintf("(mglPrivateMovie) Unknown command %i\n",command);
       break;
   }
