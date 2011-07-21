@@ -42,6 +42,7 @@
 %            11:'setCurrentTime' Sets the current time of the movie to the string
 %                      passed in. Make sure the string is one returned from getCurrentTime
 %            12:'getFrame' Returns a nxmx3 matrix containing RGB data for current frame
+%            13:'move' Moves the movie to the location specified as [x y width height]
 %
 %mglSetParam('movieMode',1);
 %mglOpen(0);
@@ -63,7 +64,7 @@ if mglGetParam('displayNumber') == -1
 end
 
 % list of commands and descriptions
-validCommands = {'close','play','pause','gotobeginning','gotoend','stepforward','stepbackward','hide','show','getduration','getcurrenttime','setcurrenttime','getframe'};
+validCommands = {'close','play','pause','gotobeginning','gotoend','stepforward','stepbackward','hide','show','getduration','getcurrenttime','setcurrenttime','getframe','move'};
 		 
 % see if it is an init with filename
 if isstr(varargin{1})
@@ -71,15 +72,11 @@ if isstr(varargin{1})
   filename = varargin{1};
   % see if we have a position
   if length(varargin) < 2
-    position = [0 0 mglGetParam('screenWidth') mglGetParam('screenHeight')];
+    position = getPositionFromArg([]);
   elseif isvector(varargin{2})
-    position = [0 0 mglGetParam('screenWidth') mglGetParam('screenHeight')];
-    if length(varargin{2}) >= 1,position(1) = varargin{2}(1);,end
-    if length(varargin{2}) >= 2,position(2) = varargin{2}(2);,end
-    if length(varargin{2}) >= 3,position(3) = varargin{2}(3);,end
-    if length(varargin{2}) >= 4,position(4) = varargin{2}(4);,end
+    position = getPositionFromArg(varargin{2});
   end
-  % check for tilde reference, since that is not supported
+  % check for tilde reference in filename, since that is not supported
   if (length(filename) > 1) && (filename(1) == '~')
     % get the home directory name
     thispwd = pwd;
@@ -154,13 +151,20 @@ if isstruct(varargin{1})
   end
     
   % run the command
-  if any(command == [11])
+  if any(command == [11 13])
     if nargin < 3
       % commands with a single argument
       disp(sprintf('(mglMovie) Command %s needs another argument',validCommands{command+1}));
       return;
     else
-      retval = mglPrivateMovie(m,command,varargin{3});
+      % command that requires a position needs special checking for position
+      if any(command == [13])
+	arg = getPositionFromArg(varargin{3});
+      else
+	arg = varargin{3};
+      end
+      % run the command
+      retval = mglPrivateMovie(m,command,arg);
     end
   else
     % commands with no arguments
@@ -179,3 +183,19 @@ end
 
 
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%    getPositionFromArg    %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function position = getPositionFromArg(arg,m)
+
+% default
+position = [0 0 mglGetParam('screenWidth') mglGetParam('screenHeight')];
+if isempty(arg),return,end
+
+
+if isvector(arg)
+  if length(arg) >= 1,position(1) = arg(1);,end
+  if length(arg) >= 2,position(2) = arg(2);,end
+  if length(arg) >= 3,position(3) = arg(3);,end
+  if length(arg) >= 4,position(4) = arg(4);,end
+end
