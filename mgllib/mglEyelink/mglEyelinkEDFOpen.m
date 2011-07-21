@@ -27,4 +27,4 @@ if length(filename) > 8
   return;
 end
 
-mglPrivateEyelinkOpenEDF(filename);
+mglPrivateEyelinkEDFOpen(filename);
