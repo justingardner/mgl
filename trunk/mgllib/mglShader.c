@@ -28,6 +28,7 @@ void getAttribLocation(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[
 void vertexAttrib(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]);
 void linkProgram(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]);
 void useProgram(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]);
+void getUniformLocation(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]);
 
 // Function declarations for private functions.
 int readShaderSource(char *fileName, GLchar **vertexShader, GLchar **fragmentShader);
@@ -48,7 +49,7 @@ static void printProgramInfoLog(GLuint program);
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
 	char *command;
-	int commandLength;
+	mwSize commandLength;
 	
 	if (nrhs == 0) {
 		usageError("mglShader");
@@ -94,6 +95,32 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 	}
 	
 	mxFree(command);
+}
+
+
+void getUniformLocation(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
+{
+	GLuint shaderProg;
+	GLint loc;
+	char *name;
+	mwSize nameLen;
+
+	if (nrhs != 3) {
+		mexPrintf("(mglShader) Invalid number of arguments for getUniformLocation.\n");
+		return;
+	}
+
+	// Extract the input.
+	shaderProg = (GLuint)mxGetScalar(prhs[1]);
+	nameLen = mxGetN(prhs[2]) + 1;
+	name = (char*)mxMalloc(nameLen * sizeof(char));
+	mxGetString(prhs[2], name, nameLen);
+
+	// Get the location and return it.
+	loc = glGetUniformLocation(shaderProg, (const GLchar*)name);
+	plhs[0] = mxCreateDoubleScalar((double)loc);
+
+	mxFree(name);
 }
 
 
@@ -343,7 +370,11 @@ static int shaderSize(char *fileName, EShaderType shaderType)
     //
     int fd, keepReading = 1, count = 0;
     char name[256], buf[256];
+#ifdef __WINDOWS__
+	int readCount;
+#else
 	ssize_t readCount;
+#endif
 
 	// Create the full name of the shader.
     strcpy(name, fileName);
@@ -364,20 +395,35 @@ static int shaderSize(char *fileName, EShaderType shaderType)
 	mexPrintf("filename: %s\n", name);
 
     // Open the file, and find its length.  lseek kept screwing up, doing it this way seems to work.
+#ifdef __WINDOWS__
+	if (_sopen_s(&fd, (const char*)name, _O_RDONLY, _SH_DENYNO, _S_IREAD | _S_IWRITE) != 0) {
+		mexPrintf("Failed to open shader file.");
+		return -1;
+	}
+#else
     fd = open((const char*)name, O_RDONLY);
+#endif
 	while (keepReading) {
+#ifdef __WINDOWS__
+		readCount = _read(fd, buf, 256);
+#else
 		readCount = read(fd, buf, 256);
+#endif
 		if (readCount == 0) {
 			keepReading = 0;
 		}
 		else if (readCount == -1) {
-			mexPrintf("wtf\n");
+			mexPrintf("Error reading file\n");
 			return -1;
 		}
 		
 		count += readCount;
 	}
+#ifdef __WINDOWS__
+	_close(fd);
+#else
 	close(fd);
+#endif
 	
     return count;
 }

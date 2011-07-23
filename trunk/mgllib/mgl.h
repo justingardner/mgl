@@ -112,14 +112,18 @@
 
 #ifdef __WINDOWS__
 #include <windows.h>
+#include <GL\glew.h>
 #include <GL\gl.h>
 #include <GL\glu.h>
-//#include <GL\glaux.h>
 #include <math.h>
-		
-#ifdef WIN64
+#include <io.h>
+#include <fcntl.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <share.h>
+
+#define strcasecmp _stricmp
 #define round(x) floor(x+0.5)
-#endif
 
 // Make sure that these extensions are defined.
 #ifndef GL_TEXTURE_RECTANGLE_EXT
