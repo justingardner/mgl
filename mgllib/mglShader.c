@@ -29,6 +29,7 @@ void vertexAttrib(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]);
 void linkProgram(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]);
 void useProgram(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]);
 void getUniformLocation(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]);
+void uniform(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]);
 
 // Function declarations for private functions.
 int readShaderSource(char *fileName, GLchar **vertexShader, GLchar **fragmentShader);
@@ -89,12 +90,85 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 	else if (strcasecmp("useProgram", command) == 0) {
 		useProgram(nlhs, plhs, nrhs, prhs);
 	}
+	else if (strcasecmp("getUniformLocation", command) == 0) {
+		getUniformLocation(nlhs, plhs, nrhs, prhs);
+	}
+	else if (strcasecmp("uniform", command) == 0) {
+		uniform(nlhs, plhs, nrhs, prhs);
+	}
 	else {
 		mexPrintf("(mglShader) warning : unknown command \"%s\"\n", command);
 		return;
 	}
 	
 	mxFree(command);
+}
+
+
+void uniform(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
+{
+	GLint location;
+	mxClassID inputClass;
+	size_t m, n;
+
+	// Check the input argument count.
+	if (nrhs != 3) {
+		mexPrintf("(mglShader) Invalid number of arguments for uniform.\n");
+		return;
+	}
+
+	// Grab the input arguments.
+	location = (GLint)mxGetScalar(prhs[1]);
+
+	// Make sure the variable array has the proper number of elements.
+	m = mxGetM(prhs[2]);
+	n = mxGetN(prhs[2]);
+	if (mxGetNumberOfDimensions(prhs[2]) > 2 || m > 1 || n < 1 || n > 4) {
+		mexPrintf("(mglShader) Variable array must have between 1 and 4 elements.\n");
+		return;
+	}
+	
+	inputClass = mxGetClassID(prhs[2]);
+	if (inputClass == mxDOUBLE_CLASS) {
+		double *v = mxGetPr(prhs[2]);
+
+		switch (n)
+		{
+		case 1:
+			glUniform1f(location, (GLfloat)v[0]);
+			break;
+		case 2:
+			glUniform2f(location, (GLfloat)v[0], (GLfloat)v[1]);
+			break;
+		case 3:
+			glUniform3f(location, (GLfloat)v[0], (GLfloat)v[1], (GLfloat)v[2]);
+			break;
+		case 4:
+			glUniform4f(location, (GLfloat)v[0], (GLfloat)v[1], (GLfloat)v[2], (GLfloat)v[3]);
+		}
+	}
+	else if (inputClass == mxINT32_CLASS) {
+		int32_t *v = (int32_t*)mxGetData(prhs[2]);
+
+		switch (n)
+		{
+		case 1:
+			glUniform1i(location, (GLint)v[0]);
+			break;
+		case 2:
+			glUniform2i(location, (GLint)v[0], (GLint)v[1]);
+			break;
+		case 3:
+			glUniform3i(location, (GLint)v[0], (GLint)v[1], (GLint)v[2]);
+			break;
+		case 4:
+			glUniform4i(location, (GLint)v[0], (GLint)v[1], (GLint)v[2], (GLint)v[3]);
+		}
+	}
+	else {
+		mexPrintf("(mglShader) Only variables of type double or int32 are allowed.\n");
+		return;
+	}
 }
 
 

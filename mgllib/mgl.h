@@ -121,6 +121,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <share.h>
+#include <stdint.h>
 
 #define strcasecmp _stricmp
 #define round(x) floor(x+0.5)

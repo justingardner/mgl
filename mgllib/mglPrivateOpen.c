@@ -921,6 +921,13 @@ MGL_CONTEXT_PTR openDisplay(double *displayNumber, int *screenWidth, int *screen
     mexPrintf("(mglPrivateOpen) Can't Activate The GL Rendering Context.\n");
     return -1;
   }
+  
+  // Initialize GLEW.
+  GLenum err = glewInit();
+  if (GLEW_OK != err) {
+    mexPrintf("(mglPrivateOpen) GLEW failed to load.\n");
+    return -1;
+  }
 
   ShowWindow(hWnd, SW_SHOW);                      // Show The Window
   SetForegroundWindow(hWnd);                      // Slightly Higher Priority

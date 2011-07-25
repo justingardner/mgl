@@ -31,7 +31,7 @@ if ~exist('frameRate','var'), frameRate = []; end
 if ~exist('bitDepth','var'), bitDepth = []; end
 
 % don't need to set screen resolution with one or fewer arguments
-if nargin <= 1, setResolution = 0;else,setResolution = 1;end
+if nargin <= 1, setResolution = 0; else setResolution = 1; end
 
 % set whether the desktop is running
 if usejava('desktop')
@@ -55,7 +55,7 @@ if mglGetParam('movieMode')
     % set default display
     if isempty(whichScreen),whichScreen = length(displays);end
     if whichScreen > length(displays)
-      disp(sprintf('(mglOpen) Display number out of range: i',whichScreen));
+      disp(sprintf('(mglOpen) Display number out of range: %i',whichScreen));
       return
     end
     % hide task and menu bar for main screen
