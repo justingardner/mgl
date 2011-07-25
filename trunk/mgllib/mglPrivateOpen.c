@@ -253,7 +253,7 @@ unsigned long cocoaOpen(double *displayNumber, int *screenWidth, int *screenHeig
     if (verbose) mexPrintf("(mglPrivateOpen) Reusing view: %x\n",(unsigned long)[myWindow contentView]);
     if (verbose) mexPrintf("(mglPrivateOpen) Reusing window: %x\n",(unsigned long)myWindow);
   }
-  
+
   // set the openGL context as current
   myOpenGLContext = [[myWindow contentView] openGLContext];
   [myOpenGLContext makeCurrentContext];
@@ -281,11 +281,11 @@ unsigned long cocoaOpen(double *displayNumber, int *screenWidth, int *screenHeig
     // would like to order in front of task and menu bar, 
     // but can't seem to do that... tried the following
     //    [myWindow makeMainWindow];
-        [myWindow orderFrontRegardless];
+    [myWindow orderFrontRegardless];
     //    [myWindow orderFront:nil];
     //    [myWindow makeKeyAndOrderFront];
   }
-    
+
 
   // Set a full screen context
   if ((*displayNumber >= 1) || (*displayNumber < 0)) {
@@ -500,9 +500,14 @@ unsigned long aglOpen(double *displayNumber, int *screenWidth, int *screenHeight
 /////////////////
 unsigned long cglOpen(double *displayNumber, int *screenWidth, int *screenHeight)
 {
+  int i;
+
   // get status of global variable that sets wether to display
   // verbose information
   int verbose = (int)mglGetGlobalDouble("verbose");
+
+  // Get whether we want multisampling enabled or not.
+  int enableMultisampling = (int)mglGetGlobalDouble("multisampling");
 
   // get rid of decimal place
   *displayNumber = floor(*displayNumber);
@@ -545,19 +550,54 @@ unsigned long cglOpen(double *displayNumber, int *screenWidth, int *screenHeight
   if (verbose)
     mexPrintf("(mglPrivateOpen) Current display parameters: screenWidth=%i, screenHeight=%i\n",*screenWidth,*screenHeight);
 
-  // choose the pixel format
-  CGOpenGLDisplayMask displayMask = CGDisplayIDToOpenGLDisplayMask( whichDisplay ) ;
-  // make this a full screen, double buffered pixel format
-  CGLPixelFormatAttribute attribs[] =
-  {
-    kCGLPFAFullScreen,kCGLPFADoubleBuffer,
-    kCGLPFAStencilSize,(CGLPixelFormatAttribute)8,
-    kCGLPFADisplayMask,(CGLPixelFormatAttribute)displayMask,
-    (CGLPixelFormatAttribute)NULL
-  } ;
-  CGLPixelFormatObj pixelFormatObj ;
-  GLint numPixelFormats ;
-  errorNum = CGLChoosePixelFormat( attribs, &pixelFormatObj, &numPixelFormats );
+  // See if the display supports hardware multisampling.
+  CGOpenGLDisplayMask displayMask = CGDisplayIDToOpenGLDisplayMask(whichDisplay);
+  bool multisamplingSupported = false;
+  CGLRendererInfoObj rend;
+  GLint nRend;
+  CGLQueryRendererInfo(displayMask, &rend, &nRend);
+  GLint rendValue;
+  for (i = 0; i < nRend; i++) {
+    CGLDescribeRenderer(rend, i, kCGLRPSampleModes, &rendValue);
+
+    if (kCGLMultisampleBit & rendValue) {
+      multisamplingSupported = true;
+    }
+  }
+  CGLDestroyRendererInfo(rend);
+
+  // Choose the pixel format.  Enable multisampling if it's available.
+  // By default we'll choose full screen and double buffered.
+  CGLPixelFormatAttribute *attribs;
+  i = 0;
+  if (multisamplingSupported && enableMultisampling) {
+    if (verbose) {
+      mexPrintf("(mglPrivateOpen) Enabling multisampling\n");
+    }
+
+    attribs = (CGLPixelFormatAttribute*)malloc(sizeof(CGLPixelFormatAttribute) * 13);
+
+    attribs[i++] = kCGLPFASampleBuffers; attribs[i++] = (CGLPixelFormatAttribute)1;
+    attribs[i++] = kCGLPFASamples; attribs[i++] = (CGLPixelFormatAttribute)4;
+    attribs[i++] = kCGLPFANoRecovery;
+    attribs[i++] = kCGLPFAMultisample;
+  }
+  else {
+    if (verbose) {
+      mexPrintf("(mglPrivateOpen) Multisampling disabled\n");
+    }
+
+    attribs = (CGLPixelFormatAttribute*)malloc(sizeof(CGLPixelFormatAttribute) * 7);
+  }
+  attribs[i++] = kCGLPFAFullScreen;
+  attribs[i++] = kCGLPFADoubleBuffer;
+  attribs[i++] = kCGLPFAStencilSize; attribs[i++] = (CGLPixelFormatAttribute)8;
+  attribs[i++] = kCGLPFADisplayMask; attribs[i++] = (CGLPixelFormatAttribute)displayMask;
+  attribs[i++] = (CGLPixelFormatAttribute)NULL;
+
+  CGLPixelFormatObj pixelFormatObj;
+  GLint numPixelFormats;
+  errorNum = CGLChoosePixelFormat(attribs, &pixelFormatObj, &numPixelFormats);
   if (errorNum) {
     mexPrintf("(mglPrivateOpen) UHOH: CGLChoosePixelFormat returned %i (%s)\n",errorNum,CGLErrorString(errorNum));
     return;
@@ -588,6 +628,9 @@ unsigned long cglOpen(double *displayNumber, int *screenWidth, int *screenHeight
   //CGLSetFullScreenOnDisplay( contextObj, displayMask );
   // Hide cursor
   CGDisplayHideCursor( kCGDirectMainDisplay ) ;
+
+  // Free memory.
+  free(attribs);
 
   return((unsigned long)contextObj);
 }
@@ -624,18 +667,18 @@ unsigned long openDisplay(double *displayNumber, int *screenWidth, int *screenHe
   dpy = XOpenDisplay(0);
   // get an appropriate visual
   int attributeList[] = { GLX_DOUBLEBUFFER, GLX_RGBA, GLX_BUFFER_SIZE, 32, \
-                          GLX_RED_SIZE,8, GLX_GREEN_SIZE,8, GLX_BLUE_SIZE,8, GLX_ALPHA_SIZE, 8, \
-                          GLX_STENCIL_SIZE, 8, None
-                        };
+    GLX_RED_SIZE,8, GLX_GREEN_SIZE,8, GLX_BLUE_SIZE,8, GLX_ALPHA_SIZE, 8, \
+      GLX_STENCIL_SIZE, 8, None
+  };
 
   bool fullscreen=false;
   if (*displayNumber>-1) {
     // try to use chosen display
     if (*displayNumber>XScreenCount(dpy))
       *displayNumber=DefaultScreen(dpy); {
-      if (verbose)
-        mexPrintf("Selected screen not found, using default screen instead, displayNumber=%i\n",*displayNumber);
-    }
+        if (verbose)
+          mexPrintf("Selected screen not found, using default screen instead, displayNumber=%i\n",*displayNumber);
+      }
   } else {
     *displayNumber=DefaultScreen(dpy);
     if (verbose)
@@ -725,8 +768,8 @@ unsigned long openDisplay(double *displayNumber, int *screenWidth, int *screenHe
   swa.save_under=true;
   static Window win;
   win = XCreateWindow(dpy, RootWindow(dpy, vi->screen), 0, 0, *screenWidth, *screenHeight,
-                      0, vi->depth, InputOutput, vi->visual,
-                      CWBorderPixel|CWColormap|CWEventMask|CWOverrideRedirect, &swa);
+      0, vi->depth, InputOutput, vi->visual,
+      CWBorderPixel|CWColormap|CWEventMask|CWOverrideRedirect, &swa);
 
   // Hide cursor if fullscreen
   if (fullscreen) {
@@ -861,18 +904,18 @@ MGL_CONTEXT_PTR openDisplay(double *displayNumber, int *screenWidth, int *screen
 
   // Create The Window
   if (!(hWnd = CreateWindowEx(dwExStyle,							// Extended Style For The Window
-                              "MGL",								// Class Name
-                              "MGL Window",						// Window Title
-                              dwStyle |							// Defined Window Style
-                              WS_CLIPSIBLINGS |					// Required Window Style
-                              WS_CLIPCHILDREN,					// Required Window Style
-                              0, 0,								// Window Position
-                              WindowRect.right-WindowRect.left,	// Calculate Window Width
-                              WindowRect.bottom-WindowRect.top,	// Calculate Window Height
-                              NULL,								// No Parent Window
-                              NULL,								// No Menu
-                              hInstance,							// Instance
-                              NULL)))								// Dont Pass Anything To WM_CREATE
+          "MGL",								// Class Name
+          "MGL Window",						// Window Title
+          dwStyle |							// Defined Window Style
+          WS_CLIPSIBLINGS |					// Required Window Style
+          WS_CLIPCHILDREN,					// Required Window Style
+          0, 0,								// Window Position
+          WindowRect.right-WindowRect.left,	// Calculate Window Width
+          WindowRect.bottom-WindowRect.top,	// Calculate Window Height
+          NULL,								// No Parent Window
+          NULL,								// No Menu
+          hInstance,							// Instance
+          NULL)))								// Dont Pass Anything To WM_CREATE
   {
     // Reset The Display.
     WinKillGLWindow(hDC, hRC, hWnd, hInstance);
@@ -921,7 +964,7 @@ MGL_CONTEXT_PTR openDisplay(double *displayNumber, int *screenWidth, int *screen
     mexPrintf("(mglPrivateOpen) Can't Activate The GL Rendering Context.\n");
     return -1;
   }
-  
+
   // Initialize GLEW.
   GLenum err = glewInit();
   if (GLEW_OK != err) {
@@ -947,48 +990,48 @@ MGL_CONTEXT_PTR openDisplay(double *displayNumber, int *screenWidth, int *screen
 }
 
 LRESULT CALLBACK WndProc(HWND	hWnd,			// Handle For This Window
-                         UINT	uMsg,			// Message For This Window
-                         WPARAM	wParam,			// Additional Message Information
-                         LPARAM	lParam)			// Additional Message Information
+    UINT	uMsg,			// Message For This Window
+    WPARAM	wParam,			// Additional Message Information
+    LPARAM	lParam)			// Additional Message Information
 {
   switch (uMsg) {								// Check For Windows Messages
-  case WM_ACTIVATE:							// Watch For Window Activate Message
-  {
-    //if (!HIWORD(wParam)) {					// Check Minimization State
-    //	active=TRUE;						// Program Is Active
-    //}
-    //else {
-    //	active=FALSE;						// Program Is No Longer Active
-    //}
+    case WM_ACTIVATE:							// Watch For Window Activate Message
+      {
+        //if (!HIWORD(wParam)) {					// Check Minimization State
+        //	active=TRUE;						// Program Is Active
+        //}
+        //else {
+        //	active=FALSE;						// Program Is No Longer Active
+        //}
 
-    return 0;								// Return To The Message Loop
-  }
+        return 0;								// Return To The Message Loop
+      }
 
-  case WM_SYSCOMMAND:
-  {
-    switch (wParam) {
-    case SC_SCREENSAVE:
-    case SC_MONITORPOWER:
-      return 0;
-    }
-    break;
-  }
+    case WM_SYSCOMMAND:
+      {
+        switch (wParam) {
+          case SC_SCREENSAVE:
+          case SC_MONITORPOWER:
+            return 0;
+        }
+        break;
+      }
 
-  case WM_CLOSE:								// Did We Receive A Close Message?
-    PostQuitMessage(0);						// Send A Quit Message
-    return 0;								// Jump Back
+    case WM_CLOSE:								// Did We Receive A Close Message?
+      PostQuitMessage(0);						// Send A Quit Message
+      return 0;								// Jump Back
 
-    //case WM_KEYDOWN:							// Is A Key Being Held Down?
-    //	keys[wParam] = TRUE;					// If So, Mark It As TRUE
-    //	return 0;								// Jump Back
+      //case WM_KEYDOWN:							// Is A Key Being Held Down?
+      //	keys[wParam] = TRUE;					// If So, Mark It As TRUE
+      //	return 0;								// Jump Back
 
-    //case WM_KEYUP:								// Has A Key Been Released?
-    //	keys[wParam] = FALSE;					// If So, Mark It As FALSE
-    //	return 0;								// Jump Back
+      //case WM_KEYUP:								// Has A Key Been Released?
+      //	keys[wParam] = FALSE;					// If So, Mark It As FALSE
+      //	return 0;								// Jump Back
 
-  case WM_SIZE:								// Resize The OpenGL Window
-    WinResizeGLScene(LOWORD(lParam), HIWORD(lParam));  // LoWord=Width, HiWord=Height
-    return 0;								// Jump Back
+    case WM_SIZE:								// Resize The OpenGL Window
+      WinResizeGLScene(LOWORD(lParam), HIWORD(lParam));  // LoWord=Width, HiWord=Height
+      return 0;								// Jump Back
   }
 
   // Pass All Unhandled Messages To DefWindowProc
