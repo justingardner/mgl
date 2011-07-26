@@ -204,6 +204,9 @@ end
 if ~isfield(myscreen,'calibProportion')
   myscreen.calibProportion = 0.36;
 end
+if ~isfield(myscreen,'eyeTrackerType')
+  myscreen.eyeTrackerType = 'None';
+end
 
 myscreen.pwd = pwd;
 
