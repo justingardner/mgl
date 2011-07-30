@@ -826,10 +826,16 @@ unsigned long openDisplay(double *displayNumber, int *screenWidth, int *screenHe
 //-----------------------------------------------------------------------------------///
 #ifdef __WINDOWS__
 
+// Global variables that help us set up multisampling.
+bool g_arbMultisampleSupported = false;
+int g_arbMultisampleFormat = 0;
+
 // Function Declarations
 LRESULT	CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
 GLvoid WinResizeGLScene(GLsizei width, GLsizei height);
 GLvoid WinKillGLWindow(HDC hDC, HGLRC hRC, HWND hWnd, HINSTANCE hInstance);
+bool InitMultisample(HINSTANCE hInstance, HWND hWnd, PIXELFORMATDESCRIPTOR pfd);
+bool WGLisExtensionSupported(const char *extension);
 
 MGL_CONTEXT_PTR openDisplay(double *displayNumber, int *screenWidth, int *screenHeight)
 {
@@ -846,6 +852,9 @@ MGL_CONTEXT_PTR openDisplay(double *displayNumber, int *screenWidth, int *screen
   RECT WindowRect;			// Grabs Rectangle Upper Left / Lower Right Values
   int bitDepth = 32;			// Default bit depth.
   MGL_CONTEXT_PTR ref;
+  
+  // Get the verbose status.
+  int verbose = (int)mglGetGlobalDouble("verbose");
 
   WindowRect.left = (long)0;				// Set Left Value To 0
   WindowRect.right = (long)*screenWidth;	// Set Right Value To Requested Width
@@ -927,7 +936,7 @@ MGL_CONTEXT_PTR openDisplay(double *displayNumber, int *screenWidth, int *screen
   memset(&pfd, 0, sizeof(pfd));
   pfd.nSize        = sizeof(pfd);
   pfd.nVersion     = 1;
-  pfd.dwFlags      = PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER;  // Want OpenGL capable window with buffe
+  pfd.dwFlags      = PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER;  // Want OpenGL capable window with double buffer.
   pfd.iPixelType   = PFD_TYPE_RGBA; // Want a RGBA pixel format.
   pfd.cColorBits   = bitDepth;
   pfd.cAlphaBits   = 8;             // Want a 8 bit alpha-buffer.
@@ -939,11 +948,20 @@ MGL_CONTEXT_PTR openDisplay(double *displayNumber, int *screenWidth, int *screen
     mexPrintf("(mglPrivateOpen) Can't Create A GL Device Context.\n");
     return -1;
   }
-
-  if (!(PixelFormat = ChoosePixelFormat(hDC, &pfd))) {	// Did Windows Find A Matching Pixel Format?
-    WinKillGLWindow(hDC, hRC, hWnd, hInstance);								// Reset The Display
-    mexPrintf("(mglPrivateOpen) Can't Find A Suitable PixelFormat.\n");
-    return -1;
+  
+  // The first pass through, a normal pixel format will be setup for the
+  // purpose of creating a window which we can query regarding multisampling
+  // ability.
+  if (g_arbMultisampleSupported) {
+    PixelFormat = g_arbMultisampleFormat;
+  }
+  else {
+	PixelFormat = ChoosePixelFormat(hDC, &pfd);				// Find A Compatible Pixel Format
+    if (!PixelFormat) {										// Did We Find A Compatible Format?
+      WinKillGLWindow(hDC, hRC, hWnd, hInstance);								// Reset The Display
+      mexPrintf("(mglPrivateOpen) Can't Find A Suitable PixelFormat.\n");
+      return -1;
+    }
   }
 
   // Are We Able To Set The Pixel Format?
@@ -964,6 +982,31 @@ MGL_CONTEXT_PTR openDisplay(double *displayNumber, int *screenWidth, int *screen
     mexPrintf("(mglPrivateOpen) Can't Activate The GL Rendering Context.\n");
     return -1;
   }
+  
+  // Get whether we want multisampling enabled or not.
+  int enableMultisampling = (int)mglGetGlobalDouble("multisampling");
+  
+  // Now we check for multisampling (if toggled) and destroy/recreate the window to enable it if possible.
+  if (!g_arbMultisampleSupported && enableMultisampling) {
+    if (InitMultisample(hInstance, hWnd, pfd)) {	
+	  if (verbose) {
+	    mexPrintf("(mglPrivateOpen) Multisampling enabled.\n");
+	  }
+	  
+      WinKillGLWindow(hDC, hRC, hWnd, hInstance);
+      return openDisplay(displayNumber, screenWidth, screenHeight);
+	}
+	else {
+	  if (verbose) {
+	    mexPrintf("(mglPrivateOpen) Multisampling unavailable.\n");
+	  }
+	}
+  }
+  
+  // Reset the multisampling flag so the next time mglOpen is called
+  // we recheck for multisampling in case we're opening on a different
+  // display.
+  g_arbMultisampleSupported = false;
 
   // Initialize GLEW.
   GLenum err = glewInit();
@@ -986,8 +1029,118 @@ MGL_CONTEXT_PTR openDisplay(double *displayNumber, int *screenWidth, int *screen
   mglSetGlobalDouble("winAppInstance", (double)ref);
   mglSetGlobalDouble("fullScreen", (double)fullScreen);
 
-  return (unsigned long)hRC;
+  return (MGL_CONTEXT_PTR)hRC;
 }
+
+
+// This function checks for GL extension support.  Got this off of nehe.net.
+bool WGLisExtensionSupported(const char *extension)
+{
+	const size_t extlen = strlen(extension);
+	const char *supported = NULL;
+
+	// Try To Use wglGetExtensionStringARB On Current DC, If Possible
+	PROC wglGetExtString = wglGetProcAddress("wglGetExtensionsStringARB");
+
+	if (wglGetExtString)
+		supported = ((char*(__stdcall*)(HDC))wglGetExtString)(wglGetCurrentDC());
+
+	// If That Failed, Try Standard Opengl Extensions String
+	if (supported == NULL)
+		supported = (char*)glGetString(GL_EXTENSIONS);
+
+	// If That Failed Too, Must Be No Extensions Supported
+	if (supported == NULL)
+		return false;
+
+	// Begin Examination At Start Of String, Increment By 1 On False Match
+	for (const char* p = supported; ; p++)
+	{
+		// Advance p Up To The Next Possible Match
+		p = strstr(p, extension);
+
+		if (p == NULL)
+			return false;															// No Match
+
+		// Make Sure That Match Is At The Start Of The String Or That
+		// The Previous Char Is A Space, Or Else We Could Accidentally
+		// Match "wglFunkywglExtension" With "wglExtension"
+
+		// Also, Make Sure That The Following Character Is Space Or NULL
+		// Or Else "wglExtensionTwo" Might Match "wglExtension"
+		if ((p==supported || p[-1]==' ') && (p[extlen]=='\0' || p[extlen]==' '))
+			return true;															// Match
+	}
+}
+
+
+// InitMultisample: Used To Query The Multisample Frequencies.  Got this off nehe.net.
+bool InitMultisample(HINSTANCE hInstance, HWND hWnd, PIXELFORMATDESCRIPTOR pfd)
+{  
+	 // See If The String Exists In WGL!
+	if (!WGLisExtensionSupported("WGL_ARB_multisample")) {
+		g_arbMultisampleSupported = false;
+		return false;
+	}
+
+	// Get Our Pixel Format
+	PFNWGLCHOOSEPIXELFORMATARBPROC wglChoosePixelFormatARB = (PFNWGLCHOOSEPIXELFORMATARBPROC)wglGetProcAddress("wglChoosePixelFormatARB");
+	if (!wglChoosePixelFormatARB) {
+		g_arbMultisampleSupported = false;
+		return false;
+	}
+
+	// Get Our Current Device Context
+	HDC hDC = GetDC(hWnd);
+
+	int		pixelFormat;
+	int		valid;
+	UINT	numFormats;
+	float	fAttributes[] = {0,0};
+
+	// These Attributes Are The Bits We Want To Test For In Our Sample
+	// Everything Is Pretty Standard, The Only One We Want To 
+	// Really Focus On Is The SAMPLE BUFFERS ARB And WGL SAMPLES
+	// These Two Are Going To Do The Main Testing For Whether Or Not
+	// We Support Multisampling On This Hardware.
+	int iAttributes[] =
+	{
+		WGL_DRAW_TO_WINDOW_ARB, GL_TRUE,
+		WGL_SUPPORT_OPENGL_ARB, GL_TRUE,
+		WGL_ACCELERATION_ARB, WGL_FULL_ACCELERATION_ARB,
+		WGL_COLOR_BITS_ARB, 32,
+		WGL_ALPHA_BITS_ARB, 8,
+		WGL_DEPTH_BITS_ARB, 24,
+		WGL_STENCIL_BITS_ARB, 8,
+		WGL_DOUBLE_BUFFER_ARB, GL_TRUE,
+		WGL_SAMPLE_BUFFERS_ARB, GL_TRUE,
+		WGL_SAMPLES_ARB, 4,
+		0, 0
+	};
+
+	// First We Check To See If We Can Get A Pixel Format For 4 Samples
+	valid = wglChoosePixelFormatARB(hDC, iAttributes, fAttributes, 1, &pixelFormat, &numFormats);
+ 
+	// If We Returned True, And Our Format Count Is Greater Than 1
+	if (valid && numFormats >= 1) {
+		g_arbMultisampleSupported = true;
+		g_arbMultisampleFormat = pixelFormat;	
+		return g_arbMultisampleSupported;
+	}
+
+	// Our Pixel Format With 4 Samples Failed, Test For 2 Samples
+	iAttributes[19] = 2;
+	valid = wglChoosePixelFormatARB(hDC,iAttributes,fAttributes,1,&pixelFormat,&numFormats);
+	if (valid && numFormats >= 1) {
+		g_arbMultisampleSupported = true;
+		g_arbMultisampleFormat = pixelFormat;	 
+		return g_arbMultisampleSupported;
+	}
+	  
+	// Return The Valid Format
+	return  g_arbMultisampleSupported;
+}
+
 
 LRESULT CALLBACK WndProc(HWND	hWnd,			// Handle For This Window
     UINT	uMsg,			// Message For This Window

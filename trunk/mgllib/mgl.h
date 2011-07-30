@@ -115,6 +115,7 @@
 #include <GL\glew.h>
 #include <GL\gl.h>
 #include <GL\glu.h>
+#include <GL\wglew.h>
 #include <math.h>
 #include <io.h>
 #include <fcntl.h>
