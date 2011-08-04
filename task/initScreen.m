@@ -266,6 +266,10 @@ if isfield(myscreen,'subjectID')
       end
     end
   end
+  if isfield(myscreen,'subjectFolder')
+    myscreen.datadir = fullfile(myscreen.datadir,myscreen.subjectFolder);
+    if ~isdir(myscreen.datadir),mkdir(myscreen.datadir);end
+  end
   disp(sprintf('(initScreen) Saving data into %s',myscreen.datadir));
 end
 
