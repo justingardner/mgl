@@ -32,7 +32,7 @@ else
   mglTextDraw('Hit <space> to calibrate eye tracker, <return> to skip.',[0 0]);
 end
 % flush screen
-myscreen = tickScreen(myscreen);
+myscreen = tickScreen(myscreen,[]);
 
 
 if (myscreen.eyecalib.prompt)
@@ -46,15 +46,15 @@ if (myscreen.eyecalib.prompt)
   keyCodes=[];
   while ~any(keyCodes==myscreen.keyboard.space)
     if any(keyCodes == myscreen.keyboard.esc)
-      mglClearScreen;myscreen = tickScreen(myscreen);
+      mglClearScreen;myscreen = tickScreen(myscreen,[]);
       return
     end
     if any(keyCodes == myscreen.keyboard.return)
-      mglClearScreen;myscreen = tickScreen(myscreen);
+      mglClearScreen;myscreen = tickScreen(myscreen,[]);
       % starting experiment, start the eye tracker
       % but without calibration
       myscreen = startTracker(myscreen,0);
-      mglClearScreen;myscreen = tickScreen(myscreen);
+      mglClearScreen;myscreen = tickScreen(myscreen,[]);
       myscreen.fliptime = inf;
       return
     end
