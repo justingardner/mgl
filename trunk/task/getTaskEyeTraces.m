@@ -26,9 +26,9 @@ if nargin == 0
   return
 end
 
-taskNum=[];phaseNum=[];
+taskNum=[];phaseNum=[];dispFig=[];dataPad=[];removeBlink=[];
 if exist('getArgs') == 2
-  getArgs(varargin,{'taskNum=1','phaseNum=1','dispFig=1','dataPad=3'});
+  getArgs(varargin,{'taskNum=1','phaseNum=1','dispFig=0','dataPad=3','removeBlink=0'});
 else
   disp(sprintf('(getTaskEyeTraces) To run this program you need functions from the mrTools distribution. \nSee here: http://gru.brain.riken.jp/doku.php/mgl/gettingStarted#initial_setup'));
   return
@@ -109,6 +109,24 @@ if isempty(edf),return,end
 % get all the messages that match our taskID
 % get the number of trials
 edf.nTrials = max(edf.mgl.trialNum(find(edf.mgl.taskID == taskID)));
+
+if removeBlink
+    % blink window, extra padding (50ms)
+    if removeBlink==1 % == true because we can't pass logical and test with getArgs, use 1-eps for 1s
+        blinkWindow = ceil(0.005*edf.samplerate); % default
+    elseif removeBlink > 1 % assume in samples
+        blinkWindow = ceil(removeBlink);
+    elseif removeBlink < 1 % assume seconds
+        blinkWindow = ceil(removeBlink*edf.samplerate);        
+    end
+    for Bn = 1:numel(edf.blinks.startTime)
+        blinks = (edf.gaze.time >= edf.blinks.startTime(Bn)-blinkWindow & ...
+                         edf.gaze.time <= edf.blinks.endTime(Bn)+blinkWindow);
+        edf.gaze.x(blinks) = NaN;
+        edf.gaze.y(blinks) = NaN;
+        edf.gaze.pupil(blinks) = NaN;
+    end
+end
 
 % now process each trial
 disppercent(-inf,sprintf('(getTaskEyeTraces) Extracting trial by trial data for %i trials',edf.nTrials));
