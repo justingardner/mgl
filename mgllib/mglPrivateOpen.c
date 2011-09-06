@@ -5,7 +5,7 @@
   by: justin gardner with modifications by jonas larsson
   date: 04/03/06
   copyright: (c) 2006 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
-  purpose: opens an OpenGL window on Mac OS X or Linux
+  purpose: opens an OpenGL window on Mac OS X, Windows, or Linux
   See Macintosh OpenGL Programming Guide
 
   http://developer.apple.com/documentation/GraphicsImaging/OpenGL-date.html#//apple_ref/doc/uid/TP30000440-TP30000424-TP30000549
@@ -839,35 +839,60 @@ bool WGLisExtensionSupported(const char *extension);
 
 MGL_CONTEXT_PTR openDisplay(double *displayNumber, int *screenWidth, int *screenHeight)
 {
-  HDC	hDC = NULL;				// Private GDI Device Context
-  HGLRC hRC= NULL;			// Permanent Rendering Context
-  HWND hWnd = NULL;			// Holds Our Window Handle
-  HINSTANCE hInstance;		// Holds The Instance Of The Application
-  BOOL fullScreen = FALSE;	// Toggles fullscreen mode.
-  GLuint PixelFormat;			// Holds The Results After Searching For A Match
-  WNDCLASS wc;				// Windows Class Structure
-  DWORD dwExStyle;			// Window Extended Style
-  DWORD dwStyle;				// Window Style
-  PIXELFORMATDESCRIPTOR pfd;	// Pixel format descriptor.
-  RECT WindowRect;			// Grabs Rectangle Upper Left / Lower Right Values
-  int bitDepth = 32;			// Default bit depth.
+  HDC	hDC = NULL;          // Private GDI Device Context
+  HGLRC hRC= NULL;			 // Permanent Rendering Context
+  HWND hWnd = NULL;			 // Holds Our Window Handle
+  HINSTANCE hInstance;		 // Holds The Instance Of The Application
+  BOOL fullScreen = FALSE;	 // Toggles fullscreen mode.
+  GLuint PixelFormat;        // Holds The Results After Searching For A Match
+  WNDCLASS wc;				 // Windows Class Structure
+  DWORD dwExStyle;			 // Window Extended Style
+  DWORD dwStyle;             // Window Style
+  PIXELFORMATDESCRIPTOR pfd; // Pixel format descriptor.
+  RECT WindowRect;           // Grabs Rectangle Upper Left / Lower Right Values
+  int bitDepth = 32;         // Default bit depth.
   MGL_CONTEXT_PTR ref;
   
   // Get the verbose status.
   int verbose = (int)mglGetGlobalDouble("verbose");
 
-  WindowRect.left = (long)0;				// Set Left Value To 0
-  WindowRect.right = (long)*screenWidth;	// Set Right Value To Requested Width
-  WindowRect.top = (long)0;				// Set Top Value To 0
-  WindowRect.bottom = (long)*screenHeight;	// Set Bottom Value To Requested Height
-
+  // If we're not in windowed mode, figure out the pixel
+  // dimensions of the target screen.
   if (*displayNumber != 0) {
-    //fullScreen = TRUE;
+    DEVMODE dv;
+	DISPLAY_DEVICE dd;
+    fullScreen = TRUE;
+	
+	if (verbose) {
+	  mexPrintf("(mglPrivateOpen) Fullscreen mode enabled.\n");
+	}
+
+    dd.cb = sizeof(DISPLAY_DEVICE);
+    dv.dmSize = sizeof(DEVMODE);
+
+    if (EnumDisplayDevices(NULL, (int)*displayNumber - 1, &dd, 0x00000001) == FALSE) {
+      mexPrintf("(mglPrivateOpen) Could not enumerate displays.\n");
+      return -1;
+    }
+
+    if (EnumDisplaySettings(dd.DeviceName, ENUM_CURRENT_SETTINGS, &dv) == FALSE) {
+      mexPrintf("(mglPrivateOpen) Enum display settings failed.\n");
+      return -1;
+    }
+
+    *screenWidth = dv.dmPelsWidth;
+    *screenHeight = dv.dmPelsHeight;
   }
 
+  // Set our window rect.
+  WindowRect.left = (long)0;				// Set Left Value To 0
+  WindowRect.right = (long)*screenWidth;	// Set Right Value To Requested Width
+  WindowRect.top = (long)0;				    // Set Top Value To 0
+  WindowRect.bottom = (long)*screenHeight;	// Set Bottom Value To Requested Height
+  
   hInstance = GetModuleHandle(NULL);				// Grab An Instance For Our Window
   wc.style = CS_HREDRAW | CS_VREDRAW | CS_OWNDC;	// Redraw On Size, And Own DC For Window.
-  wc.lpfnWndProc = (WNDPROC) WndProc;				// WndProc Handles Messages
+  wc.lpfnWndProc = (WNDPROC)WndProc;				// WndProc Handles Messages
   wc.cbClsExtra = 0;								// No Extra Window Data
   wc.cbWndExtra = 0;								// No Extra Window Data
   wc.hInstance = hInstance;						// Set The Instance
