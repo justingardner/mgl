@@ -30,16 +30,16 @@ mxArray *charToKeycode(const mxArray *cellArrayOfChars, int returnAllMatches);
 //////////////
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
-
-  int verbose = mglGetGlobalDouble("verbose");
+  int verbose = (int)mglGetGlobalDouble("verbose");
 
   // mxArray *mxGetCell(const mxArray *pm, mwIndex index);
 
-  int nkeys,i;
+  size_t nkeys;
+	int i;
   if (((nrhs == 1) || (nrhs == 2))&& mxIsCell(prhs[0])){// && (mxGetPr(prhs[0]) != NULL)) {
     // input is a cell array of chars
     // calculate size of array
-    nkeys=mxGetNumberOfElements(prhs[0]);
+    nkeys = mxGetNumberOfElements(prhs[0]);
     for (i=0;i<nkeys;i++) {
       if (!mxIsChar(mxGetCell(prhs[0],i))) {
 	usageError("mglCharToKeycode");
@@ -335,3 +335,48 @@ mxArray *charToKeycode(const mxArray *cellArrayOfChars, int returnAllMatches)
   return(keycodeArray);
 }
 #endif//__linux__
+
+//---------------------------------------------------------------------------//
+// Windows code
+//---------------------------------------------------------------------------//
+#ifdef __WINDOWS__
+mxArray *charToKeycode(const mxArray *cellArrayOfChars, int returnAllMatches)
+{
+	SHORT vkChar;
+
+  // Get the current keyboard layout.
+  HKL keyboardLayout = GetKeyboardLayout(0);
+   
+  // Get the number of input keys to be converted.
+  size_t nkeys = mxGetNumberOfElements(cellArrayOfChars);
+
+	// Allocate the memory for the output array.
+  mxArray *keycodeArray = mxCreateDoubleMatrix(1, nkeys, mxREAL);
+  double *kaPtr = mxGetPr(keycodeArray);
+
+	// For every input key, convert it to its virtual key representation.
+  char *c;
+	mxArray *cellEntry;
+  for (int i = 0; i < nkeys; i++) {
+		// Grab the cell element.
+		cellEntry = mxGetCell(cellArrayOfChars, i);
+		
+		// Get a pointer to the char array in the cell entry.
+		c = mxArrayToString(cellEntry);
+
+		// Try to convert the character to the virtual key.
+		vkChar = VkKeyScanEx(c[0], keyboardLayout);
+		
+		// Look for the keycode in the lower byte of the return value.
+		vkChar = vkChar & 0x00FF;
+
+	  // Add a 1 offset to correspond to the output of mglGetKeys.
+		kaPtr[i] = (double)vkChar + 1.0;
+
+		mxFree(c);
+  }
+
+	return keycodeArray;
+}
+#endif
+
