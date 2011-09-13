@@ -28,11 +28,13 @@ mxArray *keycodeToChar(const mxArray *arrayOfKeycodes);
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
 
-  int verbose = mglGetGlobalDouble("verbose");
+  int verbose = (int)mglGetGlobalDouble("verbose");
 
-  int nkeys,i;
+  size_t nkeys;
+	int i;
+
   if ((nrhs == 1) && (mxGetPr(prhs[0]) != NULL)) {
-    nkeys=mxGetNumberOfElements(prhs[0]);
+    nkeys = mxGetNumberOfElements(prhs[0]);
   }
   else if ((nrhs==1) && (mxGetPr(prhs[0]) == NULL)) {
     plhs[0] = mxCreateDoubleMatrix(0,0,mxREAL);
@@ -222,4 +224,37 @@ mxArray *keycodeToChar(const mxArray *arrayOfKeycodes)
   return(out);
 }
 #endif //__linux__
+
+
+//---------------------------------------------------------------------------//
+// Windows code
+//---------------------------------------------------------------------------//
+#ifdef __WINDOWS__
+mxArray* keycodeToChar(const mxArray *arrayOfKeycodes)
+{
+	// Initialize the output array.
+  size_t nkeys = mxGetNumberOfElements(arrayOfKeycodes);
+  mxArray *convertedChars = mxCreateCellMatrix(1, (int)nkeys);
+
+	// Get the data pointer from the mxArray.
+	double *data = mxGetPr(arrayOfKeycodes);
+
+	// Get the current keyboard layout.
+	HKL keyboardLayout = GetKeyboardLayout(0);
+
+	// Convert all inputed virtual keys into characters.  We subtract the
+	// 1 offset assumed by other mgl functions.
+	UINT charCode;
+	char charString[] = "x";
+	for (int i = 0; i < nkeys; i++) {
+		charCode = MapVirtualKeyEx((UINT)(data[i] - 1), MAPVK_VK_TO_CHAR, keyboardLayout);
+
+		// Set the output value.
+		charString[0] = (char)charCode;
+    mxSetCell(convertedChars, i, mxCreateString(charString));
+  }
+
+	return convertedChars;
+}
+#endif
 
