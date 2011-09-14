@@ -219,10 +219,10 @@ echo "Error: Did not imbed 'options.sh' code"; exit 1 #imbed options.sh glnxi64 
             # CkeyManufacturer: GNU
             # CkeyLanguage: C
             # CkeyVersion:
-           CC='gcc'
+            CC='gcc'
 #            CC='g++-4.0'
-            SDKROOT='/Developer/SDKs/MacOSX10.5.sdk'
-            MACOSX_DEPLOYMENT_TARGET='10.5'
+            SDKROOT='/Developer/SDKs/MacOSX10.6.sdk'
+            MACOSX_DEPLOYMENT_TARGET='10.6'
             ARCHS='x86_64'
             CFLAGS="-x objective-c -fno-common -no-cpp-precomp -arch $ARCHS -isysroot $SDKROOT -mmacosx-version-min=$MACOSX_DEPLOYMENT_TARGET -pthread"
             CFLAGS="$CFLAGS  -fexceptions"

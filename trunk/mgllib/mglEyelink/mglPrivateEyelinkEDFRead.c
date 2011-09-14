@@ -406,17 +406,16 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         }
       }
       else if (mglEyelinkVersion>=2) {
-        if (isMGLV2Message(eventType,data)) {
-          if (getMGLV2Message(eventType,data,timePtr,segmentNumPtr,trialNumPtr,blockNumPtr,phaseNumPtr,taskIDPtr)) {
-            // valid message, update pointers
-            timePtr++;
-            segmentNumPtr++;
-            trialNumPtr++;
-            blockNumPtr++;
-            phaseNumPtr++;
-            taskIDPtr++;
-            nMsg++;
-          }
+        if (isMGLV2Message(eventType,data) &&
+            getMGLV2Message(eventType,data,timePtr,segmentNumPtr,trialNumPtr,blockNumPtr,phaseNumPtr,taskIDPtr)) {
+          // valid message, update pointers
+          timePtr++;
+          segmentNumPtr++;
+          trialNumPtr++;
+          blockNumPtr++;
+          phaseNumPtr++;
+          taskIDPtr++;
+          nMsg++;
         }
       }
     }
@@ -643,7 +642,7 @@ int getMGLV1Message(int eventType, ALLF_DATA *event, int nmsg, double *timePtr,
       mexPrintf("(mglPrivateEyelinkEDFRead) Unknown MGL message %s\n",mglMessage);
       return(0);
     }
-    *phaseNumPtr = *(phaseNumPtr-1);
+    *phaseNumPtr = (nmsg==0) ? 0 : *(phaseNumPtr-1);
     *trialNumPtr = 0;
     *segmentNumPtr = 0;
   } 
@@ -656,7 +655,7 @@ int getMGLV1Message(int eventType, ALLF_DATA *event, int nmsg, double *timePtr,
       mexPrintf("(mglPrivateEyelinkEDFRead) Unknown MGL message %s\n",mglMessage);
       return(0);
     }
-    *phaseNumPtr = *(phaseNumPtr-1);
+    *phaseNumPtr = (nmsg==0) ? 0 : *(phaseNumPtr-1);
     *blockNumPtr = *(blockNumPtr-1);
     *segmentNumPtr = 0;
   }    
@@ -669,7 +668,7 @@ int getMGLV1Message(int eventType, ALLF_DATA *event, int nmsg, double *timePtr,
       mexPrintf("(mglPrivateEyelinkEDFRead) Unknown MGL message %s\n",mglMessage);
       return(0);
     }
-    *phaseNumPtr = *(phaseNumPtr-1);
+    *phaseNumPtr = (nmsg==0) ? 0 : *(phaseNumPtr-1);
     *blockNumPtr = *(blockNumPtr-1);
     *trialNumPtr = *(trialNumPtr-1);
   }    

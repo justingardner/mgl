@@ -156,7 +156,7 @@ echo "Error: Did not imbed 'options.sh' code"; exit 1 #imbed options.sh glnxi64 
         mac)
 #----------------------------------------------------------------------------
             CC='gcc'
-            CFLAGS='-x objective-c -fno-common -no-cpp-precomp -fexceptions -I$HOME/Library/Frameworks/eyelink_core.framework/Headers -I$HOME/Library/Frameworks/edfapi.framework/Headers -I/Library/Frameworks/eyelink_core.framework/Headers -I/Library/Frameworks/edfapi.framework/Headers'
+            CFLAGS='-x objective-c -fno-common -no-cpp-precomp -fexceptions'
             CLIBS="$MLIBS -lstdc++"
             COPTIMFLAGS='-O3 -DNDEBUG'
             CDEBUGFLAGS='-g'
@@ -171,7 +171,7 @@ echo "Error: Did not imbed 'options.sh' code"; exit 1 #imbed options.sh glnxi64 
 #
             LD="$CC"
             LDEXTENSION='.mexmac'
-            LDFLAGS="-bundle -Wl,-flat_namespace -undefined suppress -Wl,-exported_symbols_list,$TMW_ROOT/extern/lib/$Arch/$MAPFILE -F$HOME/Library/Frameworks -framework agl -framework Carbon -framework Cocoa -framework CoreServices -framework eyelink_core -framework edfapi"
+            LDFLAGS="-bundle -Wl,-flat_namespace -undefined suppress -Wl,-exported_symbols_list,$TMW_ROOT/extern/lib/$Arch/$MAPFILE -framework agl -framework Carbon -framework Cocoa -framework CoreServices -framework QTKit"
             LDOPTIMFLAGS='-O'
             LDDEBUGFLAGS='-g'
 #
@@ -183,7 +183,7 @@ echo "Error: Did not imbed 'options.sh' code"; exit 1 #imbed options.sh glnxi64 
 
 #            CC='g++-3.3'
             CC='gcc-4.0'
-            CFLAGS='-x objective-c -fno-common -no-cpp-precomp -fexceptions -arch i386 -pthread -I$HOME/Library/Frameworks/eyelink_core.framework/Headers -I$HOME/Library/Frameworks/edfapi.framework/Headers -I/Library/Frameworks/eyelink_core.framework/Headers -I/Library/Frameworks/edfapi.framework/Headers'
+            CFLAGS='-x objective-c -fno-common -no-cpp-precomp -fexceptions -arch i386 -pthread'
             CLIBS="$MLIBS -lstdc++"
             COPTIMFLAGS='-O3 -DNDEBUG'
             CDEBUGFLAGS='-g'
@@ -205,7 +205,7 @@ echo "Error: Did not imbed 'options.sh' code"; exit 1 #imbed options.sh glnxi64 
 #
             LD="$CC"
             LDEXTENSION='.mexmaci'
-            LDFLAGS="-bundle -Wl,-flat_namespace -undefined suppress -Wl,-exported_symbols_list,$TMW_ROOT/extern/lib/$Arch/$MAPFILE -F$HOME/Library/Frameworks -framework agl -framework Carbon -framework Cocoa -framework CoreServices -framework QTKit -framework eyelink_core -framework edfapi -pthread"
+            LDFLAGS="-bundle -Wl,-flat_namespace -undefined suppress -Wl,-exported_symbols_list,$TMW_ROOT/extern/lib/$Arch/$MAPFILE -framework agl -framework Carbon -framework Cocoa -framework CoreServices -framework QTKit -pthread"
             LDOPTIMFLAGS='-O'
             LDDEBUGFLAGS='-g'
 #
@@ -219,12 +219,12 @@ echo "Error: Did not imbed 'options.sh' code"; exit 1 #imbed options.sh glnxi64 
             # CkeyManufacturer: GNU
             # CkeyLanguage: C
             # CkeyVersion:
-           CC='gcc'
+            CC='gcc'
 #            CC='g++-4.0'
-            SDKROOT='/Developer/SDKs/MacOSX10.6.sdk'
-            MACOSX_DEPLOYMENT_TARGET='10.6'
+            SDKROOT='/Developer/SDKs/MacOSX10.5.sdk'
+            MACOSX_DEPLOYMENT_TARGET='10.5'
             ARCHS='x86_64'
-            CFLAGS="-x objective-c -fno-common -no-cpp-precomp -arch $ARCHS -isysroot $SDKROOT -mmacosx-version-min=$MACOSX_DEPLOYMENT_TARGET -pthread -I$HOME/Library/Frameworks/eyelink_core.framework/Headers -I$HOME/Library/Frameworks/edfapi.framework/Headers -I/Library/Frameworks/eyelink_core.framework/Headers -I/Library/Frameworks/edfapi.framework/Headers"
+            CFLAGS="-x objective-c -fno-common -no-cpp-precomp -arch $ARCHS -isysroot $SDKROOT -mmacosx-version-min=$MACOSX_DEPLOYMENT_TARGET -pthread"
             CFLAGS="$CFLAGS  -fexceptions"
             CLIBS="$MLIBS"
             COPTIMFLAGS='-O2 -DNDEBUG'
@@ -257,7 +257,7 @@ echo "Error: Did not imbed 'options.sh' code"; exit 1 #imbed options.sh glnxi64 
             LD="$CC"
             LDEXTENSION='.mexmaci64'
             LDFLAGS="-Wl,-twolevel_namespace -undefined error -arch $ARCHS -Wl,-syslibroot,$SDKROOT -mmacosx-version-min=$MACOSX_DEPLOYMENT_TARGET"
-            LDFLAGS="$LDFLAGS -bundle -Wl,-exported_symbols_list,$TMW_ROOT/extern/lib/$Arch/$MAPFILE -F$HOME/Library/Frameworks -framework agl -framework Carbon -framework Cocoa -framework CoreServices -framework openGL -framework eyelink_core -framework edfapi -pthread -framework QTKit"
+            LDFLAGS="$LDFLAGS -bundle -Wl,-exported_symbols_list,$TMW_ROOT/extern/lib/$Arch/$MAPFILE  -framework agl -framework Carbon -framework Cocoa -framework CoreServices -framework openGL -pthread -framework QTKit"
             LDOPTIMFLAGS='-O'
             LDDEBUGFLAGS='-g'
 #

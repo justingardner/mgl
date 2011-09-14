@@ -221,8 +221,8 @@ echo "Error: Did not imbed 'options.sh' code"; exit 1 #imbed options.sh glnxi64 
             # CkeyVersion:
            CC='gcc'
 #            CC='g++-4.0'
-            SDKROOT='/Developer/SDKs/MacOSX10.6.sdk'
-            MACOSX_DEPLOYMENT_TARGET='10.6'
+            SDKROOT='/Developer/SDKs/MacOSX10.5.sdk'
+            MACOSX_DEPLOYMENT_TARGET='10.5'
             ARCHS='x86_64'
             CFLAGS="-x objective-c -fno-common -no-cpp-precomp -arch $ARCHS -isysroot $SDKROOT -mmacosx-version-min=$MACOSX_DEPLOYMENT_TARGET -pthread -I$HOME/Library/Frameworks/eyelink_core.framework/Headers -I$HOME/Library/Frameworks/edfapi.framework/Headers -I/Library/Frameworks/eyelink_core.framework/Headers -I/Library/Frameworks/edfapi.framework/Headers"
             CFLAGS="$CFLAGS  -fexceptions"

@@ -5,7 +5,7 @@
           by: justin gardner & Jonas Larsson 
         date: 04/10/06
      purpose: header for mgl functions that includes some functions
-              like standard usageError and functions to access global variables.									    
+              like standard usageError and functions to access global variables.
         e.g.:
   // get the global variable MGL.verbose, note
   // that if it does not exist, this creates it and
@@ -42,13 +42,13 @@
 // OS-independent includes
 /////////////////////////
 #include <mex.h>
-		
+
 // 64 bit OSes shouldn't define these so turn them off for certain systems.
 #ifndef _WIN64
 #define mwIndex int
 #define mwSize int
 #endif
-		
+    
 // 64 bit Windows a 64 bit size value to store any context pointers, e.g. OpenGL, hardware, etc.
 // Other platforms seem currently happy with a 32 bit value.
 #ifdef _WIN64
@@ -56,7 +56,7 @@
 #else
 #define MGL_CONTEXT_PTR unsigned long
 #endif
-		
+    
 /////////////////////////
 // OS-specific includes
 /////////////////////////
@@ -311,7 +311,7 @@ double mglGetGlobalDouble(char *varname)
 {
   mxArray *MGL, *value;
   double tmpvalue,
-		 defaultValue = 0.0;;
+     defaultValue = 0.0;;
   
   MGL = mexGetVariable("global",MGL_GLOBAL_NAME);
 
@@ -471,7 +471,7 @@ int mglGetColor(const mxArray *colorArray, double *color)
       if ((colorPtr[0] > 1) || (colorPtr[1] > 1) || (colorPtr[2] > 1)) {
         colorPtr[0] = colorPtr[0]/255.0;
         colorPtr[1] = colorPtr[1]/255.0;
-	colorPtr[2] = colorPtr[2]/255.0;
+  colorPtr[2] = colorPtr[2]/255.0;
       }
       color[0] = colorPtr[0];
       color[1] = colorPtr[1];
@@ -485,7 +485,7 @@ int mglGetColor(const mxArray *colorArray, double *color)
       if ((colorPtr[0] > 1) || (colorPtr[1] > 1) || (colorPtr[2] > 1)) {
         colorPtr[0] = colorPtr[0]/255.0;
         colorPtr[1] = colorPtr[1]/255.0;
-	colorPtr[2] = colorPtr[2]/255.0;
+  colorPtr[2] = colorPtr[2]/255.0;
       }
       color[0] = colorPtr[0];
       color[1] = colorPtr[1];
@@ -514,22 +514,22 @@ int mglCheckGlobalField(char* varname) {
       
       if ((mxGetField(MGL,0,varname) != 0) &&  \
              (mxGetPr(mxGetField(MGL,0,varname)) != NULL))
-	     
+       
       on macintel the above code causes a crash in matlab/
-	     
+       
       returns 
           0 if the global is not a struct array
-	  0 if the asked for field does not exist
-	  1 if the field is present but empty
-	  2 if the field is present and filled
-	  
+    0 if the asked for field does not exist
+    1 if the field is present but empty
+    2 if the field is present and filled
+    
 
       ds 2006-10-13
 */
 
-	mxArray *MGL, *tmp;
-	int ifield;
-	
+  mxArray *MGL, *tmp;
+  int ifield;
+  
   // check if MGL exists in global workspace - if not create it
   if ((mexGetVariablePtr("global", MGL_GLOBAL_NAME) == NULL) ){
     mglCreateGlobal();
