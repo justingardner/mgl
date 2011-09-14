@@ -69,11 +69,23 @@ end
 for nArg = 1:numel(varargin)
   if ischar(varargin{nArg}) && isequal(varargin{nArg}(1), '-')
     arg(nArg).name = varargin{nArg};
+  elseif isequal(lower(varargin{nArg}),'digio')
+    digio = true;
+  elseif isequal(lower(varargin{nArg}),'eyelink')
+    eyelink = true;
   else
     error('Attempted to pass an argument that is not a mex option.');
   end
 end
-
+if ismac()
+    [stat,result] = system('system_profiler SPSoftwareDataType');
+    sysinfo = regexp(result, 'Mac OS X 10.(?<ver>\d?)', 'names');
+    if str2double(sysinfo.ver) >= 7 % >= lion
+        optf = 'mexopts.sh';
+    else
+        optf = 'mexopts.10.5.sh';
+    end
+end
 % close all open displays
 mglSwitchDisplay(-1);
 
@@ -112,33 +124,33 @@ if ~digio
     for i = 1:length(sourcefile)
       % check to make sure this is not a temp file
       if (~strcmp('.#',sourcefile(i).name(1:2)))
-	% see if it is already compiled
-	mexname = [stripext(sourcefile(i).name) '.' mexext];
-	mexfile = dir(mexname);
-	% mex the file if either there is no mexfile or
-	% the date of the mexfile is older than the date of the source file
-	if (rebuild || length(mexfile)<1) || ...
-	      (datenum(sourcefile(i).date) > datenum(mexfile(1).date)) || ...
-	      (datenum(hfile(1).date) > datenum(mexfile(1).date))
-	  command = sprintf('mex ');
-	  if exist('arg', 'var') && isfield(arg, 'name');
-	    command = [command sprintf('%s ',arg.name)];
-	  end
-	  command = [command sprintf('%s',sourcefile(i).name)];
-	  % display the mex command
-	  disp(command);
-	  % now run it, catching an errors
-	  try
-	    eval(command);
-	  catch
-	    err = lasterror;
-	    disp(['Error compiling ' sourcefile(i).name]);
-	    disp(err.message);
-	    disp(err.identifier);
-	  end
-	else
-	  disp(sprintf('%s is up to date',sourcefile(i).name));
-	end    
+    % see if it is already compiled
+    mexname = [stripext(sourcefile(i).name) '.' mexext];
+    mexfile = dir(mexname);
+    % mex the file if either there is no mexfile or
+    % the date of the mexfile is older than the date of the source file
+    if (rebuild || length(mexfile)<1) || ...
+          (datenum(sourcefile(i).date) > datenum(mexfile(1).date)) || ...
+          (datenum(hfile(1).date) > datenum(mexfile(1).date))
+      command = sprintf('mex -f ./%s ', optf);
+      if exist('arg', 'var') && isfield(arg, 'name');
+        command = [command sprintf('%s ',arg.name)];
+      end
+      command = [command sprintf('%s',sourcefile(i).name)];
+      % display the mex command
+      disp(command);
+      % now run it, catching an errors
+      try
+        eval(command);
+      catch
+        err = lasterror;
+        disp(['Error compiling ' sourcefile(i).name]);
+        disp(err.message);
+        disp(err.identifier);
+      end
+    else
+      disp(sprintf('%s is up to date',sourcefile(i).name));
+    end    
       end
     end
   end
@@ -189,14 +201,14 @@ for i = 1:length(mgldiodir)
     % the date of the mexfile is older than the date of the source file
     if (rebuild || length(mexfile)<1) || (datenum(mgldiodir(i).date) > datenum(mexfile(1).date)) || (datenum(hfile(1).date) > datenum(mexfile(1).date))
       command = sprintf('mex %s',mgldiodir(i).name);
-			     % display the mex command
-			     disp(command);
-			     % now run it, catching an errors
-			     try
-			       eval(command);
-			     catch
-			       disp(['Error compiling ' mgldiodir(i).name]);
-			     end
+                 % display the mex command
+                 disp(command);
+                 % now run it, catching an errors
+                 try
+                   eval(command);
+                 catch
+                   disp(['Error compiling ' mgldiodir(i).name]);
+                 end
     else
       disp(sprintf('%s is up to date',mgldiodir(i).name));
     end    
