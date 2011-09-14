@@ -58,7 +58,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   //-----------------------------------------------------------------------------------///
 // ******************************* Windows specific code  ******************************* //
 //-----------------------------------------------------------------------------------///
-#ifdef __WINDOWS__
+#ifdef _WIN32
   LARGE_INTEGER frequency, counterTime;
 
   // Get the hardware counter clock frequency.  We use this to convert the

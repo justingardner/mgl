@@ -124,7 +124,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 //-----------------------------------------------------------------------------------///
 // **************************** Windows specific code  ****************************** //
 //-----------------------------------------------------------------------------------///
-#ifdef __WINDOWS__
+#ifdef _WIN32
   MGL_CONTEXT_PTR ref;
   HDC hDC;
   HGLRC hRC;
@@ -137,5 +137,5 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   
   wglMakeCurrent(hDC, hRC);
   SwapBuffers(hDC);
-#endif // __WINDOWS__
+#endif // _WIN32
 }

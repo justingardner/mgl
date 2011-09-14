@@ -54,7 +54,7 @@ typedef struct textype {
 // getmsec is used for profiling
 double getmsec()
 {
-#ifdef __WINDOWS__
+#ifdef _WIN32
   LARGE_INTEGER freq, t;
   
   if (QueryPerformanceFrequency(&freq) == FALSE) {

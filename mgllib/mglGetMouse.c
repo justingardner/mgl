@@ -85,24 +85,25 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   return;
 #endif //__linux__
   
-  //-----------------------------------------------------------------------------------///
-  // ****************** Windows specific code  *********************  ///
-  //-----------------------------------------------------------------------------------///
-  #ifdef __WINDOWS__
-    POINT mousePos;
-    USHORT mouseState;
-  
-    // Grab the mouse position.
-    if (GetCursorPos(&mousePos) == FALSE) {
-	  mexPrintf("(mglGetMouse) Failed to get the mouse position.\n");
-	  return;
+//-----------------------------------------------------------------------------------///
+// ****************** Windows specific code  *********************  ///
+//-----------------------------------------------------------------------------------///
+#ifdef _WIN32
+	POINT mousePos;
+	USHORT mouseState;
+
+	// Grab the mouse position.
+	if (GetCursorPos(&mousePos) == FALSE) {
+		mexPrintf("(mglGetMouse) Failed to get the mouse position.\n");
+		return;
 	}
-	
+
 	mouseState =(USHORT) GetKeyState(VK_LBUTTON);
 	mouseState = mouseState >> (sizeof(USHORT)*8 - 1);
-	
-    *outptrButton = (double)mouseState;
-    *outptrX = (double)mousePos.x;
+
+	*outptrButton = (double)mouseState;
+	*outptrX = (double)mousePos.x;
 	*outptrY = (double)mousePos.y;
-  #endif
+#endif
 }
+

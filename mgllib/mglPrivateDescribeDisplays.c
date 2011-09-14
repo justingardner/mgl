@@ -15,7 +15,7 @@ $Id$
 //   include section   //
 /////////////////////////
 #include "mgl.h"
-#ifndef __WINDOWS__
+#ifndef _WIN32
 #include <sys/types.h>
 #include <sys/sysctl.h>
 #endif

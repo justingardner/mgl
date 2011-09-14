@@ -271,7 +271,7 @@ void closeDisplay(int displayNumber,int verbose)
 //-----------------------------------------------------------------------------------///
 // **************************** Windows specific code  ****************************** //
 //-----------------------------------------------------------------------------------///
-#ifdef __WINDOWS__
+#ifdef _WIN32
 
 // Close the window.
 void closeDisplay(int displayNumber, int verbose)
@@ -314,4 +314,4 @@ void closeDisplay(int displayNumber, int verbose)
   }
 }
 
-#endif // __WINDOWS__
+#endif // _WIN32

@@ -663,7 +663,7 @@ void getNumDisplaysAndDefault(int *numDisplays, int *defaultDisplayNum)
 //-----------------------------------------------------------------------------------///
 // **************************** Windows specific code  ****************************** //
 //-----------------------------------------------------------------------------------///
-#ifdef __WINDOWS__
+#ifdef _WIN32
 
 //BOOL CALLBACK MonitorEnumProc(__in  HMONITOR hMonitor, __in  HDC hdcMonitor,
 //  __in  LPRECT lprcMonitor, __in  LPARAM dwData);
@@ -751,4 +751,4 @@ void getNumDisplaysAndDefault(int *numDisplays, int *defaultDisplayNum)
 //   return TRUE;
 // }
 
-#endif // __WINDOWS__
+#endif // _WIN32
