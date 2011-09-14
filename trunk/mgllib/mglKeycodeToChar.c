@@ -229,7 +229,7 @@ mxArray *keycodeToChar(const mxArray *arrayOfKeycodes)
 //---------------------------------------------------------------------------//
 // Windows code
 //---------------------------------------------------------------------------//
-#ifdef __WINDOWS__
+#ifdef _WIN32
 mxArray* keycodeToChar(const mxArray *arrayOfKeycodes)
 {
 	// Initialize the output array.

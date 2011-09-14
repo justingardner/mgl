@@ -44,14 +44,14 @@
 #include <mex.h>
 		
 // 64 bit OSes shouldn't define these so turn them off for certain systems.
-#ifndef WIN64
+#ifndef _WIN64
 #define mwIndex int
 #define mwSize int
 #endif
 		
 // 64 bit Windows a 64 bit size value to store any context pointers, e.g. OpenGL, hardware, etc.
 // Other platforms seem currently happy with a 32 bit value.
-#ifdef WIN64
+#ifdef _WIN64
 #define MGL_CONTEXT_PTR INT64
 #else
 #define MGL_CONTEXT_PTR unsigned long
@@ -110,7 +110,7 @@
 #include <sys/time.h>
 #endif
 
-#ifdef __WINDOWS__
+#ifdef _WIN32
 #include <windows.h>
 #include <GL\glew.h>
 #include <GL\gl.h>
@@ -123,6 +123,13 @@
 #include <sys/stat.h>
 #include <share.h>
 #include <stdint.h>
+#include <Dwmapi.h>
+
+// Load the OpenGL libs.  We do this here so that people
+// don't need to modify their mexopts file.
+#pragma comment(lib, "glu32.lib");
+#pragma comment(lib, "opengl32.lib");
+#pragma comment(lib, "glew32.lib");
 
 #define strcasecmp _stricmp
 #define round(x) floor(x+0.5)

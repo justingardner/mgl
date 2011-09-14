@@ -20,7 +20,7 @@ $Id$
 ////////////////////////
 #define kMaxDisplays 8
 #define TABLESIZE 256
-#ifdef __WINDOWS__
+#ifdef _WIN32
 #define GAMMAVALUE WORD
 #define GAMMAVALUESIZE sizeof(WORD)
 #define GAMMARANGE 65536
@@ -298,7 +298,7 @@ Bool getGammaFormula(GAMMAVALUE *redMin,GAMMAVALUE *redMax,GAMMAVALUE *redGamma,
 //-----------------------------------------------------------------------------------///
 // **************************** Windows specific code  ****************************** //
 //-----------------------------------------------------------------------------------///
-#ifdef __WINDOWS__
+#ifdef _WIN32
 Bool getGammaTable(int *gammaTableSize, GAMMAVALUE **redTable, GAMMAVALUE **greenTable, GAMMAVALUE **blueTable)
 {
   HDC hDC;
@@ -336,4 +336,4 @@ Bool getGammaFormula(GAMMAVALUE *redMin,GAMMAVALUE *redMax,GAMMAVALUE *redGamma,
 {
   return 0;
 }
-#endif //__WINDOWS__
+#endif //_WIN32

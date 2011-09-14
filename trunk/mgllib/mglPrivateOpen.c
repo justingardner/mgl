@@ -824,7 +824,10 @@ unsigned long openDisplay(double *displayNumber, int *screenWidth, int *screenHe
 //-----------------------------------------------------------------------------------///
 // ****************************** Windows specific code  **************************** //
 //-----------------------------------------------------------------------------------///
-#ifdef __WINDOWS__
+#ifdef _WIN32
+
+// // Enables transparency for windowed windows.
+// #pragma comment(lib, "Dwmapi.lib");
 
 // Global variables that help us set up multisampling.
 bool g_arbMultisampleSupported = false;
@@ -1039,6 +1042,23 @@ MGL_CONTEXT_PTR openDisplay(double *displayNumber, int *screenWidth, int *screen
     mexPrintf("(mglPrivateOpen) GLEW failed to load.\n");
     return -1;
   }
+
+	/*
+	// Enable window transparency if toggled.  Only works in windowed mode
+	// not fullscreen because I think DWM loses control of the window once
+	// it goes fullscreen.
+	if ((int)mglGetGlobalDouble("transparency")) {
+		DWM_BLURBEHIND bb = {0};
+		bb.dwFlags = DWM_BB_ENABLE;
+		bb.fEnable = true;
+		bb.hRgnBlur = NULL;
+		if (DwmEnableBlurBehindWindow(hWnd, &bb) != S_OK) {
+			WinKillGLWindow(hDC, hRC, hWnd, hInstance);
+			mexPrintf("(mglPrivateOpen) Failed to enable window transparency.\n");
+			return -1;
+		}
+	}
+	*/
 
   ShowWindow(hWnd, SW_SHOW);                      // Show The Window
   SetForegroundWindow(hWnd);                      // Slightly Higher Priority
@@ -1268,4 +1288,4 @@ GLvoid WinKillGLWindow(HDC hDC, HGLRC hRC, HWND hWnd, HINSTANCE hInstance)	// Pr
   }
 }
 
-#endif // __WINDOWS__
+#endif // _WIN32

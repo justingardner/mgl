@@ -19,7 +19,7 @@ $Id$
 //   define section   //
 ////////////////////////
 #define kMaxDisplays 8
-#ifdef __WINDOWS__
+#ifdef _WIN32
 #define GAMMAVALUE WORD
 #define GAMMAVALUESIZE sizeof(WORD)
 #define MAXGAMMAVALUE 65535
@@ -413,7 +413,7 @@ int getGammaTableSize()
 //-----------------------------------------------------------------------------------///
 // **************************** Windows specific code  ****************************** //
 //-----------------------------------------------------------------------------------///
-#ifdef __WINDOWS__
+#ifdef _WIN32
 void setGammaTableWithTable(int displayNumber, int verbose, int gammaTableSize, int numTableEntries,
                             GAMMAVALUE *redTable, GAMMAVALUE *greenTable, GAMMAVALUE *blueTable)
 {

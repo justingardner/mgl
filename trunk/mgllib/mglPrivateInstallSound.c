@@ -201,3 +201,20 @@ void removeSound(unsigned long soundID)
   mexPrintf("(mglInstallSound) Not implemented on linux\n");
 }
 #endif//__linux__
+
+
+//-----------------------------------------------------------------------------------///
+// ****************************** Windows specific code  **************************** //
+//-----------------------------------------------------------------------------------///
+#ifdef _WIN32
+unsigned long installSound(char *filename)
+{
+  mexPrintf("(mglInstallSound) Not implemented on Windows\n");
+  return 0;
+}
+void removeSound(unsigned long soundID)
+{
+  mexPrintf("(mglInstallSound) Not implemented on Windows\n");
+}
+#endif
+

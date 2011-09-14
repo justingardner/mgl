@@ -339,7 +339,7 @@ mxArray *charToKeycode(const mxArray *cellArrayOfChars, int returnAllMatches)
 //---------------------------------------------------------------------------//
 // Windows code
 //---------------------------------------------------------------------------//
-#ifdef __WINDOWS__
+#ifdef _WIN32
 mxArray *charToKeycode(const mxArray *cellArrayOfChars, int returnAllMatches)
 {
 	SHORT vkChar;

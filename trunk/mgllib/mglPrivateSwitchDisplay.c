@@ -78,7 +78,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 //-----------------------------------------------------------------------------------///
 // ****************************** Windows specific code  **************************** //
 //-----------------------------------------------------------------------------------///
-#ifdef __WINDOWS__
+#ifdef _WIN32
 MGL_CONTEXT_PTR ref;
 HGLRC hRC;
 HDC hDC;
@@ -93,5 +93,5 @@ hDC = (HDC)ref;
 if (wglMakeCurrent(hDC, hRC) == FALSE) {
   mexPrintf("(mglPrivateSwithDisplay) Failed to make the rendering context current.\n");
 }
-#endif // __WINDOWS__
+#endif // _WIN32
 }

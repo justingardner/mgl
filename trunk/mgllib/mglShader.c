@@ -444,7 +444,7 @@ static int shaderSize(char *fileName, EShaderType shaderType)
     //
     int fd, keepReading = 1, count = 0;
     char name[256], buf[256];
-#ifdef __WINDOWS__
+#ifdef _WIN32
 	int readCount;
 #else
 	ssize_t readCount;
@@ -469,7 +469,7 @@ static int shaderSize(char *fileName, EShaderType shaderType)
 	mexPrintf("filename: %s\n", name);
 
     // Open the file, and find its length.  lseek kept screwing up, doing it this way seems to work.
-#ifdef __WINDOWS__
+#ifdef _WIN32
 	if (_sopen_s(&fd, (const char*)name, _O_RDONLY, _SH_DENYNO, _S_IREAD | _S_IWRITE) != 0) {
 		mexPrintf("Failed to open shader file.");
 		return -1;
@@ -478,7 +478,7 @@ static int shaderSize(char *fileName, EShaderType shaderType)
     fd = open((const char*)name, O_RDONLY);
 #endif
 	while (keepReading) {
-#ifdef __WINDOWS__
+#ifdef _WIN32
 		readCount = _read(fd, buf, 256);
 #else
 		readCount = read(fd, buf, 256);
@@ -493,7 +493,7 @@ static int shaderSize(char *fileName, EShaderType shaderType)
 		
 		count += readCount;
 	}
-#ifdef __WINDOWS__
+#ifdef _WIN32
 	_close(fd);
 #else
 	close(fd);
