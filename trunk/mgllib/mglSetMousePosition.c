@@ -94,7 +94,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 	cursorPos.y = (CGFloat)pxHeight - (CGFloat)yPos;
 
 	errorCode = CGDisplayMoveCursorToPoint(displays[targetScreen], cursorPos);
-	//errorCode = CGWarpMouseCursorPosition(cursorPos);
 
 	if (errorCode != kCGErrorSuccess) {
 		mexPrintf("(mglSetMousePosition) Setting mouse position failed with error code %d.\n", errorCode);

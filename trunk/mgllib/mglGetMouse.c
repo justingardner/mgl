@@ -4,8 +4,18 @@
      program: mglGetMouse.c
           by: justin gardner
         date: 09/12/06
-     purpose: return state of mouse buttons
    copyright: (c) 2006 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
+     purpose: Return state of mouse buttons and its position.  Position is
+              in global screen coordinates unless a target screen is
+              specified.
+       usage: mglGetMouse([targetScreen])
+          
+              % Get mouse info in global screen coordinates.
+              mouseInfo = mglGetMouse;
+
+              % Get mouse info in screen 2 coordinates.
+              mouseInfo = mglGetMouse(2);
+
 
 $Id$
 =========================================================================
@@ -16,14 +26,26 @@ $Id$
 /////////////////////////
 #include "mgl.h"
 
+////////////////////////
+//   define section   //
+////////////////////////
+#define kMaxDisplays 8
+
 /////////////
 //   main   //
 //////////////
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
-  if (nrhs != 0) {
+  size_t targetScreen = 0;
+
+  if (nrhs > 1) {
     usageError("mglGetMouse");
     return;
+  }
+
+  // Get the target screen if specified.
+  if (nrhs == 1) {
+    targetScreen = (size_t)mxGetScalar(prhs[0]) - 1;
   }
 
   // create the output structure
@@ -44,10 +66,32 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   mxSetField(plhs[0],0,"buttons",mxCreateDoubleMatrix(1,1,mxREAL));
   outptrButton = (double*)mxGetPr(mxGetField(plhs[0],0,"buttons"));
 
-//-----------------------------------------------------------------------------------///
-// **************************** mac cocoa specific code  **************************** //
-//-----------------------------------------------------------------------------------///
+
 #ifdef __APPLE__
+
+  CGError errorCode, displayErrorNum;
+	uint32_t numDisplays;
+	CGDirectDisplayID displays[kMaxDisplays];
+
+	// Get a list of displays.
+	displayErrorNum = CGGetActiveDisplayList(kMaxDisplays, displays, &numDisplays);
+	if (displayErrorNum) {
+		mexPrintf("(mglGetMouse) Cannot get display list (%d)\n", displayErrorNum);
+		return;
+	}
+
+	// Make sure the target screen is in bounds.
+	if (targetScreen < 0 || targetScreen >= numDisplays) {
+		mexPrintf("(mglGetMouse) targetScreen is out of bounds (%d)\n", targetScreen+1);
+		return;
+	}
+
+  // Get the height of the main display.
+  size_t mainHeightPx = CGDisplayPixelsHigh(kCGDirectMainDisplay);
+
+  // Get the bounds of the target display.
+  CGRect r = CGDisplayBounds(displays[targetScreen]);
+
 #ifdef __cocoa__
   NSPoint mouseLocation = [NSEvent mouseLocation];
 
@@ -55,7 +99,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   *outptrButton = (double)GetCurrentButtonState();
   *outptrX = mouseLocation.x;
   *outptrY = mouseLocation.y;
-  return;
+
 //-----------------------------------------------------------------------------------///
 // **************************** mac carbon specific code  *************************** //
 //-----------------------------------------------------------------------------------///
@@ -73,7 +117,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   *outptrY = theEvent.where.v;
 
 #endif//__cocoa__
+
+  // Adjust the results based on the location of the display relative to the main display.
+  *outptrX = *outptrX - r.origin.x;
+  *outptrY = *outptrY - mainHeightPx + r.size.height + r.origin.y;
+
 #endif//__APPLE__
+
 //-----------------------------------------------------------------------------------///
 // ****************************** linux specific code  ****************************** //
 //-----------------------------------------------------------------------------------///
