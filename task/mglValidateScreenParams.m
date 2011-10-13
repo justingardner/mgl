@@ -34,7 +34,7 @@ function screenParams = mglValidateScreenParams(screenParams)
   'displayDistance',57;
   'displaySize',[16 12];
   'calibProportion',0.36;		     
-  'squarePixels',1;		     
+  'squarePixels',false;		     
   'displayPos',[0 0];
   'framesPerSecond',60;
   'autoCloseScreen',0;
@@ -53,7 +53,8 @@ function screenParams = mglValidateScreenParams(screenParams)
   'diginAcqType',[];
   'diginResponseLine',[];
   'diginResponseType',[]; ...
-  'eyeTrackerType', [];
+  'eyeTrackerType', [];...
+  'simulateVerticalBlank', false;
   };
 
   % look for optional fields

@@ -135,9 +135,11 @@ if isempty(displayDir)
   displayDir = fullfile(fileparts(fileparts(which('moncalib'))),'task','displays');
 end
 
-% add some default fields if the exist
+% add some default fields if the exist.
+% NOTE: To add fields to the screenParams, we need to add the filed
+% here and under params2screenParams and in mglValidateScreenParams
 validatedScreenParams = mglValidateScreenParams(thisScreenParams);
-addFields = {'calibProportion','squarePixels'};
+addFields = {'calibProportion','squarePixels','simulateVerticalBlank'};
 for i= 1:length(addFields)
   if ~isfield(thisScreenParams,addFields{i})
     thisScreenParams.(addFields{i}) = validatedScreenParams.(addFields{i});
@@ -182,6 +184,7 @@ paramsInfo{end+1} = {'diginAcqLine',thisScreenParams.digin.acqLine,'type=numeric
 paramsInfo{end+1} = {'diginAcqType',num2str(thisScreenParams.digin.acqType),'type=string','This is how to interpert the digial signals for the acquisition. If you want to trigger when the signal goes low then set this to 0. If you want trigger when the signal goes high, set this to 1. If you want to trigger when the signal changes state (i.e. either low or high), set to [0 1]','contingent=diginUse'};
 paramsInfo{end+1} = {'diginResponseLine',num2str(thisScreenParams.digin.responseLine),'type=string','This is the lines from which to read the subject responses. If you want to specify line 1 and line 3 for subject response 1 and 2, you would enter [1 3], for instance. You can have up to 7 different lines for subject responses.','minmax=[0 7]','contingent=diginUse','round=1'};
 paramsInfo{end+1} = {'diginResponseType',num2str(thisScreenParams.digin.responseType),'type=string','This is how to interpert the digial signals for the responses. If you want to trigger when the signal goes low then set this to 0. If you want trigger when the signal goes high, set this to 1. If you want to trigger when the signal changes state (i.e. either low or high), set to [0 1]','contingent=diginUse'};
+paramsInfo{end+1} = {'simulateVerticalBlank',thisScreenParams.simulateVerticalBlank,'type=checkbox','Click this if you want to simulate a vertical blank waiting period. Normally mglFlush waits till the vertical blank and so you will only refresh once every video frame. But with some video cards, notably ATI Radeon HD 5xxx series, this is broken. So by clicking this you can use the mglFlushAndWait rather than the mglFlush function which will just use mglWaitSecs to wait the appropriate amount of time after an mglFlush'};
 paramsInfo{end+1} = {'testSettings',0,'type=pushbutton','buttonString=Test screen params','callback',@testSettings,'passParams=1','Click to test the monitor settings'};
 
 % display parameter choosing dialog
@@ -538,6 +541,9 @@ end
 
 % eye tracker type
 screenParams.eyeTrackerType = params.eyeTrackerType;
+
+% simulate vertical blank
+screenParams.simulateVerticalBlank = params.simulateVerticalBlank;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%   calibTypeCallback   %%

@@ -280,10 +280,10 @@ unsigned long cocoaOpen(double *displayNumber, int *screenWidth, int *screenHeig
     if (verbose) mexPrintf("(mglPrivateOpen) Ordering window in front\n");
     // would like to order in front of task and menu bar, 
     // but can't seem to do that... tried the following
-    //    [myWindow makeMainWindow];
+    //[myWindow makeMainWindow];
     [myWindow orderFrontRegardless];
-    //    [myWindow orderFront:nil];
-    //    [myWindow makeKeyAndOrderFront];
+    //[myWindow orderFront:nil];
+    //[myWindow makeKeyAndOrderFront];
   }
 
 

@@ -23,7 +23,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
   double currtime;
   double reftime=0.0;
-  if (nrhs>0) 
+  if ((nrhs>0) && !mxIsEmpty(prhs[0]))
     reftime = *(double*)mxGetPr(prhs[0]);
   
 //-----------------------------------------------------------------------------------///
