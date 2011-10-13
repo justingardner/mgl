@@ -54,6 +54,14 @@ function [displayInfo, computerInfo] = mglDescribeDisplays
 % Get display information.
 [displayInfo computerInfo] = mglPrivateDescribeDisplays;
 
-% Get the OpenGL information from Matlab.
-computerInfo.openGL = opengl('data');
-[computerInfo.platform computerInfo.maxMatrixSize computerInfo.endian] = computer;
+% Get the OpenGL information from Matlab. But only do this if
+% the display is not open, since if it is open, it seems to cause
+% some problems for the renderer - i.e. nothing draws after making the call
+if nargout > 1
+  if isequal(mglGetParam('displayNumber'),-1)
+    computerInfo.openGL = opengl('data');
+  else
+    computerInfo.openGL = [];
+  end
+  [computerInfo.platform computerInfo.maxMatrixSize computerInfo.endian] = computer;
+end
