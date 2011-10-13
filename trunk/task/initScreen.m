@@ -61,7 +61,7 @@ screenParamsList = {'computerName', 'displayName', 'screenNumber',...
 		    'screenWidth', 'screenHeight', 'displayDistance',...
 		    'displaySize', 'framesPerSecond','autoCloseScreen',...
 		    'saveData', 'calibType', 'monitorGamma', 'calibFilename', ...
-		    'flipHV', 'digin', 'hideCursor', 'displayPos', 'backtickChar', 'responseKeys', 'eyeTrackerType', 'eatKeys','squarePixels','calibProportion'};
+		    'flipHV', 'digin', 'hideCursor', 'displayPos', 'backtickChar', 'responseKeys', 'eyeTrackerType', 'eatKeys','squarePixels','calibProportion','simulateVerticalBlank'};
 
 for i = 1:length(screenParams)
   %% see if we need to convert from cell array to struct -- old version
@@ -615,7 +615,22 @@ end
 
 % default values
 myscreen.userHitEsc = 0;
-myscreen.flushMode = 0;
+if isfield(myscreen,'simulateVerticalBlank') && myscreen.simulateVerticalBlank
+  myscreen.flushMode = inf;
+else
+  % check if we are using an ATI radeon 5xxx card
+  [d c] = mglDescribeDisplays;
+  if isfield(c.openGL,'Renderer')
+    if strncmp('ATI Radeon HD 5',c.openGL.Renderer,15)
+      disp(sprintf('(initScreen) !!! You are apparently using an ATI Radeon HD 5xxx series display card !!!'));
+      disp(sprintf('             We have found that mglFlush may return immediately rather than waiting'));
+      disp(sprintf('             for a vertical blank signal. You may want to set simulateVerticalBlank'));
+      disp(sprintf('             in mglEditScreenParams. See here'));
+      disp(sprintf('             http://gru.brain.riken.jp/doku.php/mgl/knownIssues#vertical_blanking_using_ati_videocards_radeon_hd'));
+    end
+  end
+  myscreen.flushMode = 0;
+end
 myscreen.makeTraces = 0;
 myscreen.numTasks = 0;
 
