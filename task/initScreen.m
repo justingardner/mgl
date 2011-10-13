@@ -334,6 +334,13 @@ if ~isfield(myscreen,'allowpause')
 end
 myscreen.paused = 0;
 
+% get info about openGL renderer
+if exist('opengl')==2
+  openGLinfo = opengl('data');
+else
+  openGLinfo = [];
+end
+
 % init the mgl screen
 if ~isempty(myscreen.screenNumber)
   % setting with specified screenNumber
@@ -618,10 +625,10 @@ myscreen.userHitEsc = 0;
 if isfield(myscreen,'simulateVerticalBlank') && myscreen.simulateVerticalBlank
   myscreen.flushMode = inf;
 else
-  % check if we are using an ATI radeon 5xxx card
   [d c] = mglDescribeDisplays;
-  if isfield(c.openGL,'Renderer')
-    if strncmp('ATI Radeon HD 5',c.openGL.Renderer,15)
+  % check if we are using an ATI radeon 5xxx card
+  if isfield(openGLinfo,'Renderer')
+    if strncmp('ATI Radeon HD 5',openGLinfo.Renderer,15)
       disp(sprintf('(initScreen) !!! You are apparently using an ATI Radeon HD 5xxx series display card !!!'));
       disp(sprintf('             We have found that mglFlush may return immediately rather than waiting'));
       disp(sprintf('             for a vertical blank signal. You may want to set simulateVerticalBlank'));
