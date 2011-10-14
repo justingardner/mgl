@@ -624,8 +624,8 @@ end
 myscreen.userHitEsc = 0;
 if isfield(myscreen,'simulateVerticalBlank') && myscreen.simulateVerticalBlank
   myscreen.flushMode = inf;
+  disp(sprintf('(initScreen) Simulating vertical blank period by using mglFlushAndWait instead of mglFlush'));
 else
-  [d c] = mglDescribeDisplays;
   % check if we are using an ATI radeon 5xxx card
   if isfield(openGLinfo,'Renderer')
     if strncmp('ATI Radeon HD 5',openGLinfo.Renderer,15)
