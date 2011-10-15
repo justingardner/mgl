@@ -14,7 +14,10 @@
 % 
 %             To display rings
 %             mglRetinotopy('rings')
-% 
+%
+%             To display bars, set the barAngle
+%             mglRetinotopy('barAngle=90');
+%
 %             The direction can be set to 1 or -1 (default=1)
 %             mglRetinotopy('direction=-1')
 %
@@ -51,11 +54,14 @@
 function myscreen = mglRetinotopy(varargin)
 
 % evaluate the arguments
-eval(evalargs(varargin,0,0,{'wedges','rings','wedgesOrRings','direction','dutyCycle','stepsPerCycle','stimulusPeriod','numCycles','doEyeCalib','initialHalfCycle','volumesPerCycle','displayName','easyFixTask','dispText'}));
+eval(evalargs(varargin,0,0,{'wedges','rings','barAngle','elementAngle','wedgesOrRings','direction','dutyCycle','stepsPerCycle','stimulusPeriod','numCycles','doEyeCalib','initialHalfCycle','volumesPerCycle','displayName','easyFixTask','dispText','barWidth'}));
+
+global stimulus;
 
 % setup default arguments
 if exist('wedges','var') && ~isempty(wedges),wedgesOrRings = 1;,end
 if exist('rings','var') && ~isempty(rings),wedgesOrRings = 0;,end
+if exist('barAngle','var') && ~isempty(barAngle),stimulus.barAngle = barAngle;else,stimulus.barAngle=[];end
 if ieNotDefined('wedgesOrRings'),wedgesOrRings = 1;end
 if ieNotDefined('direction'),direction = 1;end
 if ieNotDefined('dutyCycle'),dutyCycle = 0.25;end
@@ -67,13 +73,33 @@ if ieNotDefined('initialHalfCycle'),initialHalfCycle = 1;end
 if ieNotDefined('displayName'),displayName = 'projector';end
 if ieNotDefined('easyFixTask'),easyFixTask = 1;end
 if ieNotDefined('dispText'),dispText = '';end
-
+if ieNotDefined('barWidth'),barWidth = 3;end
+% get the element angle for bar stimuli
+stimulus.elementAngle = [];
+if ~isempty(stimulus.barAngle)
+  if exist('elementAngle','var') 
+    if isstr(elementAngle) 
+      if strcmp(elementAngle,'orthogonal')
+	stimulus.elementAngle = stimulus.barAngle-90;
+      else
+	stimulus.elementAngle = stimulus.barAngle;
+      end
+    else
+      stimulus.elementAngle = elementAngle;
+    end
+  else
+    stimulus.elementAngle = stimulus.barAngle;
+  end
+end
 
 % initalize the screen
 myscreen.allowpause = 1;
 myscreen.displayname = displayName;
 myscreen.background = 'gray';
 myscreen = initScreen(myscreen);
+
+% init the stimulus
+myscreen = initStimulus('stimulus',myscreen);
 
 % set the first task to be the fixation staircase task
 global fixStimulus;
@@ -93,10 +119,6 @@ else
   fixStimulus.responseTime = 1+1*easyFixTask;
 end
 [task{1} myscreen] = fixStairInitTask(myscreen);
-
-% init the stimulus
-global stimulus;
-myscreen = initStimulus('stimulus',myscreen);
 
 % set the number and length of the stimulus cycles
 stimulus.numCycles = numCycles;
@@ -119,6 +141,7 @@ stimulus.wedgesOrRings = wedgesOrRings;
 % min/max radius is the size of the stimulus
 stimulus.minRadius = 0.5;
 stimulus.maxRadius = min(myscreen.imageWidth/2,myscreen.imageHeight/2);
+%stimulus.maxRadius = myscreen.imageWidth;
 % direction of stimulus
 stimulus.direction = direction;
 % the duty cycle of the stimulus.
@@ -132,6 +155,19 @@ stimulus.elementAngleSize = 5;
 stimulus.elementRadiusSize = 2;
 % radial speed of elements moving each other
 stimulus.elementRadialVelocity = 7.5;
+% element size parameters for bars (non-radial pattern)
+stimulus.elementWidth = 3;
+stimulus.elementHeight = 3;
+stimulus.elementVelocity = 6;
+% bar parameters
+stimulus.barWidth = barWidth;
+% this forces the step size of the bar sweep to 
+% match a multiple of half the element size. This
+% is to try to make the underlying pattern beneath
+% the bars show up with the same phase for each bar
+% since each bar center will be placed either at the
+% edge or in the middle of the elements
+stimulus.barStepsMatchElementSize = 1;
 % init the stimulus
 stimulus = initWedges(stimulus,myscreen);
 
@@ -245,8 +281,12 @@ epsilon = 0.1;
 stimulus.ringRadiusMin = max(0,minRadius:(epsilon+stimulus.maxRadius-minRadius)/(stimulus.stepsPerCycle-1):stimulus.maxRadius+epsilon);
 stimulus.ringRadiusMax = stimulus.minRadius:(maxRadius-stimulus.minRadius)/(stimulus.stepsPerCycle-1):maxRadius;
 
+% set some parameters for bars
+stimulus.barHeight = myscreen.screenWidth*2;
+stimulus.barMaskWidth = myscreen.screenWidth*2;
+
 % we only need to recompute the mglQuad points of the elements if something has
-% changed in the stimulus
+% changed in the stimulus. This is for the radial element pattern
 if ~isfield(stimulus,'last') || ~isfield(stimulus,'x') || ...
   (stimulus.elementAngleSize ~= stimulus.last.elementAngleSize) || ...
   (stimulus.elementRadiusSize ~= stimulus.last.elementRadiusSize) || ...
@@ -301,6 +341,60 @@ if ~isfield(stimulus,'last') || ~isfield(stimulus,'x') || ...
 else
   disp(sprintf('(mglRetinotopy) Using precomputed stimulus pattern'));
 end
+
+% we only need to recompute the mglQuad points of the elements if something has
+% changed in the stimulus. This is for the rectilinear elements (i.e. for the bars)
+if ~isfield(stimulus,'last') || ~isfield(stimulus,'x') || ...
+  (stimulus.elementWidth ~= stimulus.last.elementWidth) || ...
+  (stimulus.elementHeight ~= stimulus.last.elementHeight) || ...
+  (stimulus.elementVelocity ~= stimulus.last.elementVelocity)
+  maxDim = ceil(max(myscreen.imageWidth,myscreen.imageHeight)/stimulus.elementWidth)*stimulus.elementWidth;
+  maxDim = maxDim;
+  minRect = -maxDim/2-stimulus.elementWidth;
+  maxRect = maxDim/2;
+  % all the angles that the elements will be made up of
+  allY = minRect:stimulus.elementHeight:maxRect;
+  % all the phases. The phase refers to the radial position of the
+  % black and white pattern (the pattern that is seen as moving
+  % in the stimulus). There are two sets here since the wedges slide
+  % against each other. That is every other sector will go in a 
+  % different direction. 
+  allPhases1 = 0:(stimulus.elementVelocity/myscreen.framesPerSecond):(stimulus.elementWidth*2);
+  allPhases2 = fliplr(allPhases1);
+  disppercent(-inf,'(mglRetinotopy) Calculating coordinates of elements in stimulus pattern for rectilinear patterns (i.e. ones for bars)');
+  for phaseNum = 1:length(allPhases1)
+    stimulus.xRect{phaseNum} = [];stimulus.yRect{phaseNum} = [];stimulus.cRect{phaseNum} = [];
+    for yNum = 1:length(allY)
+      % get the y
+      y = allY(yNum)+stimulus.elementHeight/2;
+      % choose which phase we are going to be
+      if isodd(yNum)
+	thisMinX = minRect-allPhases1(phaseNum);
+      else
+	thisMinX = minRect-allPhases2(phaseNum);
+      end
+      % all the X
+      allX = thisMinX:stimulus.elementWidth:maxRect;
+      % now create all the quads for this wedge
+      for xNum = 1:length(allX)
+	x = allX(xNum);
+	% calculate element
+	stimulus.xRect{phaseNum}(:,end+1) = [x x x+stimulus.elementWidth x+stimulus.elementWidth];
+	stimulus.yRect{phaseNum}(:,end+1) = [y y+stimulus.elementHeight y+stimulus.elementHeight y];
+	% also calculate what color we ant
+	stimulus.cRect{phaseNum}(:,end+1) = [1 1 1]*(isodd(xNum+isodd(yNum)));
+      end
+    end
+    disppercent(phaseNum/length(allPhases1));
+  end
+  disppercent(inf);
+  stimulus.nRect = length(allPhases1);
+  stimulus.phaseNumRect = 1;
+else
+  disp(sprintf('(mglRetinotopy) Using precomputed stimulus pattern'));
+end
+
+
 % remember these parameters, so that we can know whether we
 % need to recompute
 stimulus.last.elementRadiusSize = stimulus.elementRadiusSize;
@@ -308,6 +402,9 @@ stimulus.last.elementAngleSize = stimulus.elementAngleSize;
 stimulus.last.elementRadialVelocity = stimulus.elementRadialVelocity;
 stimulus.last.maxRadius = stimulus.maxRadius;
 stimulus.last.minRadius = stimulus.minRadius;
+stimulus.last.elementWidth = stimulus.elementWidth;
+stimulus.last.elementHeight = stimulus.elementHeight;
+stimulus.last.elementVelocity = stimulus.elementVelocity;
 
 % new we calculate the masks that cover the stimulus so that we can
 % have either rings or wedges, we start by making a set of wedge masks
@@ -374,7 +471,64 @@ for radiusNum = 1:length(stimulus.ringRadiusMin)
   end
 end
 stimulus.ringN = length(stimulus.ringRadiusMin);
-  
+
+% now make masks for bars
+% get x and y of bar center (note that this is before we apply the
+% rotation to coordinates, so we are making the coordinates as if
+% we are going to make horizontally sweeping bars - we will later
+% rotate the coordinates around the center to get the other sweep angels
+
+% get the extent of visual angle that we want to sweep the bars over
+sweepExtent = myscreen.imageWidth;
+% calculate the stepWidth that we will have with this sweepExtent
+stepWidth = sweepExtent/(stimulus.stepsPerCycle-1);
+% now round that stepWidth to the size of half an element
+% so that the bars all show at the same part of the underlying
+% checkerboard
+if stimulus.barStepsMatchElementSize
+  stepWidth = round(stepWidth/(stimulus.elementWidth/2))*(stimulus.elementWidth/2);
+end
+% now create the steps
+stimulus.barCenter = [];
+if isodd(stimulus.stepsPerCycle)
+  % for odd number of steps cover the center of the screen
+  stimulus.barCenter(:,1) = -stepWidth*(stimulus.stepsPerCycle-1)/2:stepWidth:stepWidth*(stimulus.stepsPerCycle-1)/2;
+else
+  % for even number of steps, will be symmetric around the center
+  stimulus.barCenter(:,1) = -stepWidth*stimulus.stepsPerCycle/2+stepWidth/2:stepWidth:stepWidth*stimulus.stepsPerCycle/2-stepWidth/2;
+end
+stimulus.barCenter(:,2) = 0;
+
+% display the bar centers
+disp(sprintf('(mglRetinotopy) barCenter: %s',num2str(stimulus.barCenter(:,1)','%0.02f ')));
+
+% now make the left hand bar mask - remember we are making the inverse
+% of the bar so we need to mask out everything to the left and to the
+% right of the bar.
+stimulus.maskBarLeft(1,:) = [-stimulus.barWidth/2 -stimulus.barHeight/2]';
+stimulus.maskBarLeft(2,:) = [-stimulus.barWidth/2-stimulus.barMaskWidth -stimulus.barHeight/2]';
+stimulus.maskBarLeft(3,:) = [-stimulus.barWidth/2-stimulus.barMaskWidth stimulus.barHeight/2]';
+stimulus.maskBarLeft(4,:) = [-stimulus.barWidth/2 stimulus.barHeight/2]';
+% now make the right hand bar mask
+stimulus.maskBarRight(1,:) = [stimulus.barWidth/2 -stimulus.barHeight/2]';
+stimulus.maskBarRight(2,:) = [stimulus.barWidth/2+stimulus.barMaskWidth -stimulus.barHeight/2]';
+stimulus.maskBarRight(3,:) = [stimulus.barWidth/2+stimulus.barMaskWidth stimulus.barHeight/2]';
+stimulus.maskBarRight(4,:) = [stimulus.barWidth/2 stimulus.barHeight/2]';
+
+% now make a rotation matrix for each bar angle we want to present
+if ~isempty(stimulus.barAngle)
+  c = cos(pi*stimulus.barAngle/180);
+  s = sin(pi*stimulus.barAngle/180);
+  stimulus.maskBarRotMatrix = [c s;-s c];
+end
+
+% now make a rotation matrix for the background angle
+if ~isempty(stimulus.elementAngle)
+  c = cos(pi*stimulus.elementAngle/180);
+  s = sin(pi*stimulus.elementAngle/180);
+  stimulus.elementRotMatrix = [c s;-s c];
+end
+
 % set the current mask that will be displayed
 if stimulus.direction == 1
   stimulus.currentMask = 0;
@@ -392,18 +546,43 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function stimulus = updateWedges(stimulus,myscreen)
 
-% update the phase of the sliding wedges
-stimulus.phaseNum = 1+mod(stimulus.phaseNum,stimulus.n);
-% draw the whole stimulus pattern
-mglQuad(stimulus.x{stimulus.phaseNum},stimulus.y{stimulus.phaseNum},stimulus.c{stimulus.phaseNum},1);
+if ~isempty(stimulus.barAngle)
+  % update the phase of the sliding wedges
+  stimulus.phaseNumRect = 1+mod(stimulus.phaseNumRect,stimulus.nRect);
 
-% mask out to get a wedge
-if stimulus.wedgesOrRings
-  mglPolygon(stimulus.maskWedgeX{stimulus.currentMask},stimulus.maskWedgeY{stimulus.currentMask},[0.5 0.5 0.5]);
-% or mask out to get a ring
+  % draw the whole stimulus pattern, rotate to the element angle
+  x = stimulus.xRect{stimulus.phaseNumRect};
+  y = stimulus.yRect{stimulus.phaseNumRect};
+  coords(1:2,:) = stimulus.elementRotMatrix*[x(1,:);y(1,:)];
+  coords(3:4,:) = stimulus.elementRotMatrix*[x(2,:);y(2,:)];
+  coords(5:6,:) = stimulus.elementRotMatrix*[x(3,:);y(3,:)];
+  coords(7:8,:) = stimulus.elementRotMatrix*[x(4,:);y(4,:)];
+  mglQuad(coords(1:2:8,:),coords(2:2:8,:),stimulus.cRect{stimulus.phaseNumRect},1);
+
+  % compute the center of the bar
+  barCenter = repmat(stimulus.barCenter(stimulus.currentMask,:),size(stimulus.maskBarLeft,1),1);
+  % compute the left and right masks (covering up everything except the bar)
+  % by shifting by the barCenter and rotating the coordinates for the angle we want
+  maskBarLeft = stimulus.maskBarRotMatrix*(barCenter+stimulus.maskBarLeft)';
+  maskBarRight = stimulus.maskBarRotMatrix*(barCenter+stimulus.maskBarRight)';
+
+  % draw the bar masks
+  mglPolygon(maskBarLeft(1,:),maskBarLeft(2,:),0.5);
+  mglPolygon(maskBarRight(1,:),maskBarRight(2,:),0.5);
 else
-  mglPolygon(stimulus.maskInnerX{stimulus.currentMask},stimulus.maskInnerY{stimulus.currentMask},[0.5 0.5 0.5]);
-  mglQuad(stimulus.maskOuterX{stimulus.currentMask},stimulus.maskOuterY{stimulus.currentMask},stimulus.maskOuterC{stimulus.currentMask});
+  % update the phase of the sliding wedges
+  stimulus.phaseNum = 1+mod(stimulus.phaseNum,stimulus.n);
+  % draw the whole stimulus pattern
+  mglQuad(stimulus.x{stimulus.phaseNum},stimulus.y{stimulus.phaseNum},stimulus.c{stimulus.phaseNum},1);
+  
+  % mask out to get a wedge
+  if stimulus.wedgesOrRings
+    mglPolygon(stimulus.maskWedgeX{stimulus.currentMask},stimulus.maskWedgeY{stimulus.currentMask},0.5);
+    % or mask out to get a ring
+  else
+    mglPolygon(stimulus.maskInnerX{stimulus.currentMask},stimulus.maskInnerY{stimulus.currentMask},0.5);
+    mglQuad(stimulus.maskOuterX{stimulus.currentMask},stimulus.maskOuterY{stimulus.currentMask},stimulus.maskOuterC{stimulus.currentMask});
+  end
 end
 
 % evalargs.m
