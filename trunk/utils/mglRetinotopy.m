@@ -54,7 +54,7 @@
 function myscreen = mglRetinotopy(varargin)
 
 % evaluate the arguments
-eval(evalargs(varargin,0,0,{'wedges','rings','barAngle','elementAngle','wedgesOrRings','direction','dutyCycle','stepsPerCycle','stimulusPeriod','numCycles','doEyeCalib','initialHalfCycle','volumesPerCycle','displayName','easyFixTask','dispText','barWidth'}));
+eval(evalargs(varargin,0,0,{'wedges','rings','barAngle','elementAngle','wedgesOrRings','direction','dutyCycle','stepsPerCycle','stimulusPeriod','numCycles','doEyeCalib','initialHalfCycle','volumesPerCycle','displayName','easyFixTask','dispText','barWidth','barSweepExtent','elementSize','barStepsMatchElementSize'}));
 
 global stimulus;
 
@@ -74,23 +74,10 @@ if ieNotDefined('displayName'),displayName = 'projector';end
 if ieNotDefined('easyFixTask'),easyFixTask = 1;end
 if ieNotDefined('dispText'),dispText = '';end
 if ieNotDefined('barWidth'),barWidth = 3;end
-% get the element angle for bar stimuli
-stimulus.elementAngle = [];
-if ~isempty(stimulus.barAngle)
-  if exist('elementAngle','var') 
-    if isstr(elementAngle) 
-      if strcmp(elementAngle,'orthogonal')
-	stimulus.elementAngle = stimulus.barAngle-90;
-      else
-	stimulus.elementAngle = stimulus.barAngle;
-      end
-    else
-      stimulus.elementAngle = elementAngle;
-    end
-  else
-    stimulus.elementAngle = stimulus.barAngle;
-  end
-end
+if ieNotDefined('elementAngle'),elementAngle = 'parallel';end
+if ieNotDefined('barSweepExtent'),barSweepExtent = 'max';end
+if ieNotDefined('elementSize'),elementSize = [];end
+if ieNotDefined('barStepsMatchElementSize'),barStepsMatchElementSize=true;end
 
 % initalize the screen
 myscreen.allowpause = 1;
@@ -156,8 +143,13 @@ stimulus.elementRadiusSize = 2;
 % radial speed of elements moving each other
 stimulus.elementRadialVelocity = 7.5;
 % element size parameters for bars (non-radial pattern)
-stimulus.elementWidth = 3;
-stimulus.elementHeight = 3;
+if isempty(elementSize)
+  stimulus.elementWidth = 3;
+  stimulus.elementHeight = 3;
+else
+  stimulus.elementWidth = elementSize;
+  stimulus.elementHeight = elementSize;
+end  
 stimulus.elementVelocity = 6;
 % bar parameters
 stimulus.barWidth = barWidth;
@@ -167,10 +159,17 @@ stimulus.barWidth = barWidth;
 % the bars show up with the same phase for each bar
 % since each bar center will be placed either at the
 % edge or in the middle of the elements
-stimulus.barStepsMatchElementSize = 1;
+stimulus.barStepsMatchElementSize = barStepsMatchElementSize;
+% set the barSweepExtent this is the extent in degrees
+% over which the bars move
+stimulus.barSweepExtent = barSweepExtent;
+% angle of the underlying elements. This can be set to
+% the actual angle you want, or it can be 'orthogonal'
+% or 'parallel' to be the angle orthogonal/parallel
+% to the bar motion
+stimulus.elementAngle = elementAngle;
 % init the stimulus
 stimulus = initWedges(stimulus,myscreen);
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % set our task to have a segment for each stimulus step
 % and a trial for each cycle of the stimulus
@@ -472,32 +471,108 @@ for radiusNum = 1:length(stimulus.ringRadiusMin)
 end
 stimulus.ringN = length(stimulus.ringRadiusMin);
 
+% get the element angle for bar stimuli
+if ~isempty(stimulus.barAngle)
+  % if element angle is a string, then
+  if isstr(stimulus.elementAngle) 
+    % if orthogonal, set to to orthogonal to bar angle
+    if strcmp(stimulus.elementAngle,'orthogonal')
+      stimulus.elementAngle = stimulus.barAngle-90;
+    else
+      % otherwise the same as the bar angle
+      stimulus.elementAngle = stimulus.barAngle;
+    end
+  end
+else  
+  % if barAngle is not set then elementAngle does not matter
+  stimulus.elementAngle = nan;
+end
+
+% now make a rotation matrix for the background angle
+if ~isempty(stimulus.elementAngle)
+  c = cos(pi*stimulus.elementAngle/180);
+  s = sin(pi*stimulus.elementAngle/180);
+  stimulus.elementRotMatrix = [c s;-s c];
+end
+
+% now make a rotation matrix for each bar angle we want to present
+if ~isempty(stimulus.barAngle)
+  c = cos(pi*stimulus.barAngle/180);
+  s = sin(pi*stimulus.barAngle/180);
+  stimulus.maskBarRotMatrix = [c s;-s c];
+end
+
 % now make masks for bars
+
 % get x and y of bar center (note that this is before we apply the
 % rotation to coordinates, so we are making the coordinates as if
 % we are going to make horizontally sweeping bars - we will later
 % rotate the coordinates around the center to get the other sweep angels
 
-% get the extent of visual angle that we want to sweep the bars over
-sweepExtent = myscreen.imageWidth;
-% calculate the stepWidth that we will have with this sweepExtent
-stepWidth = sweepExtent/(stimulus.stepsPerCycle-1);
-% now round that stepWidth to the size of half an element
+% start by figuring out over what the extent of visual angle
+% that we want to sweep the bars over
+if isempty(stimulus.barSweepExtent),stimulus.barSweepExtent = 'max';end
+if isstr(stimulus.barSweepExtent)
+  if strcmp(stimulus.barSweepExtent,'min')
+    sweepExtent = min(myscreen.imageWidth,myscreen.imageHeight);
+  elseif strcmp(stimulus.barSweepExtent,'max')
+    barDirVec = abs(stimulus.maskBarRotMatrix*[1 0]');
+    sweepExtent = max(barDirVec(1)*myscreen.imageWidth,barDirVec(2)*myscreen.imageHeight);
+  else
+    disp(sprintf('(mglRetinotopy) Unknown Bar sweep extent; %s',stimulus.barSweepExtent));
+    keyboard
+  end
+else
+  sweepExtent = stimulus.barSweepExtent;
+end
+% calculate the stepSize that we will have with this sweepExtent
+stepSize = sweepExtent/(stimulus.stepsPerCycle-1);
+% now round that stepSize to the size of half an element
 % so that the bars all show at the same part of the underlying
 % checkerboard
 if stimulus.barStepsMatchElementSize
-  stepWidth = round(stepWidth/(stimulus.elementWidth/2))*(stimulus.elementWidth/2);
+  % set the granularity - that is, stepSize will need
+  % to be an integer multiple of stepSizeGranularity.
+  % If this is just elementWidth then the stepSize
+  % will never have only part of element in it.
+  stepSizeGranularity = stimulus.elementWidth/4;
+  % keep original step size for comparison, to
+  % tell user what we are doing
+  originalStepSize = stepSize;
+  stepSize = round(stepSize/stepSizeGranularity)*stepSizeGranularity;
+  % make sure stepSize is greater than 0
+  stepSize = max(stepSize,stepSizeGranularity);
+  % if the stepSize is not evenly divisible into the elementWidth
+  % then we add an offset to the start position, so that the stimulus
+  % is always centered on the element size
+  setMiddleBarToCenter = stepSize/stimulus.elementWidth;
+  setMiddleBarToCenter = (setMiddleBarToCenter - floor(setMiddleBarToCenter)) ~= 0;
+  % tell user what is going on if the stepSize is greater than 10% of desired
+  if (stepSize >= 1.05*originalStepSize) ||  (stepSize <= 0.95*originalStepSize) 
+    disp(sprintf('(mglRetinotopy) Bar step size has been set to %0.2f (from ideal %0.2f) which changes the coverage',stepSize,originalStepSize));
+    disp(sprintf('                of the bars from the desired barSweepExtent of %0.2f to %0.2f ',-sweepExtent/2,sweepExtent/2));
+    disp(sprintf('                (see barCenter setting below). This is done to match the underlying'));
+    disp(sprintf('                pattern better. If you want to have the bars exactly cover the '));
+    disp(sprintf('                barSweepExtent, set barStepsMatchElementSize to false or set the'));
+    disp(sprintf('                elementSize (%0.2fx%0.2f) such that the bar step size is an integer multiple',stimulus.elementWidth,stimulus.elementHeight));
+    disp(sprintf('                of that elementSize'));
+  end
+else
+  setMiddleBarToCenter = false;
 end
 % now create the steps
 stimulus.barCenter = [];
 if isodd(stimulus.stepsPerCycle)
   % for odd number of steps cover the center of the screen
-  stimulus.barCenter(:,1) = -stepWidth*(stimulus.stepsPerCycle-1)/2:stepWidth:stepWidth*(stimulus.stepsPerCycle-1)/2;
+  stimulus.barCenter(:,1) = -stepSize*(stimulus.stepsPerCycle-1)/2:stepSize:stepSize*(stimulus.stepsPerCycle-1)/2;
 else
   % for even number of steps, will be symmetric around the center
-  stimulus.barCenter(:,1) = -stepWidth*stimulus.stepsPerCycle/2+stepWidth/2:stepWidth:stepWidth*stimulus.stepsPerCycle/2-stepWidth/2;
+  stimulus.barCenter(:,1) = -stepSize*stimulus.stepsPerCycle/2+stepSize/2:stepSize:stepSize*stimulus.stepsPerCycle/2-stepSize/2;
 end
 stimulus.barCenter(:,2) = 0;
+if setMiddleBarToCenter
+  stimulus.barCenter(:,1) = stimulus.barCenter(:,1)-min(abs(stimulus.barCenter(:,1)));
+end
 
 % display the bar centers
 disp(sprintf('(mglRetinotopy) barCenter: %s',num2str(stimulus.barCenter(:,1)','%0.02f ')));
@@ -514,20 +589,6 @@ stimulus.maskBarRight(1,:) = [stimulus.barWidth/2 -stimulus.barHeight/2]';
 stimulus.maskBarRight(2,:) = [stimulus.barWidth/2+stimulus.barMaskWidth -stimulus.barHeight/2]';
 stimulus.maskBarRight(3,:) = [stimulus.barWidth/2+stimulus.barMaskWidth stimulus.barHeight/2]';
 stimulus.maskBarRight(4,:) = [stimulus.barWidth/2 stimulus.barHeight/2]';
-
-% now make a rotation matrix for each bar angle we want to present
-if ~isempty(stimulus.barAngle)
-  c = cos(pi*stimulus.barAngle/180);
-  s = sin(pi*stimulus.barAngle/180);
-  stimulus.maskBarRotMatrix = [c s;-s c];
-end
-
-% now make a rotation matrix for the background angle
-if ~isempty(stimulus.elementAngle)
-  c = cos(pi*stimulus.elementAngle/180);
-  s = sin(pi*stimulus.elementAngle/180);
-  stimulus.elementRotMatrix = [c s;-s c];
-end
 
 % set the current mask that will be displayed
 if stimulus.direction == 1
