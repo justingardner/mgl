@@ -189,7 +189,15 @@ else
   task{2}{1}.seglen = (stimulus.stimulusPeriod/stimulus.stepsPerCycle);
 end
 
+% init the number of trials needed
 task{2}{1}.numTrials = stimulus.numCycles*stimulus.stepsPerCycle + stimulus.initialHalfCycle*round(stimulus.stepsPerCycle/2);
+
+% now add a trace for saving information about the phase of the 
+% stimulus mask. This can be used for reconstructing the stimulus 
+% sequence for example to use to do a pRF analysis
+[task{2}{1} myscreen] = addTraces(task{2}{1},myscreen,'maskPhase');
+
+% init the task
 [task{2}{1} myscreen] = initTask(task{2}{1},myscreen,@startSegmentCallback,@updateScreenCallback);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -204,7 +212,7 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 phaseNum = 1;
 while (phaseNum <= length(task{2})) && ~myscreen.userHitEsc
-  % update the dots
+  % update the retinotpy stimulus
   [task{2} myscreen phaseNum] = updateTask(task{2},myscreen,phaseNum);
   % update the fixation task
   [task{1} myscreen] = updateTask(task{1},myscreen,1);
@@ -237,6 +245,10 @@ if stimulus.wedgesOrRings
 else
   stimulus.currentMask = 1+mod(stimulus.currentMask-1,stimulus.ringN);
 end
+
+% save hte mask phase in the traces so that we can 
+% later reconstruct the mask for pRF processing
+myscreen = writeTrace(stimulus.currentMask,task.maskPhaseTrace,myscreen);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % function that gets called to draw the stimulus each frame
@@ -500,6 +512,8 @@ if ~isempty(stimulus.barAngle)
   c = cos(pi*stimulus.barAngle/180);
   s = sin(pi*stimulus.barAngle/180);
   stimulus.maskBarRotMatrix = [c s;-s c];
+else
+  stimulus.maskBarRotMatrix = eye(2);
 end
 
 % now make masks for bars
