@@ -439,6 +439,9 @@ switch myscreen.calibType
     end
   else
     calibFilename = getCalibFilename(myscreen,myscreen.computer);
+    if isempty(calibFilename)
+      disp(sprintf('(initScreen) !!! No monitor calibration file found !!!'));
+    end
   end
   % no go and try to use that calibration
   if ~isempty(calibFilename)
