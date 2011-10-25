@@ -116,6 +116,20 @@ for pnum = 1:length(screenParams)
   end
 end
 
+% if not found, maybe it just because displayName is not set correctly
+% so go through again looking for any match even if the displayName is
+% not a match
+if ~foundComputer
+  for pnum = 1:length(screenParams)
+    if ~isempty(strfind(myscreen.computer,screenParams{pnum}.computerName))
+      % choose a matching computer name and if possible one with an empty displayName
+      if ~foundComputer || isempty(screenParams{pnum}.displayName) 
+	foundComputer = pnum;
+      end
+    end
+  end
+end
+
 % display hail string
 disp(sprintf('%s Begin initScreen %s',repmat('=+',1,20),repmat('=+',1,20)));
 
@@ -123,8 +137,16 @@ disp(sprintf('%s Begin initScreen %s',repmat('=+',1,20),repmat('=+',1,20)));
 if foundComputer
   % display the match
   if ~isempty(screenParams{foundComputer}.displayName)
+    % give warning if we do not have a match of the displayName
+    if isfield(myscreen,'displayName') && ~strcmp(screenParams{foundComputer}.displayName,myscreen.displayName)
+      disp(sprintf('(initScreen) !!! No display name %s found. Using instead %s !!!',myscreen.displayName,screenParams{foundComputer}.displayName));
+    end
     disp(sprintf('(initScreen) Monitor parameters for: %s displayName: %s',screenParams{foundComputer}.computerName,screenParams{foundComputer}.displayName));
   else
+    % give warning if we were asked for a specific one
+    if isfield(myscreen,'displayName')
+      disp(sprintf('(initScreen) !!! No display name %s found. !!!',myscreen.displayName,screenParams{foundComputer}.displayName));
+    end
     disp(sprintf('(initScreen) Monitor parameters for: %s',screenParams{foundComputer}.computerName));
   end
   % setup all parameters for the monitor (if the settings are
@@ -335,10 +357,11 @@ end
 myscreen.paused = 0;
 
 % get info about openGL renderer
+openGLinfo = [];
 if exist('opengl')==2
-  openGLinfo = opengl('data');
-else
-  openGLinfo = [];
+  if isempty(mglGetParam('displayNumber'))
+    openGLinfo = opengl('data');
+  end
 end
 
 % init the mgl screen
