@@ -123,8 +123,8 @@ void mexFunction(int nlhs, mxArray * plhs[], int nrhs, const mxArray * prhs[])
     glPushMatrix();
 
     glTranslated(x[i], y[i], z[i]);
-    glScaled(size[0] / 2, size[1] / 2, 1.0);
     glRotated(rotData[0], rotData[1], rotData[2], rotData[3]);
+	glScaled(size[0] / 2, size[1] / 2, 1.0);
 
     glBegin(GL_QUADS);
     glVertex2d(-1.0, -1.0);
