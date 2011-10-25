@@ -54,8 +54,11 @@ minDist = 4;
 % loop to display text
 while 1
   % ask the user what they want to display
-  str = input('Text to display (type end to end, type clear to clear screen): ','s');
+  str = input('Text to display (type end to end, type clear to clear screen, ruok to ask if ok): ','s');
   % clear the screen
+  if strcmp(str,'ruok')
+    str = 'Are you ok? Hit button once for ok. Twice for NOT ok.';
+  end  
   if strcmp(str,'clear')
     if exist('textTexture')
       for i = 1:length(textTexture)
