@@ -312,8 +312,12 @@ if isfield(myscreen,'digin')
     % we are using digio
     myscreen.useDigIO = myscreen.digin.use;
     % try to open the port
-    if isequal(mglDigIO('init',myscreen.digin.portNum),0)
-      disp(sprintf('(initScreen) Failed to open Digitial IO ports. Only using keyboard backticks now!'));
+    digioRetval = mglDigIO('init',myscreen.digin.portNum);
+    if isempty(digioRetval)
+      disp(sprintf('(initScreen) !!! Failed to open Digitial IO ports. Only using keyboard backticks now! You many need to compile digio using mglMake(''digio'')!!!'));
+    end
+    if isequal(digioRetval,0)
+      disp(sprintf('(initScreen) !!! Failed to open Digitial IO ports. Only using keyboard backticks now!!!'));
       myscreen.useDigIO = 0;
     else
       % grab any pending events
