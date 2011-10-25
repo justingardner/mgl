@@ -34,6 +34,14 @@
 %             one period 
 %             mglRetinotopy('stepsPerCycle',24);
 %
+%             If you want to synch to a volume acquisition at the
+%             end of each cycle (to insure that your cycle length
+%             is matched to the acquisition, but otherwise of 
+%             a fixed number of seconds), set the following. This
+%             will make the last step of the cycle wait for a backtick
+%             to continue;
+%             mglRetinotopy('synchToVolEachCycle=1');
+%
 %             Or instead of stimulusPeriod/stepsPerCycle one can
 %             set the number of volumes per cycle and the
 %             program will synch to backticks (default = 16) This
@@ -54,7 +62,7 @@
 function myscreen = mglRetinotopy(varargin)
 
 % evaluate the arguments
-eval(evalargs(varargin,0,0,{'wedges','rings','barAngle','elementAngle','wedgesOrRings','direction','dutyCycle','stepsPerCycle','stimulusPeriod','numCycles','doEyeCalib','initialHalfCycle','volumesPerCycle','displayName','easyFixTask','dispText','barWidth','barSweepExtent','elementSize','barStepsMatchElementSize'}));
+eval(evalargs(varargin,0,0,{'wedges','rings','barAngle','elementAngle','wedgesOrRings','direction','dutyCycle','stepsPerCycle','stimulusPeriod','numCycles','doEyeCalib','initialHalfCycle','volumesPerCycle','displayName','easyFixTask','dispText','barWidth','barSweepExtent','elementSize','barStepsMatchElementSize','synchToVolEachCycle'}));
 
 global stimulus;
 
@@ -78,7 +86,7 @@ if ieNotDefined('elementAngle'),elementAngle = 'parallel';end
 if ieNotDefined('barSweepExtent'),barSweepExtent = 'max';end
 if ieNotDefined('elementSize'),elementSize = [];end
 if ieNotDefined('barStepsMatchElementSize'),barStepsMatchElementSize=true;end
-
+if ieNotDefined('synchToVolEachCycle'),synchToVolEachCycle=false;end
 % initalize the screen
 myscreen.allowpause = 1;
 myscreen.displayname = displayName;
@@ -186,7 +194,23 @@ if ~ieNotDefined('volumesPerCycle')
 % otherwise, we are given the stimulusPeriod and stepsPerCycle and
 % we compute stuff in seconds
 else
-  task{2}{1}.seglen = (stimulus.stimulusPeriod/stimulus.stepsPerCycle);
+  if synchToVolEachCycle
+    % in this case, keep time in seconds, but synch to the volume
+    % at the end of each cycle to insure that we are still sycned
+    % with scanner acquisition
+    numSegs = stimulus.stepsPerCycle;
+    task{2}{1}.seglen(1:numSegs) = (stimulus.stimulusPeriod/stimulus.stepsPerCycle);
+    % set the synchToVol to wait for a backtick at the end of the last cycle
+    task{2}{1}.synchToVol(1:numSegs) = 0;
+    task{2}{1}.synchToVol(numSegs) = 1;
+    % make the last segment a bit shorter so that it will be waiting 
+    % for a backtick to synch
+    task{2}{1}.seglen(numSegs) = 4*(stimulus.stimulusPeriod/stimulus.stepsPerCycle)/5;
+  else
+    % every trial/segment is the same (i.e. no need to synch at the
+    % end of each cycle of the stimulus)
+    task{2}{1}.seglen = (stimulus.stimulusPeriod/stimulus.stepsPerCycle);
+  end
 end
 
 % init the number of trials needed
