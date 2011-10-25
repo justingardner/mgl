@@ -91,6 +91,13 @@ elseif commandNum == 1
       return;
     end
     mglDigIOWarning = 1;
+  elseif isempty(mglDigIOWarning) && (exist(['mglPrivateDigio.' mexext])==0)
+    if strcmp(questdlg('You do not seem to have mglPrivateDigio compiled. Have you run mglMake(''digio''). Note that mglDigio is only available for 32 bit Mac OS X platforms because NI does not supply a 64 bit library','(mglDigIO: Not compiled','Cancel','Cancel'),'Cancel')
+      retval = 0;
+      mglDigIOWarning = -1;
+      return
+    end
+    mglDigIOWarning = 1;
   end
   
   if nargin > 1,inputPortNum = arg1;else inputPortNum = 2;end
