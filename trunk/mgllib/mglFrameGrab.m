@@ -13,6 +13,16 @@
 %             To grab a rectangular region of the screen at position
 %             (e.g.) 30,40 with a width and height of 100 x 200
 %             mglFrameGrab([30 40 100 200]);
+%
+%             Note that on Mac if you want to draw to an off-screen buffer
+%             i.e. you want to use frame grab to create images but not
+%             necessarily open a window, you can use an "offscreenContext" by setting
+%             the following before using mglOpen:
+%
+%             mglSetParam('useCGL',0);
+%             mglSetParam('offscreenContext',1);
+%             % and open a windowed context:
+%             mglOpen(0);
 %       e.g.: 
 %
 %mglOpen();
