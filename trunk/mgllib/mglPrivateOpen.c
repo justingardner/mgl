@@ -265,7 +265,10 @@ unsigned long cocoaOpen(double *displayNumber, int *screenWidth, int *screenHeig
 
   // show window
   if (verbose) mexPrintf("(mglPrivateOpen) Order window\n");
-  [myWindow orderFront:nil];
+  if (!mglGetGlobalDouble("offscreenContext"))
+    [myWindow orderFront:nil];
+  else
+    if (verbose) mexPrintf("(mglPrivateOpen) Offscreen context\n");
   if (verbose) mexPrintf("(mglPrivateOpen) Display window\n");
   [myWindow display];
   if (verbose) mexPrintf("(mglPrivateOpen) Window isVisible:%i\n",[myWindow isVisible]);
