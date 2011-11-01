@@ -127,9 +127,9 @@
 
 // Load the OpenGL libs.  We do this here so that people
 // don't need to modify their mexopts file.
-#pragma comment(lib, "glu32.lib");
-#pragma comment(lib, "opengl32.lib");
-#pragma comment(lib, "glew32.lib");
+#pragma comment(lib, "glu32.lib")
+#pragma comment(lib, "opengl32.lib")
+#pragma comment(lib, "glew32.lib")
 
 #define strcasecmp _stricmp
 #define round(x) floor(x+0.5)

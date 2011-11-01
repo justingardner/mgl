@@ -77,15 +77,24 @@ for nArg = 1:numel(varargin)
     error('Attempted to pass an argument that is not a mex option.');
   end
 end
-if ismac()
-    [stat,result] = system('system_profiler SPSoftwareDataType');
-    sysinfo = regexp(result, 'Mac OS X 10.(?<ver>\d?)', 'names');
-    if str2double(sysinfo.ver) >= 7 % >= lion
-        optf = 'mexopts.sh';
-    else
-        optf = 'mexopts.10.5.sh';
-    end
+
+% Select the mex options file and set any compile parameters based on the
+% operating system and version.
+if ismac
+  [~,result] = system('system_profiler SPSoftwareDataType');
+  sysinfo = regexp(result, 'Mac OS X 10.(?<ver>\d?)', 'names');
+  if str2double(sysinfo.ver) >= 7 % >= lion
+    optf = '-f ./mexopts.sh';
+  else
+    optf = '-f ./mexopts.10.5.sh';
+  end
+elseif ispc
+  % We don't use a special options file.  The required libraries are set in
+  % mgl.h and compile flags are set here.  The default mex setup file
+  % should fill in the rest.
+  optf = '-largeArrayDims COMPFLAGS="$COMPFLAGS /TP"';
 end
+
 % close all open displays
 mglSwitchDisplay(-1);
 
@@ -111,7 +120,7 @@ end
 
 % set directories to check for mex files to compile
 if eyelink
-  mexdir{1} = fullfile(mgldir,'mglEyelink');
+  mexdir{1} = fullfile(mgldir, 'mglEyelink');
 else
   mexdir{1} = mgldir;
 end
@@ -132,7 +141,7 @@ if ~digio
     if (rebuild || length(mexfile)<1) || ...
           (datenum(sourcefile(i).date) > datenum(mexfile(1).date)) || ...
           (datenum(hfile(1).date) > datenum(mexfile(1).date))
-      command = sprintf('mex -f ./%s ', optf);
+      command = sprintf('mex %s ', optf);
       if exist('arg', 'var') && isfield(arg, 'name');
         command = [command sprintf('%s ',arg.name)];
       end
