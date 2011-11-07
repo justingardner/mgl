@@ -10,13 +10,13 @@
 %             or as few as you like.
 %
 %             To display wedges
-%             mglRetinotopy('wedges')
+%             mglRetinotopy('wedges=1')
 % 
 %             To display rings
-%             mglRetinotopy('rings')
+%             mglRetinotopy('rings=1')
 %
-%             To display bars, set the barAngle
-%             mglRetinotopy('barAngle=90');
+%             To display bars, set bars
+%             mglRetinotopy('bars=1');
 %
 %             The direction can be set to 1 or -1 (default=1)
 %             mglRetinotopy('direction=-1')
@@ -62,28 +62,33 @@
 function myscreen = mglRetinotopy(varargin)
 
 % evaluate the arguments
-eval(evalargs(varargin,0,0,{'wedges','rings','barAngle','elementAngle','wedgesOrRings','direction','dutyCycle','stepsPerCycle','stimulusPeriod','numCycles','doEyeCalib','initialHalfCycle','volumesPerCycle','displayName','easyFixTask','dispText','barWidth','barSweepExtent','elementSize','barStepsMatchElementSize','synchToVolEachCycle'}));
+eval(evalargs(varargin,0,0,{'wedges','rings','bars','barAngle','elementAngle','direction','dutyCycle','stepsPerCycle','stimulusPeriod','numCycles','doEyeCalib','initialHalfCycle','volumesPerCycle','displayName','easyFixTask','dispText','barWidth','barSweepExtent','elementSize','barStepsMatchElementSize','synchToVolEachCycle','blanks','fixedRandom'}));
 
 global stimulus;
 
+% default to wedges
+stimulusType = 1;
+
 % setup default arguments
-if exist('wedges','var') && ~isempty(wedges),wedgesOrRings = 1;,end
-if exist('rings','var') && ~isempty(rings),wedgesOrRings = 0;,end
-if exist('barAngle','var') && ~isempty(barAngle),stimulus.barAngle = barAngle;else,stimulus.barAngle=[];end
-if ieNotDefined('wedgesOrRings'),wedgesOrRings = 1;end
+if exist('wedges','var') && ~isempty(wedges),stimulusType = 1;,end
+if exist('rings','var') && ~isempty(rings),stimulusType = 2;,end
+if exist('bars','var') && ~isempty(bars),stimulusType = 3;,end
+if ~exist('barAngle','var') || isempty(barAngle),barAngle=[0:45:270];end
+if ieNotDefined('fixedRandom') stimulus.fixedRandom = 0;else stimulus.fixedRandom = fixedRandom;end
+if ieNotDefined('blanks'),blanks = false;end
 if ieNotDefined('direction'),direction = 1;end
 if ieNotDefined('dutyCycle'),dutyCycle = 0.25;end
 if ieNotDefined('stepsPerCycle'),stepsPerCycle = 24;end
 if ieNotDefined('stimulusPeriod'),stimulusPeriod = 24;end
 if ieNotDefined('numCycles'),numCycles = 10;end
 if ieNotDefined('doEyeCalib'),doEyeCalib = -1;end
-if ieNotDefined('initialHalfCycle'),initialHalfCycle = 1;end
+if ieNotDefined('initialHalfCycle') initialHalfCycle = 1;end
 if ieNotDefined('displayName'),displayName = 'projector';end
 if ieNotDefined('easyFixTask'),easyFixTask = 1;end
 if ieNotDefined('dispText'),dispText = '';end
 if ieNotDefined('barWidth'),barWidth = 3;end
 if ieNotDefined('elementAngle'),elementAngle = 'parallel';end
-if ieNotDefined('barSweepExtent'),barSweepExtent = 'max';end
+if ieNotDefined('barSweepExtent'),barSweepExtent = 'min';end
 if ieNotDefined('elementSize'),elementSize = [];end
 if ieNotDefined('barStepsMatchElementSize'),barStepsMatchElementSize=true;end
 if ieNotDefined('synchToVolEachCycle'),synchToVolEachCycle=false;end
@@ -91,8 +96,12 @@ if ieNotDefined('synchToVolEachCycle'),synchToVolEachCycle=false;end
 myscreen.allowpause = 1;
 myscreen.displayname = displayName;
 myscreen.background = 'gray';
-myscreen = initScreen(myscreen);
-
+if isempty(stimulus.fixedRandom) || (stimulus.fixedRandom == 0)
+  myscreen = initScreen(myscreen);
+else
+  % set randomization to always be the same
+  myscreen = initScreen(myscreen,stimulus.fixedRandom);
+end
 % init the stimulus
 myscreen = initStimulus('stimulus',myscreen);
 
@@ -130,9 +139,9 @@ else
   stimulus.stepsPerCycle = stepsPerCycle;
 end
 % set the parameters of the stimulus
-% whether to display wedges or rings
-% 1 for wedges/ 0 for rings
-stimulus.wedgesOrRings = wedgesOrRings;
+% whether to display wedges or rings or bars
+% 1 for wedges 2 for rings 3 for bars
+stimulus.stimulusType = stimulusType;
 % min/max radius is the size of the stimulus
 stimulus.minRadius = 0.5;
 stimulus.maxRadius = min(myscreen.imageWidth/2,myscreen.imageHeight/2);
@@ -187,39 +196,68 @@ task{2}{1}.waitForBacktick = 1;
 % make every segment very short and let the synchToVol capture 
 % the volumes to move on to the next segment 
 if ~ieNotDefined('volumesPerCycle')
-  task{2}{1}.seglen = 1;
+  task{2}{1}.seglen(1:volumesPerCycle) = 1;
   task{2}{1}.timeInVols = 1;
   % this is set so that we can end
   task{2}{1}.fudgeLastVolume = 1;
 % otherwise, we are given the stimulusPeriod and stepsPerCycle and
 % we compute stuff in seconds
 else
+  numSegs = stimulus.stepsPerCycle;
+  task{2}{1}.seglen(1:numSegs) = (stimulus.stimulusPeriod/stimulus.stepsPerCycle);
+  % set the synchToVol to wait for a backtick at the end of the last cycle
+  task{2}{1}.synchToVol(1:numSegs) = 0;
   if synchToVolEachCycle
     % in this case, keep time in seconds, but synch to the volume
     % at the end of each cycle to insure that we are still sycned
     % with scanner acquisition
-    numSegs = stimulus.stepsPerCycle;
-    task{2}{1}.seglen(1:numSegs) = (stimulus.stimulusPeriod/stimulus.stepsPerCycle);
-    % set the synchToVol to wait for a backtick at the end of the last cycle
-    task{2}{1}.synchToVol(1:numSegs) = 0;
     task{2}{1}.synchToVol(numSegs) = 1;
     % make the last segment a bit shorter so that it will be waiting 
     % for a backtick to synch
     task{2}{1}.seglen(numSegs) = 4*(stimulus.stimulusPeriod/stimulus.stepsPerCycle)/5;
-  else
-    % every trial/segment is the same (i.e. no need to synch at the
-    % end of each cycle of the stimulus)
-    task{2}{1}.seglen = (stimulus.stimulusPeriod/stimulus.stepsPerCycle);
   end
 end
 
-% init the number of trials needed
-task{2}{1}.numTrials = stimulus.numCycles*stimulus.stepsPerCycle + stimulus.initialHalfCycle*round(stimulus.stepsPerCycle/2);
+% init the number of trials needed andd one for the initial half cycle.
+% initial half cycle will be handled by jumping to the end of the trial
+% after half the first cycle in startSegmentCallback
+task{2}{1}.numTrials = stimulus.numCycles + stimulus.initialHalfCycle;
 
 % now add a trace for saving information about the phase of the 
 % stimulus mask. This can be used for reconstructing the stimulus 
 % sequence for example to use to do a pRF analysis
 [task{2}{1} myscreen] = addTraces(task{2}{1},myscreen,'maskPhase');
+% add track for blank
+[task{2}{1} myscreen] = addTraces(task{2}{1},myscreen,'blank');
+
+% add a field for elementAngle if we are doing bars
+if stimulus.stimulusType == 3
+  task{2}{1}.randVars.calculated.elementAngle = nan;
+  task{2}{1}.parameter.barAngle = barAngle;
+  task{2}{1}.random = 1;
+end
+
+% make a variable to control when there will be a stimulus blank
+task{2}{1}.randVars.blank = zeros(1,task{2}{1}.numTrials);
+stimulus.blanks = blanks;
+if stimulus.blanks 
+  if stimulus.stimulusType == 3
+    % for bars, simply add some -1 barAngles
+    task{2}{1}.parameter.barAngle = [barAngle repmat(-1,1,stimulus.blanks)];
+  else
+    % set stimulus.blanks number of trials to have an either 1 or 2
+    % in them (for first or second half to be blank)
+    blank(1:stimulus.numCycles) = 0;
+    blank(1:stimulus.blanks) = ceil(2*rand(1,stimulus.blanks));
+    % now randomize which trials those are, note that the first trial
+    % can't be blank if initialHalfCycle is set
+    if stimulus.initialHalfCycle
+      task{2}{1}.randVars.blank(2:stimulus.numCycles+1) = blank(randperm(stimulus.numCycles));
+    else
+      task{2}{1}.randVars.blank(1:stimulus.numCycles) = blank(randperm(stimulus.numCycles));
+    end    
+  end
+end
 
 % init the task
 [task{2}{1} myscreen] = initTask(task{2}{1},myscreen,@startSegmentCallback,@updateScreenCallback);
@@ -262,15 +300,84 @@ function [task myscreen] = startSegmentCallback(task, myscreen)
 
 global stimulus;
 
+% debugging
+if task.thistrial.thisseg == 1
+  if stimulus.stimulusType == 3
+    disp(sprintf('barAngle: %i',task.thistrial.barAngle));
+  end
+end
+% check for blank stimulus type with bars
+if (stimulus.stimulusType == 3)
+  if task.thistrial.barAngle == -1
+    % first half cycle show blank
+    if (task.thistrial.thisseg <= round(stimulus.stepsPerCycle/2)) 
+      stimulus.blank = 1;
+      return;
+    % second half jump to next trial
+    else
+      if stimulus.direction == 1,stimulus.currentMask = 0;else stimulus.currentMask = 1;end
+      task = jumpSegment(task,inf);
+      return
+    end
+  end
+end
+
+% handle first cycle being only one half
+if stimulus.initialHalfCycle && (task.trialnum == 1) && (task.thistrial.thisseg > round(stimulus.stepsPerCycle/2))
+  disp(sprintf('(mglRetinotopy) Jumping after first half cycle'));
+  task = jumpSegment(task,inf);
+  return
+end
+
+% for bar stimulus, on the first segment, we need to set up the directions
+if (stimulus.stimulusType == 3) && (task.thistrial.thisseg == 1)
+  % get the element angle for bar stimuli
+  % if element angle is a string, then
+  if isstr(stimulus.elementAngle) 
+    % if orthogonal, set to to orthogonal to bar angle
+    if strcmp(stimulus.elementAngle,'orthogonal')
+      task.thistrial.elementAngle = task.thistrial.barAngle-90;
+    else
+      % otherwise the same as the bar angle
+      task.thistrial.elementAngle = task.thistrial.barAngle;
+    end
+  else
+    task.thistrial.elementAngle = stimulus.elementAngle;
+  end
+
+  % now make a rotation matrix for the background angle
+  c = cos(pi*task.thistrial.elementAngle/180);
+  s = sin(pi*task.thistrial.elementAngle/180);
+  stimulus.elementRotMatrix = [c s;-s c];
+
+  % now make a rotation matrix for the bar angle we want to present
+  c = cos(pi*task.thistrial.barAngle/180);
+  s = sin(pi*task.thistrial.barAngle/180);
+  stimulus.maskBarRotMatrix = [c s;-s c];
+end
+
 % update the mask number each trial
 stimulus.currentMask = stimulus.currentMask+stimulus.direction;
-if stimulus.wedgesOrRings
+if stimulus.stimulusType == 1
   stimulus.currentMask = 1+mod(stimulus.currentMask-1,stimulus.wedgeN);
 else
   stimulus.currentMask = 1+mod(stimulus.currentMask-1,stimulus.ringN);
 end
+%disp(sprintf('%i:%i',task.trialnum,stimulus.currentMask));
 
-% save hte mask phase in the traces so that we can 
+% check to see if this is a blank interval
+stimulus.blank = 0;
+if task.thistrial.blank
+  if (task.thistrial.blank==1) && (task.thistrial.thisseg <= round(stimulus.stepsPerCycle/2)) 
+    stimulus.blank = 1;
+  elseif (task.thistrial.blank==2) && (task.thistrial.thisseg > round(stimulus.stepsPerCycle/2)) 
+    stimulus.blank = 1;
+  end
+end
+% save the blank status
+myscreen = writeTrace(stimulus.blank,task.blankTrace,myscreen);
+
+% save the mask phase in the traces so that we can 
 % later reconstruct the mask for pRF processing
 myscreen = writeTrace(stimulus.currentMask,task.maskPhaseTrace,myscreen);
 
@@ -280,6 +387,7 @@ myscreen = writeTrace(stimulus.currentMask,task.maskPhaseTrace,myscreen);
 function [task myscreen] = updateScreenCallback(task, myscreen)
 
 global stimulus
+if stimulus.blank,mglClearScreen;return,end
 stimulus = updateWedges(stimulus,myscreen);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -507,126 +615,94 @@ for radiusNum = 1:length(stimulus.ringRadiusMin)
 end
 stimulus.ringN = length(stimulus.ringRadiusMin);
 
-% get the element angle for bar stimuli
-if ~isempty(stimulus.barAngle)
-  % if element angle is a string, then
-  if isstr(stimulus.elementAngle) 
-    % if orthogonal, set to to orthogonal to bar angle
-    if strcmp(stimulus.elementAngle,'orthogonal')
-      stimulus.elementAngle = stimulus.barAngle-90;
-    else
-      % otherwise the same as the bar angle
-      stimulus.elementAngle = stimulus.barAngle;
-    end
-  end
-else  
-  % if barAngle is not set then elementAngle does not matter
-  stimulus.elementAngle = nan;
-end
-
-% now make a rotation matrix for the background angle
-if ~isempty(stimulus.elementAngle)
-  c = cos(pi*stimulus.elementAngle/180);
-  s = sin(pi*stimulus.elementAngle/180);
-  stimulus.elementRotMatrix = [c s;-s c];
-end
-
-% now make a rotation matrix for each bar angle we want to present
-if ~isempty(stimulus.barAngle)
-  c = cos(pi*stimulus.barAngle/180);
-  s = sin(pi*stimulus.barAngle/180);
-  stimulus.maskBarRotMatrix = [c s;-s c];
-else
-  stimulus.maskBarRotMatrix = eye(2);
-end
-
 % now make masks for bars
+if stimulus.stimulusType == 3
+  % get x and y of bar center (note that this is before we apply the
+  % rotation to coordinates, so we are making the coordinates as if
+  % we are going to make horizontally sweeping bars - we will later
+  % rotate the coordinates around the center to get the other sweep angels
 
-% get x and y of bar center (note that this is before we apply the
-% rotation to coordinates, so we are making the coordinates as if
-% we are going to make horizontally sweeping bars - we will later
-% rotate the coordinates around the center to get the other sweep angels
-
-% start by figuring out over what the extent of visual angle
-% that we want to sweep the bars over
-if isempty(stimulus.barSweepExtent),stimulus.barSweepExtent = 'max';end
-if isstr(stimulus.barSweepExtent)
-  if strcmp(stimulus.barSweepExtent,'min')
-    sweepExtent = min(myscreen.imageWidth,myscreen.imageHeight);
-  elseif strcmp(stimulus.barSweepExtent,'max')
-    barDirVec = abs(stimulus.maskBarRotMatrix*[1 0]');
-    sweepExtent = max(barDirVec(1)*myscreen.imageWidth,barDirVec(2)*myscreen.imageHeight);
+  % start by figuring out over what the extent of visual angle
+  % that we want to sweep the bars over
+  if isempty(stimulus.barSweepExtent),stimulus.barSweepExtent = 'max';end
+  if isstr(stimulus.barSweepExtent)
+    if strcmp(stimulus.barSweepExtent,'min')
+      sweepExtent = min(myscreen.imageWidth,myscreen.imageHeight);
+    elseif strcmp(stimulus.barSweepExtent,'max')
+      barDirVec = abs(stimulus.maskBarRotMatrix*[1 0]');
+      sweepExtent = max(barDirVec(1)*myscreen.imageWidth,barDirVec(2)*myscreen.imageHeight);
+    else
+      disp(sprintf('(mglRetinotopy) Unknown Bar sweep extent; %s',stimulus.barSweepExtent));
+      keyboard
+    end
   else
-    disp(sprintf('(mglRetinotopy) Unknown Bar sweep extent; %s',stimulus.barSweepExtent));
-    keyboard
+    sweepExtent = stimulus.barSweepExtent;
   end
-else
-  sweepExtent = stimulus.barSweepExtent;
-end
-% calculate the stepSize that we will have with this sweepExtent
-stepSize = sweepExtent/(stimulus.stepsPerCycle-1);
-% now round that stepSize to the size of half an element
-% so that the bars all show at the same part of the underlying
-% checkerboard
-if stimulus.barStepsMatchElementSize
-  % set the granularity - that is, stepSize will need
-  % to be an integer multiple of stepSizeGranularity.
-  % If this is just elementWidth then the stepSize
-  % will never have only part of element in it.
-  stepSizeGranularity = stimulus.elementWidth/4;
-  % keep original step size for comparison, to
-  % tell user what we are doing
-  originalStepSize = stepSize;
-  stepSize = round(stepSize/stepSizeGranularity)*stepSizeGranularity;
-  % make sure stepSize is greater than 0
-  stepSize = max(stepSize,stepSizeGranularity);
-  % if the stepSize is not evenly divisible into the elementWidth
-  % then we add an offset to the start position, so that the stimulus
-  % is always centered on the element size
-  setMiddleBarToCenter = stepSize/stimulus.elementWidth;
-  setMiddleBarToCenter = (setMiddleBarToCenter - floor(setMiddleBarToCenter)) ~= 0;
-  % tell user what is going on if the stepSize is greater than 10% of desired
-  if (stepSize >= 1.05*originalStepSize) ||  (stepSize <= 0.95*originalStepSize) 
-    disp(sprintf('(mglRetinotopy) Bar step size has been set to %0.2f (from ideal %0.2f) which changes the coverage',stepSize,originalStepSize));
-    disp(sprintf('                of the bars from the desired barSweepExtent of %0.2f to %0.2f ',-sweepExtent/2,sweepExtent/2));
-    disp(sprintf('                (see barCenter setting below). This is done to match the underlying'));
-    disp(sprintf('                pattern better. If you want to have the bars exactly cover the '));
-    disp(sprintf('                barSweepExtent, set barStepsMatchElementSize to false or set the'));
-    disp(sprintf('                elementSize (%0.2fx%0.2f) such that the bar step size is an integer multiple',stimulus.elementWidth,stimulus.elementHeight));
-    disp(sprintf('                of that elementSize'));
+  % calculate the stepSize that we will have with this sweepExtent
+  stepSize = sweepExtent/(stimulus.stepsPerCycle-1);
+  % now round that stepSize to the size of half an element
+  % so that the bars all show at the same part of the underlying
+  % checkerboard
+  if stimulus.barStepsMatchElementSize
+    % set the granularity - that is, stepSize will need
+    % to be an integer multiple of stepSizeGranularity.
+    % If this is just elementWidth then the stepSize
+    % will never have only part of element in it.
+    stepSizeGranularity = stimulus.elementWidth/4;
+    % keep original step size for comparison, to
+    % tell user what we are doing
+    originalStepSize = stepSize;
+    stepSize = round(stepSize/stepSizeGranularity)*stepSizeGranularity;
+    % make sure stepSize is greater than 0
+    stepSize = max(stepSize,stepSizeGranularity);
+    % if the stepSize is not evenly divisible into the elementWidth
+    % then we add an offset to the start position, so that the stimulus
+    % is always centered on the element size
+    setMiddleBarToCenter = stepSize/stimulus.elementWidth;
+    setMiddleBarToCenter = (setMiddleBarToCenter - floor(setMiddleBarToCenter)) ~= 0;
+    % tell user what is going on if the stepSize is greater than 10% of desired
+    if (stepSize >= 1.05*originalStepSize) ||  (stepSize <= 0.95*originalStepSize) 
+      disp(sprintf('(mglRetinotopy) Bar step size has been set to %0.2f (from ideal %0.2f) which changes the coverage',stepSize,originalStepSize));
+      disp(sprintf('                of the bars from the desired barSweepExtent of %0.2f to %0.2f ',-sweepExtent/2,sweepExtent/2));
+      disp(sprintf('                (see barCenter setting below). This is done to match the underlying'));
+      disp(sprintf('                pattern better. If you want to have the bars exactly cover the '));
+      disp(sprintf('                barSweepExtent, set barStepsMatchElementSize to false or set the'));
+      disp(sprintf('                elementSize (%0.2fx%0.2f) such that the bar step size is an integer multiple',stimulus.elementWidth,stimulus.elementHeight));
+      disp(sprintf('                of that elementSize'));
+    end
+  else
+    setMiddleBarToCenter = false;
   end
-else
-  setMiddleBarToCenter = false;
-end
-% now create the steps
-stimulus.barCenter = [];
-if isodd(stimulus.stepsPerCycle)
-  % for odd number of steps cover the center of the screen
-  stimulus.barCenter(:,1) = -stepSize*(stimulus.stepsPerCycle-1)/2:stepSize:stepSize*(stimulus.stepsPerCycle-1)/2;
-else
-  % for even number of steps, will be symmetric around the center
-  stimulus.barCenter(:,1) = -stepSize*stimulus.stepsPerCycle/2+stepSize/2:stepSize:stepSize*stimulus.stepsPerCycle/2-stepSize/2;
-end
-stimulus.barCenter(:,2) = 0;
-if setMiddleBarToCenter
-  stimulus.barCenter(:,1) = stimulus.barCenter(:,1)-min(abs(stimulus.barCenter(:,1)));
-end
+  % now create the steps
+  stimulus.barCenter = [];
+  if isodd(stimulus.stepsPerCycle)
+    % for odd number of steps cover the center of the screen
+    stimulus.barCenter(:,1) = -stepSize*(stimulus.stepsPerCycle-1)/2:stepSize:stepSize*(stimulus.stepsPerCycle-1)/2;
+  else
+    % for even number of steps, will be symmetric around the center
+    stimulus.barCenter(:,1) = -stepSize*stimulus.stepsPerCycle/2+stepSize/2:stepSize:stepSize*stimulus.stepsPerCycle/2-stepSize/2;
+  end
+  stimulus.barCenter(:,2) = 0;
+  if setMiddleBarToCenter
+    stimulus.barCenter(:,1) = stimulus.barCenter(:,1)-min(abs(stimulus.barCenter(:,1)));
+  end
 
-% display the bar centers
-disp(sprintf('(mglRetinotopy) barCenter: %s',num2str(stimulus.barCenter(:,1)','%0.02f ')));
+  % display the bar centers
+  disp(sprintf('(mglRetinotopy) barCenter: %s',num2str(stimulus.barCenter(:,1)','%0.02f ')));
 
-% now make the left hand bar mask - remember we are making the inverse
-% of the bar so we need to mask out everything to the left and to the
-% right of the bar.
-stimulus.maskBarLeft(1,:) = [-stimulus.barWidth/2 -stimulus.barHeight/2]';
-stimulus.maskBarLeft(2,:) = [-stimulus.barWidth/2-stimulus.barMaskWidth -stimulus.barHeight/2]';
-stimulus.maskBarLeft(3,:) = [-stimulus.barWidth/2-stimulus.barMaskWidth stimulus.barHeight/2]';
-stimulus.maskBarLeft(4,:) = [-stimulus.barWidth/2 stimulus.barHeight/2]';
-% now make the right hand bar mask
-stimulus.maskBarRight(1,:) = [stimulus.barWidth/2 -stimulus.barHeight/2]';
-stimulus.maskBarRight(2,:) = [stimulus.barWidth/2+stimulus.barMaskWidth -stimulus.barHeight/2]';
-stimulus.maskBarRight(3,:) = [stimulus.barWidth/2+stimulus.barMaskWidth stimulus.barHeight/2]';
-stimulus.maskBarRight(4,:) = [stimulus.barWidth/2 stimulus.barHeight/2]';
+  % now make the left hand bar mask - remember we are making the inverse
+  % of the bar so we need to mask out everything to the left and to the
+  % right of the bar.
+  stimulus.maskBarLeft(1,:) = [-stimulus.barWidth/2 -stimulus.barHeight/2]';
+  stimulus.maskBarLeft(2,:) = [-stimulus.barWidth/2-stimulus.barMaskWidth -stimulus.barHeight/2]';
+  stimulus.maskBarLeft(3,:) = [-stimulus.barWidth/2-stimulus.barMaskWidth stimulus.barHeight/2]';
+  stimulus.maskBarLeft(4,:) = [-stimulus.barWidth/2 stimulus.barHeight/2]';
+  % now make the right hand bar mask
+  stimulus.maskBarRight(1,:) = [stimulus.barWidth/2 -stimulus.barHeight/2]';
+  stimulus.maskBarRight(2,:) = [stimulus.barWidth/2+stimulus.barMaskWidth -stimulus.barHeight/2]';
+  stimulus.maskBarRight(3,:) = [stimulus.barWidth/2+stimulus.barMaskWidth stimulus.barHeight/2]';
+  stimulus.maskBarRight(4,:) = [stimulus.barWidth/2 stimulus.barHeight/2]';
+end
 
 % set the current mask that will be displayed
 if stimulus.direction == 1
@@ -645,7 +721,7 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function stimulus = updateWedges(stimulus,myscreen)
 
-if ~isempty(stimulus.barAngle)
+if stimulus.stimulusType == 3
   % update the phase of the sliding wedges
   stimulus.phaseNumRect = 1+mod(stimulus.phaseNumRect,stimulus.nRect);
 
@@ -675,7 +751,7 @@ else
   mglQuad(stimulus.x{stimulus.phaseNum},stimulus.y{stimulus.phaseNum},stimulus.c{stimulus.phaseNum},1);
   
   % mask out to get a wedge
-  if stimulus.wedgesOrRings
+  if stimulus.stimulusType == 1
     mglPolygon(stimulus.maskWedgeX{stimulus.currentMask},stimulus.maskWedgeY{stimulus.currentMask},0.5);
     % or mask out to get a ring
   else
