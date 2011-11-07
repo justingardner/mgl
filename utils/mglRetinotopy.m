@@ -73,7 +73,7 @@ stimulusType = 1;
 if exist('wedges','var') && ~isempty(wedges),stimulusType = 1;,end
 if exist('rings','var') && ~isempty(rings),stimulusType = 2;,end
 if exist('bars','var') && ~isempty(bars),stimulusType = 3;,end
-if ~exist('barAngle','var') || isempty(barAngle),barAngle=[0:45:270];end
+if ~exist('barAngle','var') || isempty(barAngle),barAngle=[0:45:359];end
 if ieNotDefined('fixedRandom') stimulus.fixedRandom = 0;else stimulus.fixedRandom = fixedRandom;end
 if ieNotDefined('blanks'),blanks = false;end
 if ieNotDefined('direction'),direction = 1;end
@@ -234,7 +234,7 @@ task{2}{1}.numTrials = stimulus.numCycles + stimulus.initialHalfCycle;
 if stimulus.stimulusType == 3
   task{2}{1}.randVars.calculated.elementAngle = nan;
   task{2}{1}.parameter.barAngle = barAngle;
-  task{2}{1}.random = 1;
+  task{2}{1}.random = 0;
 end
 
 % make a variable to control when there will be a stimulus blank
@@ -243,7 +243,10 @@ stimulus.blanks = blanks;
 if stimulus.blanks 
   if stimulus.stimulusType == 3
     % for bars, simply add some -1 barAngles
-    task{2}{1}.parameter.barAngle = [barAngle repmat(-1,1,stimulus.blanks)];
+    barAngleSeq = [0 barAngle repmat(-1,1,stimulus.blanks)];
+    barAngleSeq(2:end) = barAngleSeq(randperm(length(barAngleSeq)-1)+1);
+    task{2}{1}.parameter.barAngle = barAngleSeq;
+    task{2}{1}.numTrials = length(barAngleSeq);
   else
     % set stimulus.blanks number of trials to have an either 1 or 2
     % in them (for first or second half to be blank)
@@ -303,7 +306,7 @@ global stimulus;
 % debugging
 if task.thistrial.thisseg == 1
   if stimulus.stimulusType == 3
-    disp(sprintf('barAngle: %i',task.thistrial.barAngle));
+    disp(sprintf('%i: barAngle: %i',task.trialnum,task.thistrial.barAngle));
   end
 end
 % check for blank stimulus type with bars
