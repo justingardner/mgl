@@ -243,7 +243,7 @@ stimulus.blanks = blanks;
 if stimulus.blanks 
   if stimulus.stimulusType == 3
     % for bars, simply add some -1 barAngles
-    barAngleSeq = [0 barAngle repmat(-1,1,stimulus.blanks)];
+    barAngleSeq = [-1 barAngle repmat(-1,1,stimulus.blanks)];
     barAngleSeq(2:end) = barAngleSeq(randperm(length(barAngleSeq)-1)+1);
     task{2}{1}.parameter.barAngle = barAngleSeq;
     task{2}{1}.numTrials = length(barAngleSeq);
