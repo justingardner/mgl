@@ -74,11 +74,10 @@ if ~isequal(monitor,-1)
   % Close when the user hits a key
   mglListener('init');
   mglGetKeyEvent([],1);
-  mglGetMouseEvent([],1);
-  disp(sprintf('(mglMonitorDims) Type any key to end'));
-  mouseEvent = mglGetMouseEvent;
-  while(isempty(mglGetKeyEvent) && (mouseEvent.buttons == 0))
-    mouseEvent = mglGetMouseEvent;
+  keyEvent = [];
+  disp(sprintf('(mglMonitorDims) Type ESC to end'));
+  while isempty(keyEvent) || (keyEvent.keyCode ~= 54)
+    keyEvent = mglGetKeyEvent;
   end
   mglListener('quit');
   mglClose;
