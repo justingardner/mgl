@@ -187,6 +187,8 @@ stimulus.barSweepExtent = barSweepExtent;
 stimulus.elementAngle = elementAngle;
 % init the stimulus
 stimulus = initWedges(stimulus,myscreen);
+stimulus.cycleTime = mglGetSecs;
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % set our task to have a segment for each stimulus step
 % and a trial for each cycle of the stimulus
@@ -215,6 +217,8 @@ else
     % make the last segment a bit shorter so that it will be waiting 
     % for a backtick to synch
     task{2}{1}.seglen(numSegs) = 4*(stimulus.stimulusPeriod/stimulus.stepsPerCycle)/5;
+    % so we can end at the end of the scan
+    task{2}{1}.fudgeLastVolume = 1;
   end
 end
 
@@ -309,11 +313,16 @@ if task.thistrial.thisseg == 1
     disp(sprintf('%i: barAngle: %i',task.trialnum,task.thistrial.barAngle));
   end
 end
+
+if task.thistrial.thisseg == 1
+    disp(sprintf('%i: %f last cycle length',task.trialnum,mglGetSecs(stimulus.cycleTime)));
+    stimulus.cycleTime = mglGetSecs;
+end
 % check for blank stimulus type with bars
 if (stimulus.stimulusType == 3)
   if task.thistrial.barAngle == -1
     % first half cycle show blank
-    if (task.thistrial.thisseg <= round(stimulus.stepsPerCycle/2)) 
+    if (task.thistrial.thisseg < round(stimulus.stepsPerCycle/2)) 
       stimulus.blank = 1;
       return;
     % second half jump to next trial
@@ -323,13 +332,6 @@ if (stimulus.stimulusType == 3)
       return
     end
   end
-end
-
-% handle first cycle being only one half
-if stimulus.initialHalfCycle && (task.trialnum == 1) && (task.thistrial.thisseg > round(stimulus.stepsPerCycle/2))
-  disp(sprintf('(mglRetinotopy) Jumping after first half cycle'));
-  task = jumpSegment(task,inf);
-  return
 end
 
 % for bar stimulus, on the first segment, we need to set up the directions
@@ -371,18 +373,27 @@ end
 % check to see if this is a blank interval
 stimulus.blank = 0;
 if task.thistrial.blank
-  if (task.thistrial.blank==1) && (task.thistrial.thisseg <= round(stimulus.stepsPerCycle/2)) 
+  if (task.thistrial.blank==1) && (task.thistrial.thisseg < round(stimulus.stepsPerCycle/2)) 
     stimulus.blank = 1;
-  elseif (task.thistrial.blank==2) && (task.thistrial.thisseg > round(stimulus.stepsPerCycle/2)) 
+  elseif (task.thistrial.blank==2) && (task.thistrial.thisseg >= round(stimulus.stepsPerCycle/2)) 
     stimulus.blank = 1;
   end
 end
+
 % save the blank status
 myscreen = writeTrace(stimulus.blank,task.blankTrace,myscreen);
 
 % save the mask phase in the traces so that we can 
 % later reconstruct the mask for pRF processing
 myscreen = writeTrace(stimulus.currentMask,task.maskPhaseTrace,myscreen);
+
+% handle first cycle being only one half
+if stimulus.initialHalfCycle && (task.trialnum == 1) && (task.thistrial.thisseg >= round(stimulus.stepsPerCycle/2))
+  disp(sprintf('(mglRetinotopy) Jumping after first half cycle'));
+  task = jumpSegment(task,inf);
+  return
+end
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % function that gets called to draw the stimulus each frame
