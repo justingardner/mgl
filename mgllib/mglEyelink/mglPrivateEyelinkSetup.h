@@ -133,6 +133,13 @@ INT16 mglcGetKeyEvent(MGLKeyEvent *mglKey);
 
 unsigned char *renderText(char *cInputString, char*fontName, int fontSize, double *fontColor, double fontRotation, Boolean fontBold, Boolean fontItalic, Boolean fontUnderline, Boolean fontStrikethrough, int *pixelsWide, int *pixelsHigh, Rect *textImageRect);
 
+// Structure to encapsulate some of the calibration target parameters.
+typedef struct 
+{
+  double innerRGB[3];
+  double outerRGB[3];
+} CalibrationTarget;
+
 // =============================
 // = (Static) Member Variables =
 // =============================
@@ -157,4 +164,8 @@ GLubyte cameraImageColormap[256][3];
 
 double screenCenterX;
 double screenCenterY;
+
+static CalibrationTarget _calTarget;
+
 #endif __MGLEYELINK_H
+
