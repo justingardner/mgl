@@ -31,7 +31,7 @@ if nargin > 2
 end
 
 % Set the default display number if it isn't specified.
-if ~exist('displayNumber', 'var') || isempty(displayContext)
+if ~exist('displayNumber', 'var') || isempty(displayNumber)
 	displayNumber = MGL.displayNumber;
 end
 
