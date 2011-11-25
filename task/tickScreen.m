@@ -31,8 +31,10 @@ if myscreen.useDigIO
       acqPulse = find(ismember(digin.type(acqPulse),myscreen.digin.acqType));
       if ~isempty(acqPulse)
 	volTime = digin.when(acqPulse(1));
+	acqPulse = 1;
+      else
+	acqPulse = 0;
       end
-      acqPulse = 1;
     else
       acqPulse = 0;
     end
