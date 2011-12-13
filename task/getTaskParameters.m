@@ -140,6 +140,7 @@ for taskNum = 1:length(allTasks)
 	  % and initalize other parameters
 	  experiment(phaseNum).trials(tnum).response = [];
 	  experiment(phaseNum).trials(tnum).responseVolume = [];
+	  experiment(phaseNum).trials(tnum).responseSegnum = [];
 	  experiment(phaseNum).trials(tnum).reactionTime = [];
 	  experiment(phaseNum).trials(tnum).traces.tracenum = [];
 	  experiment(phaseNum).trials(tnum).traces.val = [];
@@ -226,6 +227,25 @@ for taskNum = 1:length(allTasks)
 	% make sure this is happening after first trial
 	if tnum
 	  reactionTime = myscreen.events.time(enum)-exptStartTime-segtime;
+	  % now adjust reactionTime if the previous segments
+	  % had the response on (that is, the response time
+	  % is the time not necesarily from the beginning of 
+	  % this current segment, but from the first segment
+	  % before this one in which the subject could have
+	  % responded.
+	  if isfield(task{phaseNum},'getResponse') && (length(task{phaseNum}.getResponse) >= thisseg)
+	    % get how long each segment took relative to the previous one
+	    seglen = diff(experiment(phaseNum).trials(tnum).segtime);
+	    % now cycle backwards from the segment previous to this one
+	    i = thisseg-1;
+	    % if getResponse was on (and we are not at the beginning of the trial yet
+	    while ((i >= 1) && task{phaseNum}.getResponse(i))
+	      % then the reaction time should be increased by the length
+	      % of time the segment took.
+	      reactionTime = reactionTime+seglen(i);
+	      i=i-1;
+	    end
+	  end
 	  % save the first response in the response array
 	  if isnan(experiment(phaseNum).response(tnum))
 	    experiment(phaseNum).response(tnum) = whichButton;
@@ -238,6 +258,8 @@ for taskNum = 1:length(allTasks)
 	  % save all responses in trial
 	  experiment(phaseNum).trials(tnum).response(end+1) = whichButton;
 	  experiment(phaseNum).trials(tnum).reactionTime(end+1) = reactionTime;
+	  experiment(phaseNum).trials(tnum).responseSegnum(end+1) = thisseg;
+	  experiment(phaseNum).trials(tnum).responseVolume(end+1) = volnum;
 	end
 	% deal with user traces
       elseif myscreen.events.tracenum(enum) >= myscreen.stimtrace
