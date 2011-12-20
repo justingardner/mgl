@@ -142,6 +142,7 @@ for taskNum = 1:length(allTasks)
 	  experiment(phaseNum).trials(tnum).responseVolume = [];
 	  experiment(phaseNum).trials(tnum).responseSegnum = [];
 	  experiment(phaseNum).trials(tnum).reactionTime = [];
+	  experiment(phaseNum).trials(tnum).responseTimeRaw = [];
 	  experiment(phaseNum).trials(tnum).traces.tracenum = [];
 	  experiment(phaseNum).trials(tnum).traces.val = [];
 	  experiment(phaseNum).trials(tnum).traces.time = [];
@@ -151,6 +152,7 @@ for taskNum = 1:length(allTasks)
 	  experiment(phaseNum).response(tnum) = nan;
 	  experiment(phaseNum).responseVolume(tnum) = nan;
 	  experiment(phaseNum).reactionTime(tnum) = nan;
+	  experiment(phaseNum).responseTimeRaw(tnum) = nan;
 	  % get all the random parameter
 	  for rnum = 1:task{phaseNum}.randVars.n_
 	    eval(sprintf('experiment(phaseNum).randVars.%s(tnum) = task{phaseNum}.randVars.%s(mod(tnum-1,task{phaseNum}.randVars.varlen_(%i))+1);',task{phaseNum}.randVars.names_{rnum},task{phaseNum}.randVars.names_{rnum},rnum));
@@ -226,7 +228,10 @@ for taskNum = 1:length(allTasks)
 	whichButton = myscreen.events.data(enum);
 	% make sure this is happening after first trial
 	if tnum
+	  % reaction time relative to beginning of segment
 	  reactionTime = myscreen.events.time(enum)-exptStartTime-segtime;
+	  % responseTimeRaw is response time relative to beginning of the experiment
+	  responseTimeRaw = myscreen.events.time(enum)-exptStartTime;
 	  % now adjust reactionTime if the previous segments
 	  % had the response on (that is, the response time
 	  % is the time not necesarily from the beginning of 
@@ -250,6 +255,7 @@ for taskNum = 1:length(allTasks)
 	  if isnan(experiment(phaseNum).response(tnum))
 	    experiment(phaseNum).response(tnum) = whichButton;
 	    experiment(phaseNum).reactionTime(tnum) = reactionTime;
+	    experiment(phaseNum).responseTimeRaw(tnum) = responseTimeRaw;
 	    % now see if the response happened closer to this volume 
 	    % or closer to the next volume
 	    responseTime = myscreen.events.time(enum);
@@ -258,6 +264,7 @@ for taskNum = 1:length(allTasks)
 	  % save all responses in trial
 	  experiment(phaseNum).trials(tnum).response(end+1) = whichButton;
 	  experiment(phaseNum).trials(tnum).reactionTime(end+1) = reactionTime;
+	  experiment(phaseNum).trials(tnum).responseTimeRaw(end+1) = responseTimeRaw;
 	  experiment(phaseNum).trials(tnum).responseSegnum(end+1) = thisseg;
 	  experiment(phaseNum).trials(tnum).responseVolume(end+1) = volnum;
 	end
