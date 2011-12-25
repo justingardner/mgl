@@ -439,8 +439,8 @@ stimulus.ringRadiusMin = max(0,minRadius:(epsilon+stimulus.maxRadius-minRadius)/
 stimulus.ringRadiusMax = stimulus.minRadius:(maxRadius-stimulus.minRadius)/(stimulus.stepsPerCycle-1):maxRadius;
 
 % set some parameters for bars
-stimulus.barHeight = myscreen.screenWidth*2;
-stimulus.barMaskWidth = myscreen.screenWidth*2;
+stimulus.barHeight = myscreen.screenWidth;
+stimulus.barMaskWidth = myscreen.screenWidth;
 
 % we only need to recompute the mglQuad points of the elements if something has
 % changed in the stimulus. This is for the radial element pattern
@@ -506,8 +506,7 @@ if ~isfield(stimulus,'last') || ~isfield(stimulus,'x') || ...
   (stimulus.elementHeight ~= stimulus.last.elementHeight) || ...
   (stimulus.elementVelocity ~= stimulus.last.elementVelocity)
   maxDim = ceil(max(myscreen.imageWidth,myscreen.imageHeight)/stimulus.elementWidth)*stimulus.elementWidth;
-  maxDim = maxDim;
-  minRect = -maxDim/2-stimulus.elementWidth;
+  minRect = -maxDim/2-2*stimulus.elementWidth;
   maxRect = maxDim/2;
   % all the angles that the elements will be made up of
   allY = minRect:stimulus.elementHeight:maxRect;
