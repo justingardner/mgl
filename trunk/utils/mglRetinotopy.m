@@ -177,6 +177,15 @@ stimulus.barWidth = barWidth;
 % since each bar center will be placed either at the
 % edge or in the middle of the elements
 stimulus.barStepsMatchElementSize = barStepsMatchElementSize;
+% the following gets used if you try to match the bar steps
+% to the element size. If you set to moveBars it will offset
+% the bars to match the underlying pattern, but this causes the
+% bar sweeps to be asymmetrical (they start a little to one 
+% side and end a little short). Alternatively set to 
+% moveElemnts to move the elements relative to the bars. THis
+% will keep the bar sweeps symmetric. If you don't want to
+% do anything set to None.
+stimulus.barElementAlignmentCorrection = 'moveElements';
 % set the barSweepExtent this is the extent in degrees
 % over which the bars move
 stimulus.barSweepExtent = barSweepExtent;
@@ -186,7 +195,7 @@ stimulus.barSweepExtent = barSweepExtent;
 % to the bar motion
 stimulus.elementAngle = elementAngle;
 % init the stimulus
-stimulus = initWedges(stimulus,myscreen);
+stimulus = initRetinotopyStimulus(stimulus,myscreen);
 stimulus.cycleTime = mglGetSecs;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -402,12 +411,12 @@ function [task myscreen] = updateScreenCallback(task, myscreen)
 
 global stimulus
 if stimulus.blank,mglClearScreen;return,end
-stimulus = updateWedges(stimulus,myscreen);
+stimulus = updateRetinotopyStimulus(stimulus,myscreen);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% function to init the dot stimulus
+% function to init the retinotopy stimulus
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function stimulus = initWedges(stimulus,myscreen)
+function stimulus = initRetinotopyStimulus(stimulus,myscreen)
 
 % round to nearest quarter of a degree, this reduces
 % some edge effects
@@ -439,8 +448,8 @@ stimulus.ringRadiusMin = max(0,minRadius:(epsilon+stimulus.maxRadius-minRadius)/
 stimulus.ringRadiusMax = stimulus.minRadius:(maxRadius-stimulus.minRadius)/(stimulus.stepsPerCycle-1):maxRadius;
 
 % set some parameters for bars
-stimulus.barHeight = myscreen.screenWidth;
-stimulus.barMaskWidth = myscreen.screenWidth;
+stimulus.barHeight = myscreen.imageWidth*2;
+stimulus.barMaskWidth = myscreen.imageWidth*2;
 
 % we only need to recompute the mglQuad points of the elements if something has
 % changed in the stimulus. This is for the radial element pattern
@@ -546,6 +555,10 @@ if ~isfield(stimulus,'last') || ~isfield(stimulus,'x') || ...
   disppercent(inf);
   stimulus.nRect = length(allPhases1);
   stimulus.phaseNumRect = 1;
+  % later below when we are calculating the optimal placement of bars
+  % over the elements we may wish to offset the location of the elements
+  % we start off with no offset.
+  stimulus.xRectOffset = 0;
 else
   disp(sprintf('(mglRetinotopy) Using precomputed stimulus pattern'));
 end
@@ -671,8 +684,8 @@ if stimulus.stimulusType == 3
     % if the stepSize is not evenly divisible into the elementWidth
     % then we add an offset to the start position, so that the stimulus
     % is always centered on the element size
-    setMiddleBarToCenter = stepSize/stimulus.elementWidth;
-    setMiddleBarToCenter = (setMiddleBarToCenter - floor(setMiddleBarToCenter)) ~= 0;
+    barAndElementNeedAlignment = stepSize/stimulus.elementWidth;
+    barAndElementNeedAlignment = (barAndElementNeedAlignment - floor(barAndElementNeedAlignment)) ~= 0;
     % tell user what is going on if the stepSize is greater than 10% of desired
     if (stepSize >= 1.05*originalStepSize) ||  (stepSize <= 0.95*originalStepSize) 
       disp(sprintf('(mglRetinotopy) Bar step size has been set to %0.2f (from ideal %0.2f) which changes the coverage',stepSize,originalStepSize));
@@ -684,7 +697,7 @@ if stimulus.stimulusType == 3
       disp(sprintf('                of that elementSize'));
     end
   else
-    setMiddleBarToCenter = false;
+    barAndElementNeedAlignment = false;
   end
   % now create the steps
   stimulus.barCenter = [];
@@ -696,8 +709,33 @@ if stimulus.stimulusType == 3
     stimulus.barCenter(:,1) = -stepSize*stimulus.stepsPerCycle/2+stepSize/2:stepSize:stepSize*stimulus.stepsPerCycle/2-stepSize/2;
   end
   stimulus.barCenter(:,2) = 0;
-  if setMiddleBarToCenter
-    stimulus.barCenter(:,1) = stimulus.barCenter(:,1)-min(abs(stimulus.barCenter(:,1)));
+  % check to see if we need to align bars or elements to get a match (we want the element pattern to be
+  % centered on bars)
+  if barAndElementNeedAlignment
+    adjustmentSize = min(abs(stimulus.barCenter(:,1)));
+    switch (lower(stimulus.barElementAlignmentCorrection))
+      case {'movebars'}
+       stimulus.barCenter(:,1) = stimulus.barCenter(:,1)-adjustmentSize;
+       % remove any offset on the elements
+       for i = 1:length(stimulus.xRect)
+	 stimulus.xRect{i} = stimulus.xRect{i}-stimulus.xRectOffset;
+       end
+       stimulus.xRectOffset = 0;
+       disp(sprintf('(mglRetinotopy) Moving bar centers by %f to match to underlying elements. Check stimulus.barElementAlignmentCorrection if you want something different.',adjustmentSize));
+     case {'moveelements'}
+      for i = 1:length(stimulus.xRect)
+	stimulus.xRect{i} = stimulus.xRect{i}-stimulus.xRectOffset+adjustmentSize;
+      end
+      stimulus.xRectOffset = adjustmentSize;
+      disp(sprintf('(mglRetinotopy) Moving element centers by %f to match bar locations. Check stimulus.barElementAlignmentCorrection if you want something different.',adjustmentSize));
+      case {'none'}
+       % remove any offset on the elements
+       for i = 1:length(stimulus.xRect)
+	 stimulus.xRect{i} = stimulus.xRect{i}-stimulus.xRectOffset;
+       end
+       stimulus.xRectOffset = 0;
+       disp(sprintf('(mglRetinotopy) Detected misalignment of bar and elements center, but not doing any adjustment, if you want to adjust the bar location set stimulus.barElementAlignmentCorrection to moveBars. If you want to adjust the elements to match then set to moveElements'));
+    end
   end
 
   % display the bar centers
@@ -730,9 +768,9 @@ if stimulus.initialHalfCycle
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% function to draw wedges to screen
+% function to draw retinotopy stimulus to screen
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function stimulus = updateWedges(stimulus,myscreen)
+function stimulus = updateRetinotopyStimulus(stimulus,myscreen)
 
 if stimulus.stimulusType == 3
   % update the phase of the sliding wedges
