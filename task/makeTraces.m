@@ -1,17 +1,19 @@
 % makeTraces.m
 %
-%      usage: myscreen = makeTraces(myscreen)
+%      usage: myscreen = makeTraces(myscreen,<verbose>)
 %         by: justin gardner
 %       date: 02/28/07
 %    purpose: makes traces from event times
 %
-function myscreen = makeTraces(myscreen)
+function myscreen = makeTraces(myscreen,verbose)
 
 % check arguments
-if ~any(nargin == [1])
+if ~any(nargin == [1 2])
   help makeTraces
   return
 end
+
+if nargin < 2,verbose = 1;end
 
 % convert time to seconds
 if ~isfield(myscreen,'endtimeSecs')
@@ -33,9 +35,8 @@ if (isfield(myscreen,'events'))
   % fill traces with zero
   myscreen.traces = zeros(max(myscreen.events.tracenum),maxtick);
   lastticknum = 1;
-  if exist('disppercent'),disppercent(-inf,'Creating stimulus traces');end
+  if exist('disppercent')&&verbose,disppercent(-inf,'(makeTraces) Creating stimulus traces');end
   for i = 1:myscreen.events.n
-    if exist('disppercent'),disppercent(i/myscreen.events.n);end
     % get the tick num for this event
     ticknum = myscreen.events.ticknum(i);
     % put the data into the trace
@@ -62,6 +63,7 @@ if (isfield(myscreen,'events'))
     myscreen.time(lastticknum:ticknum) = timetrace;
     % remember the event ticknum
     lastticknum = ticknum;
+    if exist('disppercent')&&verbose,disppercent(i/myscreen.events.n);end
   end
   % truncate unused parts of event traces
   myscreen.events.tracenum = myscreen.events.tracenum(1:myscreen.events.n);
@@ -72,5 +74,5 @@ if (isfield(myscreen,'events'))
   % make time start at 0
   myscreen.time = myscreen.time - myscreen.time(1);
 end
-if exist('disppercent'),disppercent(inf);end
+if exist('disppercent')&&verbose,disppercent(inf);end
 
