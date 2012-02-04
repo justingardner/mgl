@@ -30,7 +30,7 @@ else
 end
 
 % set test length
-testLen = 600;
+testLen = 10;
 disp(sprintf('(mglTestRefresh) Testing refresh rate for %0.1f secs',testLen));
 
 % checking refresh rate
