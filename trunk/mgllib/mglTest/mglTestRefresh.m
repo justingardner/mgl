@@ -29,21 +29,32 @@ else
   mglOpen(screenNum);
 end
 
-% set test length to 5 seconds
-testLen = 5;
+% set test length
+testLen = 600;
 disp(sprintf('(mglTestRefresh) Testing refresh rate for %0.1f secs',testLen));
 
 % checking refresh rate
 startTime = mglGetSecs;
 numRefresh = 0;
+startFrameTime = mglGetSecs;
+refreshTime = nan(1,120*testLen);
 while(mglGetSecs(startTime) < testLen)
   if useInitScreen
     tickScreen(myscreen);
+    mglClearScreen;
+    mglTextDraw(sprintf('Testin refresh rate %f/%f',startFrameTime-startTime,testLen),[0 0]);
   else
     mglFlush;
   end
   numRefresh = numRefresh+1;
+  % keep time it took to refresh
+  endFrameTime = mglGetSecs;
+  refreshTime(numRefresh) = endFrameTime-startFrameTime;
+  startFrameTime = endFrameTime;
 end
+
+% toss out some of the early refresh times
+refreshTime = refreshTime(10:numRefresh-1);
 
 % close the screen
 if useInitScreen
@@ -56,4 +67,7 @@ end
 disp(sprintf('(mglTestRefresh) Refresh rate: %f Hz',numRefresh/testLen));
 
 
+hist(refreshTime*1000,100);
+xlabel('Frame time (ms)');
+ylabel('n');
 
