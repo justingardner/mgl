@@ -10,6 +10,10 @@
 %
 % http://gru.brain.riken.jp/doku.php/mgl/knownIssues#vertical_blanking_using_ati_videocards_radeon_hd
 
+%             Called with no arguments, it uses initScreen/tickScreen (mgl task code)
+%             Called with a signle argument it test with mglOpen/mglFlush (which doesn't
+%             use the task code and therefore has the least amount of variance because
+%             there is nothing in the display loop).
 %
 function retval = mglTestRefresh(screenNum)
 
@@ -30,7 +34,7 @@ else
 end
 
 % set test length
-testLen = 10;
+testLen = 30;
 disp(sprintf('(mglTestRefresh) Testing refresh rate for %0.1f secs',testLen));
 
 % checking refresh rate
@@ -42,7 +46,7 @@ while(mglGetSecs(startTime) < testLen)
   if useInitScreen
     tickScreen(myscreen);
     mglClearScreen;
-    mglTextDraw(sprintf('Testin refresh rate %f/%f',startFrameTime-startTime,testLen),[0 0]);
+    mglTextDraw(sprintf('Testing refresh rate %f/%f',startFrameTime-startTime,testLen),[0 0]);
   else
     mglFlush;
   end
@@ -70,4 +74,11 @@ disp(sprintf('(mglTestRefresh) Refresh rate: %f Hz',numRefresh/testLen));
 hist(refreshTime*1000,100);
 xlabel('Frame time (ms)');
 ylabel('n');
+frameRate = mglGetParam('frameRate');
+if ~isempty(frameRate) && ~isequal(frameRate,0)
+  title(sprintf('Mean frame time: %f (%f expected)',mean(refreshTime*1000),1000/frameRate));
+  a = axis;
+  hold on
+  plot([1000/frameRate 1000/frameRate],[a(2) a(4)],'k-');
+end
 
