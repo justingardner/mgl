@@ -50,9 +50,13 @@ for d = diameter
   end
 end
 % draw labels
+yPos = 1;
+for r = redDiameters
+  mglTextDraw(sprintf('-%0.1f',r),[-r yPos]);
+  mglTextDraw(sprintf('+%0.1f',r),[r yPos]);
+  yPos = yPos*-1;
+end
 for r = redDiameters/2
-  mglTextDraw(sprintf('-%0.1f',r),[-r 0]);
-  mglTextDraw(sprintf('+%0.1f',r),[r 0]);
   mglTextDraw(sprintf('-%0.1f',r),[0 -r]);
   mglTextDraw(sprintf('+%0.1f',r),[0 r]);
 end
@@ -61,10 +65,10 @@ end
 mglFixationCross(0.5,2);
 
 % draw the size of the display
-mglTextDraw(sprintf('[%0.1fx%0.1f deg] at %0.1f cm',width,height,mglGetParam('devicePhysicalDistance')),[-width/2+1 -height/2+3],-1,1);
+mglTextDraw(sprintf('[%0.1fx%0.1f deg] at %0.1f cm',width,height,mglGetParam('devicePhysicalDistance')),[-width/2+1 -height/2+height/9],-1,1);
 physicalSize = mglGetParam('devicePhysicalSize');
-mglTextDraw(sprintf('[%ix%i pix]',mglGetParam('screenWidth'),mglGetParam('screenHeight')),[-width/2+1 -height/2+2],-1,1);
-mglTextDraw(sprintf('[%0.1fx%0.1f cm]',physicalSize(1),physicalSize(2)),[-width/2+1 -height/2+1],-1,1);
+mglTextDraw(sprintf('[%ix%i pix]',mglGetParam('screenWidth'),mglGetParam('screenHeight')),[-width/2+1 -height/2+2*height/9],-1,1);
+mglTextDraw(sprintf('[%0.1fx%0.1f cm]',physicalSize(1),physicalSize(2)),[-width/2+1 -height/2+3*height/9],-1,1);
 
 if ~isequal(monitor,-1)
 
