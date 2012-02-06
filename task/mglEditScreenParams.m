@@ -136,14 +136,22 @@ if isempty(displayDir)
 end
 
 % add some default fields if the exist.
-% NOTE: To add fields to the screenParams, we need to add the filed
+% NOTE: To add fields to the screenParams, we need to add the field
 % here and under params2screenParams and in mglValidateScreenParams
 validatedScreenParams = mglValidateScreenParams(thisScreenParams);
-addFields = {'calibProportion','squarePixels','simulateVerticalBlank'};
+addFields = {'calibProportion','squarePixels','simulateVerticalBlank','shiftOrigin','crop','cropScreen','scale','scaleScreen'};
 for i= 1:length(addFields)
   if ~isfield(thisScreenParams,addFields{i})
     thisScreenParams.(addFields{i}) = validatedScreenParams.(addFields{i});
   end
+end
+
+% test for bad array values
+if ~thisScreenParams.crop && (length(thisScreenParams.cropScreen) < 2)
+  thisScreenParams.cropScreen = [0 0];
+end
+if ~thisScreenParams.scale && (length(thisScreenParams.scaleScreen) < 2)
+  thisScreenParams.scaleScreen = [1 1];
 end
 
 % eye tracker types
@@ -163,6 +171,11 @@ paramsInfo{end+1} = {'displaySize',thisScreenParams.displaySize,'type=array','mi
 paramsInfo{end+1} = {'calibProportion',thisScreenParams.calibProportion,'type=numeric','minmax=[0.0000001 1]','incdec=[-0.01 0.01]','Calibration proportion should be a value between 0 and 1 (usually set to 0.36). This number controls what proportion of the screen width and height is used to compute pix2deg scale factors. This is important because only at this screen position will visual angles be *exactly* correct. This is because using a linear scale factor to convert from screen positions to visual angles makes the incorrect assumption that the screen is spherical curved around the persons eye. While this is convenient, it is wrong and so some screen positions will have a slight error in the actual visual angle. This is rather small and usually not very important, but you may want to set this to some other percentage if you want to have a different screen location be exactly correct. Press display calib discrepancy to see what your actual discrepancy is.'};
 paramsInfo{end+1} = {'squarePixels',thisScreenParams.squarePixels,'type=checkbox','Calibrate x and y pixels to degree scale factors forcing these to be the same for both dimensions (i.e. forcing square voxels). This is useful if you want the number of pixels in any dimension to be forced to equally the same visual angle. See display calib discrepancy to see how much of a discrepancy this introduces in any position on the monitor'};
 paramsInfo{end+1} = {'dispCalibDiscrepancy',0,'type=pushbutton','buttonString=display calib discrepancy','callback',@dispCalibDiscrepancy,'passParams=1','Click to see the calibration position discrepancy'};
+paramsInfo{end+1} = {'shiftOrigin',thisScreenParams.shiftOrigin,'type=array','minmax=[0 inf]','Set this to shift the origin (in degrees). For example, if you want to shift the whole display up by 3 degrees then you should set this to [0 3]'};
+paramsInfo{end+1} = {'crop',thisScreenParams.crop,'type=checkbox','Turns on or off cropping, see setting for cropScreen for more details'};
+paramsInfo{end+1} = {'cropScreen',thisScreenParams.cropScreen,'type=array','contingent=crop','minmax=[0 inf]','Crop the screen - this simply will set imageWidth/imageHeight to the values set here. This is useful if your code bases the stimulus on the imageWidth/imageHeight (like mglRetinotopy) and you want to quickly set it to only display on a protion of the screen'};
+paramsInfo{end+1} = {'scale',thisScreenParams.scale,'type=checkbox','Turns on or off scaling, see setting for scaleScreen for more details'};
+paramsInfo{end+1} = {'scaleScreen',thisScreenParams.scaleScreen,'type=array','contingent=scale','minmax=[0 inf]','Scales the screen - This is useful if you want to shrink (or enlarge) the stimulus display of a program w/out changing that program - for example if a subject can only see a portion of the screen. For example, if you want to shrink by 1/2 in x and 1/4 in you would set this to [0.5 0.25]. Then drawing a stimulus at, say, [4 12] will actually display at [2 3] and a stimulus of size, say [3 8] will come out as [1.5 2].'};
 paramsInfo{end+1} = {'displayPos',thisScreenParams.displayPos,'type=array','minmax=[0 inf]','This is only relevant if you are using a windowed context (e.g. screenNumber=0). It will set the position of the display in pixels where 0,0 is the bottom left corner of your display.'};
 paramsInfo{end+1} = {'autoCloseScreen',thisScreenParams.autoCloseScreen,'type=checkbox','Check if you want endScreen to automatically do mglClose at the end of your experiment.'};
 paramsInfo{end+1} = {'flipHorizontal',thisScreenParams.flipHV(1),'type=checkbox','Click if you want initScreen to set the coordinates so that the screen is horizontally flipped. This may be useful if you are viewing the screen through mirrors'};
@@ -286,6 +299,19 @@ waitTime = inf;
 
 % show the monitor dims
 mglMonitorDims(-1);
+% draw bounding box
+imageWidth = msc.imageWidth;
+imageHeight = msc.imageHeight;
+deviceWidth = mglGetParam('deviceWidth');
+deviceHeight = mglGetParam('deviceHeight');
+% right hand side
+mglPolygon([imageWidth/2 imageWidth/2 deviceWidth deviceWidth imageWidth/2],[-deviceHeight deviceHeight deviceHeight -deviceHeight -deviceHeight],[0 0 0]);
+% left hand side
+mglPolygon([-imageWidth/2 -imageWidth/2 -deviceWidth -deviceWidth -imageWidth/2],[-deviceHeight deviceHeight deviceHeight -deviceHeight -deviceHeight],[0 0 0]);
+% top
+mglPolygon([-deviceWidth deviceWidth deviceWidth -deviceWidth -deviceWidth],[imageHeight/2 imageHeight/2 deviceHeight deviceHeight imageHeight/2],[0 0 0]);
+% bottom 
+mglPolygon([-deviceWidth deviceWidth deviceWidth -deviceWidth -deviceWidth],[-imageHeight/2 -imageHeight/2 -deviceHeight -deviceHeight -imageHeight/2],[0 0 0]);
 if thisWaitSecs(waitTime,params)<=0,endScreen(msc);return,end
 
 % show fine gratings
@@ -502,6 +528,11 @@ screenParams.autoCloseScreen = params.autoCloseScreen;
 screenParams.hideCursor = params.hideCursor;
 screenParams.calibProportion = params.calibProportion;
 screenParams.squarePixels = params.squarePixels;
+screenParams.shiftOrigin = params.shiftOrigin;
+screenParams.scale = params.scale;
+screenParams.scaleScreen = params.scaleScreen;
+screenParams.crop = params.crop;
+screenParams.cropScreen = params.cropScreen;
 
 % get file saving settings
 screenParams.saveData = params.saveData;

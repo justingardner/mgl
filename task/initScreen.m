@@ -61,7 +61,10 @@ screenParamsList = {'computerName', 'displayName', 'screenNumber',...
 		    'screenWidth', 'screenHeight', 'displayDistance',...
 		    'displaySize', 'framesPerSecond','autoCloseScreen',...
 		    'saveData', 'calibType', 'monitorGamma', 'calibFilename', ...
-		    'flipHV', 'digin', 'hideCursor', 'displayPos', 'backtickChar', 'responseKeys', 'eyeTrackerType', 'eatKeys','squarePixels','calibProportion','simulateVerticalBlank'};
+		    'flipHV', 'digin', 'hideCursor', 'displayPos', 'backtickChar',...
+		    'responseKeys', 'eyeTrackerType', 'eatKeys','squarePixels',...
+		    'calibProportion','simulateVerticalBlank','shiftOrigin',...
+		    'crop','cropScreen','scale','scaleScreen'};
 
 for i = 1:length(screenParams)
   %% see if we need to convert from cell array to struct -- old version
@@ -368,6 +371,23 @@ if exist('opengl')==2
   end
 end
 
+% set device origin if called for - this will shift the screen origin by the set amount
+if isfield(myscreen,'shiftOrigin') && (length(myscreen.shiftOrigin) >= 2)
+  % get how much shift is called for
+  deviceOrigin = myscreen.shiftOrigin(:)';
+  deviceOrigin(isnan(deviceOrigin)) = 0;
+  if length(deviceOrigin) < 3,deviceOrigin(3) = 0;end
+  % display it
+  if ~all(deviceOrigin == 0)
+    disp(sprintf('(initScreen) Shifting screen origin by [%0.3f %0.3f %0.3f] deg',deviceOrigin(1),deviceOrigin(2),deviceOrigin(3)));
+  end
+  % set the device origin this is used by mglVisualAngleCoordinates when
+  % setting the coordinate frame
+  mglSetParam('deviceOrigin',deviceOrigin);
+else
+  mglSetParam('deviceOrigin',[0 0 0]);
+end
+
 % init the mgl screen
 if ~isempty(myscreen.screenNumber)
   % setting with specified screenNumber
@@ -398,9 +418,32 @@ mglSetParam('visualAngleSquarePixels',myscreen.squarePixels);
 % and what proportion to calibrate off of
 mglSetParam('visualAngleCalibProportion',myscreen.calibProportion);
 
+% set the scaling (this used to artifically scale the monitor dims
+% from what they should be based on distance). You might want to
+% do this if you want to artificially scale the whole display
+% of a program without rewriting the code.
+if isfield(myscreen,'scale') && myscreen.scale && isfield(myscreen,'scaleScreen') && ~any(myscreen.scaleScreen==0) && (length(myscreen.scaleScreen) == 2)
+  disp(sprintf('(initScreen) !!! Artificially setting the dimensions by %0.3f x %0.3f of what they should be based on the monitor size and distance !!!',myscreen.scaleScreen(1),myscreen.scaleScreen(2)));
+  mglSetParam('visualAngleScale',myscreen.scaleScreen(:)');
+else
+  mglSetParam('visualAngleScale',[]);
+end
+  
+% now set visual angle coordinates
 mglVisualAngleCoordinates(myscreen.displayDistance,myscreen.displaySize);
 myscreen.imageWidth = mglGetParam('deviceWidth');
 myscreen.imageHeight = mglGetParam('deviceHeight');
+
+% set the crop region (this is simply the imageWidth and imageHeight)
+if isfield(myscreen,'crop') && myscreen.crop && isfield(myscreen,'cropScreen') && (length(myscreen.cropScreen)==2)
+  if myscreen.cropScreen(1) > 0
+    myscreen.imageWidth = myscreen.cropScreen(1);
+  end
+  if myscreen.cropScreen(2) > 0
+    myscreen.imageHeight = myscreen.cropScreen(2);
+  end
+  disp(sprintf('(initScreen) Croping image dimensions to %0.3f x %0.3f',myscreen.imageWidth,myscreen.imageHeight));
+end
 
 % flip the screen appropriately
 if myscreen.flipHV(1)

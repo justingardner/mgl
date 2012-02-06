@@ -94,9 +94,17 @@ devicePhysicalSize = mglGetParam('devicePhysicalSize');
 p = mglGetParam('visualAngleCalibProportion');
 if isempty(p),p = 0.5;end
 
+% get the scaling - this is sometimes used to artificially scale
+% the display from the actual computation.
+visualAngleScale = mglGetParam('visualAngleScale');
+if isempty(visualAngleScale) || (length(visualAngleScale) ~= 2)
+  % set back to [1 1] - no scaling, if above conditions are not met
+  visualAngleScale = [1 1];
+end
+  
 % computed deviceWidth and deviceHeight
-mglSetParam('deviceHeight',(1/p)*atan(p*devicePhysicalSize(2)/mglGetParam('devicePhysicalDistance'))/pi*180);
-mglSetParam('deviceWidth',(1/p)*atan(p*devicePhysicalSize(1)/mglGetParam('devicePhysicalDistance'))/pi*180);
+mglSetParam('deviceHeight',visualAngleScale(1)*(1/p)*atan(p*devicePhysicalSize(2)/mglGetParam('devicePhysicalDistance'))/pi*180);
+mglSetParam('deviceWidth',visualAngleScale(2)*(1/p)*atan(p*devicePhysicalSize(1)/mglGetParam('devicePhysicalDistance'))/pi*180);
 
 % It is often convenient to make sure that the pixel to degree scaling factors
 % are the same in x and y - i.e. that we have square pixels. This is now an

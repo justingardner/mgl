@@ -36,6 +36,11 @@ function screenParams = mglValidateScreenParams(screenParams)
   'calibProportion',0.36;		     
   'squarePixels',false;		     
   'displayPos',[0 0];
+  'shiftOrigin',[0 0];
+  'scale',0;
+  'scaleScreen',[1 1];
+  'crop',0;
+  'cropScreen',[0 0];		     
   'framesPerSecond',60;
   'autoCloseScreen',0;
   'saveData',50;
@@ -56,6 +61,7 @@ function screenParams = mglValidateScreenParams(screenParams)
   'eyeTrackerType', [];...
   'simulateVerticalBlank', false;
   };
+
 
   % look for optional fields
   for f = 1:size(necessaryFields,1)
