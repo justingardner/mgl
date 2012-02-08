@@ -36,6 +36,14 @@
 %
 %             {{'var1=[1]','var2=[2 3]'},{'var1=[2]','var2=[1]'}}
 %
+%             If you want to return a set of stimvols for different variables
+%             concatenated together - for example, you have variable1 and
+%             variable 2 and you want a cell array of stimvols for each
+%             one of the settings of variable 1 and variable 2 (note that
+%             this may return the same stimvol multiple times), then you
+%             can tset the varname to a comma delimited list:
+% 
+%             getStimvolFromVarname('varname1,varname2',myscreen,task);
 %
 function [stimvolOut stimNamesOut trialNumOut] = getStimvolFromVarname(varnameIn,myscreen,task,taskNum,phaseNum,segmentNum)
 
@@ -96,7 +104,23 @@ if ~exist('phaseNum','var')
 end
 if ~exist('verbose','var'),verbose = true;end
 
-
+% check to see if the varnameIn is a comma separated list. In which
+% case we return the stimvols for each variable in the list concatenated
+% together
+if ~isempty(strfind(varnameIn,','))
+  % go through each of the varnames
+  while ~isempty(varnameIn)
+    % get this varname
+    [thisVarname varnameIn] = strtok(varnameIn,', ');
+    % recursively call this fucntion to get the current variable name
+    [stimvol stimNames trialNum] = getStimvolFromVarname(thisVarname,myscreen,task,taskNum,phaseNum,segmentNum);
+    % set in output argument
+    stimvolOut = {stimvolOut{:} stimvol{:}};
+    stimNamesOut = {stimNamesOut{:} stimNames{:}};
+    trialNumOut = {trialNumOut{:} trialNum{:}};
+  end
+  return
+end
 % now check if we have been called with two segmentNums in which
 % case we should return volumes from the beginning semgent num to
 % the end segment num, so we recursively call this function to get
