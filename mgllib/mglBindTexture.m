@@ -25,7 +25,7 @@
 %             g4(:,:,2) = g;
 %             g4(:,:,3) = g;
 %             g4(:,:,4) = 128;
-%             tex = mglCreateTexture(g4,'xy',1);
+%             tex = mglCreateTexture(g4,[],1);
 %
 %             mglBltTexture(tex,[-5 0 3 3]);
 %             mglBindTexture(tex,255);
