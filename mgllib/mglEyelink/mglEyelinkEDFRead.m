@@ -32,6 +32,7 @@ end
 if isfile(filename)
   % mglPrivateEleyinkReadEDF returns a structre
   retval = mglPrivateEyelinkEDFRead(filename,verbose);
+  if isempty(retval),return,end
 else
   disp(sprintf('(mglEyelinkEDFRead) Could not open file %s',filename));
 end
@@ -57,12 +58,21 @@ retval.numeye = str2num(t);
 [t,m] = strtok(m); % which eye
 if retval.numeye == 2
     retval.whicheye = 'Both';
+    disp(sprintf('(mglEyelinkEDFRead) !!! Both eyes were recorded. Setting gaze variable to left eye !!!'));
+    retval.gaze = retval.gazeLeft;
 elseif strcmp(t,'R')
     retval.whicheye = 'Right';
+    retval.gaze = retval.gazeRight;
+    % remove left and right gaze
+    retval = rmfield(retval,'gazeLeft');
+    retval = rmfield(retval,'gazeRight');
 else
     retval.whicheye = 'Left';
+    retval.gaze = retval.gazeLeft;
+    % remove left and right gaze
+    retval = rmfield(retval,'gazeLeft');
+    retval = rmfield(retval,'gazeRight');
 end
-
 return
 
 % TEST CODE

@@ -18,7 +18,7 @@
 //   function declarations   //
 ///////////////////////////////
 void dispEventType(int eventType);
-void dispEvent(int eventType, ALLF_DATA *event);
+void dispEvent(int eventType, ALLF_DATA *event,int verbose);
 int isEyeUsedMessage(int eventType, ALLF_DATA *event);
 int isMGLV1Message(int eventType, ALLF_DATA *event);
 int isMGLV2Message(int eventType, ALLF_DATA *event);
@@ -57,7 +57,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
   // get verbose
   int verbose = 1;
-  /* verbose = (int) *mxGetPr(prhs[1]); */
+  if (nrhs >= 2)
+    verbose = (int) *mxGetPr(prhs[1]); 
 
   // open file
   if (verbose) mexPrintf("(mglPrivateEyelinkEDFRead) Opening EDF file %s\n",filename);
@@ -67,6 +68,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   // and check that we opened correctly
   if (edf == NULL) {
     mexPrintf("(mglPrivateEyelinkEDFRead) Could not open file %s (error %i)\n",filename,errval);
+    plhs[0] = mxCreateDoubleMatrix(0,0,mxREAL);
     return;
   }
 
@@ -82,10 +84,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   // initialize the output structure
   const char *mglFieldname = "mgl";
   const char *fieldNames[] =  {"filename","numElements","numTrials",
-    "EDFAPI","preamble","gaze","fixations","saccades",
-    "blinks","messages",mglFieldname,"gazeCoords","frameRate"};
+			       "EDFAPI","preamble","gazeLeft","gazeRight",
+			       "fixations","saccades","blinks","messages",
+			       mglFieldname,"gazeCoords","frameRate"};
   int outDims[2] = {1,1};
-  plhs[0] = mxCreateStructArray(1,outDims,13,fieldNames);
+  plhs[0] = mxCreateStructArray(1,outDims,14,fieldNames);
   
   // save some info about the EDF file in the output
   mxSetField(plhs[0],0,"filename",mxCreateString(filename));
@@ -151,25 +154,48 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   // set an output fields for the gaze data
   const char *fieldNamesGaze[] =  {"time","x","y","pupil","pix2degX","pix2degY","velocityX","velocityY","whichEye"};
   int outDims2[2] = {1,1};
-  mxSetField(plhs[0],0,"gaze",mxCreateStructArray(1,outDims2,9,fieldNamesGaze));
-  mxSetField(mxGetField(plhs[0],0,"gaze"),0,"time",mxCreateDoubleMatrix(1,numSamples,mxREAL));
-  double *outptrTime = (double *)mxGetPr(mxGetField(mxGetField(plhs[0],0,"gaze"),0,"time"));
-  mxSetField(mxGetField(plhs[0],0,"gaze"),0,"x",mxCreateDoubleMatrix(1,numSamples,mxREAL));
-  double *outptrX = (double *)mxGetPr(mxGetField(mxGetField(plhs[0],0,"gaze"),0,"x"));
-  mxSetField(mxGetField(plhs[0],0,"gaze"),0,"y",mxCreateDoubleMatrix(1,numSamples,mxREAL));
-  double *outptrY = (double *)mxGetPr(mxGetField(mxGetField(plhs[0],0,"gaze"),0,"y"));
-  mxSetField(mxGetField(plhs[0],0,"gaze"),0,"pupil",mxCreateDoubleMatrix(1,numSamples,mxREAL));
-  double *outptrPupil = (double *)mxGetPr(mxGetField(mxGetField(plhs[0],0,"gaze"),0,"pupil"));
-  mxSetField(mxGetField(plhs[0],0,"gaze"),0,"pix2degX",mxCreateDoubleMatrix(1,numSamples,mxREAL));
-  double *outptrPix2DegX = (double *)mxGetPr(mxGetField(mxGetField(plhs[0],0,"gaze"),0,"pix2degX"));
-  mxSetField(mxGetField(plhs[0],0,"gaze"),0,"pix2degY",mxCreateDoubleMatrix(1,numSamples,mxREAL));
-  double *outptrPix2DegY = (double *)mxGetPr(mxGetField(mxGetField(plhs[0],0,"gaze"),0,"pix2degY"));
-  mxSetField(mxGetField(plhs[0],0,"gaze"),0,"velocityX",mxCreateDoubleMatrix(1,numSamples,mxREAL));
-  double *outptrVelX = (double *)mxGetPr(mxGetField(mxGetField(plhs[0],0,"gaze"),0,"velocityX"));
-  mxSetField(mxGetField(plhs[0],0,"gaze"),0,"velocityY",mxCreateDoubleMatrix(1,numSamples,mxREAL));
-  double *outptrVelY = (double *)mxGetPr(mxGetField(mxGetField(plhs[0],0,"gaze"),0,"velocityY"));
-  mxSetField(mxGetField(plhs[0],0,"gaze"),0,"whichEye",mxCreateDoubleMatrix(1,numSamples,mxREAL));
-  double *outptrWhichEye = (double *)mxGetPr(mxGetField(mxGetField(plhs[0],0,"gaze"),0,"whichEye"));
+
+  // set gaze left fields
+  mxSetField(plhs[0],0,"gazeLeft",mxCreateStructArray(1,outDims2,9,fieldNamesGaze));
+  mxSetField(mxGetField(plhs[0],0,"gazeLeft"),0,"time",mxCreateDoubleMatrix(1,numSamples,mxREAL));
+  double *outptrTimeLeft = (double *)mxGetPr(mxGetField(mxGetField(plhs[0],0,"gazeLeft"),0,"time"));
+  mxSetField(mxGetField(plhs[0],0,"gazeLeft"),0,"x",mxCreateDoubleMatrix(1,numSamples,mxREAL));
+  double *outptrXLeft = (double *)mxGetPr(mxGetField(mxGetField(plhs[0],0,"gazeLeft"),0,"x"));
+  mxSetField(mxGetField(plhs[0],0,"gazeLeft"),0,"y",mxCreateDoubleMatrix(1,numSamples,mxREAL));
+  double *outptrYLeft = (double *)mxGetPr(mxGetField(mxGetField(plhs[0],0,"gazeLeft"),0,"y"));
+  mxSetField(mxGetField(plhs[0],0,"gazeLeft"),0,"pupil",mxCreateDoubleMatrix(1,numSamples,mxREAL));
+  double *outptrPupilLeft = (double *)mxGetPr(mxGetField(mxGetField(plhs[0],0,"gazeLeft"),0,"pupil"));
+  mxSetField(mxGetField(plhs[0],0,"gazeLeft"),0,"pix2degX",mxCreateDoubleMatrix(1,numSamples,mxREAL));
+  double *outptrPix2DegXLeft = (double *)mxGetPr(mxGetField(mxGetField(plhs[0],0,"gazeLeft"),0,"pix2degX"));
+  mxSetField(mxGetField(plhs[0],0,"gazeLeft"),0,"pix2degY",mxCreateDoubleMatrix(1,numSamples,mxREAL));
+  double *outptrPix2DegYLeft = (double *)mxGetPr(mxGetField(mxGetField(plhs[0],0,"gazeLeft"),0,"pix2degY"));
+  mxSetField(mxGetField(plhs[0],0,"gazeLeft"),0,"velocityX",mxCreateDoubleMatrix(1,numSamples,mxREAL));
+  double *outptrVelXLeft = (double *)mxGetPr(mxGetField(mxGetField(plhs[0],0,"gazeLeft"),0,"velocityX"));
+  mxSetField(mxGetField(plhs[0],0,"gazeLeft"),0,"velocityY",mxCreateDoubleMatrix(1,numSamples,mxREAL));
+  double *outptrVelYLeft = (double *)mxGetPr(mxGetField(mxGetField(plhs[0],0,"gazeLeft"),0,"velocityY"));
+  mxSetField(mxGetField(plhs[0],0,"gazeLeft"),0,"whichEye",mxCreateDoubleMatrix(1,numSamples,mxREAL));
+  double *outptrWhichEyeLeft = (double *)mxGetPr(mxGetField(mxGetField(plhs[0],0,"gazeLeft"),0,"whichEye"));
+
+  // set gaze right fields
+  mxSetField(plhs[0],0,"gazeRight",mxCreateStructArray(1,outDims2,9,fieldNamesGaze));
+  mxSetField(mxGetField(plhs[0],0,"gazeRight"),0,"time",mxCreateDoubleMatrix(1,numSamples,mxREAL));
+  double *outptrTimeRight = (double *)mxGetPr(mxGetField(mxGetField(plhs[0],0,"gazeRight"),0,"time"));
+  mxSetField(mxGetField(plhs[0],0,"gazeRight"),0,"x",mxCreateDoubleMatrix(1,numSamples,mxREAL));
+  double *outptrXRight = (double *)mxGetPr(mxGetField(mxGetField(plhs[0],0,"gazeRight"),0,"x"));
+  mxSetField(mxGetField(plhs[0],0,"gazeRight"),0,"y",mxCreateDoubleMatrix(1,numSamples,mxREAL));
+  double *outptrYRight = (double *)mxGetPr(mxGetField(mxGetField(plhs[0],0,"gazeRight"),0,"y"));
+  mxSetField(mxGetField(plhs[0],0,"gazeRight"),0,"pupil",mxCreateDoubleMatrix(1,numSamples,mxREAL));
+  double *outptrPupilRight = (double *)mxGetPr(mxGetField(mxGetField(plhs[0],0,"gazeRight"),0,"pupil"));
+  mxSetField(mxGetField(plhs[0],0,"gazeRight"),0,"pix2degX",mxCreateDoubleMatrix(1,numSamples,mxREAL));
+  double *outptrPix2DegXRight = (double *)mxGetPr(mxGetField(mxGetField(plhs[0],0,"gazeRight"),0,"pix2degX"));
+  mxSetField(mxGetField(plhs[0],0,"gazeRight"),0,"pix2degY",mxCreateDoubleMatrix(1,numSamples,mxREAL));
+  double *outptrPix2DegYRight = (double *)mxGetPr(mxGetField(mxGetField(plhs[0],0,"gazeRight"),0,"pix2degY"));
+  mxSetField(mxGetField(plhs[0],0,"gazeRight"),0,"velocityX",mxCreateDoubleMatrix(1,numSamples,mxREAL));
+  double *outptrVelXRight = (double *)mxGetPr(mxGetField(mxGetField(plhs[0],0,"gazeRight"),0,"velocityX"));
+  mxSetField(mxGetField(plhs[0],0,"gazeRight"),0,"velocityY",mxCreateDoubleMatrix(1,numSamples,mxREAL));
+  double *outptrVelYRight = (double *)mxGetPr(mxGetField(mxGetField(plhs[0],0,"gazeRight"),0,"velocityY"));
+  mxSetField(mxGetField(plhs[0],0,"gazeRight"),0,"whichEye",mxCreateDoubleMatrix(1,numSamples,mxREAL));
+  double *outptrWhichEyeRight = (double *)mxGetPr(mxGetField(mxGetField(plhs[0],0,"gazeRight"),0,"whichEye"));
 
   // set output fields for fixations
   const char *fieldNamesFix[] =  {"startTime","endTime","aveH","aveV"};
@@ -260,33 +286,55 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     eventType = edf_get_next_data(edf);
     data = edf_get_float_data(edf);
     // display event type and info
+    if (verbose>3) dispEvent(eventType,data,1); 
     if (verbose>2) dispEventType(eventType);
-    if (verbose>1) dispEvent(eventType,data); 
-    // grab which eye we are recording from
-    /* if (isEyeUsedMessage(eventType,data)) currentEye = (int)data->fe.eye; */
-    currentEye = 1;
+    if (verbose>1) dispEvent(eventType,data,0); 
     // get samples
     switch(eventType) {
     case SAMPLE_TYPE:
-      *outptrTime++ = (double)data->fs.time;
-      *outptrWhichEye++ = currentEye;
+      // copy out left eye
+      currentEye = 0;
+      *outptrTimeLeft++ = (double)data->fs.time;
+      *outptrWhichEyeLeft++ = currentEye;
       if ((int)data->fs.gx[currentEye]==NaN) {
-          *outptrX++ = mxGetNaN();
-          *outptrY++ = mxGetNaN();
-          *outptrPupil++ = mxGetNaN();
-          *outptrPix2DegX++ = mxGetNaN();
-          *outptrPix2DegY++ = mxGetNaN();
-          *outptrVelX++ = mxGetNaN();
-          *outptrVelY++ = mxGetNaN();
+          *outptrXLeft++ = mxGetNaN();
+          *outptrYLeft++ = mxGetNaN();
+          *outptrPupilLeft++ = mxGetNaN();
+          *outptrPix2DegXLeft++ = mxGetNaN();
+          *outptrPix2DegYLeft++ = mxGetNaN();
+          *outptrVelXLeft++ = mxGetNaN();
+          *outptrVelYLeft++ = mxGetNaN();
         }
       else{
-        *outptrX++ = (double)data->fs.gx[currentEye];
-        *outptrY++ = (double)data->fs.gy[currentEye];
-        *outptrPupil++ = (double)data->fs.pa[currentEye];
-        *outptrPix2DegX++ = (double)data->fs.rx;
-        *outptrPix2DegY++ = (double)data->fs.ry;
-        *outptrVelX++ = (double)data->fs.gxvel[currentEye];
-        *outptrVelY++ = (double)data->fs.gyvel[currentEye];
+        *outptrXLeft++ = (double)data->fs.gx[currentEye];
+        *outptrYLeft++ = (double)data->fs.gy[currentEye];
+        *outptrPupilLeft++ = (double)data->fs.pa[currentEye];
+        *outptrPix2DegXLeft++ = (double)data->fs.rx;
+        *outptrPix2DegYLeft++ = (double)data->fs.ry;
+        *outptrVelXLeft++ = (double)data->fs.gxvel[currentEye];
+        *outptrVelYLeft++ = (double)data->fs.gyvel[currentEye];
+      }
+      // copy out right eye
+      currentEye = 1;
+      *outptrTimeRight++ = (double)data->fs.time;
+      *outptrWhichEyeRight++ = currentEye;
+      if ((int)data->fs.gx[currentEye]==NaN) {
+          *outptrXRight++ = mxGetNaN();
+          *outptrYRight++ = mxGetNaN();
+          *outptrPupilRight++ = mxGetNaN();
+          *outptrPix2DegXRight++ = mxGetNaN();
+          *outptrPix2DegYRight++ = mxGetNaN();
+          *outptrVelXRight++ = mxGetNaN();
+          *outptrVelYRight++ = mxGetNaN();
+        }
+      else{
+        *outptrXRight++ = (double)data->fs.gx[currentEye];
+        *outptrYRight++ = (double)data->fs.gy[currentEye];
+        *outptrPupilRight++ = (double)data->fs.pa[currentEye];
+        *outptrPix2DegXRight++ = (double)data->fs.rx;
+        *outptrPix2DegYRight++ = (double)data->fs.ry;
+        *outptrVelXRight++ = (double)data->fs.gxvel[currentEye];
+        *outptrVelYRight++ = (double)data->fs.gyvel[currentEye];
       }
       break;
     case ENDFIX:
@@ -547,15 +595,17 @@ int isMGLV2Message(int eventType,ALLF_DATA *event)
 ///////////////////
 //   dispEvent   //
 ///////////////////
-void dispEvent(int eventType,ALLF_DATA *event)
+void dispEvent(int eventType,ALLF_DATA *event,int verbose)
 {
   if (isMGLV2Message(eventType,event))
     mexPrintf("%i:%s\n",event->fe.sttime,&(event->fe.message->c));
   else if (isMGLV1Message(eventType,event)) 
     mexPrintf("NOT IMPLEMENTED YET");
   else if (eventType == SAMPLE_TYPE) {
-    //    fprintf(fid,"(mglPrivateEyelinkEDFRead) Sample eye 0 is %i: pupil [%f %f] head [%f %f] screen [%f %f] pupil size [%f]\n",event->fs.time,event->fs.px[0],event->fs.py[0],event->fs.hx[0],event->fs.hy[0],event->fs.gx[0],event->fs.gy[0],event->fs.pa[0]);
-    //    fprintf(fid,"(mglPrivateEyelinkEDFRead) Sample eye 1 is %i: pupil [%f %f] head [%f %f] screen [%f %f] pupil size [%f]\n",event->fs.time,event->fs.px[1],event->fs.py[1],event->fs.hx[1],event->fs.hy[1],event->fs.gx[1],event->fs.gy[1],event->fs.pa[1]);
+    if (verbose) {
+	mexPrintf("(mglPrivateEyelinkEDFRead) Sample eye 0 is %i: pupil [%f %f] head [%f %f] screen [%f %f] pupil size [%f]\n",event->fs.time,event->fs.px[0],event->fs.py[0],event->fs.hx[0],event->fs.hy[0],event->fs.gx[0],event->fs.gy[0],event->fs.pa[0]);
+	mexPrintf("(mglPrivateEyelinkEDFRead) Sample eye 1 is %i: pupil [%f %f] head [%f %f] screen [%f %f] pupil size [%f]\n",event->fs.time,event->fs.px[1],event->fs.py[1],event->fs.hx[1],event->fs.hy[1],event->fs.gx[1],event->fs.gy[1],event->fs.pa[1]);
+      }
   }
 }
 

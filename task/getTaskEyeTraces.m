@@ -1,13 +1,25 @@
 % getTaskEyeTraces.m
 %
 %        $Id:$ 
-%      usage: e = getTaskEyeTraces(stimfileName,<taskNum=1>,<phaseNum=1>,<dispFig=1>,<dataPad=3>)
+%      usage: e = getTaskEyeTraces(stimfileName,<taskNum=1>,<phaseNum=1>,<dispFig=1>,<dataPad=3>,<removeBlink=1>)
 %         by: justin gardner
 %       date: 06/23/10
-%    purpose: get the eye traces for a task. Pass in a stimfile name and the taskNum and phaseNum
-%             you want. The eye traces will be returned in e.eye with units of degrees of visual angle.
-%             Data will be exracted by up to dataPad(=3) seconds beyond the end of the trial so that you
-%             can extract data around the last event in the trial if it's close to the trial end.
+%    purpose: get the eye traces for a task. Pass in a stimfile name and the
+%             taskNum and phaseNum you want. The eye traces will be returned
+%             in e.eye with units of degrees of visual angle.
+%             Data will be exracted by up to dataPad(=3) seconds
+%             beyond the end of the trial so that you
+%             can extract data around the last event
+%             in the trial if it's close to the trial end.
+%
+%             If you want to nan out blink data, set removeBlink to 1
+%             e = getTaskEyeTraces(('101203_stim03','removeBlink=1');
+%             This will remove blink data += 5 ms. To set a larger range
+%             like say 100ms around the blinks to remove:
+%             e = getTaskEyeTraces(('101203_stim03','removeBlink=0.1');
+%             To remove say 5 samples from either side of the blink
+%             e = getTaskEyeTraces(('101203_stim03','removeBlink=5');
+%
 %
 %    e = getTaskEyeTraces('100616_stim01','taskNum=1','phaseNum=1','dataPad=3');
 %
@@ -50,6 +62,15 @@ else
 end
 
 % get the correct task and phase
+if taskNum > length(e)
+  disp(sprintf('(getTaskEyeTraces) taskNum=%i out of range for this stimfile (1:%i)',taskNum,length(e)));
+  return
+end
+if phaseNum > length(e{taskNum})
+  disp(sprintf('(getTaskEyeTraces) phaseNum=%i out of range for this task (1:%i)',phaseNum,length(e{taskNum})));
+  return
+end
+
 e = e{taskNum}(phaseNum);
 
 % keep stimfile
@@ -132,14 +153,13 @@ end
 disppercent(-inf,sprintf('(getTaskEyeTraces) Extracting trial by trial data for %i trials',edf.nTrials));
 % get the start times
 
-for i = 1:max(edf.mgl.trialNum)
+for i = 1:max(edf.mgl.trialNum(edf.mgl.taskID == taskID))
   % get start time
   % find the segment 0 message
   %%% I think this should be segment 1--at least in my code segment 1 == seg1
   %%% and that seems to be what updateTask writes out. The seg==0 often includes
   %%% deadtime related to waiting for backtics, user start, etc
   segmentZeroTime = edf.mgl.time((edf.mgl.taskID == taskID) &  ...
-                                   (edf.mgl.phaseNum==phaseNum) &  ...
                                    (edf.mgl.trialNum==i) &  ...
                                    (edf.mgl.segmentNum==1));
   
@@ -214,6 +234,13 @@ function displayEyeTraces(e)
 % get all combination of parameters
 [stimvol names trialNums] = getStimvolFromVarname('_every_',e.stimfile.myscreen,e.stimfile.task,e.stimfile.taskNum,e.stimfile.phaseNum);
 
+% remove empty trialNums
+for iTrialType = 1:length(trialNums)
+  emptyTypes(iTrialType) = isempty(trialNums{iTrialType});
+end
+stimvol = {stimvol{find(~emptyTypes)}};
+names = {names{find(~emptyTypes)}};
+trialNums = {trialNums{find(~emptyTypes)}};
 figure;
 
 % display trial by trial.
