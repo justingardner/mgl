@@ -37,43 +37,45 @@ else
   disp(sprintf('(mglEyelinkEDFRead) Could not open file %s',filename));
 end
 
-%% let's parse some additional info
-% this could be parsed to provide information about the calibration quality
-retval.cal = char(strtrim({retval.messages(strmatch('!CAL',{retval.messages.message})).message}));
-% mode
-retval.mode = strtrim(retval.messages(strmatch('!MODE',{retval.messages.message})).message);
-[t,m] = strtok(retval.mode); % should be !MODE
-[t,m] = strtok(m); % should be RECORD
-if ~strcmp(t,'RECORD')
-    warning('mglEyelinkEDFRead:UnknownMode', 'Unknown mode encountered in edf file.');
-end
-[retval.trackmode,m] = strtok(m); % will be CR or P? (pupil only)
-[t,m] = strtok(m); % sample rate
-% this is the true sample rate.
-retval.samplerate = str2num(t);
-[t,m] = strtok(m); % filer mode
-retval.filter = str2num(t);
-[t,m] = strtok(m); % number of eyes
-retval.numeye = str2num(t);
-[t,m] = strtok(m); % which eye
-if retval.numeye == 2
-    retval.whicheye = 'Both';
-    disp(sprintf('(mglEyelinkEDFRead) !!! Both eyes were recorded. Setting gaze variable to left eye !!!'));
-    retval.gaze = retval.gazeLeft;
-elseif strcmp(t,'R')
-    retval.whicheye = 'Right';
-    retval.gaze = retval.gazeRight;
-    % remove left and right gaze
-    retval = rmfield(retval,'gazeLeft');
-    retval = rmfield(retval,'gazeRight');
-else
-    retval.whicheye = 'Left';
-    retval.gaze = retval.gazeLeft;
-    % remove left and right gaze
-    retval = rmfield(retval,'gazeLeft');
-    retval = rmfield(retval,'gazeRight');
-end
-return
+return;
+
+% %% let's parse some additional info
+% % this could be parsed to provide information about the calibration quality
+% retval.cal = char(strtrim({retval.messages(strmatch('!CAL',{retval.messages.message})).message}));
+% % mode
+% retval.mode = strtrim(retval.messages(strmatch('!MODE',{retval.messages.message})).message);
+% [t,m] = strtok(retval.mode); % should be !MODE
+% [t,m] = strtok(m); % should be RECORD
+% if ~strcmp(t,'RECORD')
+%     warning('mglEyelinkEDFRead:UnknownMode', 'Unknown mode encountered in edf file.');
+% end
+% [retval.trackmode,m] = strtok(m); % will be CR or P? (pupil only)
+% [t,m] = strtok(m); % sample rate
+% % this is the true sample rate.
+% retval.samplerate = str2num(t);
+% [t,m] = strtok(m); % filer mode
+% retval.filter = str2num(t);
+% [t,m] = strtok(m); % number of eyes
+% retval.numeye = str2num(t);
+% [t,m] = strtok(m); % which eye
+% if retval.numeye == 2
+%     retval.whicheye = 'Both';
+%     disp(sprintf('(mglEyelinkEDFRead) !!! Both eyes were recorded. Setting gaze variable to left eye !!!'));
+%     retval.gaze = retval.gazeLeft;
+% elseif strcmp(t,'R')
+%     retval.whicheye = 'Right';
+%     retval.gaze = retval.gazeRight;
+%     % remove left and right gaze
+%     retval = rmfield(retval,'gazeLeft');
+%     retval = rmfield(retval,'gazeRight');
+% else
+%     retval.whicheye = 'Left';
+%     retval.gaze = retval.gazeLeft;
+%     % remove left and right gaze
+%     retval = rmfield(retval,'gazeLeft');
+%     retval = rmfield(retval,'gazeRight');
+% end
+% return
 
 % TEST CODE
 d = mglEyelinkEDFRead('10043009.edf');
