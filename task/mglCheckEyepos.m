@@ -70,7 +70,7 @@ for i = 1:length(e)
     % get this trials parameter value as an index
     trialType = find(parameterValues{i}(iTrial) == uniqueParameterValues);
     % get the xPos for this trial
-    if isempty(xPos) || isempty(xPos{trialType})
+    if isempty(xPos) || (length(xPos) < trialType) || isempty(xPos{trialType})
       xPos{trialType}(1,:) = e{i}.eye.xPos(iTrial,:);
       t = e{i}.eye.time;
     else
@@ -80,7 +80,7 @@ for i = 1:length(e)
       xPos{trialType}(end+1,1:len) = e{i}.eye.xPos(iTrial,1:len);
     end
     % get the yPos for this trial
-    if isempty(yPos) || isempty(yPos{trialType})
+    if isempty(yPos) || (length(yPos) < trialType) || isempty(yPos{trialType})
       yPos{trialType}(1,:) = e{i}.eye.yPos(iTrial,:);
       trialNum = 1;
     else
