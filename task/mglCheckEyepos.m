@@ -110,6 +110,12 @@ for iType = 1:length(uniqueParameterValues)
     % get nanmedian x and y pos
     xPosSeg{iType}(iTrial) = nanmedian(xPos{iType}(iTrial,segTime));
     yPosSeg{iType}(iTrial) = nanmedian(yPos{iType}(iTrial,segTime));
+    % get standard deviation in x and y
+    xStdSeg{iType}(iTrial) = nanstd(xPos{iType}(iTrial,segTime));
+    yStdSeg{iType}(iTrial) = nanstd(yPos{iType}(iTrial,segTime));
+    % get standard deviation in r
+    [phi r] = cart2pol(xPos{iType}(iTrial,segTime),yPos{iType}(iTrial,segTime));
+    rStdSeg{iType}(iTrial) = nanstd(r);
     % this type variable is used for the call to anovan
     type{iType}(iTrial) = iType;
     % convert to polar
@@ -120,6 +126,29 @@ end
 % run anova on the seg pos
 pX = anova1(cell2mat(xPosSeg)',cell2mat(type)','off');
 pY = anova1(cell2mat(yPosSeg)',cell2mat(type)','off');
+
+% display the p-values for anova
+disp(sprintf('(mglCheckEyepos) Anova for segment %i effect of %s in x: %f deg',segNum,parameter,pX));
+disp(sprintf('(mglCheckEyepos) Anova for segment %i effect of %s in y: %f deg',segNum,parameter,pY));
+
+% do hotellings t2 test  for each pairwise comparison
+pHotelling = [];
+if exist('hotelling') == 2
+  for iType = 1:(length(uniqueParameterValues)-1)
+    for jType = iType+1:length(uniqueParameterValues)
+      % calculate hotellings t2 test
+      pHotelling(iType,jType) = hotelling(phiSeg{iType},phiSeg{jType},rSeg{iType},rSeg{jType});
+      % display
+      disp(sprintf('(mglCheckEyepos) Hotelling T2 test for %s in segment %i %f vs %f: %s',parameter,segNum,uniqueParameterValues(iType),uniqueParameterValues(jType),disppval(pHotelling(iType,jType))));
+    end
+  end
+end
+
+% display how well the observer fixated for the interval
+disp(sprintf('(mglCheckEyepos) Average standard deviation during segment %i in x: %f deg',segNum,mean(cell2mat(xStdSeg))));
+disp(sprintf('(mglCheckEyepos) Average standard deviation during segment %i in y: %f deg',segNum,mean(cell2mat(yStdSeg))));
+disp(sprintf('(mglCheckEyepos) Average standard deviation during segment %i in r: %f deg',segNum,mean(cell2mat(rStdSeg))));
+  
 
 % plot the median/ste eye traces as a function of parameter value
 mlrSmartfig('checkPos','reuse');clf;
