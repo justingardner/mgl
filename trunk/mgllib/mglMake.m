@@ -81,7 +81,7 @@ end
 % Select the mex options file and set any compile parameters based on the
 % operating system and version.
 if ismac
-  [~,result] = system('system_profiler SPSoftwareDataType');
+  [dumpvar,result] = system('system_profiler SPSoftwareDataType');
   sysinfo = regexp(result, 'Mac OS X 10.(?<ver>\d?)', 'names');
   if str2double(sysinfo.ver) >= 7 % >= lion
     optf = '-f ./mexopts.sh';
