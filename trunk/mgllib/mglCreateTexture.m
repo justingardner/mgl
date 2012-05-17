@@ -8,7 +8,7 @@
 %    purpose: Create a texture for display on the screen with mglBltTexture
 %             image can either be grayscale nxm, color nxmx3 or
 %             color+alpha nxmx4. 
-% 
+%
 %       e.g.: mglOpen;
 %             mglClearScreen
 %             mglScreenCoordinates
@@ -23,6 +23,19 @@
 %             x = 0:8*pi/99:8*pi;
 %             texture = mglCreateTexture(255*(sin(x)+1)/2);
 %             mglBltTexture(texture,[0 0 100 500]);
+%             mglFlush;
+%
+%             For fast creation (this routine can take some time to convert
+%             the matlab matrix to the format necessary for OpenGL) you can
+%             pass in a uint8 texture preformatted for OpenGL. This should
+%             be an rgba x width x height matrix.
+%       e.g.: mglOpen;
+%             mglScreenCoordinates;
+%             mglClearScreen;
+%             r = uint8(floor(rand(3,250,150)*256));
+%             r(4,:,:) = 255;
+%             tex = mglCreateTexture(r);
+%             mglBltTexture(tex,[mglGetParam('screenWidth')/2 mglGetParam('screenHeight')/2]);
 %             mglFlush;
 %
 function texture = mglCreateTexture(image, axes, liveBuffer, textureParams)
@@ -47,6 +60,7 @@ else
   help mglCreateTexture;
   return
 end
+if isempty(texture),return,end
 
 % add some fields that are only used by mglText.c
 texture.textImageRect = [0 0 0 0];
