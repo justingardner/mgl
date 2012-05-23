@@ -19,8 +19,8 @@ mglOpen(0.8);
 mglScreenCoordinates;
 
 % size of image to blt
-imageWidth = 300;
-imageHeight = 200;
+imageWidth = 800;
+imageHeight = 600;
 
 % number of refershes to test for
 n = 100;
@@ -28,13 +28,18 @@ n = 100;
 % array that keeps the time it takes to run various things
 times = nan(5,n);
 
+% set whether to use quick preformatted uint8 input to mglCreateTexture or not
+preformat = false;
+
 % initialize the image array
-r = zeros(4,imageWidth,imageHeight);
-r(4,:) = 255;
-r = uint8(r);
-r(1,1:5:imageWidth,:) = 255;
-r(2,1:5:imageWidth,:) = 0;
-r(3,1:5:imageWidth,:) = 0;
+if preformat
+  r = zeros(4,imageWidth,imageHeight);
+  r(4,:) = 255;
+  r = uint8(r);
+else
+  r = zeros(imageWidth,imageHeight,4);
+  r(:,:,4) = 255;
+end
 
 % compute position to display
 imageX = mglGetParam('screenWidth')/2;
@@ -46,7 +51,11 @@ for i = 1:n
 
   % make random matrix
   startTime = mglGetSecs;
-  r(1:3,:,:) = uint8(rand(3,imageWidth,imageHeight)*255);
+  if preformat
+    r(1:3,:,:) = uint8(rand(3,imageWidth,imageHeight)*255);
+  else
+    r(:,:,1:3) = rand(imageWidth,imageHeight,3)*255;
+  end
   times(1,i) = mglGetSecs(startTime);
   profileName{1} = 'rand';
   startTime = mglGetSecs;
