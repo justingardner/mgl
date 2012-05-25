@@ -84,7 +84,17 @@ if ismac
   [dumpvar,result] = system('system_profiler SPSoftwareDataType');
   sysinfo = regexp(result, 'Mac OS X 10.(?<ver>\d?)', 'names');
   if str2double(sysinfo.ver) >= 7 % >= lion
-    optf = '-f ./mexopts.sh';
+    % now check where the SDKs live. If they are in /Developer
+    if isdir('/Developer/SDKs/MacOSX10.6.sdk')
+      optf = '-f ./mexopts.sh';
+    elseif isdir('/Developer/SDKs/MacOSX10.7.sdk')
+      optf = '-f ./mexopts.10.7.sh';
+    elseif isdir('/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.7.sdk')
+      optf = '-f ./mexopts.10.7.xcode.4.3.sh';
+    else
+      disp(sprintf('(mglMake) !!! Could not find MacOSX sdk. Have you installed XCode? !!!'));
+      return
+    end
   else
     optf = '-f ./mexopts.10.5.sh';
   end
