@@ -188,7 +188,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     imageWidth = (int)dims[1];
     imageHeight = (int)dims[0];
   }
-  // if neighter UINT8 or double return error
+  // if neither UINT8 or double return error
   else {
     // unknown data type for input matrix
     mexPrintf("(mglPrivateCreateTexture) Input matrix should be of type double or uint8\n");
@@ -247,46 +247,73 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       startTime = getmsec();
     }
 
+    
     // and fill it with the image
     ////////////////////////////
     // grayscale image
+    int widthDepth = imageWidth*BYTEDEPTH;
     int c=0;
     if (imageType == 1) {
-      for(i = 0; i < imageHeight; i++) { //rows
-	for(j = 0; j < imageWidth; j++,c+=BYTEDEPTH) { //cols
-	  imageFormatted[c+0] = (GLubyte)imageData[sub2ind( i, j, imageHeight, 1 )];
-	  imageFormatted[c+1] = (GLubyte)imageData[sub2ind( i, j, imageHeight, 1 )];
-	  imageFormatted[c+2] = (GLubyte)imageData[sub2ind( i, j, imageHeight, 1 )];
-	  imageFormatted[c+3] = (GLubyte)255;
-	}
-      }
+        for (j = 0; j < imageWidth; j++, c+=BYTEDEPTH) { //cols
+            int colStart = j*imageHeight;
+
+            for (i = 0; i < imageHeight; i++) { //rows
+                int ind = i + colStart;
+                int outind = i*widthDepth;
+
+                imageFormatted[c+outind] = (GLubyte)imageData[ind];
+                imageFormatted[c+outind+1] = (GLubyte)imageData[ind];
+                imageFormatted[c+outind+2] = (GLubyte)imageData[ind];
+                imageFormatted[c+outind+3] = (GLubyte)255;
+            }
+        }
     }
+    
     ////////////////////////////
     // color image
-    else if (imageType == 3) {    
-      for(i = 0; i < imageHeight; i++) { 
-	for(j = 0; j < imageWidth;j++,c+=BYTEDEPTH) {
-	  imageFormatted[c+0] = (GLubyte)imageData[sub2ind( i, j, imageHeight, 1 )];
-	  imageFormatted[c+1] = (GLubyte)imageData[sub2ind( i, j, imageHeight, 1 )+imageWidth*imageHeight];
-	  imageFormatted[c+2] = (GLubyte)imageData[sub2ind( i, j, imageHeight, 1 )+imageWidth*imageHeight*2];
-	  imageFormatted[c+3] = (GLubyte)255;
-	}
-      }
+    else if (imageType == 3) {
+        int imageSize = imageWidth*imageHeight;
+        int imageSize2 = imageSize*2;
+        
+        for (j = 0; j < imageWidth; j++, c+=BYTEDEPTH) {
+            int colStart = j*imageHeight;
+
+            for (i = 0; i < imageHeight; i++) {
+                int ind = i + colStart;
+                int outind = i*widthDepth;
+                
+                imageFormatted[c+outind]   = (GLubyte)imageData[ind];
+                imageFormatted[c+outind+1] = (GLubyte)imageData[ind+imageSize];
+                imageFormatted[c+outind+2] = (GLubyte)imageData[ind+imageSize2];
+                imageFormatted[c+outind+3] = (GLubyte)255;
+            }
+        }
     }
+    
     ////////////////////////////
     // color+alpha image
     else if (imageType == 4) {
-      for(i = 0; i < imageHeight; i++) {
-	for(j = 0; j < imageWidth;j++,c+=BYTEDEPTH) {
-	  imageFormatted[c+0] = (GLubyte)imageData[sub2ind( i, j, imageHeight, 1 )];
-	  imageFormatted[c+1] = (GLubyte)imageData[sub2ind( i, j, imageHeight, 1 )+imageWidth*imageHeight];
-	  imageFormatted[c+2] = (GLubyte)imageData[sub2ind( i, j, imageHeight, 1 )+imageWidth*imageHeight*2];
-	  imageFormatted[c+3] = (GLubyte)imageData[sub2ind( i, j, imageHeight, 1 )+imageWidth*imageHeight*3];
-	}
-      }
+        int imageSize = imageWidth*imageHeight;
+        int imageSize2 = imageSize*2;
+        int imageSize3 = imageSize*3;
+        
+        for (j = 0; j < imageWidth;j++, c+=BYTEDEPTH) {
+            int colStart = j*imageHeight;
+            
+            for (i = 0; i < imageHeight; i++) {
+                int ind = i + colStart;
+                int outind = i*widthDepth;
+
+                imageFormatted[c+outind] = (GLubyte)imageData[ind];
+                imageFormatted[c+outind+1] = (GLubyte)imageData[ind+imageSize];
+                imageFormatted[c+outind+2] = (GLubyte)imageData[ind+imageSize2];
+                imageFormatted[c+outind+3] = (GLubyte)imageData[ind+imageSize3];
+            }
+        }
     }
   }
 
+  
   if (profile) {
     mexPrintf("(mglPrivateCreateTexture) Copying memory %f\n",getmsec()-startTime);
     startTime = getmsec();
