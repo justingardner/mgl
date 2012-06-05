@@ -28,8 +28,13 @@ n = 100;
 % array that keeps the time it takes to run various things
 times = nan(5,n);
 
+% use mglBindText instead of creating
+% a texture every time. This keeps the
+% same memory buffer for the texture
+bindtex = true;
+
 % set whether to use quick preformatted uint8 input to mglCreateTexture or not
-preformat = false;
+preformat = true;
 
 % initialize the image array
 if preformat
@@ -45,6 +50,18 @@ end
 imageX = mglGetParam('screenWidth')/2;
 imageY = mglGetParam('screenHeight')/2;
 
+% set profile names
+profileName{1} = 'rand';
+profileName{2} = 'mglCreateTexture';
+profileName{3} = 'mglBltTexture';
+profileName{4} = 'mglFlush';
+profileName{5} = 'mglDeleteTexture';
+
+if bindtex
+  tex = mglCreateTexture(r,[],1);
+  profileName{2} = 'mglBindTexture';
+end
+
 for i = 1:n
   % clear screen
   mglClearScreen;
@@ -57,33 +74,36 @@ for i = 1:n
     r(:,:,1:3) = rand(imageWidth,imageHeight,3)*255;
   end
   times(1,i) = mglGetSecs(startTime);
-  profileName{1} = 'rand';
   startTime = mglGetSecs;
 
   % create texture from random matrix
-  tex = mglCreateTexture(r);
+  if bindtex
+    mglBindTexture(tex,r);
+  else
+    tex = mglCreateTexture(r,'yx');
+  end
   times(2,i) = mglGetSecs(startTime);
-  profileName{2} = 'mglCreateTexture';
   startTime = mglGetSecs;
   
   % blt texture
   mglBltTexture(tex,[imageX imageY imageWidth imageHeight]);
   times(3,i) = mglGetSecs(startTime);
-  profileName{3} = 'mglBltTexture';
   startTime = mglGetSecs;
 
   % flush
   mglFlush;
   times(4,i) = mglGetSecs(startTime);
-  profileName{4} = 'mglFlush';
   startTime = mglGetSecs;
 
   % delete texture
-  mglDeleteTexture(tex);
+  if ~bindtex,mglDeleteTexture(tex);end
+
   times(5,i) = mglGetSecs(startTime);
-  profileName{5} = 'mglDeleteTexture';
   startTime = mglGetSecs;
 end
+
+% delete texture
+if bindtex,mglDeleteTexture(tex);end
 
 % display the median time 
 for i = 1:size(times,1)

@@ -75,7 +75,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   double *imageData = mxGetPr(prhs[1]);
 
   // get texture and live buffer pointer
-
   for (texnum = 0; texnum < numTextures; texnum++) {
     if (mxGetField(prhs[0],texnum,"allParams") != 0) {
       // grab all the info from the allParams field
@@ -91,19 +90,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       verbose = (int)allParams[12];
       tex[texnum].textureType = (GLenum)allParams[13];
       // get the liveBuffer field
-      if (mxGetField(prhs[0],texnum,"liveBuffer") != 0) {
+      if (mxGetField(prhs[0],texnum,"liveBuffer") != 0)
 	tex[texnum].liveBuffer = (GLubyte *)(unsigned long) *mxGetPr(mxGetField(prhs[0],texnum,"liveBuffer"));
-	if ((unsigned long)tex[texnum].liveBuffer==0){
-	  mexPrintf("(mglBindTexture) Texture must be create with liveBuffer set to true for use with this function\n");
-	  free(tex);
-	  return;
-	}
-      }
-      else {
-	mexPrintf("(mglBindTexture): liveBuffer field not defined in texture\n");
-	free(tex);
-	return;
-      }
+      else
+	tex[texnum].liveBuffer = 0;
     }
     else {
       mexPrintf("(mglBindTexture) Could not find allparams field\n");
@@ -113,6 +103,27 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     // check texture type
     if (tex[texnum].textureType == GL_TEXTURE_RECTANGLE_EXT) {
       // now determine how to change the texture, if user passed
+      // in a uint8 buffer that is 4 x imageWidth x imageHeight
+      if (mxIsUint8(prhs[1])) {
+	if ((ndims==3) && (dims[0] == 4) && (dims[1] == tex[texnum].imageWidth) && (dims[2] == tex[texnum].imageHeight)) {
+	  // rebind texture directly
+	  glBindTexture(tex[texnum].textureType, tex[texnum].textureNumber);
+	  glTexImage2D(tex[texnum].textureType,0,GL_RGBA,tex[texnum].imageWidth,tex[texnum].imageHeight,0,GL_RGBA,TEXTURE_DATATYPE,(GLubyte*)imageData);
+	  free(tex);
+	  return;
+	}
+	else{
+	  mexPrintf("(mglBindTexture) uint8 input should be rgba x %i x %i\n",tex[texnum].imageWidth,tex[texnum].imageHeight);
+	  free(tex);
+	  return;
+	}
+      }
+      // check for live buffer
+      if ((unsigned long)tex[texnum].liveBuffer==0){
+	mexPrintf("(mglBindTexture) Texture must be create with liveBuffer set to true for use with this function\n");
+	free(tex);
+	return;
+      }
       // in a scalar, then set the alpha channel to that value
       if ((ndims==1) || ((ndims==2) && (dims[0] == 1) && (dims[1] == 1))){
 	for(i = 0; i < tex[texnum].imageHeight; i++) {
