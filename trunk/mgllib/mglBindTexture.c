@@ -135,14 +135,24 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       // passed in a full imageWidth x imageHeight x 4
       else if ((ndims==3) && (dims[0] == tex[texnum].imageWidth) && (dims[1] == tex[texnum].imageHeight) && (dims[2] == 4)) {
 	// FIX FIX FIX - This assumes axis are xy
-	for(i = 0; i < tex[texnum].imageHeight; i++) {
-	  for(j = 0; j < tex[texnum].imageWidth;j++,c+=BYTEDEPTH) {
-	    tex[texnum].liveBuffer[c+0] = (GLubyte)imageData[sub2ind( i, j, tex[texnum].imageWidth, 1 )];
-	    tex[texnum].liveBuffer[c+1] = (GLubyte)imageData[sub2ind( i, j, tex[texnum].imageWidth, 1 )+(long)(tex[texnum].imageWidth*tex[texnum].imageHeight)];
-	    tex[texnum].liveBuffer[c+2] = (GLubyte)imageData[sub2ind( i, j, tex[texnum].imageWidth, 1 )+(long)(tex[texnum].imageWidth*tex[texnum].imageHeight*2)];
-	    tex[texnum].liveBuffer[c+3] = (GLubyte)imageData[sub2ind( i, j, tex[texnum].imageWidth, 1 )+(long)(tex[texnum].imageWidth*tex[texnum].imageHeight*3)];
-	  }
-	}
+	int widthDepth = tex[texnum].imageWidth*BYTEDEPTH;
+        int imageSize = tex[texnum].imageWidth*tex[texnum].imageHeight;
+        int imageSize2 = imageSize*2;
+        int imageSize3 = imageSize*3;
+        
+        for (j = 0; j < tex[texnum].imageWidth;j++, c+=BYTEDEPTH) {
+            int colStart = j*tex[texnum].imageHeight;
+            
+            for (i = 0; i < tex[texnum].imageHeight; i++) {
+                int ind = i + colStart;
+                int outind = i*widthDepth;
+
+                tex[texnum].liveBuffer[c+outind] = (GLubyte)imageData[ind];
+                tex[texnum].liveBuffer[c+outind+1] = (GLubyte)imageData[ind+imageSize];
+                tex[texnum].liveBuffer[c+outind+2] = (GLubyte)imageData[ind+imageSize2];
+                tex[texnum].liveBuffer[c+outind+3] = (GLubyte)imageData[ind+imageSize3];
+            }
+        }
       }
       // passed in a full imageWidth x imageHeight - this means to replace alpha buffer
       else if ((ndims==2) && (dims[0] == tex[texnum].imageWidth) && (dims[1] == tex[texnum].imageHeight)) {
