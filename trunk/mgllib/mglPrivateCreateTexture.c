@@ -92,6 +92,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   double *textureParams;
   int profile = 0;
   double startTime;
+
   if (profile) startTime = getmsec();
 
   // check for open window
@@ -154,6 +155,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     // copy it directly into the texture
     if (verbose) mexPrintf("(mglPrivateCreateTexture) Input matrix is UINT8, copying directly into texture\n");
     dataIsFormatted = TRUE;
+    // for uint8 creation there is no buffer which we are copying from
+    liveBuffer = FALSE;
     // check dimensions
     if (ndims != 3) {
       mexPrintf("(mglPrivateCreateTexture) Input for uint8 should be 4xnxm (rgba x width x height)\n");
