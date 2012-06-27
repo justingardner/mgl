@@ -29,8 +29,12 @@ useInitScreen = false;
 if nargin == 0, useInitScreen=true;end
 if useInitScreen;
   myscreen = initScreen;
+  if isinf(myscreen.flushMode)
+    disp(sprintf('(mglTestRefresh) !!! SIMULATING refresh rate. Change mglEditScreenParams/simulateVerticalBlanking if you want to test without simulating !!!'));
+  end
 else
   mglOpen(screenNum);
+  mglClearScreen;mglFlush;mglClearScreen;mglFlush;
 end
 
 % set test length
@@ -46,7 +50,7 @@ while(mglGetSecs(startTime) < testLen)
   if useInitScreen
     tickScreen(myscreen);
     mglClearScreen;
-    mglTextDraw(sprintf('Testing refresh rate %f/%f',startFrameTime-startTime,testLen),[0 0]);
+    mglTextDraw(sprintf('Testing refresh rate %0.2f/%0.0f s',startFrameTime-startTime,testLen),[0 0]);
   else
     mglFlush;
   end
