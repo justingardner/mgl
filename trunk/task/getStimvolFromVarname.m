@@ -195,8 +195,10 @@ if (length(varname) == 1) && (length(varname{1}) == 1) && strcmp(varname{1}{1},'
 	if (segmentNum > 0) && (segmentNum <= length(e{taskNum}(phaseNum).trials(1).volnum))
 	  % if we passed all the checks, then get the volume number for each trial
 	  for trialNum = 1:length(e{taskNum}(phaseNum).trials)
-	    stimvolOut{1}(trialNum) = e{taskNum}(phaseNum).trials(trialNum).volnum(segmentNum);
-	    trialNumOut{1}(trialNum) = trialNum;
+        if length(e{taskNum}(phaseNum).trials(trialNum).volnum) >= segmentNum
+	      stimvolOut{1}(trialNum) = e{taskNum}(phaseNum).trials(trialNum).volnum(segmentNum);
+	      trialNumOut{1}(trialNum) = trialNum;
+        end
 	  end
 	else
 	  disp(sprintf('(getStimvolFromVarname) SegmentNum %i out of range [1 %i]',segmentNum,length(e{taskNum}(phaseNum).trials(1).volnum)));
