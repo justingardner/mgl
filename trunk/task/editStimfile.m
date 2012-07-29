@@ -66,6 +66,8 @@ if ~isempty(gEditStimfile.carFilename)
 end  
 paramsInfo{end+1} = {'volnum',1,'callback',@editStimfileParamsCallback,'incdec=[-1 1]','minmax=[1 inf]','Current selected volume - shown in red'};
 paramsInfo{end+1} = {'remove',1,'type=pushbutton','buttonString=Delete volume','callback',@editStimfileDeleteVolume,'Remove the current selected volume'};
+paramsInfo{end+1} = {'export',1,'type=pushbutton','buttonString=Export to base workspace','callback',@editStimfileExport,'Export the stimfile structure to the workspace as the variable stimfile'};
+paramsInfo{end+1} = {'save',1,'type=pushbutton','buttonString=Save stimfile','callback',@editStimfileSave,'Save the stimfile'};
 
 % open figure
 gEditStimfile.fig = mlrSmartfig('editStimfile');
@@ -78,6 +80,63 @@ mrParamsDialog(paramsInfo,'Edit Stimfile');
 
 % close figure
 close(gEditStimfile.fig);
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%    editStimfileExport    %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function dummy = editStimfileExport
+
+% dummy return variable
+dummy = 1;
+
+% get global
+global gEditStimfile;
+
+% get stimfile and associated info
+stimfile = gEditStimfile.stimfile{gEditStimfile.index};
+stimfile.filename = gEditStimfile.stimFilename{gEditStimfile.index};
+if ~isempty(gEditStimfile.carFilename)
+  stimfile.car = gEditStimfile.car{gEditStimfile.index};
+end
+
+% assign in matlab workspace
+assignin('base','stimfile',stimfile);
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+%    editStimfileSave    %
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+function dummy = editStimfileSave
+
+% dummy return variable
+dummy = 1;
+
+% get global
+global gEditStimfile;
+
+filenameShort = gEditStimfile.stimFilenameShort{gEditStimfile.index};
+filename = gEditStimfile.stimFilename{gEditStimfile.index};
+stimfile = gEditStimfile.stimfile{gEditStimfile.index};
+
+% see if user wants to overwrite
+if ~askuser(sprintf('(editStimfile) Make backup of original and save this version as %s',filenameShort),false,true);
+  return
+end
+
+% first copy old file to make a backup - with a timestamp
+backupName = sprintf('%s_backup_%s.mat',filenameShort,datestr(now,'YYYY_mm_DD_HH_MM_SS'));
+backupName = fullfile(getpath(filename),backupName);
+
+if isfile(filename)
+  disp(sprintf('(editStimfile) Making backup of %s to %s',getLastDir(filename),getLastDir(backupName)));
+  movefile(filename,backupName);
+else
+  disp(sprintf('(editStimfile) Could not find original %s to make backup of',filename));
+end
+
+% save the new stimfile
+disp(sprintf('(editStimfile) Saving %s',filename));
+save(filename,'-struct','stimfile');
+
 
 %%%%%%%%%%%%%%%%%%%%%
 %    makeDispStr    %
@@ -103,9 +162,10 @@ function val = editStimfileDeleteVolume
 val = 1;
 global gEditStimfile;
 msc = gEditStimfile.stimfile{gEditStimfile.index}.myscreen;
+extra = gEditStimfile.extra{gEditStimfile.index};
 
 % delete the volume
-gEditStimfile.stimfile{gEditStimfile.index}.myscreen = deleteVolume(msc,gEditStimfile.volnum);
+[gEditStimfile.stimfile{gEditStimfile.index}.myscreen gEditStimfile.extra{gEditStimfile.index}] = deleteVolume(msc,extra,gEditStimfile.volnum);
 
 % recreate the display string
 makeDispStr(gEditStimfile.index);
@@ -116,7 +176,7 @@ editStimfileUpdateDisp(gEditStimfile);
 %%%%%%%%%%%%%%%%%%%%%%
 %    deleteVolume    %
 %%%%%%%%%%%%%%%%%%%%%%
-function msc = deleteVolume(msc,volnum);
+function [msc extra] = deleteVolume(msc,extra,volnum);
 
 % get the event
 event = getVolEvent(msc,volnum);
@@ -145,6 +205,15 @@ msc.volnum = msc.volnum-1;
 
 % remake traces
 msc = makeTraces(msc);
+
+% get first volume, so that we can rest the time of myscreen to be 0 at first acq
+triggers = getedges(msc.traces(1,:),0.5);
+firstTriggerTime = msc.time(triggers.rising(1));
+lastTriggerTime = msc.time(triggers.rising(end));
+extra.time = msc.time-firstTriggerTime;
+extra.firstTriggerTime = firstTriggerTime;
+extra.lastTriggerTime = lastTriggerTime;
+extra.scanEndTime = lastTriggerTime-firstTriggerTime+median(diff(msc.time(triggers.rising)));
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %    editStimfileParamsCallback    %
@@ -178,6 +247,7 @@ numRows = 1;
 
 % shortcut to myscreen
 msc = g.stimfile{g.index}.myscreen;
+extra = g.extra{g.index};
 
 % see if we are going to draw car as well
 if ~isempty(g.carFilename)
@@ -189,23 +259,26 @@ clf(g.fig);
 a = subplot(numRows,1,1,'Parent',g.fig);
 
 % plot the traces
-plot(a,msc.time,msc.traces(1,:),'k-');
+plot(a,extra.time,msc.traces(1,:),'k-');
 hold(a,'on');
 
 % get the event
 event = getVolEvent(msc,g.volnum);
 if ~isempty(event)
-  plot(a,[event.time event.time]-msc.firstTriggerTime,[0 1],'r-');
+  plot(a,[event.time event.time]-extra.firstTriggerTime,[0 1],'r-');
 end
 
 % set the axis limits
-axis(a,[g.stimfile{g.index}.minTime g.stimfile{g.index}.maxTime -0.1 1.1]);
+axis(a,[extra.minTime extra.maxTime -0.1 1.1]);
 
 % label the axis
 xlabel(a,'Time (sec)');
 ylabel(a,'Volume trace');
 title(a,g.dispstr{g.index},'Interpreter','none');
-zoom on
+h = zoom(g.fig);
+set(h,'Enable','on');
+set(h,'Motion','horizontal');
+set(h,'ActionPostCallback',@zoomCallback);
 
 % draw car file if we have one
 if ~isempty(g.carFilename)
@@ -216,7 +289,7 @@ if ~isempty(g.carFilename)
   cla(a);
   plot(a,car.time,car.channels(car.trigChannel,:));
   aLim = axis(a);
-  axis(a,[g.stimfile{g.index}.minTime g.stimfile{g.index}.maxTime aLim(3) aLim(4)]);
+  axis(a,[extra.minTime extra.maxTime aLim(3) aLim(4)]);
   ylabel(a,'ADC');
   title(a,g.carTrigDispstr{g.index});
   % plot the acq trigger
@@ -224,7 +297,7 @@ if ~isempty(g.carFilename)
   cla(a);
   plot(a,car.acqTime,car.acq,'r-')
   aLim = axis(a);
-  axis(a,[g.stimfile{g.index}.minTime g.stimfile{g.index}.maxTime -0.1 1.1]);
+  axis(a,[extra.minTime extra.maxTime -0.1 1.1]);
   ylabel(a,'Digio');
   title(a,g.carAcqDispstr{g.index});
   % plot the buttons
@@ -234,7 +307,7 @@ if ~isempty(g.carFilename)
   hold(a,'on');
   plot(a,car.time,car.channels(car.button2Channel,:),'k-');
   aLim = axis(a);
-  axis(a,[g.stimfile{g.index}.minTime g.stimfile{g.index}.maxTime aLim(3) aLim(4)]);
+  axis(a,[extra.minTime extra.maxTime aLim(3) aLim(4)]);
   ylabel(a,'ADC');
   title(a,sprintf('Button1: %i Button2: %i',car.button1Channel,car.button2Channel));
   % plot respiration
@@ -243,19 +316,19 @@ if ~isempty(g.carFilename)
   plot(a,car.time,car.resp,'b-');
   hold(a,'on');
   aLim = axis(a);
-  axis(a,[g.stimfile{g.index}.minTime g.stimfile{g.index}.maxTime aLim(3) aLim(4)]);
+  axis(a,[extra.minTime extra.maxTime aLim(3) aLim(4)]);
   ylabel(a,'ADC');
-  title(a,'Respiration');
+  title(a,g.carRespirDispstr{g.index});
   % plot cardio
   a = subplot(numRows,1,6,'Parent',g.fig);
   cla(a);
   plot(a,car.time,car.cardio,'r-');
   hold(a,'on');
   aLim = axis(a);
-  axis(a,[g.stimfile{g.index}.minTime g.stimfile{g.index}.maxTime aLim(3) aLim(4)]);
+  axis(a,[extra.minTime extra.maxTime aLim(3) aLim(4)]);
   xlabel(a,'Time (sec)');
   ylabel(a,'ADC');
-  title(a,'Cardiac');
+  title(a,g.carCardioDispstr{g.index});
   
 end
 
@@ -330,15 +403,19 @@ for iFile = 1:gEditStimfile.n
     % get first volume, so that we can rest the time of myscreen to be 0 at first acq
     triggers = getedges(stimfile.myscreen.traces(1,:),0.5);
     firstTriggerTime = stimfile.myscreen.time(triggers.rising(1));
-    stimfile.myscreen.time = stimfile.myscreen.time-firstTriggerTime;
-    stimfile.myscreen.firstTriggerTime = firstTriggerTime;
+    lastTriggerTime = stimfile.myscreen.time(triggers.rising(end));
+    extra.time = stimfile.myscreen.time-firstTriggerTime;
+    extra.firstTriggerTime = firstTriggerTime;
+    extra.lastTriggerTime = lastTriggerTime;
+    extra.scanEndTime = lastTriggerTime-firstTriggerTime+median(diff(stimfile.myscreen.time(triggers.rising)));
 
     % get min and max time
-    stimfile.minTime = min(stimfile.myscreen.time);
-    stimfile.maxTime = max(stimfile.myscreen.time);
+    extra.minTime = min(extra.time);
+    extra.maxTime = max(extra.time);
     
     % put stimfile in global
     gEditStimfile.stimfile{iFile} = stimfile;
+    gEditStimfile.extra{iFile} = extra;
   end
 
   % make short name
@@ -373,7 +450,7 @@ for iFile = 1:gEditStimfile.n
       % now create a time vector with 0 being the time of the first trigger
       channelSamplePeriod = 0.01;
       car.time = 0:channelSamplePeriod:channelSamplePeriod*(size(car.channels,2)-1);
-      car.time = car.time-firstTrigger*channelSamplePeriod;
+      car.time = car.time-firstTrigger*channelSamplePeriod+channelSamplePeriod;
 
       % do the same for acq channel
       acqSamplePeriod = 0.001;
@@ -383,15 +460,46 @@ for iFile = 1:gEditStimfile.n
       % and get number of acqs
       acqTriggers = getedges(car.acq,0.5);
       
+      % reset min and max time
+      gEditStimfile.extra{iFile}.minTime = min(gEditStimfile.extra{iFile}.minTime,min(car.time));
+      gEditStimfile.extra{iFile}.maxTime = max(gEditStimfile.extra{iFile}.maxTime,max(car.time));
+
+      % read bit files
+      bit = readbit(getpath(filename),0);
+      if ~isempty(bit)
+	% get heartrate
+	bit.heartrate = nan;
+	if ~isempty(bit.cardio)
+	  bit.heartrate = 60*sum(bit.cardio)/extra.scanEndTime;
+	end
+	% get respiration rate
+	bit.respirrate = nan;
+	if ~isempty(bit.cardio)
+	  bit.respirrate = 60*sum(bit.respir)/extra.scanEndTime;
+	end
+	% save in car
+	car.bit = bit;
+      else
+	car.bit.acq = [];
+	car.bit.cardio = [];
+	car.bit.respir = [];
+      end
+      
       % make display string
       cardir = dir(car.filename);
       gEditStimfile.carTrigDispstr{iFile} = sprintf('%s nAcq: %i (End: %s) channel: %i',getLastDir(car.filename),length(triggers.rising)+length(triggers.falling),cardir.date,car.trigChannel);
       gEditStimfile.carAcqDispstr{iFile} = sprintf('Acq (%i)',acqTriggers.n);
+      if ~isempty(car.bit)
+	gEditStimfile.carCardioDispstr{iFile} = sprintf('Cardio (heart rate: %0.1f beats/min)',car.bit.heartrate);
+      else
+	gEditStimfile.carCardioDispstr{iFile} = sprintf('Cardio');
+      end	
+      if ~isempty(car.bit)
+	gEditStimfile.carRespirDispstr{iFile} = sprintf('Respir (respiration rate: %0.1f breaths/min, %0.2f sec/breath)',car.bit.respirrate,60/car.bit.respirrate);
+      else
+	gEditStimfile.carRespirDispstr{iFile} = sprintf('Respir');
+      end	
       
-      % reset min and max time
-      gEditStimfile.stimfile{iFile}.minTime = min(gEditStimfile.stimfile{iFile}.minTime,min(car.time));
-      gEditStimfile.stimfile{iFile}.maxTime = max(gEditStimfile.stimfile{iFile}.maxTime,max(car.time));
-
       % save in global 
       gEditStimfile.car{iFile} = car;
       
@@ -399,5 +507,26 @@ for iFile = 1:gEditStimfile.n
       gEditStimfile.carFilenameShort{iFile} = getLastDir(gEditStimfile.carFilename{iFile});
     end
   end
+end
+
+%%%%%%%%%%%%%%%%%%%%%%
+%    zoomCallback    %
+%%%%%%%%%%%%%%%%%%%%%%
+function zoomCallback(obj,event_obj)
+
+% get all the figures children
+allAxes = get(obj,'Children');
+
+% get the current zoom for the zoomed axis
+for i = 1:length(allAxes)
+  if isequal(event_obj.Axes,allAxes(i))
+    zoomedAxis = axis(allAxes(i));
+  end
+end
+
+% just set all of the x-values the same
+for i = 1:length(allAxes)
+  thisAxis = axis(allAxes(i));
+  axis(allAxes(i),[zoomedAxis(1) zoomedAxis(2) thisAxis(3) thisAxis(4)]);
 end
 
