@@ -65,7 +65,13 @@ mglEyelinkCMDPrintF('screen_distance = %6.2f, %6.2f', ...
 params = mglEyelinkParams([]);
 % select calibration type
 eyelinkParams = mglEyelinkParams([]);
+myscreen.eyetracker.params = eyelinkParams;
 mglEyelinkCMDPrintF(sprintf('calibration_type = %s',eyelinkParams.calibrationType));
+
+% set the size of the area for the calibration and validation
+mglEyelinkCMDPrintF(sprintf('calibration_area_proportion = %f %f',eyelinkParams.calibrationAreaX,eyelinkParams.calibrationAreaY));
+mglEyelinkCMDPrintF(sprintf('validation_area_proportion = %f %f',eyelinkParams.calibrationAreaX,eyelinkParams.calibrationAreaY));
+
 % select events to save
 %mglEyelinkCMDPrintF('file_event_filter = RIGHT,FIXATION,SACCADE,BLINK,MESSAGE,BUTTON'); 
 mglEyelinkCMDPrintF('file_event_filter = %s',eyelinkParams.eventFilter); 

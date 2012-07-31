@@ -1,7 +1,7 @@
 % getTaskEyeTraces.m
 %
 %        $Id:$ 
-%      usage: e = getTaskEyeTraces(stimfileName,<taskNum=1>,<phaseNum=1>,<dispFig=1>,<dataPad=3>,<removeBlink=1>)
+%      usage: e = getTaskEyeTraces(stimfileName,<taskNum=1>,<phaseNum=1>,<dispFig=0>,<dataPad=3>,<removeBlink=1>)
 %         by: justin gardner
 %       date: 06/23/10
 %    purpose: get the eye traces for a task. Pass in a stimfile name and the
@@ -20,6 +20,8 @@
 %             To remove say 5 samples from either side of the blink
 %             e = getTaskEyeTraces(('101203_stim03','removeBlink=5');
 %
+%             % if you want to display a figure with the eye positon
+%             e = getTaskEyeTraces(('101203_stim03','dispFig=1');
 %
 %    e = getTaskEyeTraces('100616_stim01','taskNum=1','phaseNum=1','dataPad=3');
 %
