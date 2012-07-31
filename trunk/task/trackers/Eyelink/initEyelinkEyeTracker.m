@@ -69,6 +69,7 @@ myscreen.eyetracker.params = eyelinkParams;
 mglEyelinkCMDPrintF(sprintf('calibration_type = %s',eyelinkParams.calibrationType));
 
 % set the size of the area for the calibration and validation
+disp(sprintf('(initEyelinkEyeTracker) Setting calibration to %s with calibration area %0.2f x %0.2f',eyelinkParams.calibrationType,eyelinkParams.calibrationAreaX,eyelinkParams.calibrationAreaY));
 mglEyelinkCMDPrintF(sprintf('calibration_area_proportion = %f %f',eyelinkParams.calibrationAreaX,eyelinkParams.calibrationAreaY));
 mglEyelinkCMDPrintF(sprintf('validation_area_proportion = %f %f',eyelinkParams.calibrationAreaX,eyelinkParams.calibrationAreaY));
 
