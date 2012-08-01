@@ -24,7 +24,7 @@
 %
 % 
 %
-function retval = editStimfile(stimFilename,varargin)
+function editStimfile(stimFilename,varargin)
 
 % check arguments
 if nargin < 1
@@ -67,6 +67,12 @@ if hasMrTools && isview(stimFilename)
     [stimFilename carFilename] = getFilenamesFromView(v,scanNum,groupNum);
   end
 end  
+
+% check for bad view structure
+if isstruct(stimFilename)
+  disp(sprintf('(editStimfile) Structure passed in is not an open view. Try v = newView and start over'));
+  return
+end
 
 % make stimFilename into a string
 stimFilename = cellArray(stimFilename);
