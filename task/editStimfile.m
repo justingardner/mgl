@@ -92,7 +92,18 @@ gEditStimfile.stimFilename = stimFilename;
 gEditStimfile.carFilename = carFilename;
 
 % load files
-editStimfileLoadFiles;
+if gEditStimfile.n
+  editStimfileLoadFiles;
+else
+  disp(sprintf('(editStimfile) No stimfiles to load'));
+  return
+end
+
+% check that the loaded number matches the number to load
+if gEditStimfile.nLoaded < gEditStimfile.n
+  disp(sprintf('(editStimfile) Unable to load all stimfiles'));
+  return
+end
 
 % set up params dialog
 paramsInfo = {};
@@ -115,7 +126,9 @@ editStimfileUpdateDisp(gEditStimfile);
 mrParamsDialog(paramsInfo,'Edit Stimfile');
 
 % close figure
-close(gEditStimfile.fig);
+if ishandle(gEditStimfile.fig)
+  close(gEditStimfile.fig);
+end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %    editStimfileExport    %
@@ -290,6 +303,8 @@ if ~isempty(g.carFilename)
   numRows = numRows + 5;
 end
 
+if ~ishandle(g.fig),mrParamsClose;return;end
+
 % clear the fig
 clf(g.fig);
 a = subplot(numRows,1,1,'Parent',g.fig);
@@ -331,8 +346,13 @@ for iSegTrace = 1:length(segmentTraceNums)
   % get the first segment times
   tracenumEvents = find(msc.events.tracenum==segmentTraceNums(iSegTrace));
   tracenumEvents = tracenumEvents(msc.events.data(tracenumEvents) == 1);
-  time = extra.time(find(msc.traces(segmentTraceNums(iSegTrace),:) == 1));
   volnum = msc.events.volnum(tracenumEvents);
+  % get time from trace
+  time = extra.time(find(msc.traces(segmentTraceNums(iSegTrace),:) == 1));
+  % if that looks suspicious, get it from events
+  if length(time) ~= length(volnum)
+    time = msc.events.time(tracenumEvents)-msc.events.time(1)-extra.firstTriggerTime;
+  end
   % and print the volume number when it occurred
   for iTrial = 1:length(volnum)
     text(time(iTrial),1.5,sprintf('%i',volnum(iTrial)),'HorizontalAlignment','center','Color',c,'Parent',a);
@@ -451,6 +471,7 @@ end
 function editStimfileLoadFiles
 
 global gEditStimfile
+gEditStimfile.nLoaded = 0;
 
 % read the stimFiles
 for iFile = 1:gEditStimfile.n
@@ -492,6 +513,9 @@ for iFile = 1:gEditStimfile.n
   
   % make description
   makeDispStr(iFile);
+
+  % update loaded count
+  gEditStimfile.nLoaded = gEditStimfile.nLoaded+1;
   
   if ~isempty(gEditStimfile.carFilename)
     % try to load matching carfile
