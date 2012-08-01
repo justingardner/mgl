@@ -17,6 +17,12 @@
 %             To view a specific stimfile
 %             editStimfile('120731_stim01');
 %
+%             To display with an associated car file.
+%             Note that car files are aligned to the stim file by setting as time 0
+%             the time that stimulus computer acq trace first registers an acquisition pulse
+%             editStimfile('120731_stim01','carFilename=120731-07.car');
+%
+% 
 %
 function retval = editStimfile(stimFilename,varargin)
 
@@ -273,7 +279,7 @@ editStimfileUpdateDisp(gEditStimfile);
 function editStimfileUpdateDisp(g)
 
 % how many rows of plots to draw
-numRows = 1;
+numRows = 2;
 
 % shortcut to myscreen
 msc = g.stimfile{g.index}.myscreen;
@@ -302,7 +308,6 @@ end
 axis(a,[extra.minTime extra.maxTime -0.1 1.1]);
 
 % label the axis
-xlabel(a,'Time (sec)');
 ylabel(a,'Volume trace');
 title(a,g.dispstr{g.index},'Interpreter','none');
 h = zoom(g.fig);
@@ -310,12 +315,43 @@ set(h,'Enable','on');
 set(h,'Motion','horizontal');
 set(h,'ActionPostCallback',@zoomCallback);
 
+% now draw the task traces
+a = subplot(numRows,1,2,'Parent',g.fig);
+
+% get segment traces
+segmentTraceNums = find(strcmp(msc.traceNames,'segment'))-1;
+
+% for each segment trace
+for iSegTrace = 1:length(segmentTraceNums)
+  % color for this trace
+  c = getSmoothColor(iSegTrace,length(segmentTraceNums),'hsv');
+  % plot the trace
+  plot(a,extra.time,msc.traces(segmentTraceNums(iSegTrace)',:),'Color',c);
+  hold(a,'on');
+  % get the first segment times
+  tracenumEvents = find(msc.events.tracenum==segmentTraceNums(iSegTrace));
+  tracenumEvents = tracenumEvents(msc.events.data(tracenumEvents) == 1);
+  time = extra.time(find(msc.traces(segmentTraceNums(iSegTrace),:) == 1));
+  volnum = msc.events.volnum(tracenumEvents);
+  % and print the volume number when it occurred
+  for iTrial = 1:length(volnum)
+    text(time(iTrial),1.5,sprintf('%i',volnum(iTrial)),'HorizontalAlignment','center','Color',c,'Parent',a);
+  end
+end
+
+% axis labels
+thisAxis = axis(a);
+axis(a,[extra.minTime extra.maxTime thisAxis(3) thisAxis(4)]);
+title(a,'Segment trace');
+ylabel(a,'Segment num');
+xlabel(a,'Time (sec)');
+
 % draw car file if we have one
 if ~isempty(g.carFilename)
   % shortcut
   car = g.car{g.index};
   % plot the stim trigger
-  a = subplot(numRows,1,2,'Parent',g.fig);
+  a = subplot(numRows,1,3,'Parent',g.fig);
   cla(a);
   plot(a,car.time,car.channels(car.trigChannel,:));
   aLim = axis(a);
@@ -323,7 +359,7 @@ if ~isempty(g.carFilename)
   ylabel(a,'ADC');
   title(a,g.carTrigDispstr{g.index});
   % plot the acq trigger
-  a = subplot(numRows,1,3,'Parent',g.fig);
+  a = subplot(numRows,1,4,'Parent',g.fig);
   cla(a);
   plot(a,car.acqTime,car.acq,'r-')
   aLim = axis(a);
@@ -331,7 +367,7 @@ if ~isempty(g.carFilename)
   ylabel(a,'Digio');
   title(a,g.carAcqDispstr{g.index});
   % plot the buttons
-  a = subplot(numRows,1,4,'Parent',g.fig);
+  a = subplot(numRows,1,5,'Parent',g.fig);
   cla(a);
   plot(a,car.time,car.channels(car.button1Channel,:),'r-');
   hold(a,'on');
@@ -341,7 +377,7 @@ if ~isempty(g.carFilename)
   ylabel(a,'ADC');
   title(a,sprintf('Button1: %i Button2: %i',car.button1Channel,car.button2Channel));
   % plot respiration
-  a = subplot(numRows,1,5,'Parent',g.fig);
+  a = subplot(numRows,1,6,'Parent',g.fig);
   cla(a);
   plot(a,car.time,car.resp,'b-');
   hold(a,'on');
@@ -350,7 +386,7 @@ if ~isempty(g.carFilename)
   ylabel(a,'ADC');
   title(a,g.carRespirDispstr{g.index});
   % plot cardio
-  a = subplot(numRows,1,6,'Parent',g.fig);
+  a = subplot(numRows,1,7,'Parent',g.fig);
   cla(a);
   plot(a,car.time,car.cardio,'r-');
   hold(a,'on');
@@ -373,6 +409,8 @@ if (volnum >= 1) && (volnum <= length(volnumEvents))
   event.num = volnumEvents(volnum);
   event.time = msc.events.time(event.num)-msc.events.time(1);
 end
+
+
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -421,12 +459,13 @@ for iFile = 1:gEditStimfile.n
     disp(sprintf('(editStimfile) Could not find stimfile: %s',filename));
     return
   else
+    disp(sprintf('(editStimfile) Loading stimfile %s',filename));
     stimfile = load(filename);
     if ~isfield(stimfile,'myscreen')
       disp(sprintf('(editStimfile) Stimfile %s is missing myscreen variable',filename));
       return
     end
-
+    
     % make traces
     stimfile.myscreen = makeTraces(stimfile.myscreen);
     
