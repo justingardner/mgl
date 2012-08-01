@@ -6,6 +6,18 @@
 %       date: 07/27/12
 %    purpose: GUI to view and edit stimfiles
 %
+%      usage: To view all stimfiles in the Raw group
+%             v = newView;
+%             editStimfile(v,'group=Raw');
+%
+%             Or a specific scan and group
+%             v = newView;
+%             editStimfile(v,'scanNum=3','groupNum=Concatenation');
+% 
+%             To view a specific stimfile
+%             editStimfile('120731_stim01');
+%
+%
 function retval = editStimfile(stimFilename,varargin)
 
 % check arguments
@@ -15,7 +27,7 @@ if nargin < 1
 end
 
 % get arguments
-getArgs(varargin,{'scanNum=[]','groupNum=[]','carFilename=[]'});
+getArgs(varargin,{'scanNum=[]','groupNum=[]','carFilename=[]','group=[]'});
 
 % check for mrParamsDialog function
 if exist('mrParamsDialog') ~= 2
@@ -29,7 +41,25 @@ if exist('isview') == 2,hasMrTools = true;end
 
 % if passed in argument is a view, then we get the stimfile from the view
 if hasMrTools && isview(stimFilename)
-  [stimFilename carFilename] = getFilenamesFromView(stimFilename,scanNum,groupNum);
+  v = stimFilename;
+  % if group, then try to load all stimfiles for group
+  if ~isempty(group)
+    % check for group
+    groupNum = viewGet(v,'groupNum',group);
+    if isempty(groupNum),disp(sprintf('(editStimfile) Could not find group %s',group));return;end
+    % get nScans for group
+    v = viewSet(v,'curGroup',groupNum);
+    nScans = viewGet(v,'nScans');
+    % load each scan's info
+    stimFilename = {};carFilename = {};
+    for iScan = 1:nScans
+      [thisStimFilename thisCarFilename] = getFilenamesFromView(v,iScan,groupNum);
+      stimFilename = {stimFilename{:} thisStimFilename{:}};
+      carFilename = {carFilename{:} thisCarFilename{:}};
+    end
+  else
+    [stimFilename carFilename] = getFilenamesFromView(v,scanNum,groupNum);
+  end
 end  
 
 % make stimFilename into a string
@@ -445,7 +475,7 @@ for iFile = 1:gEditStimfile.n
       % get the trigger pulses
       triggers = car.channels(car.trigChannel,:);
       triggers = getedges(triggers,min(triggers)+(max(triggers)-min(triggers))/2);
-      firstTrigger = min([triggers.rising triggers.falling]);
+      firstTrigger = min(setdiff([triggers.rising triggers.falling],1));
 
       % now create a time vector with 0 being the time of the first trigger
       channelSamplePeriod = 0.01;
