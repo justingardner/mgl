@@ -155,6 +155,7 @@ if ~isempty(gEditStimfile.carFilename)
 end
 
 % assign in matlab workspace
+disp(sprintf('(editStimfile) Exporting to variable: stimfile'));
 assignin('base','stimfile',stimfile);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -179,7 +180,7 @@ end
 
 % first copy old file to make a backup - with a timestamp
 backupName = sprintf('%s_backup_%s.mat',filenameShort,datestr(now,'YYYY_mm_DD_HH_MM_SS'));
-backupName = fullfile(getpath(filename),backupName);
+backupName = fullfile(fileparts(filename),backupName);
 
 if isfile(filename)
   disp(sprintf('(editStimfile) Making backup of %s to %s',getLastDir(filename),getLastDir(backupName)));
@@ -200,13 +201,32 @@ function dispstr = makeDispStr(iFile)
 
 global gEditStimfile;
 msc = gEditStimfile.stimfile{iFile}.myscreen;
+task = gEditStimfile.stimfile{iFile}.task;
+
+% get task filename
+task = cellArray(task);
+taskFilenames = {};
+for i = 1:length(task)
+  thisTask = cellArray(task{i});
+  for iPhase = 1:length(thisTask)
+    if isfield(thisTask{iPhase},'taskFilename')
+      taskFilenames{end+1} = thisTask{iPhase}.taskFilename;
+    end
+  end
+end
+taskFilenames = unique(taskFilenames);
+taskFilenamesStr = '';
+for i = 1:length(taskFilenames)
+  taskFilenamesStr = sprintf('%s, %s',taskFilenamesStr,taskFilenames{i});
+end
+taskFilenamesStr = taskFilenamesStr(3:end);
 
 % get average TR
 tr = getedges(msc.traces(1,:),0.5);
 tr = median(diff(msc.time(tr.rising)));
 
 % set the str
-gEditStimfile.dispstr{iFile} = sprintf('%s nVols: %i (%s -> %s) tr=%0.3f',gEditStimfile.stimFilenameShort{iFile},msc.volnum,msc.starttime,msc.endtime,tr);
+gEditStimfile.dispstr{iFile} = sprintf('%s (%s) nVols: %i (%s -> %s) tr=%0.3f',gEditStimfile.stimFilenameShort{iFile},taskFilenamesStr,msc.volnum,msc.starttime,msc.endtime,tr);
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -265,6 +285,7 @@ msc = makeTraces(msc);
 triggers = getedges(msc.traces(1,:),0.5);
 firstTriggerTime = msc.time(triggers.rising(1));
 lastTriggerTime = msc.time(triggers.rising(end));
+extra.triggerTimes = msc.time(triggers.rising)-firstTriggerTime;
 extra.time = msc.time-firstTriggerTime;
 extra.firstTriggerTime = firstTriggerTime;
 extra.lastTriggerTime = lastTriggerTime;
@@ -325,8 +346,13 @@ if ~isempty(event)
   plot(a,[event.time event.time]-extra.firstTriggerTime,[0 1],'r-');
 end
 
+% and print the volume number when it occurred
+for iVol = unique([1 10:10:length(extra.triggerTimes) length(extra.triggerTimes)])
+  text(extra.triggerTimes(iVol),1.5,sprintf('%i',iVol),'HorizontalAlignment','center','Color','k','Parent',a);
+end
+
 % set the axis limits
-axis(a,[extra.minTime extra.maxTime -0.1 1.1]);
+axis(a,[extra.minTime extra.maxTime -0.1 2]);
 
 % label the axis
 ylabel(a,'Volume trace');
@@ -379,17 +405,30 @@ if ~isempty(g.carFilename)
   % plot the stim trigger
   a = subplot(numRows,1,3,'Parent',g.fig);
   cla(a);
-  plot(a,car.time,car.channels(car.trigChannel,:));
-  aLim = axis(a);
-  axis(a,[extra.minTime extra.maxTime aLim(3) aLim(4)]);
+  trigChannel = car.channels(car.trigChannel,:);
+  maxTrig = max(trigChannel);
+  minTrig = min(trigChannel);
+  plot(a,car.time,trigChannel);
   ylabel(a,'ADC');
   title(a,g.carTrigDispstr{g.index});
+  % and print the volume number when it occurred
+  for iVol = unique([1 10:10:length(car.triggerTimes) length(car.triggerTimes)])
+    text(car.triggerTimes(iVol),maxTrig,sprintf('%i',iVol),'HorizontalAlignment','center','Color','k','Parent',a,'VerticalAlignment','bottom');
+  end
+  axis(a,[extra.minTime extra.maxTime 0 maxTrig*2]);
   % plot the acq trigger
   a = subplot(numRows,1,4,'Parent',g.fig);
   cla(a);
   plot(a,car.acqTime,car.acq,'r-')
-  aLim = axis(a);
-  axis(a,[extra.minTime extra.maxTime -0.1 1.1]);
+  % and print the volume number when it occurred
+  if ~isempty(car.acqTriggerType)
+    for iVol = unique([find(car.acqTriggerType<=0) first(find(car.acqTriggerType>0)):10:car.acqVols car.acqVols(end)])
+      text(car.acqTriggers((iVol-1)*car.acqTriggersPerVol+1),1.5,car.acqTriggerName{iVol},'HorizontalAlignment','center','Color','k','Parent',a);
+    end
+    axis(a,[extra.minTime extra.maxTime -0.1 2.0]);
+  else
+    axis(a,[extra.minTime extra.maxTime -0.1 1.1]);
+  end
   ylabel(a,'Digio');
   title(a,g.carAcqDispstr{g.index});
   % plot the buttons
@@ -421,7 +460,6 @@ if ~isempty(g.carFilename)
   xlabel(a,'Time (sec)');
   ylabel(a,'ADC');
   title(a,g.carCardioDispstr{g.index});
-  
 end
 
 %%%%%%%%%%%%%%%%%%%%%
@@ -435,9 +473,6 @@ if (volnum >= 1) && (volnum <= length(volnumEvents))
   event.num = volnumEvents(volnum);
   event.time = msc.events.time(event.num)-msc.events.time(1);
 end
-
-
-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %    getFilenamesFromView    %
@@ -500,6 +535,7 @@ for iFile = 1:gEditStimfile.n
     triggers = getedges(stimfile.myscreen.traces(1,:),0.5);
     firstTriggerTime = stimfile.myscreen.time(triggers.rising(1));
     lastTriggerTime = stimfile.myscreen.time(triggers.rising(end));
+    extra.triggerTimes = stimfile.myscreen.time(triggers.rising)-firstTriggerTime;
     extra.time = stimfile.myscreen.time-firstTriggerTime;
     extra.firstTriggerTime = firstTriggerTime;
     extra.lastTriggerTime = lastTriggerTime;
@@ -544,12 +580,14 @@ for iFile = 1:gEditStimfile.n
       % get the trigger pulses
       triggers = car.channels(car.trigChannel,:);
       triggers = getedges(triggers,min(triggers)+(max(triggers)-min(triggers))/2);
-      firstTrigger = min(setdiff([triggers.rising triggers.falling],1));
-
+      car.triggerTimes = setdiff([triggers.rising triggers.falling],1);
+      firstTrigger = min(car.triggerTimes);
+      
       % now create a time vector with 0 being the time of the first trigger
       channelSamplePeriod = 0.01;
       car.time = 0:channelSamplePeriod:channelSamplePeriod*(size(car.channels,2)-1);
       car.time = car.time-firstTrigger*channelSamplePeriod+channelSamplePeriod;
+      car.triggerTimes = car.time(car.triggerTimes);
 
       % do the same for acq channel
       acqSamplePeriod = 0.001;
@@ -558,36 +596,63 @@ for iFile = 1:gEditStimfile.n
 
       % and get number of acqs
       acqTriggers = getedges(car.acq,0.5);
-      
+      car.acqTriggers = car.acqTime(acqTriggers.rising);
+
       % reset min and max time
       gEditStimfile.extra{iFile}.minTime = min(gEditStimfile.extra{iFile}.minTime,min(car.time));
       gEditStimfile.extra{iFile}.maxTime = max(gEditStimfile.extra{iFile}.maxTime,max(car.time));
 
+      % read procpar
+      car.procpar = readprocpar(stripext(fileparts(filename)));
+      car.acqTriggerType = [];
+      car.acqTriggersPerVol = [];
+      car.acqVols = nan;
+      if ~isempty(car.procpar)
+	if all(isfield(car.procpar,{'pss','ss','image','numshots'}))
+	  car.acqTriggerType = [ones(1,car.procpar.ss)*-1 car.procpar.image];
+	  car.acqTriggersPerVol = car.procpar.numshots*length(car.procpar.pss);
+	  car.acqVols = length(car.acqTriggers)/car.acqTriggersPerVol;
+	  for iVol = 1:length(car.acqTriggerType)
+	    if car.acqTriggerType(iVol) == -1
+	      car.acqTriggerName{iVol} = sprintf('%i',iVol-car.procpar.ss-1);
+	    elseif car.acqTriggerType(iVol) == 0
+	      car.acqTriggerName{iVol} = '0';
+	    else
+	      car.acqTriggerName{iVol} = sprintf('%i',iVol-first(find(car.acqTriggerType>0))+1);
+	    end
+	  end
+	end
+      end
       % read bit files
-      bit = readbit(getpath(filename),0);
-      if ~isempty(bit)
-	% get heartrate
-	bit.heartrate = nan;
-	if ~isempty(bit.cardio)
-	  bit.heartrate = 60*sum(bit.cardio)/extra.scanEndTime;
+      car.bit.acq = [];
+      car.bit.cardio = [];
+      car.bit.respir = [];
+      car.bit.heartrate = nan;
+      car.bit.respirrate = nan;
+      if exist('readbit')==2
+	bit = readbit(fileparts(filename),0);
+	if ~isempty(bit)
+	  % get heartrate
+	  if ~isempty(bit.cardio)
+	    bit.heartrate = 60*sum(bit.cardio)/extra.scanEndTime;
+	  end
+	  % get respiration rate
+	  if ~isempty(bit.cardio)
+	    bit.respirrate = 60*sum(bit.respir)/extra.scanEndTime;
+	  end
+	  % save in car
+	  car.bit = bit;
 	end
-	% get respiration rate
-	bit.respirrate = nan;
-	if ~isempty(bit.cardio)
-	  bit.respirrate = 60*sum(bit.respir)/extra.scanEndTime;
-	end
-	% save in car
-	car.bit = bit;
-      else
-	car.bit.acq = [];
-	car.bit.cardio = [];
-	car.bit.respir = [];
       end
       
       % make display string
       cardir = dir(car.filename);
       gEditStimfile.carTrigDispstr{iFile} = sprintf('%s nAcq: %i (End: %s) channel: %i',getLastDir(car.filename),length(triggers.rising)+length(triggers.falling),cardir.date,car.trigChannel);
-      gEditStimfile.carAcqDispstr{iFile} = sprintf('Acq (%i)',acqTriggers.n);
+      if isempty(car.acqTriggerType)
+	gEditStimfile.carAcqDispstr{iFile} = sprintf('Acq (%i)',acqTriggers.n);
+      else
+	gEditStimfile.carAcqDispstr{iFile} = sprintf('Acq (%i, nVols=%0.1f + ss=%i + nRef=%i, nSlices=%i, nShots=%i)',acqTriggers.n,car.acqVols-car.procpar.ss-sum(car.procpar.image==0),car.procpar.ss,sum(car.procpar.image==0),length(car.procpar.pss),car.procpar.numshots);
+      end
       if ~isempty(car.bit)
 	gEditStimfile.carCardioDispstr{iFile} = sprintf('Cardio (heart rate: %0.1f beats/min)',car.bit.heartrate);
       else
@@ -629,3 +694,75 @@ for i = 1:length(allAxes)
   axis(allAxes(i),[zoomedAxis(1) zoomedAxis(2) thisAxis(3) thisAxis(4)]);
 end
 
+%%%%%%%%%%%%%%%%%%
+%    getedges    %
+%%%%%%%%%%%%%%%%%%
+function edges = getedges(timeseries,cutoff,dilation)
+
+% check command line arguments
+if (nargin == 2)
+  dilation = 1;
+elseif (nargin ~=3)
+  help getedges;
+  return
+end
+
+% find when timecourse exceeds cutoff value (if cutoff is negative
+% assume that means less than cutoff. If cutoff is positive assume
+% we are looking for values larger than cutoff).
+if (cutoff < 0)
+  cutofftimes = timeseries < cutoff;
+else
+  cutofftimes = timeseries > cutoff;
+end
+
+% no events, give up
+if (isempty(find(cutofftimes)))
+  edges.cutofftimes = cutofftimes;
+  edges.rising = [];
+  edges.falling = [];
+  edges.n = 0;
+  edges.dilated = edges.cutofftimes;
+  return
+end
+
+% find rising edges
+rising = [0 find(diff(find(cutofftimes)) > 1)]+1;
+% make sure that last one is not problematic
+if (rising(length(rising)) > length(cutofftimes))
+  rising(length(rising)) = risingedgretimes(length(rising))-1;
+end
+
+% find falling edges
+falling = [find(diff(find(cutofftimes)) > 1) length(find(cutofftimes))];
+
+% match length
+if (length(rising) ~= length(falling))
+  falling = falling(1:length(rising));
+end
+
+% get times where the signal is over cutoff
+findcutofftimes = find(cutofftimes);
+
+% pack return structure
+edges.cutofftimes = cutofftimes;
+edges.rising = findcutofftimes(rising);
+edges.falling = findcutofftimes(falling);
+
+% dilate edges 
+dilatedrise = edges.rising-dilation;
+dilatedrise(dilatedrise <= 0) = 1;
+dilatedfall = edges.falling+dilation;
+dilatedfall(dilatedfall > length(timeseries)) = length(timeseries);
+
+% set dilated edges to true
+edges.dilated = cutofftimes;
+for i = 1:length(dilatedrise);
+  edges.dilated(dilatedrise(i):dilatedfall(i)) = 1;
+end
+
+edges.n = length(edges.rising);
+
+% get edge length
+edges.completeN = min(length(edges.rising),length(edges.falling));
+edges.len = edges.falling(1:edges.completeN) - edges.rising(1:edges.completeN);
