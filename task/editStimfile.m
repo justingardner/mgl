@@ -366,7 +366,7 @@ set(h,'ActionPostCallback',@zoomCallback);
 a = subplot(numRows,1,2,'Parent',g.fig);
 
 % get segment traces
-segmentTraceNums = find(strcmp(msc.traceNames,'segment'))-1;
+segmentTraceNums = find(strncmp(msc.traceNames,'segment',length('segment')))-1;
 
 % for each segment trace
 for iSegTrace = 1:length(segmentTraceNums)
@@ -635,10 +635,14 @@ for iFile = 1:gEditStimfile.n
 	  % get heartrate
 	  if ~isempty(bit.cardio)
 	    bit.heartrate = 60*sum(bit.cardio)/extra.scanEndTime;
+	  else
+	    bit.heartrate = nan;
 	  end
 	  % get respiration rate
 	  if ~isempty(bit.cardio)
 	    bit.respirrate = 60*sum(bit.respir)/extra.scanEndTime;
+	  else
+	    bit.respirrate = nan;
 	  end
 	  % save in car
 	  car.bit = bit;
