@@ -90,9 +90,19 @@ for i = 1:length(e)
     elseif isfield(e{i}(j),'randVars') && isfield(e{i}(j).randVars,varname)
       % get the variable
       if allPossibleVals
-	% look for it in the "originalRandVars" field
-	if isfield(e{i}(j),'originalRandVars') && isfield(e{i}(j).originalRandVars,varname)
+	% look for it in the "originalRandVars" field, make sure that the original is not empty
+	% or set to nan - which indicates that it does not contain all possible values
+	if isfield(e{i}(j),'originalRandVars') && isfield(e{i}(j).originalRandVars,varname) && ~isempty(e{i}(j).originalRandVars.(varname)) && ~isnan(e{i}(j).originalRandVars.(varname))
 	  varval = unique(e{i}(j).originalRandVars.(varname));
+	  % check here if this all possible values actually contains the values that were recorded
+	  actualValues = unique(e{i}(j).randVars.(varname));
+	  numMissingValues = sum(~ismember(actualValues,varval));
+	  if numMissingValues>0
+	    % display warning
+	    disp(sprintf('(getVarFromParameters) !!! Found %i values for variable %s recorded that were unexpected, given that they were not ones set in the orignal rand var setting - i.e. in the task variable - adding them to the all possible values list !!!',numMissingValues,varname));
+	    % add the missing values to varval
+	    varval = union(varval,actualValues);
+	  end
 	else
 	  varval = unique(e{i}(j).randVars.(varname));
 	end
