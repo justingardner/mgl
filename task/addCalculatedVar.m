@@ -78,8 +78,13 @@ end
 % now make sure there is an original backup
 originalBackup = sprintf('%s_original.mat',stripext(stimfile));
 if isfile(originalBackup)
-  disp(sprintf('(addComputerBackup) Original backup already exists'));
+  originalBackup = sprintf('%s_backup_%s.mat',stripext(stimfile),datestr(now,'ddmmyyyy_HHMMSS'));
+  disp(sprintf('(addComputerBackup) Original backup already exists, saving as %s',originalBackup));
+end
+if isfile(originalBackup)
+  disp(sprintf('(addComputerBackup) %s already exists',originalBackup));
 else
+  % save
   eval(sprintf('save %s -struct s',originalBackup));
 end
 
@@ -91,7 +96,7 @@ s.task{taskNum}{phaseNum}.randVars.(varname) = varval;
 
 % add it to calculated
 if isempty(allval)
-  s.task{taskNum}{phaseNum}.randVars.calculated.(varname) = varval;
+  s.task{taskNum}{phaseNum}.randVars.calculated.(varname) = unique(varval);
 else
   s.task{taskNum}{phaseNum}.randVars.calculated.(varname) = allval;
 end

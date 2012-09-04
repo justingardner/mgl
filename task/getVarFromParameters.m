@@ -92,7 +92,7 @@ for i = 1:length(e)
       if allPossibleVals
 	% look for it in the "originalRandVars" field, make sure that the original is not empty
 	% or set to nan - which indicates that it does not contain all possible values
-	if isfield(e{i}(j),'originalRandVars') && isfield(e{i}(j).originalRandVars,varname) && ~isempty(e{i}(j).originalRandVars.(varname)) && ~isnan(e{i}(j).originalRandVars.(varname))
+	if isfield(e{i}(j),'originalRandVars') && isfield(e{i}(j).originalRandVars,varname) && ~isempty(e{i}(j).originalRandVars.(varname)) && ~any(isnan(e{i}(j).originalRandVars.(varname)))
 	  varval = unique(e{i}(j).originalRandVars.(varname));
 	  % check here if this all possible values actually contains the values that were recorded
 	  actualValues = unique(e{i}(j).randVars.(varname));
