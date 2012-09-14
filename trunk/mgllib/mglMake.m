@@ -81,9 +81,18 @@ end
 % Select the mex options file and set any compile parameters based on the
 % operating system and version.
 if ismac
-  [dumpvar,result] = system('system_profiler SPSoftwareDataType');
-  sysinfo = regexp(result, 'Mac OS X 10.(?<ver>\d?)', 'names');
-  if str2double(sysinfo.ver) >= 7 % >= lion
+  % get Mac OS version number
+  [dumpvar,result] = system('sw_vers -productVersion');
+  ver = textscan(result,'%f');
+  if ~isempty(ver{1})
+    ver = ver{1}(1);
+  else
+    % if that didn't work, try this way.
+    [dumpvar,result] = system('system_profiler SPSoftwareDataType');
+    sysinfo = regexp(result, 'OS X 10.(?<ver>\d?)', 'names');
+    ver = 10+str2double(sysinfo.ver)/10;
+  end
+  if ver >= 10.7 % >= lion
     % now check where the SDKs live. If they are in /Developer
     if isdir('/Developer/SDKs/MacOSX10.6.sdk')
       optf = '-f ./mexopts.sh';
