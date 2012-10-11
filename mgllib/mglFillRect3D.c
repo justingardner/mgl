@@ -119,7 +119,7 @@ void mexFunction(int nlhs, mxArray * plhs[], int nrhs, const mxArray * prhs[])
   glMatrixMode(GL_MODELVIEW);
 
   // Render the rectangles.
-  for (i = 0; i < n; i++) {
+  for (i = 0; i < numX; i++) {
     glPushMatrix();
 
     glTranslated(x[i], y[i], z[i]);
