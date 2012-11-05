@@ -94,12 +94,14 @@ if ismac
   end
   if ver >= 10.7 % >= lion
     % now check where the SDKs live. If they are in /Developer
-    if isdir('/Developer/SDKs/MacOSX10.6.sdk')
-      optf = '-f ./mexopts.sh';
-    elseif isdir('/Developer/SDKs/MacOSX10.7.sdk')
-      optf = '-f ./mexopts.10.7.sh';
+    if isdir('/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.8.sdk')
+      optf = '-f ./mexopts.10.8.xcode.4.5.sh';
     elseif isdir('/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.7.sdk')
       optf = '-f ./mexopts.10.7.xcode.4.3.sh';
+    elseif isdir('/Developer/SDKs/MacOSX10.7.sdk')
+      optf = '-f ./mexopts.10.7.sh';
+    elseif isdir('/Developer/SDKs/MacOSX10.6.sdk')
+      optf = '-f ./mexopts.sh';
     else
       disp(sprintf('(mglMake) !!! Could not find MacOSX sdk. Have you installed XCode? !!!'));
       return
