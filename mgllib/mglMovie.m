@@ -58,13 +58,13 @@ if ~any(nargin == [1 2 3 4])
 end
 
 % check for open display
-if mglGetParam('displayNumber') == -1
-  disp(sprintf('(mglMovie) You must use mglOpen to open a display before using this command'));
-  return
-end
+%if mglGetParam('displayNumber') == -1
+%  disp(sprintf('(mglMovie) You must use mglOpen to open a display before using this command'));
+%  return
+%end
 
 % list of commands and descriptions
-validCommands = {'close','play','pause','gotobeginning','gotoend','stepforward','stepbackward','hide','show','getduration','getcurrenttime','setcurrenttime','getframe','move'};
+validCommands = {'close','play','pause','gotobeginning','gotoend','stepforward','stepbackward','hide','show','getduration','getcurrenttime','setcurrenttime','getframe','move','movewindow'};
 		 
 % see if it is an init with filename
 if isstr(varargin{1})
@@ -147,18 +147,19 @@ if isstruct(varargin{1})
   movieStructs = mglGetParam('movieStructs');
   if (length(movieStructs) < m.id) || isempty(movieStructs{m.id}) || (movieStructs{m.id}.moviePointer ~= m.moviePointer)
     disp(sprintf('(mglMovie) Movie struct is no longer valid (either it has been closed or it was made for a different display)'));
-    return
+    % FIX, FIX
+    %    return
   end
     
   % run the command
-  if any(command == [11 13])
+  if any(command == [11 13 14])
     if nargin < 3
       % commands with a single argument
       disp(sprintf('(mglMovie) Command %s needs another argument',validCommands{command+1}));
       return;
     else
       % command that requires a position needs special checking for position
-      if any(command == [13])
+      if any(command == [13 14])
 	arg = getPositionFromArg(varargin{3});
       else
 	arg = varargin{3};
