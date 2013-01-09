@@ -165,206 +165,189 @@ unsigned long openDisplay(double *displayNumber, int *screenWidth, int *screenHe
   return(contextPointer);
 }
 
+///////////////////////////////
+//   function declarations   //
+///////////////////////////////
+// Two helper functions to open windows for cocoa
+NSWindow *initWindow(double *, int *, int*);
+NSOpenGLView *addOpenGLContext(NSWindow *myWindow, double *, int*, int*);
+
 ////////////////////
 //   openWindow   //
 ////////////////////
 unsigned long cocoaOpen(double *displayNumber, int *screenWidth, int *screenHeight)
 {
-  // Note that this function can open either a windowed or a full-screen display. It
-  // is currently only being used for a windowed context, because the full-screen
-  // context conflicts somehow with the matlab desktop (works fine with -nodesktop
-  // or -nojvm).
-  NSOpenGLView *myOpenGLView;
-  NSWindow *myWindow;
-  NSOpenGLContext *myOpenGLContext;
-
-  // get status of global variable that sets whether to display
-  // verbose information
-  int verbose = (int)mglGetGlobalDouble("verbose");
-
-  // get whether we should have a transparent background - this is used
-  // with mglMovie which opens up another layer *beneath* the openGl
-  // window. The mglMovie layer shows the movies and the background
-  // and this window will be transparent above it so that we can
-  // draw above the movies. Note that transparenct background is different
-  // then setting the alpha of the window (which makes everything
-  // see-through)
-  int transparentBackground = (int)mglGetGlobalDouble("transparentBackground");
-
   // start auto release pool
   NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
 
-  // see if there is an existing window
-  myWindow = (NSWindow*)(unsigned long)mglGetGlobalDouble("cocoaWindowPointer");
+  // Open window
+  NSWindow *myWindow = initWindow(displayNumber,screenWidth,screenHeight);
+  if (myWindow == NULL) { [pool drain]; return; }
 
-  // if there isn't we need to set everything up
-  if (myWindow == 0) {
-
-    if (verbose) mexPrintf("(mglPrivateOpen) Initializing cocoa window\n");
-
-    // start the application -- i.e. connect our code to the window server
-    NSApplicationLoad();
-
-    // set up a pixel format for the openGL context
-    NSOpenGLPixelFormatAttribute attrs[] = {
-      NSOpenGLPFADoubleBuffer,
-      NSOpenGLPFADepthSize, 32,
-      NSOpenGLPFAStencilSize, 8,
-      0
-    };
-    NSOpenGLPixelFormat* myPixelFormat = [[NSOpenGLPixelFormat alloc] initWithAttributes:attrs];
-    if (myPixelFormat==nil) {
-      mexPrintf("(mglPrivateOpen) Could not create pixel format\n");
-      return;
-    }
-
-    // Create the openGLview, note that we set it to open with a 0,0,0,0 sized rect
-    // because it will later get resized to the size of the window
-    myOpenGLView = [[NSOpenGLView alloc] initWithFrame:NSMakeRect(0,0,0,0) pixelFormat:myPixelFormat];
-    if (myOpenGLView==nil) {
-      mexPrintf("(mglPrivateOpen) Could not create openGLView\n");
-      return;
-    }
-    [myPixelFormat release];
-    if (verbose) mexPrintf("(mglPrivateOpen) Created openGLView: %x\n",(unsigned long)myOpenGLView);
-
-    // set initial size and location
-    NSRect contentRect = NSMakeRect(100,100+*screenHeight,*screenWidth,*screenHeight);
-
-    // create the window, if we are running desktop, then open a borderless non backing
-    // store window because anything else causes problems
-    if (!mglGetGlobalDouble("showWindowBorder"))
-      myWindow = [[NSWindow alloc] initWithContentRect:contentRect styleMask:NSBorderlessWindowMask backing:NSBackingStoreBuffered defer:false];
-      //      myWindow = [[NSWindow alloc] initWithContentRect:contentRect styleMask:NSBorderlessWindowMask backing:NSBackingStoreNonretained defer:false];
-    else
-      myWindow = [[NSWindow alloc] initWithContentRect:contentRect styleMask:NSTitledWindowMask|NSClosableWindowMask|NSMiniaturizableWindowMask|NSTexturedBackgroundWindowMask backing:NSBackingStoreBuffered defer:false];
-    if (myWindow==nil) {
-      mexPrintf("(mglPrivateOpen) Could not create window\n");
-      return;
-    }
-    if (verbose) mexPrintf("(mglPrivateOpen) Created window: %x\n",(unsigned long)myWindow);
-
-    // make sure that the window won't show until we want it to.
-    [myWindow setAlphaValue:0];
-
-    // set background of window transparent
-    if (transparentBackground) {
-      if (verbose) mexPrintf("(mglPrivateOpen) Setting window background to transparent\n");
-      // set background transparent
-      [myWindow setOpaque:NO];
-      [myWindow setBackgroundColor:[NSColor clearColor]];
-    }
-    else {
-      [myWindow setOpaque:YES];
-    }
-
-    // attach the openGL view
-    [myWindow setContentView:myOpenGLView];
-
-    // release the openGLView
-    [myOpenGLView release];
-
-    // center the window
-    [myWindow center];
-  }
-  else {
-    if (verbose) mexPrintf("(mglPrivateOpen) Reusing view: %x\n",(unsigned long)[myWindow contentView]);
-    if (verbose) mexPrintf("(mglPrivateOpen) Reusing window: %x\n",(unsigned long)myWindow);
-  }
-
-  // set the openGL context as current
-  myOpenGLContext = [[myWindow contentView] openGLContext];
-  [myOpenGLContext makeCurrentContext];
-  [[myWindow contentView] prepareOpenGL];
-  if (verbose) mexPrintf("(mglPrivateOpen) Setting openGLContext: %x\n",(unsigned long)myOpenGLContext);
-  [[myWindow contentView] display];
-
-  // set the openGL context to be transparent so that we can see the movie below
-  if (transparentBackground) {
-    if (verbose) mexPrintf("(mglPrivateOpen) Setting openGLContext to transparent\n");
-
-    const GLint alphaValue = 0;
-    [myOpenGLContext setValues:&alphaValue forParameter:NSOpenGLCPSurfaceOpacity];
-  }
-
-  // show window
-  if (verbose) mexPrintf("(mglPrivateOpen) Order window\n");
-  if (!mglGetGlobalDouble("offscreenContext"))
-    [myWindow orderFront:nil];
-  else
-    if (verbose) mexPrintf("(mglPrivateOpen) Offscreen context\n");
-  if (verbose) mexPrintf("(mglPrivateOpen) Display window\n");
-  [myWindow display];
-  if (verbose) mexPrintf("(mglPrivateOpen) Window isVisible:%i\n",[myWindow isVisible]);
-
-  if (mglGetGlobalDouble("hideTaskAndMenu")) {
-    if (verbose) mexPrintf("(mglPrivateOpen) Hiding task and menu bar\n");
-    OSStatus setSystemUIModeStatus = SetSystemUIMode(kUIModeAllHidden,kUIOptionAutoShowMenuBar|kUIOptionDisableAppleMenu);
-  }
-
-  // order the window in front if called for
-  if (mglGetGlobalDouble("orderWindowFront")) {
-    if (verbose) mexPrintf("(mglPrivateOpen) Ordering window in front\n");
-    // would like to order in front of task and menu bar, 
-    // but can't seem to do that... tried the following
-    //[myWindow makeMainWindow];
-    [myWindow orderFrontRegardless];
-    //[myWindow orderFront:nil];
-    //[myWindow makeKeyAndOrderFront];
-  }
-
-
-  // Set a full screen context
-  if ((*displayNumber >= 1) || (*displayNumber < 0)) {
-    // display message
-    if (verbose) mexPrintf("(mglPrivateOpen) Setting parameters for full screen mode\n");
-
-    //  Set some options for going full screen
-    NSArray *objects = [NSArray arrayWithObjects:[NSNumber numberWithBool:NO],[NSNumber numberWithInt:0],nil];
-    NSArray *keys = [NSArray arrayWithObjects:NSFullScreenModeAllScreens,NSFullScreenModeWindowLevel,nil];
-
-    NSDictionary *fullScreenOptions = [NSDictionary dictionaryWithObjects:objects forKeys:keys];
-
-    // get all the screens
-    if (verbose) mexPrintf("(mglPrivateOpen) Getting screen information\n");
-    NSArray *screens = [NSScreen screens];
-
-    // now enter full screen mode
-    if (verbose) mexPrintf("(mglPrivateOpen) Going full screen\n");
-    BOOL success = [[myWindow contentView] enterFullScreenMode:[screens objectAtIndex:(*displayNumber-1)] withOptions:fullScreenOptions];
-    if (verbose) mexPrintf("(mglPrivateOpen) Full screen success: %i\n",success);
-
-    // get the size of the relevant screen
-    NSRect screenRect = [[screens objectAtIndex:(*displayNumber-1)] frame];
-    *screenWidth = screenRect.size.width;
-    *screenHeight = screenRect.size.height;
-  }
-  else {
-    if (verbose) mexPrintf("(mglPrivateOpen) Setting window alpha\n");
-    // for a windowed context, we don't have to go full screen, just set alpha
-    if (*displayNumber > 0)
-      // set alpha, if displayNumber is not == 0
-      [myWindow setAlphaValue:*displayNumber];
-    else
-      [myWindow setAlphaValue:1];
-  }
+  // Attach openGLView
+  NSOpenGLView *myOpenGLView = addOpenGLContext(myWindow,displayNumber,screenWidth,screenHeight);
 
   // remember the window
   mglSetGlobalDouble("cocoaWindowPointer",(unsigned long)myWindow);
   // and that this is a cocoa window
   mglSetGlobalDouble("isCocoaWindow",1);
 
-  // set the swap interval so that flush waits for vertical refresh
-  const GLint swapInterval = 1;
-  [myOpenGLContext setValues:&swapInterval forParameter:NSOpenGLCPSwapInterval];
-
-  // drain the pool
-  [pool drain];
-  if (verbose) mexPrintf("(mglPrivateOpen) pool is drained\n");
+  NSOpenGLContext *myOpenGLContext = [[myWindow contentView] openGLContext];
 
   // return openGL context
   return((unsigned long)myOpenGLContext);
+};
+
+//////////////////////
+//    initWindow    //
+//////////////////////
+NSWindow *initWindow(double *displayNumber, int *screenWidth, int *screenHeight)
+{
+  NSWindow *myWindow;
+
+  // get status of globals
+  int verbose = (int)mglGetGlobalDouble("verbose");
+  int transparentBackground = (int)mglGetGlobalDouble("transparentBackground");
+  int spoofFullScreen = (int)mglGetGlobalDouble("spoofFullScreen");
+
+  // start the application -- i.e. connect our code to the window server
+  if (NSApplicationLoad() == NO) {
+    mexPrintf("(mglPrivateOpen:initWindow) NSApplicationLoad returned NO\n");
+    return NULL;
+  }
+
+  // set initial size and location
+  NSRect contentRect = NSMakeRect(100,100+*screenHeight,*screenWidth,*screenHeight);
+
+  // set size to match full screen if this has been set
+  if (spoofFullScreen>0) {
+    // get info about screens
+    NSArray *screens = [NSScreen screens];
+    if ([screens count] >= spoofFullScreen) {
+      // get the size of the sceen
+      NSRect screenRect = [[screens objectAtIndex:(spoofFullScreen-1)] frame];
+      if (verbose)
+	mexPrintf("(mglPrivateOpen) Screen (%i of %i) size: [%0.0f %0.0f %0.0f %0.0f]\n",spoofFullScreen,[screens count],screenRect.origin.x,screenRect.origin.y,screenRect.size.width,screenRect.size.height);
+      // set the content rect to make the window to the size of the screen
+      contentRect = screenRect;
+      // reset screenWidth and screenHeight
+      *screenWidth = (int)screenRect.size.width;
+      *screenHeight = (int)screenRect.size.height;
+      // hide the task and menu bars if this is running on the main screen
+      if (spoofFullScreen == 1) {
+	if (verbose) mexPrintf("(mglPrivateOpen) Hiding task and menu bar\n");
+	OSStatus setSystemUIModeStatus = SetSystemUIMode(kUIModeAllHidden,kUIOptionAutoShowMenuBar|kUIOptionDisableAppleMenu);
+      }
+    }
+    else
+      mexPrintf("(mglPrivateOpen) Could not spoof non-existent screen %i (max %i screens available)\n",spoofFullScreen,[screens count]);
+  }
+
+  // create the window
+  myWindow = [[NSWindow alloc] initWithContentRect:contentRect styleMask:NSBorderlessWindowMask backing:NSBackingStoreBuffered defer:false];
+    
+  // check for error
+  if (myWindow==nil) {
+    mexPrintf("(mglPrivateOpen:initWindow) Could not create window\n");
+    return NULL;
+  }
+
+  // center the window
+  [myWindow center];
+  [myWindow setAlphaValue:1];
+
+  // set background
+  if (transparentBackground) {
+    [myWindow setOpaque:NO];
+    [myWindow setBackgroundColor:[NSColor clearColor]];
+  }
+  else {
+    [myWindow setOpaque:YES];
+    [myWindow setBackgroundColor:[NSColor colorWithCalibratedRed:0.0f green:0.0f blue:0.0f alpha:1.0f]];
+  }
+
+  // sleep for 50000 micro secs. The window manager appears to need a little bit of time
+  // to create the window. There should be a function call to check the window status
+  // but, I don't know what it is. The symptom is that if we don't wait here, then
+  // the screen comes up in white and then doesn't have the GLContext set properly.
+  usleep(100000);
+
+  // show window
+  [myWindow orderFront:nil];
+  [myWindow orderFrontRegardless];
+  [myWindow display];
+  
+  // return the window
+  return(myWindow);
 }
+
+////////////////////////////
+//    addOpenGLContext    //
+////////////////////////////
+NSOpenGLView *addOpenGLContext(NSWindow *myWindow, double *displayNumber, int *screenWidth, int *screenHeight) 
+{
+  NSOpenGLView *myOpenGLView;
+  NSOpenGLContext *myOpenGLContext;
+
+  // get status of globals
+  int verbose = (int)mglGetGlobalDouble("verbose");
+  int transparentBackground = (int)mglGetGlobalDouble("transparentBackground");
+
+  // set up a pixel format for the openGL context
+  NSOpenGLPixelFormatAttribute attrs[] = {
+    NSOpenGLPFADoubleBuffer,
+    NSOpenGLPFADepthSize, 32,
+    NSOpenGLPFAStencilSize, 8,
+      0
+  };
+  NSOpenGLPixelFormat* myPixelFormat = [[NSOpenGLPixelFormat alloc] initWithAttributes:attrs];
+  if (myPixelFormat==nil) {
+    mexPrintf("(mglPrivateOpen) Could not create pixel format\n");
+    return NULL;
+  }
+
+  // Create the openGLview
+  myOpenGLView = [[NSOpenGLView alloc] initWithFrame:NSMakeRect(0,0,*screenWidth,*screenHeight) pixelFormat:myPixelFormat];
+  if (myOpenGLView==nil) {
+    mexPrintf("(mglPrivateOpen) Could not create openGLView\n");
+    return NULL;
+  }
+  [myPixelFormat release];
+
+  // add as contentView
+  [myWindow setContentView:myOpenGLView];
+
+  // sleep here seems to give enough time for something magical to happen
+  usleep(100000);
+
+  // get openGL context
+  myOpenGLContext = [myOpenGLView openGLContext];
+  [myOpenGLContext makeCurrentContext];
+
+  // set it to display
+  [myOpenGLView prepareOpenGL];
+  [[myWindow contentView] display];
+  [myWindow display];
+
+  // set the openGL context to be transparent so that we can see the movie below
+  if (transparentBackground){
+    const GLint alphaValue = 0;
+    [myOpenGLContext setValues:&alphaValue forParameter:NSOpenGLCPSurfaceOpacity];
+  }
+
+  // set the swap interval so that it waits for "vertical refresh"
+  const GLint swapInterval = 1;
+  [myOpenGLContext setValues:&swapInterval forParameter:NSOpenGLCPSwapInterval];
+
+  // set to transparent black
+  CGLContextObj contextObj = (CGLContextObj)[myOpenGLContext CGLContextObj];
+  glClearColor(1,1,1,1);
+  glClear(GL_COLOR_BUFFER_BIT);
+  CGLFlushDrawable(contextObj); 
+
+  return myOpenGLView;
+}
+
 //-----------------------------------------------------------------------------------///
 // **************************** mac carbon specific code  *************************** //
 //-----------------------------------------------------------------------------------///

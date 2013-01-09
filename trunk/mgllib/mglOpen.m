@@ -44,46 +44,14 @@ else
 end
 
 % see if we are running for movie mode
-spoofFullScreen = 0;
 if mglGetParam('movieMode')
-  % ask for a transparent window so that it can be displayed over the window
-  mglSetParam('transparentBackground',1);
   % in this case, always use a windowed context
   % full screen mode is spoofed by making a windowed context that
   % is the same size as the screen and closing the task and menu
   % bar
-  if isempty(whichScreen) || (whichScreen > 0)
-    displays = mglDescribeDisplays;
-    % set default display
-    if isempty(whichScreen),whichScreen = length(displays);end
-    if whichScreen > length(displays)
-      disp(sprintf('(mglOpen) Display number out of range: %i',whichScreen));
-      return
-    end
-    % hide task and menu bar for main screen
-    mglSetParam('hideTaskAndMenu',displays(whichScreen).isMain);
-    % get the screen width and screen height necessary to cover the
-    % full screen
-    screenWidth = displays(whichScreen).screenSizePixel(1);
-    screenHeight = displays(whichScreen).screenSizePixel(2);
-    % get xpos and ypos where window should be moved to.
-    ypos = displays(1).screenSizePixel(2);
-    % displayBounds contains position of display relative to main (i.e. 1)
-    if isfield(displays(whichScreen),'displayBounds')
-      ypos = ypos-displays(whichScreen).displayBounds(2);
-    end
-    xpos = 0;
-    if isfield(displays(whichScreen),'displayBounds')
-      xpos = xpos+displays(whichScreen).displayBounds(1);
-    end
-    % now set to open the windowed context
-    whichScreen = 0;
-    mglSetParam('orderWindowFront',1);
-    spoofFullScreen = 1;
-  end
-  setResolution = 1;
-  mglSetParam('useCGL',0);
-  mglSetParam('showWindowBorder',0);
+  mglSetParam('transparentBackground',1);
+  mglSetParam('spoofFullScreen',whichScreen);
+  whichScreen = 0;
 end
 
 % set verbose off
@@ -224,10 +192,3 @@ if mglGetParam('matlabDesktop')
   mglDisplayCursor(1);
 end
 
-% if movie mode, make sure we are centered
-if mglGetParam('movieMode')
-  if spoofFullScreen
-    mglMoveWindow(xpos,ypos);
-  end
-  mglSetParam('useCGL',1);
-end
