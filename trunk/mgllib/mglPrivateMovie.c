@@ -19,6 +19,7 @@ $Id: mglPrivateOpen.c,v 1.14 2007/10/25 20:31:43 justin Exp $
 ////////////////////////
 //   define section   //
 ////////////////////////
+#define OPEN 777
 #define CLOSE 0
 #define PLAY 1
 #define PAUSE 2
@@ -33,6 +34,9 @@ $Id: mglPrivateOpen.c,v 1.14 2007/10/25 20:31:43 justin Exp $
 #define SET_CURRENT_TIME 11
 #define GET_FRAME 12
 #define MOVE 13
+#define MOVEWINDOW 14
+
+#define BUFLEN 4096
 
 /////////////////////////
 //   OS Specific calls //
@@ -110,75 +114,41 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 // **************************** mac cocoa specific code  **************************** //
 //-----------------------------------------------------------------------------------///
 #ifdef __APPLE__
-#ifdef __x86_64__ // We make these only for 64bit because on 32bit we are getting 
+#ifdef __x86_64__ 
+#include <sys/socket.h>
+#include <sys/un.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <string.h>
 ///////////////////
 //   openMovie   //
 ///////////////////
 unsigned long openMovie(char *filename, int xpos, int ypos, int width, int height)
 {
   // check for cocoa window
-  if (!mglGetGlobalDouble("isCocoaWindow")) {
+  if (!mglGetGlobalDouble("isCocoaWindow") && !mglGetGlobalDouble("movieMode")) {
     mexPrintf("(mglPrivateMovie) mglMovie is only available for cocoa based windows. On the desktop this means you have to open with mglOpen(0). If you want to use movies with a full screen context, try running matlab -nodesktop or -nojvm. Then make sure to set movieMode before running:\nmglSetParam('movieMode',1);\nmglOpen;\n");
     return 0;
   }
 
-  // start auto release pool
-  NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+  // this is now implemented in doMovieCommand - which sends a command
+  // to the separately open app to load the movie up. But need to rework
+  // the call to fit the format for doMovieCommand
+  mxArray *mxFilename = mxCreateString(filename);
+  mxArray *mxMovieNum = doMovieCommand(OPEN,0,mxFilename,NULL);
 
-  // These two lines have been commented out:
-  //
-  //EnterMoviesOnThread(0);
-  //CSSetComponentsThreadMode(kCSAcceptAllComponentsMode);
-  //
-  // Don't think these are necessary; there is some issue on 32 bit versionds
-  // about QTKit and threads. This code is recommended but does not fix the 
-  // problem. Essentially, it seems that QTKit is not thread safe and has
-  // to be initialized on the "main thread". I am not sure why this isn't the
-  // main thread, but the line below where we allocate QTMovie alloc causes:
-  // 2008-12-28 14:38:39.558 MATLAB[24504:3307] AppKitJava: uncaught exception QTMovieInitializedOnWrongThread (QTMovie class must be initialized on the main thread.)
-  // 2008-12-28 14:38:39.559 MATLAB[24504:3307] AppKitJava: exception = QTMovie class must be initialized on the main thread.
-  // 2008-12-28 14:38:39.559 MATLAB[24504:3307] AppKitJava: terminating.
-  // But this code does appear to work on 64bit, so maybe QT has become more
-  // thread safe in 64bit mode?
-
-  // see if there is an existing window
-  NSWindow *myWindow = (NSWindow*)(unsigned long)mglGetGlobalDouble("cocoaWindowPointer");
-
-  // init a QTMovie
-  NSError *myError = [NSError alloc];//NULL;
-  NSString *NSFilename = [[NSString alloc] initWithCString:filename];
-  QTMovie *movie = [[QTMovie alloc] initWithFile:NSFilename error:&myError];
-
-  // release the filename
-  [NSFilename release];
-
-  // see if there was an error
-  //  if (myError != NULL) {
-  if ([myError code] != 0) {
-    mexPrintf("(mglPrivateMovie) Error opening movie %s: %s\n",filename,[[myError localizedDescription] cStringUsingEncoding:NSASCIIStringEncoding]);
-    // release memory
-    [movie release];
-    // drain the pool
-    [pool drain];
-    return(0);
-  }
-
-  // make a QT movie view
-  QTMovieView *movieView = [[QTMovieView alloc] initWithFrame:NSMakeRect(xpos,ypos,width,height)];
-
-  // set the movie to display
-  [movieView setMovie:movie];
-  [movieView setControllerVisible:NO];
-  [[myWindow contentView] addSubview:movieView];
-  [[myWindow contentView] display];
-
-  // release memory
-  [movie release];
-
-  // drain the pool
-  [pool drain];
-
-  return((unsigned long)movieView);
+  // free up memory
+  mxDestroyArray(mxFilename);
+  
+  // get returned value
+  unsigned long movieID = -1;
+  if (mxMovieNum != NULL)
+    movieID = (unsigned long)*(mxGetPr(mxMovieNum));
+  mxDestroyArray(mxMovieNum);
+  mexPrintf("(mglPrivateMovie) Returned movieID: %i\n",movieID);
+  // return the movie identifier
+  return(movieID);
 }
 ////////////////////////
 //   doMovieCommand   //
@@ -186,186 +156,277 @@ unsigned long openMovie(char *filename, int xpos, int ypos, int width, int heigh
 mxArray *doMovieCommand(int command, unsigned long moviePointer, const mxArray *arg1, const mxArray *arg2)
 {
   mxArray *retval = NULL;
-  // start auto release pool
-  NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+  
+  // try to open socket to movie
+  struct sockaddr_un socketAddress;
+  char buf[BUFLEN];
+  int socketDescriptor,readCount;
+  char filename[BUFLEN];
 
-  // convert pointer to QTMovieView
-  QTMovieView *movieView = (QTMovieView *)moviePointer;
+  // open the socket
+  if ( (socketDescriptor = socket(AF_UNIX, SOCK_STREAM, 0)) == -1) {
+    perror("(mglPrivateMovie) Could not open socket to communicate with mglMovieStandAlone");
+    return NULL;
+  }
+
+  // set the address
+  memset(&socketAddress, 0, sizeof(socketAddress));
+  socketAddress.sun_family = AF_UNIX;
+  strncpy(socketAddress.sun_path, ".mglMovieSocket", sizeof(socketAddress.sun_path)-1);
+
+  // connect to the socket
+  if (connect(socketDescriptor, (struct sockaddr*)&socketAddress, sizeof(socketAddress)) == -1) {
+    // if couldn't connect, means we might need to run stand alone command, but only
+    // do this if this is an open
+    if (command == OPEN) {
+      // get where the mgl directory is
+      mxArray *callInput[] = {mxCreateString("mglMovie.m")}, *callOutput[1];
+      char commandName[BUFLEN];
+      mexCallMATLAB(1,callOutput,1,callInput,"which");
+      mxGetString(callOutput[0],buf,BUFLEN);
+      // make the command name which should be mgl/mgllib/mglMovieSupport/mglMovieStandAlone &
+      if (strlen(buf) > 2) {
+	buf[strlen(buf)-2] = 0;
+	sprintf(commandName,"%sSupport/mglMovieStandAlone &",buf);
+	mexPrintf("(mglPrivateMovie) Running: %s\n",commandName);
+	system(commandName);
+      }
+      else {
+	mexPrintf("(mglPrivateMovie) Could not run supporting command: mglMovieStandAlone\n");
+	close(socketDescriptor);
+	return NULL;
+      }
+      // give it a second to start up
+      sleep(1);
+      // try again to connect to the socket
+      if (connect(socketDescriptor, (struct sockaddr*)&socketAddress, sizeof(socketAddress)) == -1) {
+	mexPrintf("(mglPrivateMovie) Could not start mglMovieStandAlone which handles display of movies\n");
+	close(socketDescriptor);
+	return NULL;
+      }
+    }
+    else {
+      mexPrintf("(mglPrivateMovie) Could not connect to socket %s to communicate with mglMovieStandAlone. Perhaps you did not open any mglMovies yet.\n");
+      close(socketDescriptor);
+      return NULL;
+    }
+  }
 
   switch(command) {
+    //++++++++++++++++++++++++++++++++
+    case OPEN:
+      // get filename
+      mxGetString(arg1,filename,BUFLEN);
+      // create command
+      sprintf(buf,"open %s",filename);
+      // write command
+      mexPrintf("(mglPrivateMovie) Running command: %s\n", buf);
+      write(socketDescriptor,buf,strlen(buf));
+      // read back id
+      memset(buf,0,BUFLEN);
+      if ((readCount=read(socketDescriptor,buf,sizeof(buf))) > 0) {
+	return mxCreateDoubleScalar(strtod(buf,NULL));
+      }
+      else {
+	mexPrintf("(mglPrivateMovie) Could not read movieID from mglMovieStandAlone - perhaps socket has closed\n");
+	return NULL;
+      }
+      break;
+    //++++++++++++++++++++++++++++++++
     case CLOSE:
-      [movieView removeFromSuperview];
+      sprintf(buf,"close %i",(int)moviePointer);
+      mexPrintf("(mglPrivateMovie: Sending: %s\n",buf);
+      write(socketDescriptor,buf,strlen(buf));
       break;
+    //++++++++++++++++++++++++++++++++
     case PLAY:
-      [movieView play:nil];
+      sprintf(buf,"play %i",(int)moviePointer);
+      mexPrintf("(mglPrivateMovie: Sending: %s\n",buf);
+      write(socketDescriptor,buf,strlen(buf));
       break;
+    //++++++++++++++++++++++++++++++++
     case PAUSE:
-      [movieView pause:nil];
+      sprintf(buf,"pause %i",(int)moviePointer);
+      mexPrintf("(mglPrivateMovie: Sending: %s\n",buf);
+      write(socketDescriptor,buf,strlen(buf));
       break;
+    //++++++++++++++++++++++++++++++++
     case GOTO_BEGINNING:
-      [movieView gotoBeginning:nil];
+      sprintf(buf,"gotoBeginning %i",(int)moviePointer);
+      mexPrintf("(mglPrivateMovie: Sending: %s\n",buf);
+      write(socketDescriptor,buf,strlen(buf));
       break;
+    //++++++++++++++++++++++++++++++++
     case GOTO_END:
-      [movieView gotoEnd:nil];
+      sprintf(buf,"gotoEnd %i",(int)moviePointer);
+      mexPrintf("(mglPrivateMovie: Sending: %s\n",buf);
+      write(socketDescriptor,buf,strlen(buf));
       break;
+    //++++++++++++++++++++++++++++++++
     case STEP_FORWARD:
-      [movieView stepForward:nil];
+      sprintf(buf,"stepForward %i",(int)moviePointer);
+      mexPrintf("(mglPrivateMovie: Sending: %s\n",buf);
+      write(socketDescriptor,buf,strlen(buf));
       break;
+    //++++++++++++++++++++++++++++++++
     case STEP_BACKWARD:
-      [movieView stepBackward:nil];
+      sprintf(buf,"stepBackward %i",(int)moviePointer);
+      mexPrintf("(mglPrivateMovie: Sending: %s\n",buf);
+      write(socketDescriptor,buf,strlen(buf));
       break;
+    //++++++++++++++++++++++++++++++++
     case HIDE:
-      [movieView setHidden:YES];
+      sprintf(buf,"hide %i",(int)moviePointer);
+      mexPrintf("(mglPrivateMovie: Sending: %s\n",buf);
+      write(socketDescriptor,buf,strlen(buf));
       break;
+    //++++++++++++++++++++++++++++++++
     case SHOW:
-      [movieView setHidden:NO];
+      sprintf(buf,"show %i",(int)moviePointer);
+      mexPrintf("(mglPrivateMovie: Sending: %s\n",buf);
+      write(socketDescriptor,buf,strlen(buf));
       break;
+    //++++++++++++++++++++++++++++++++
     case GET_DURATION:
-      ;
-      NSString *durationString = QTStringFromTime([[movieView movie] duration]);
-      retval = mxCreateString([durationString cStringUsingEncoding:NSASCIIStringEncoding]);
+      sprintf(buf,"getDuration %i",(int)moviePointer);
+      mexPrintf("(mglPrivateMovie: Sending: %s\n",buf);
+      write(socketDescriptor,buf,strlen(buf));
+      // read back the duration string
+      memset(buf,0,BUFLEN);
+      if ((readCount=read(socketDescriptor,buf,sizeof(buf))) > 0) {
+	retval = mxCreateString(buf);
+      }
+      else {
+	mexPrintf("(mglPrivateMovie) Could not read duration string from mglMovieStandAlone - perhaps socket has closed\n");
+      }
       break;
+    //++++++++++++++++++++++++++++++++
     case GET_CURRENT_TIME:
-      ;
-      NSString *currentTime = QTStringFromTime([[movieView movie] currentTime]);
-      retval = mxCreateString([currentTime cStringUsingEncoding:NSASCIIStringEncoding]);
+      sprintf(buf,"getCurrentTime %i",(int)moviePointer);
+      mexPrintf("(mglPrivateMovie: Sending: %s\n",buf);
+      write(socketDescriptor,buf,strlen(buf));
+      // read back the current time
+      memset(buf,0,BUFLEN);
+      if ((readCount=read(socketDescriptor,buf,sizeof(buf))) > 0) {
+	retval = mxCreateString(buf);
+      }
+      else {
+	mexPrintf("(mglPrivateMovie) Could not read current time string from mglMovieStandAlone - perhaps socket has closed\n");
+      }
+
       break;
+    //++++++++++++++++++++++++++++++++
     case SET_CURRENT_TIME:
       if (arg1 == NULL) 
 	mexPrintf("(mglPrivateMovie) Must pass in a time string\n");
       else {
-	NSString *setTime = [[NSString alloc] initWithCString:mxArrayToString(arg1)];
-	[[movieView movie] setCurrentTime:QTTimeFromString(setTime)];
-	[setTime release];
+	// write command
+	sprintf(buf,"setCurrentTime %i",(int)moviePointer);
+	mexPrintf("(mglPrivateMovie: Sending: %s\n",buf);
+	write(socketDescriptor,buf,strlen(buf));
+	// wait for confirmation and write string
+	memset(buf,0,BUFLEN);
+	if ((readCount=read(socketDescriptor,buf,sizeof(buf))) > 0) 
+	  // write the time string
+	  write(socketDescriptor,mxArrayToString(arg1),strlen(mxArrayToString(arg1)));
+	else
+	  mexPrintf("(mglPrivateMovie) Could not read acknowledge string from socket\n");
       }
       break;
+    //++++++++++++++++++++++++++++++++
     case GET_FRAME:
-      ;
-      // get the frame as a bitmap
-      NSImage *frameImage = [[movieView movie] currentFrameImage];
-      NSData *tiffData = [frameImage TIFFRepresentation];
-      NSBitmapImageRep *bitmap = [NSBitmapImageRep imageRepWithData:tiffData];
-
-      // get the size info
-      NSSize frameSize = [frameImage size];
-      int width = (int)frameSize.width,height = (int)frameSize.height;
-      int bytesPerPlane = (int)[bitmap bytesPerPlane];
-      int bytesPerRow = (int)[bitmap bytesPerRow];
-      int numPlanes = (int)[bitmap numberOfPlanes];
-      int bytesPerPixel = bytesPerRow/width;
-
-      // get the bitmapData
-      unsigned char *bitmapData = [bitmap bitmapData];
-      
-      // create output structure
-      mwSize dims[3] = {height,width,3};
-      retval = mxCreateNumericArray(3,dims,mxDOUBLE_CLASS,mxREAL);
-      double *outputPtr = mxGetPr(retval);
-      // copy data into output structure
-      int i,j;
-      for (i=0;i<width;i++){
-	for (j=0;j<height;j++) {
-	  outputPtr[i*height+j] = (double)bitmapData[(i+j*width)*bytesPerPixel]/256.0;
-	  outputPtr[i*height+j+width*height] = (double)bitmapData[(i+j*width)*bytesPerPixel+1]/256.0;
-	  outputPtr[i*height+j+2*width*height] = (double)bitmapData[(i+j*width)*bytesPerPixel+2]/256.0;
+      // write command
+      sprintf(buf,"getFrame %i",(int)moviePointer);
+      mexPrintf("(mglPrivateMovie: Sending: %s\n",buf);
+      write(socketDescriptor,buf,strlen(buf));
+      // wait for confirmation. Should be 2 uint32 with the width and size of frame
+      int numCountToRead = sizeof(uint32)*2;
+      memset(buf,0,BUFLEN);
+      if ((readCount=read(socketDescriptor,buf,sizeof(buf))) != numCountToRead) {
+	// did not read properly
+	mexPrintf("(mglPrivateMovie) Could not read size of frame from socket\n");
+	return(retval);
+      }
+      // convert buf into int array to get width and height
+      uint32 *widthAndHeight = (uint32 *)buf;
+      mexPrintf("width: %i height: %i\n",widthAndHeight[0],widthAndHeight[1]);
+      // send acknowledge
+      if (write(socketDescriptor,"Ack",3) != 3) {
+	mexPrintf("(mglPrivateMovie) Could not send acknowledge message to socket\n");
+	return(retval);
+      }
+      // read in data, put into a width x height x3 matlab matrix of uint8
+      int totalReadCount = 0,bufSize = widthAndHeight[0]*widthAndHeight[1]*3;
+      // note that width/height are intentionally swaped here so that
+      // image displays correctly when you do imagesc
+      mwSize dims[3] = {widthAndHeight[1], widthAndHeight[0], 3};
+      retval = mxCreateNumericArray(3, dims, mxUINT8_CLASS, mxREAL);
+      uint8 *outputPtr = (uint8 *)mxGetPr(retval), *outputPtrReader = outputPtr;
+      // need to read in blocks
+      while ((readCount=read(socketDescriptor,outputPtrReader,bufSize)) != 0) {
+	// udpate total read
+	totalReadCount += readCount;
+	// as long as we haven't read over the end of the buffer keep going
+	if (totalReadCount <= bufSize)
+	  outputPtrReader += readCount;
+	else 
+	  break;
+      }
+      // check that we read as much as we thought we would
+      if (totalReadCount != bufSize)
+	mexPrintf("(mglPrivateMovie) Could not read frame from socket. Got %i bytes when expecting %i\n",totalReadCount,bufSize);
+      break;
+    //++++++++++++++++++++++++++++++++
+    case MOVE:
+      // check arguments
+      if ((arg1 == NULL) || mxIsCell(arg1) || ((mxGetN(arg1) != 2) && (mxGetN(arg1) != 4)))
+	mexPrintf("(mglPrivateMovie) Must pass in a vector of length 2 [x y] or 4 [x y width height]\n");
+      else {
+	// get position to move to
+        double *position = mxGetPr(arg1);
+	uint32 positionLen = mxGetN(arg1);
+	if (mxGetN(arg1) == 2) {
+	  // send position
+	  sprintf(buf,"move %i %i %i",(int)moviePointer,(int)position[0],(int)position[1]);
+	  write(socketDescriptor,buf,strlen(buf));
+	}
+	else {
+	  // send position and size
+	  sprintf(buf,"moveAndResize %i %i %i %i %i",(int)moviePointer,(int)position[0],(int)position[1],(int)position[2],(int)position[3]);
+	  write(socketDescriptor,buf,strlen(buf));
 	}
       }
       break;
-  case MOVE:
-    ;
-    double *position = mxGetPr(arg1);
-    NSWindow *myWindow = (NSWindow*)(unsigned long)mglGetGlobalDouble("cocoaWindowPointer");
-    // not clear why, but it seems you have to remove from the superview first before moving
-    [movieView removeFromSuperview];
-    // set the frame
-    [movieView setFrame:NSMakeRect(position[0],position[1],position[2],position[3])];
-    // add it back
-    [[myWindow contentView] addSubview:movieView];
-    // and set it to display
-    [[myWindow contentView] display];
-    break;
-  default:
+    //++++++++++++++++++++++++++++++++
+    case MOVEWINDOW:
+      // check arguments
+      if ((arg1 == NULL) || mxIsCell(arg1) || ((mxGetN(arg1) != 2) && (mxGetN(arg1) != 4)))
+	mexPrintf("(mglPrivateMovie) Must pass in a vector of length 2 [x y] or 4 [x y width height]\n");
+      else {
+	// get position to move to
+        double *position = mxGetPr(arg1);
+	uint32 positionLen = mxGetN(arg1);
+	if (mxGetN(arg1) == 2) {
+	  // send position
+	  sprintf(buf,"moveWindow %0.0f %0.0f",position[0],position[1]);
+	  mexPrintf("(mglPrivateMovie) %s\n",buf);
+	  write(socketDescriptor,buf,strlen(buf));
+	}
+	else {
+	  // send position and size
+	  sprintf(buf,"moveAndResizeWindow %i %i %i %i",(int)position[0],(int)position[1],(int)position[2],(int)position[3]);
+	  mexPrintf("(mglPrivateMovie) %s\n",buf);
+	  write(socketDescriptor,buf,strlen(buf));
+	}
+      }
+      break;
+    //++++++++++++++++++++++++++++++++
+    default:
       mexPrintf("(mglPrivateMovie) Unknown command %i\n",command);
       break;
   }
-  [pool drain];
+  close(socketDescriptor);
   return(retval);
-}
-/////////////////////////////
-//   openMovieWithWindow   //
-////////////////////////////
-unsigned long openMovieWithWindow(char *filename, int xpos, int ypos, int width, int height)
-{
-
-  // This function is an attempt to just open the movie in its own window, but I
-  // can't get it to display at a level above the openGL context...
-  NSWindow *myWindow;
-  NSWindowController *myWindowController;
-
-  // start auto release pool
-  NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
-
-  // These two lines have been commented out:
-  //
-  //  EnterMoviesOnThread(0);
-  //  CSSetComponentsThreadMode(kCSAcceptAllComponentsMode);
-  //
-  // Don't think these are necessary; there is some issue on 32 bit versionds
-  // about QTKit and threads. This code is recommended but does not fix the 
-  // problem. Essentially, it seems that QTKit is not thread safe and has
-  // to be initialized on the "main thread". I am not sure why this isn't the
-  // main thread, but the line below where we allocate QTMovie alloc causes:
-  // 2008-12-28 14:38:39.558 MATLAB[24504:3307] AppKitJava: uncaught exception QTMovieInitializedOnWrongThread (QTMovie class must be initialized on the main thread.)
-  // 2008-12-28 14:38:39.559 MATLAB[24504:3307] AppKitJava: exception = QTMovie class must be initialized on the main thread.
-  // 2008-12-28 14:38:39.559 MATLAB[24504:3307] AppKitJava: terminating.
-  // But this code does appear to work on 64bit, so maybe QT has become more
-  // thread safe in 64bit mode?
-
-    // init a QTMovie
-  NSError *myError = NULL;
-  NSString *NSFilename = [[NSString alloc] initWithCString:filename];
-  QTMovie *movie = [[QTMovie alloc] initWithFile:NSFilename error:&myError];
-
-  // release the filename
-  [NSFilename release];
-
-  // see if there was an error
-  if (myError != NULL) {
-    mexPrintf("(mglPrivateMovie) Error opening movie %s: %s\n",filename,[[myError localizedDescription] cStringUsingEncoding:NSASCIIStringEncoding]);
-    // release memory
-    [movie release];
-    // drain the pool
-    [pool drain];
-    return(0);
-  }
-
-  // make a QT movie view
-  QTMovieView *movieView = [[QTMovieView alloc] initWithFrame:NSMakeRect(xpos,ypos,width,height)];
-
-  // set the movie to display
-  [movieView setMovie:movie];
-  [movieView setControllerVisible:NO];
-
-  // start the application -- i.e. connect our code to the window server
-  NSApplicationLoad();
-
-  // set initial size and location
-  NSRect contentRect = NSMakeRect(xpos,ypos,width,height);
-
-  // create the window
-  myWindow = [[NSWindow alloc] initWithContentRect:contentRect styleMask:NSBorderlessWindowMask backing:NSBackingStoreNonretained defer:false];
-  if (myWindow==nil){mexPrintf("(mglPrivateOpen) Could not create window\n");return;}
-
-  // set the movie as the content view
-  [myWindow setContentView:movieView];
-  [myWindow setLevel:kCGMaximumWindowLevel];
-  [myWindow makeKeyAndOrderFront: nil];
-  [myWindow display];
-
-  // release memory
-  [movie release];
-  [pool drain];
-  return((unsigned long)movieView);
 }
 
 //-----------------------------------------------------------------------------------///

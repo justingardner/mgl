@@ -46,6 +46,8 @@ end
 % see if we are running for movie mode
 spoofFullScreen = 0;
 if mglGetParam('movieMode')
+  % ask for a transparent window so that it can be displayed over the window
+  mglSetParam('transparentBackground',1);
   % in this case, always use a windowed context
   % full screen mode is spoofed by making a windowed context that
   % is the same size as the screen and closing the task and menu

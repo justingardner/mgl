@@ -170,7 +170,7 @@ unsigned long openDisplay(double *displayNumber, int *screenWidth, int *screenHe
 ////////////////////
 unsigned long cocoaOpen(double *displayNumber, int *screenWidth, int *screenHeight)
 {
-  // NOte that this function can open either a windowed or a full-screen display. It
+  // Note that this function can open either a windowed or a full-screen display. It
   // is currently only being used for a windowed context, because the full-screen
   // context conflicts somehow with the matlab desktop (works fine with -nodesktop
   // or -nojvm).
@@ -181,6 +181,15 @@ unsigned long cocoaOpen(double *displayNumber, int *screenWidth, int *screenHeig
   // get status of global variable that sets whether to display
   // verbose information
   int verbose = (int)mglGetGlobalDouble("verbose");
+
+  // get whether we should have a transparent background - this is used
+  // with mglMovie which opens up another layer *beneath* the openGl
+  // window. The mglMovie layer shows the movies and the background
+  // and this window will be transparent above it so that we can
+  // draw above the movies. Note that transparenct background is different
+  // then setting the alpha of the window (which makes everything
+  // see-through)
+  int transparentBackground = (int)mglGetGlobalDouble("transparentBackground");
 
   // start auto release pool
   NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
@@ -225,7 +234,8 @@ unsigned long cocoaOpen(double *displayNumber, int *screenWidth, int *screenHeig
     // create the window, if we are running desktop, then open a borderless non backing
     // store window because anything else causes problems
     if (!mglGetGlobalDouble("showWindowBorder"))
-      myWindow = [[NSWindow alloc] initWithContentRect:contentRect styleMask:NSBorderlessWindowMask backing:NSBackingStoreNonretained defer:false];
+      myWindow = [[NSWindow alloc] initWithContentRect:contentRect styleMask:NSBorderlessWindowMask backing:NSBackingStoreBuffered defer:false];
+      //      myWindow = [[NSWindow alloc] initWithContentRect:contentRect styleMask:NSBorderlessWindowMask backing:NSBackingStoreNonretained defer:false];
     else
       myWindow = [[NSWindow alloc] initWithContentRect:contentRect styleMask:NSTitledWindowMask|NSClosableWindowMask|NSMiniaturizableWindowMask|NSTexturedBackgroundWindowMask backing:NSBackingStoreBuffered defer:false];
     if (myWindow==nil) {
@@ -233,6 +243,20 @@ unsigned long cocoaOpen(double *displayNumber, int *screenWidth, int *screenHeig
       return;
     }
     if (verbose) mexPrintf("(mglPrivateOpen) Created window: %x\n",(unsigned long)myWindow);
+
+    // make sure that the window won't show until we want it to.
+    [myWindow setAlphaValue:0];
+
+    // set background of window transparent
+    if (transparentBackground) {
+      if (verbose) mexPrintf("(mglPrivateOpen) Setting window background to transparent\n");
+      // set background transparent
+      [myWindow setOpaque:NO];
+      [myWindow setBackgroundColor:[NSColor clearColor]];
+    }
+    else {
+      [myWindow setOpaque:YES];
+    }
 
     // attach the openGL view
     [myWindow setContentView:myOpenGLView];
@@ -242,12 +266,6 @@ unsigned long cocoaOpen(double *displayNumber, int *screenWidth, int *screenHeig
 
     // center the window
     [myWindow center];
-
-    // sleep for 5000 micro seconds. The window manager appears to need a little bit of time
-    // to create the window. There should be a function call to check the window status
-    // but, I don't know what it is. The symptom is that if we don't wait here, then
-    // the screen comes up in white and then doesn't have the GLContext set properly.
-    usleep(5000);
   }
   else {
     if (verbose) mexPrintf("(mglPrivateOpen) Reusing view: %x\n",(unsigned long)[myWindow contentView]);
@@ -259,9 +277,15 @@ unsigned long cocoaOpen(double *displayNumber, int *screenWidth, int *screenHeig
   [myOpenGLContext makeCurrentContext];
   [[myWindow contentView] prepareOpenGL];
   if (verbose) mexPrintf("(mglPrivateOpen) Setting openGLContext: %x\n",(unsigned long)myOpenGLContext);
+  [[myWindow contentView] display];
 
-  // make sure that the window won't show until we want it to.
-  [myWindow setAlphaValue:0];
+  // set the openGL context to be transparent so that we can see the movie below
+  if (transparentBackground) {
+    if (verbose) mexPrintf("(mglPrivateOpen) Setting openGLContext to transparent\n");
+
+    const GLint alphaValue = 0;
+    [myOpenGLContext setValues:&alphaValue forParameter:NSOpenGLCPSurfaceOpacity];
+  }
 
   // show window
   if (verbose) mexPrintf("(mglPrivateOpen) Order window\n");
