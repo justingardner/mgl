@@ -253,7 +253,7 @@ NSWindow *initWindow(double *displayNumber, int *screenWidth, int *screenHeight)
   }
 
   // center the window
-  [myWindow center];
+  if (spoofFullScreen<=0) [myWindow center];
   [myWindow setAlphaValue:1];
 
   // set background
