@@ -34,9 +34,15 @@ $Id: mglPrivateOpen.c,v 1.14 2007/10/25 20:31:43 justin Exp $
 #define SET_CURRENT_TIME 11
 #define GET_FRAME 12
 #define MOVE 13
-#define MOVEWINDOW 14
+#define OPENWINDOW 14
+#define CLOSEWINDOW 15
+#define MOVEWINDOW 16
+#define MOVEWINDOWBEHIND 17
+#define ORDERFRONT 18
+#define SETBACKGROUND 19
 
 #define BUFLEN 4096
+#define NANMOVIEPOINTER 99999999
 
 /////////////////////////
 //   OS Specific calls //
@@ -58,6 +64,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
   int command = 0;
   char *filename;
+  mxArray *retval;
 
   // check arguments
   if ((nrhs == 2) &&  (mxIsChar(prhs[0]))) {
@@ -86,26 +93,34 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     return;
   }
   else if ((nrhs >= 2) && (nrhs <= 4)) {
-    // get the movie pointer
-    mxArray *moviePointerField =  mxGetField(prhs[0],0,"moviePointer");
-    if (moviePointerField == NULL) {
-      usageError("mglMovie");
-      return;
-    }
-    unsigned long moviePointer = (unsigned long)mxGetScalar(moviePointerField);
-    // and the command
-    int command = (unsigned long)mxGetScalar(prhs[1]);
-    // set argument
+    // set arguments
     const mxArray *arg1 = NULL, *arg2 = NULL;
     if (nrhs >= 3) arg1 = prhs[2];
     if (nrhs >= 4) arg2 = prhs[3];
+    // check if this is a movie window command
+    if (mxIsNaN(*mxGetPr(prhs[0]))) {
+      int command = (unsigned long)mxGetScalar(prhs[1]);
+      retval = doMovieCommand(command,NANMOVIEPOINTER,arg1,arg2);
+    }
+    else {
+      // get the movie pointer
+      mxArray *moviePointerField =  mxGetField(prhs[0],0,"moviePointer");
+      if (moviePointerField == NULL) {
+	usageError("mglMovie");
+	return;
+      }
+      unsigned long moviePointer = (unsigned long)mxGetScalar(moviePointerField);
+      // and the command
+      int command = (unsigned long)mxGetScalar(prhs[1]);
     
-    // do the movie command
-    mxArray *retval = doMovieCommand(command,moviePointer,arg1,arg2);
+      // do the movie command
+      retval = doMovieCommand(command,moviePointer,arg1,arg2);
+    }
     if (retval != NULL) plhs[0] = retval; else plhs[0]=mxCreateDoubleMatrix(0,0,mxREAL);
   }
   else {
     usageError("mglMovie");
+    plhs[0]=mxCreateDoubleMatrix(0,0,mxREAL);
     return;
   }    
 }
@@ -126,11 +141,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 ///////////////////
 unsigned long openMovie(char *filename, int xpos, int ypos, int width, int height)
 {
-  // check for cocoa window
-  if (!mglGetGlobalDouble("isCocoaWindow") && !mglGetGlobalDouble("movieMode")) {
-    mexPrintf("(mglPrivateMovie) mglMovie is only available for cocoa based windows. On the desktop this means you have to open with mglOpen(0). If you want to use movies with a full screen context, try running matlab -nodesktop or -nojvm. Then make sure to set movieMode before running:\nmglSetParam('movieMode',1);\nmglOpen;\n");
-    return 0;
-  }
+  // verbose
+  int verbose = (int)mglGetGlobalDouble("verbose");
 
   // this is now implemented in doMovieCommand - which sends a command
   // to the separately open app to load the movie up. But need to rework
@@ -146,7 +158,8 @@ unsigned long openMovie(char *filename, int xpos, int ypos, int width, int heigh
   if (mxMovieNum != NULL)
     movieID = (unsigned long)*(mxGetPr(mxMovieNum));
   mxDestroyArray(mxMovieNum);
-  mexPrintf("(mglPrivateMovie) Returned movieID: %i\n",movieID);
+  if (verbose) mexPrintf("(mglPrivateMovie) Returned movieID: %i\n",movieID);
+
   // return the movie identifier
   return(movieID);
 }
@@ -155,8 +168,12 @@ unsigned long openMovie(char *filename, int xpos, int ypos, int width, int heigh
 ////////////////////////
 mxArray *doMovieCommand(int command, unsigned long moviePointer, const mxArray *arg1, const mxArray *arg2)
 {
+  // return value
   mxArray *retval = NULL;
-  
+
+  // verbose
+  int verbose = (int)mglGetGlobalDouble("verbose");
+
   // try to open socket to movie
   struct sockaddr_un socketAddress;
   char buf[BUFLEN];
@@ -166,7 +183,7 @@ mxArray *doMovieCommand(int command, unsigned long moviePointer, const mxArray *
   // open the socket
   if ( (socketDescriptor = socket(AF_UNIX, SOCK_STREAM, 0)) == -1) {
     perror("(mglPrivateMovie) Could not open socket to communicate with mglMovieStandAlone");
-    return NULL;
+    return retval;
   }
 
   // set the address
@@ -178,7 +195,7 @@ mxArray *doMovieCommand(int command, unsigned long moviePointer, const mxArray *
   if (connect(socketDescriptor, (struct sockaddr*)&socketAddress, sizeof(socketAddress)) == -1) {
     // if couldn't connect, means we might need to run stand alone command, but only
     // do this if this is an open
-    if (command == OPEN) {
+    if ((command == OPEN) || (command == OPENWINDOW)){
       // get where the mgl directory is
       mxArray *callInput[] = {mxCreateString("mglMovie.m")}, *callOutput[1];
       char commandName[BUFLEN];
@@ -188,13 +205,13 @@ mxArray *doMovieCommand(int command, unsigned long moviePointer, const mxArray *
       if (strlen(buf) > 2) {
 	buf[strlen(buf)-2] = 0;
 	sprintf(commandName,"%sSupport/mglMovieStandAlone &",buf);
-	mexPrintf("(mglPrivateMovie) Running: %s\n",commandName);
+	if (verbose) mexPrintf("(mglPrivateMovie) Running: %s\n",commandName);
 	system(commandName);
       }
       else {
 	mexPrintf("(mglPrivateMovie) Could not run supporting command: mglMovieStandAlone\n");
 	close(socketDescriptor);
-	return NULL;
+	return retval;
       }
       // give it a second to start up
       sleep(1);
@@ -202,17 +219,108 @@ mxArray *doMovieCommand(int command, unsigned long moviePointer, const mxArray *
       if (connect(socketDescriptor, (struct sockaddr*)&socketAddress, sizeof(socketAddress)) == -1) {
 	mexPrintf("(mglPrivateMovie) Could not start mglMovieStandAlone which handles display of movies\n");
 	close(socketDescriptor);
-	return NULL;
+	return retval;
       }
     }
     else {
       mexPrintf("(mglPrivateMovie) Could not connect to socket %s to communicate with mglMovieStandAlone. Perhaps you did not open any mglMovies yet.\n");
       close(socketDescriptor);
-      return NULL;
+      return retval;
     }
   }
-
+  
   switch(command) {
+    //++++++++++++++++++++++++++++++++
+    case OPENWINDOW:
+      // create command
+      sprintf(buf,"openWindow");
+      // write command
+      if (verbose) mexPrintf("(mglPrivateMovie) Running command: %s\n", buf);
+      write(socketDescriptor,buf,strlen(buf));
+      // read back ack
+      memset(buf,0,BUFLEN);
+      if ((readCount=read(socketDescriptor,buf,sizeof(buf))) <= 0) {
+	mexPrintf("(mglPrivateMovie) Could not read movieID from mglMovieStandAlone - perhaps socket has closed\n");
+      }
+      close(socketDescriptor);
+      return retval;
+      break;
+    //++++++++++++++++++++++++++++++++
+    case CLOSEWINDOW:
+      sprintf(buf,"closeWindow");
+      if (verbose) mexPrintf("(mglPrivateMovie): Sending: %s\n",buf);
+      write(socketDescriptor,buf,strlen(buf));
+      break;
+    //++++++++++++++++++++++++++++++++
+    case ORDERFRONT:
+      sprintf(buf,"orderFront");
+      if (verbose) mexPrintf("(mglPrivateMovie): Sending: %s\n",buf);
+      write(socketDescriptor,buf,strlen(buf));
+      break;
+    case SETBACKGROUND:
+      // check arguments
+      if ((arg1 == NULL) || mxIsCell(arg1) || ((mxGetN(arg1) != 3)))
+	mexPrintf("(mglPrivateMovie) Must pass in a vector of length 3 [r g b]\n");
+      else {
+	// get color to set to
+        double *colorValue = mxGetPr(arg1);
+	// send color
+	sprintf(buf,"setBackground %f %f %f",colorValue[0],colorValue[1],colorValue[2]);
+	if (verbose) mexPrintf("(mglPrivateMovie): Sending: %s\n",buf);
+	write(socketDescriptor,buf,strlen(buf));
+      }
+      break;
+    //++++++++++++++++++++++++++++++++
+    case MOVEWINDOWBEHIND:
+      // get the MGL window
+      if ((!mglGetGlobalDouble("isCocoaWindow")) || (!mglIsGlobal("displayNumber"))) {
+	mexPrintf("(mglPrivateMovie) Can only put movie window behind a cocoa mgl window. Make sure to open the MGL window with mglSetParam(''movieMode'',1); set\n");
+      }
+      else {
+	// get myWindow pointer
+	NSWindow *myWindow = (NSWindow*)(unsigned long)mglGetGlobalDouble("cocoaWindowPointer");
+	// get the position and size of the MGL window
+	NSRect frameRect = [myWindow frame];
+
+	// move the movie window to the same location
+	sprintf(buf,"moveAndResizeWindow %0.0f %0.0f %0.0f %0.0f",frameRect.origin.x,frameRect.origin.y,frameRect.size.width,frameRect.size.height);
+	if (verbose) mexPrintf("(mglPrivateMovie): Sending: %s\n",buf);
+	write(socketDescriptor,buf,strlen(buf));
+
+	// order front
+	sprintf(buf,"orderFront");
+	if (verbose) mexPrintf("(mglPrivateMovie): Sending: %s\n",buf);
+	write(socketDescriptor,buf,strlen(buf));
+
+	// order the mgl window to the front
+	[myWindow orderFront:nil];
+	[myWindow orderFrontRegardless];
+	[myWindow display];
+      }
+      break;
+    //++++++++++++++++++++++++++++++++
+    case MOVEWINDOW:
+      // check arguments
+      if ((arg1 == NULL) || mxIsCell(arg1) || ((mxGetN(arg1) != 2) && (mxGetN(arg1) != 4)))
+	mexPrintf("(mglPrivateMovie) Must pass in a vector of length 2 [x y] or 4 [x y width height]\n");
+      else {
+	// get position to move to
+        double *position = mxGetPr(arg1);
+	uint32 positionLen = mxGetN(arg1);
+	if (mxGetN(arg1) == 2) {
+	  // send position
+	  sprintf(buf,"moveWindow %0.0f %0.0f",position[0],position[1]);
+	  if (verbose) mexPrintf("(mglPrivateMovie) %s\n",buf);
+	  write(socketDescriptor,buf,strlen(buf));
+	}
+	else {
+	  // send position and size
+	  sprintf(buf,"moveAndResizeWindow %i %i %i %i",(int)position[0],(int)position[1],(int)position[2],(int)position[3]);
+	  if (verbose) mexPrintf("(mglPrivateMovie) %s\n",buf);
+	  write(socketDescriptor,buf,strlen(buf));
+	}
+      }
+      break;
     //++++++++++++++++++++++++++++++++
     case OPEN:
       // get filename
@@ -220,76 +328,78 @@ mxArray *doMovieCommand(int command, unsigned long moviePointer, const mxArray *
       // create command
       sprintf(buf,"open %s",filename);
       // write command
-      mexPrintf("(mglPrivateMovie) Running command: %s\n", buf);
+      if (verbose) mexPrintf("(mglPrivateMovie) Running command: %s\n", buf);
       write(socketDescriptor,buf,strlen(buf));
       // read back id
       memset(buf,0,BUFLEN);
       if ((readCount=read(socketDescriptor,buf,sizeof(buf))) > 0) {
+	close(socketDescriptor);
 	return mxCreateDoubleScalar(strtod(buf,NULL));
       }
       else {
 	mexPrintf("(mglPrivateMovie) Could not read movieID from mglMovieStandAlone - perhaps socket has closed\n");
-	return NULL;
+	close(socketDescriptor);
+	return retval;
       }
       break;
     //++++++++++++++++++++++++++++++++
     case CLOSE:
       sprintf(buf,"close %i",(int)moviePointer);
-      mexPrintf("(mglPrivateMovie: Sending: %s\n",buf);
+      if (verbose) mexPrintf("(mglPrivateMovie): Sending: %s\n",buf);
       write(socketDescriptor,buf,strlen(buf));
       break;
     //++++++++++++++++++++++++++++++++
     case PLAY:
       sprintf(buf,"play %i",(int)moviePointer);
-      mexPrintf("(mglPrivateMovie: Sending: %s\n",buf);
+      if (verbose) mexPrintf("(mglPrivateMovie): Sending: %s\n",buf);
       write(socketDescriptor,buf,strlen(buf));
       break;
     //++++++++++++++++++++++++++++++++
     case PAUSE:
       sprintf(buf,"pause %i",(int)moviePointer);
-      mexPrintf("(mglPrivateMovie: Sending: %s\n",buf);
+      if (verbose) mexPrintf("(mglPrivateMovie): Sending: %s\n",buf);
       write(socketDescriptor,buf,strlen(buf));
       break;
     //++++++++++++++++++++++++++++++++
     case GOTO_BEGINNING:
       sprintf(buf,"gotoBeginning %i",(int)moviePointer);
-      mexPrintf("(mglPrivateMovie: Sending: %s\n",buf);
+      if (verbose) mexPrintf("(mglPrivateMovie): Sending: %s\n",buf);
       write(socketDescriptor,buf,strlen(buf));
       break;
     //++++++++++++++++++++++++++++++++
     case GOTO_END:
       sprintf(buf,"gotoEnd %i",(int)moviePointer);
-      mexPrintf("(mglPrivateMovie: Sending: %s\n",buf);
+      if (verbose) mexPrintf("(mglPrivateMovie): Sending: %s\n",buf);
       write(socketDescriptor,buf,strlen(buf));
       break;
     //++++++++++++++++++++++++++++++++
     case STEP_FORWARD:
       sprintf(buf,"stepForward %i",(int)moviePointer);
-      mexPrintf("(mglPrivateMovie: Sending: %s\n",buf);
+      if (verbose) mexPrintf("(mglPrivateMovie): Sending: %s\n",buf);
       write(socketDescriptor,buf,strlen(buf));
       break;
     //++++++++++++++++++++++++++++++++
     case STEP_BACKWARD:
       sprintf(buf,"stepBackward %i",(int)moviePointer);
-      mexPrintf("(mglPrivateMovie: Sending: %s\n",buf);
+      if (verbose) mexPrintf("(mglPrivateMovie): Sending: %s\n",buf);
       write(socketDescriptor,buf,strlen(buf));
       break;
     //++++++++++++++++++++++++++++++++
     case HIDE:
       sprintf(buf,"hide %i",(int)moviePointer);
-      mexPrintf("(mglPrivateMovie: Sending: %s\n",buf);
+      if (verbose) mexPrintf("(mglPrivateMovie): Sending: %s\n",buf);
       write(socketDescriptor,buf,strlen(buf));
       break;
     //++++++++++++++++++++++++++++++++
     case SHOW:
       sprintf(buf,"show %i",(int)moviePointer);
-      mexPrintf("(mglPrivateMovie: Sending: %s\n",buf);
+      if (verbose) mexPrintf("(mglPrivateMovie): Sending: %s\n",buf);
       write(socketDescriptor,buf,strlen(buf));
       break;
     //++++++++++++++++++++++++++++++++
     case GET_DURATION:
       sprintf(buf,"getDuration %i",(int)moviePointer);
-      mexPrintf("(mglPrivateMovie: Sending: %s\n",buf);
+      if (verbose) mexPrintf("(mglPrivateMovie): Sending: %s\n",buf);
       write(socketDescriptor,buf,strlen(buf));
       // read back the duration string
       memset(buf,0,BUFLEN);
@@ -303,7 +413,7 @@ mxArray *doMovieCommand(int command, unsigned long moviePointer, const mxArray *
     //++++++++++++++++++++++++++++++++
     case GET_CURRENT_TIME:
       sprintf(buf,"getCurrentTime %i",(int)moviePointer);
-      mexPrintf("(mglPrivateMovie: Sending: %s\n",buf);
+      if (verbose) mexPrintf("(mglPrivateMovie): Sending: %s\n",buf);
       write(socketDescriptor,buf,strlen(buf));
       // read back the current time
       memset(buf,0,BUFLEN);
@@ -322,7 +432,7 @@ mxArray *doMovieCommand(int command, unsigned long moviePointer, const mxArray *
       else {
 	// write command
 	sprintf(buf,"setCurrentTime %i",(int)moviePointer);
-	mexPrintf("(mglPrivateMovie: Sending: %s\n",buf);
+	if (verbose) mexPrintf("(mglPrivateMovie): Sending: %s\n",buf);
 	write(socketDescriptor,buf,strlen(buf));
 	// wait for confirmation and write string
 	memset(buf,0,BUFLEN);
@@ -337,7 +447,7 @@ mxArray *doMovieCommand(int command, unsigned long moviePointer, const mxArray *
     case GET_FRAME:
       // write command
       sprintf(buf,"getFrame %i",(int)moviePointer);
-      mexPrintf("(mglPrivateMovie: Sending: %s\n",buf);
+      if (verbose) mexPrintf("(mglPrivateMovie): Sending: %s\n",buf);
       write(socketDescriptor,buf,strlen(buf));
       // wait for confirmation. Should be 2 uint32 with the width and size of frame
       int numCountToRead = sizeof(uint32)*2;
@@ -345,15 +455,17 @@ mxArray *doMovieCommand(int command, unsigned long moviePointer, const mxArray *
       if ((readCount=read(socketDescriptor,buf,sizeof(buf))) != numCountToRead) {
 	// did not read properly
 	mexPrintf("(mglPrivateMovie) Could not read size of frame from socket\n");
-	return(retval);
+	close(socketDescriptor);
+	return retval;
       }
       // convert buf into int array to get width and height
       uint32 *widthAndHeight = (uint32 *)buf;
-      mexPrintf("width: %i height: %i\n",widthAndHeight[0],widthAndHeight[1]);
+      if (verbose) mexPrintf("(mglPrivateMovie) width: %i height: %i\n",widthAndHeight[0],widthAndHeight[1]);
       // send acknowledge
       if (write(socketDescriptor,"Ack",3) != 3) {
 	mexPrintf("(mglPrivateMovie) Could not send acknowledge message to socket\n");
-	return(retval);
+	close(socketDescriptor);
+	return retval;
       }
       // read in data, put into a width x height x3 matlab matrix of uint8
       int totalReadCount = 0,bufSize = widthAndHeight[0]*widthAndHeight[1]*3;
@@ -398,35 +510,12 @@ mxArray *doMovieCommand(int command, unsigned long moviePointer, const mxArray *
       }
       break;
     //++++++++++++++++++++++++++++++++
-    case MOVEWINDOW:
-      // check arguments
-      if ((arg1 == NULL) || mxIsCell(arg1) || ((mxGetN(arg1) != 2) && (mxGetN(arg1) != 4)))
-	mexPrintf("(mglPrivateMovie) Must pass in a vector of length 2 [x y] or 4 [x y width height]\n");
-      else {
-	// get position to move to
-        double *position = mxGetPr(arg1);
-	uint32 positionLen = mxGetN(arg1);
-	if (mxGetN(arg1) == 2) {
-	  // send position
-	  sprintf(buf,"moveWindow %0.0f %0.0f",position[0],position[1]);
-	  mexPrintf("(mglPrivateMovie) %s\n",buf);
-	  write(socketDescriptor,buf,strlen(buf));
-	}
-	else {
-	  // send position and size
-	  sprintf(buf,"moveAndResizeWindow %i %i %i %i",(int)position[0],(int)position[1],(int)position[2],(int)position[3]);
-	  mexPrintf("(mglPrivateMovie) %s\n",buf);
-	  write(socketDescriptor,buf,strlen(buf));
-	}
-      }
-      break;
-    //++++++++++++++++++++++++++++++++
     default:
       mexPrintf("(mglPrivateMovie) Unknown command %i\n",command);
       break;
   }
   close(socketDescriptor);
-  return(retval);
+  return retval;
 }
 
 //-----------------------------------------------------------------------------------///
