@@ -44,6 +44,19 @@
 %            12:'getFrame' Returns a nxmx3 matrix containing RGB data for current frame
 %            13:'move' Moves the movie to the location specified as [x y width height]
 %
+%            There are a few commands that can be run to manipulate the movie window
+%            For these you don't need to pass in any movie id e.g. 
+%
+%            mglMovie('openWindow');
+%
+%            14:'openWindow' Opens the window without opening a movie - not necessary
+%                       to call - you can just open a movie and the window will open
+%            15:'closeWIndow' Closes the movie window
+%            16:'moveWindow' moves the window to the loc [x y] or [x y width height]
+%            17:'moveWindowBehind' moves the movie window behind the MGL window
+%            18:'orderFront' orders the movie in front
+%            19:'setBackground' sets the background color to [r g b]
+%
 %mglSetParam('movieMode',1);
 %mglOpen(0);
 %m = mglMovie('bosque.mov');
@@ -64,54 +77,78 @@ end
 %end
 
 % list of commands and descriptions
-validCommands = {'close','play','pause','gotobeginning','gotoend','stepforward','stepbackward','hide','show','getduration','getcurrenttime','setcurrenttime','getframe','move','movewindow'};
-		 
-% see if it is an init with filename
+validCommands = {'close','play','pause','gotobeginning','gotoend','stepforward','stepbackward','hide','show','getduration','getcurrenttime','setcurrenttime','getframe','move'};
+validWindowCommands = {'openwindow','closewindow','movewindow','movewindowbehind','orderfront','setbackground'};
+
+% see if the first argument is a string in which case it is either a window command
+% or it is a filename to open
 if isstr(varargin{1})
-  % get the filename
-  filename = varargin{1};
-  % see if we have a position
-  if length(varargin) < 2
-    position = getPositionFromArg([]);
-  elseif isvector(varargin{2})
-    position = getPositionFromArg(varargin{2});
-  end
-  % check for tilde reference in filename, since that is not supported
-  if (length(filename) > 1) && (filename(1) == '~')
-    % get the home directory name
-    thispwd = pwd;
-    cd ~;
-    homedir = pwd;
-    cd(thispwd);
-    filename = fullfile(homedir,filename(2:end));
-  end
-  % check for file
-  if ~isfile(filename)
-    % change extension to .mov and try again
-    [filepath filenameCheck ext] = fileparts(filename);
-    filenameCheck = sprintf('%s.mov',fullfile(filepath,filenameCheck));
-    % if not there, give a warning and give up
-    if ~isfile(filenameCheck)
-      disp(sprintf('(mglMovie) Could not find file: %s',filename));
-      return;
+  % filename or window command
+  windowCommand = find(strcmp(lower(varargin{1}),validWindowCommands));
+  if length(windowCommand) == 1
+    % set the number for the window command such that they continue after valid commands
+    % this is important to match the numbering mglPrivateMovie
+    windowCommand = windowCommand + length(validCommands) - 1;
+    %% window command argument, so see if we need arguments
+    if any(strcmp(lower(varargin{1}),{'movewindow'}))
+      arg = getPositionFromArg(varargin{2});
+      % run window command
+      retval = mglPrivateMovie(nan,windowCommand,arg);
+    elseif any(strcmp(lower(varargin{1}),{'setbackground'}))
+      % run window command
+      retval = mglPrivateMovie(nan,windowCommand,varargin{2});
     else
-      filename = filenameCheck;
+      % run window command
+      retval = mglPrivateMovie(nan,windowCommand);
     end
-  end
-  % create the movie structure
-  movieStruct = mglPrivateMovie(filename,position);
-  % if we got a non-empty
-  if ~isempty(movieStruct)
-    % add it to global registration
-    movieStructs = mglGetParam('movieStructs');
-    movieStructs{end+1} = movieStruct;
-    mglSetParam('movieStructs',movieStructs);
-    % set the id of the movieStruct
-    movieStruct.id = length(movieStructs);
-    % tack on filename to structure
-    movieStruct.filename = filename;
-  end
-  return;
+    return
+  % filename - then open up tthe movie
+  else
+    % get the filename
+    filename = varargin{1};
+    % see if we have a position
+    if length(varargin) < 2
+      position = getPositionFromArg([]);
+    elseif isvector(varargin{2})
+      position = getPositionFromArg(varargin{2});
+    end
+    % check for tilde reference in filename, since that is not supported
+    if (length(filename) > 1) && (filename(1) == '~')
+      % get the home directory name
+      thispwd = pwd;
+      cd ~;
+      homedir = pwd;
+      cd(thispwd);
+      filename = fullfile(homedir,filename(2:end));
+    end
+    % check for file
+    if ~isfile(filename)
+      % change extension to .mov and try again
+      [filepath filenameCheck ext] = fileparts(filename);
+      filenameCheck = sprintf('%s.mov',fullfile(filepath,filenameCheck));
+      % if not there, give a warning and give up
+      if ~isfile(filenameCheck)
+	disp(sprintf('(mglMovie) Could not find file: %s',filename));
+	return;
+      else
+	filename = filenameCheck;
+      end
+    end
+    % create the movie structure
+    movieStruct = mglPrivateMovie(filename,position);
+    % if we got a non-empty
+    if ~isempty(movieStruct)
+      % add it to global registration
+      movieStructs = mglGetParam('movieStructs');
+      movieStructs{end+1} = movieStruct;
+      mglSetParam('movieStructs',movieStructs);
+      % set the id of the movieStruct
+      movieStruct.id = length(movieStructs);
+      % tack on filename to structure
+      movieStruct.filename = filename;
+    end
+    return;
+    end
 end
 
 % movie struct passed in, run command
@@ -130,7 +167,7 @@ if isstruct(varargin{1})
   end
   % convert string commands
   if isstr(varargin{2})
-    command = find(strcmp(lower(varargin{2}),validCommands));
+    command = find(strcmp(lower(varargin{2}),{validCommands{:} validWindowCommands{:}}));
     if isempty(command)
       disp(sprintf('(mglMovie) Unrecogonized command %s',varargin{2}));
       return

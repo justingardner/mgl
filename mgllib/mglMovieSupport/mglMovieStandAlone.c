@@ -116,6 +116,7 @@ int openSocketAndWaitForCommands(char *socketName, NSWindow *myWindow)
   char buf[BUFLEN], *commandName, *movieIDStr, *filename, *extraParams;
   int socketDescriptor,connectionDescriptor,readCount, movieID;
   int numMovies = 0;
+  int verbose = 0;
   // init movie
   QTMovieView *movieViews[BUFLEN], *movieView;;
 
@@ -164,15 +165,16 @@ int openSocketAndWaitForCommands(char *socketName, NSWindow *myWindow)
     if ((readCount=read(connectionDescriptor,buf,sizeof(buf))) > 0) {
       // pull out command
       commandName = strtok(buf," \n\0");
+
       // check commands
       //++++++++++++++++++++++++++++++++
-      // Close
+      // Open
       //++++++++++++++++++++++++++++++++
       if (strcmp(commandName,"open")==0) {
 	// get filename and validate
 	filename = isValidMoviename(strtok(NULL," \n\0"));
 	if (filename == NULL) continue;
-	printf("(mglMovieStandAlone) Open: %s\n",filename);
+	if (verbose) printf("(mglMovieStandAlone) Open: %s\n",filename);
 	// open the movie
 	movieViews[numMovies] = initMovie(filename,myWindow,0);
 	// if it was successful, then increment movie count
@@ -180,18 +182,57 @@ int openSocketAndWaitForCommands(char *socketName, NSWindow *myWindow)
 	if (numMovies >= BUFLEN) 
 	  printf("(mglMovieStandAlone) Exceeded number of movies allowed in buffer %i\n",numMovies--);
 	else {
-	  printf("(mglMovieStandAlone) movieID: %i\n",numMovies-1);
+	  if (verbose) printf("(mglMovieStandAlone) movieID: %i\n",numMovies-1);
 	  // return ID
 	  sprintf(buf,"%i",numMovies);
 	  if (write(connectionDescriptor,buf,strlen(buf)) != strlen(buf))
 	    printf("(mglMovieStandAlone) Could not write duration string to scoket\n");
 	}
       }
-      else if (strcmp(commandName,"close")==0) {
-	// FIX this should close movie - not whole app
+      //++++++++++++++++++++++++++++++++
+      // closeWindow
+      //++++++++++++++++++++++++++++++++
+      else if (strcmp(commandName,"closeWindow")==0) {
+	if (verbose) printf("(mglMovieStandAlone) Close window\n");
+	// Closes app
 	close(socketDescriptor);
 	close(connectionDescriptor);
 	return 0;
+      }
+      //++++++++++++++++++++++++++++++++
+      // orderFront
+      //++++++++++++++++++++++++++++++++
+      else if (strcmp(commandName,"orderFront")==0) {
+	if (verbose) printf("(mglMovieStandAlone) Order front\n");
+	// order the mgl window to the front
+	[myWindow orderFront:nil];
+	[myWindow orderFrontRegardless];
+	[myWindow display];
+      }
+      //++++++++++++++++++++++++++++++++
+      // setBackground
+      //++++++++++++++++++++++++++++++++
+      else if (strcmp(commandName,"setBackground")==0) {
+	// get the position to size
+	double r,g,b;
+	extraParams = strtok(NULL,"");
+	r = strtod(extraParams,&extraParams);
+	g = strtod(extraParams,&extraParams);
+	b = strtod(extraParams,&extraParams);
+	if (verbose) printf("(mglMovieStandAlone) Set background: %f %f %f\n",r,g,b);
+	// set the background color
+	[myWindow setBackgroundColor:[NSColor colorWithCalibratedRed:r green:g blue:b alpha:1.0f]];
+	[myWindow display];
+      }
+      //++++++++++++++++++++++++++++++++
+      // openWindow
+      //++++++++++++++++++++++++++++++++
+      else if (strcmp(commandName,"openWindow")==0) {
+	if (verbose) printf("(mglMovieStandAlone) Open window\n");
+	// send acknowledge
+	sprintf(buf,"open ack");
+	if (write(connectionDescriptor,buf,strlen(buf)) != strlen(buf))
+	  printf("(mglMovieStandAlone) Could not write ack to scoket\n");
       }
       //++++++++++++++++++++++++++++++++
       else if (strcmp(commandName,"moveWindow")==0) {
@@ -200,13 +241,13 @@ int openSocketAndWaitForCommands(char *socketName, NSWindow *myWindow)
 	extraParams = strtok(NULL,"");
 	x = (int)strtod(extraParams,&extraParams);
 	y = (int)strtod(extraParams,&extraParams);
-	printf("(mglMovieStandAlone) Move window %i %i\n",x,y);
+	if (verbose) printf("(mglMovieStandAlone) Move window %i %i\n",x,y);
 	// get current frame rect
 	NSRect frameRect = [myWindow frame];
 	// change origin
 	frameRect.origin.x = (CGFloat)x;
 	frameRect.origin.y = (CGFloat)y;
-	printf("(mglMovieStandAlone) Move window %i %i\n",x,y);
+	if (verbose) printf("(mglMovieStandAlone) Move window %i %i\n",x,y);
 	// and move
 	[myWindow setFrame:frameRect display:YES];
       }
@@ -219,7 +260,7 @@ int openSocketAndWaitForCommands(char *socketName, NSWindow *myWindow)
 	y = (int)strtod(extraParams,&extraParams);
 	width = (int)strtod(extraParams,&extraParams);
 	height = (int)strtod(extraParams,&extraParams);
-	printf("(mglMovieStandAlone) Move and resize window %i %i %i %i \n",x,y,width,height);
+	if (verbose) printf("(mglMovieStandAlone) Move and resize window %i %i %i %i \n",x,y,width,height);
 	// and move
 	[myWindow setFrame:NSMakeRect(x,y,width,height) display:YES];
       }
@@ -232,7 +273,7 @@ int openSocketAndWaitForCommands(char *socketName, NSWindow *myWindow)
 	  movieID = numMovies-1;
 	else 
 	  movieID = (int)strtod(movieIDStr,NULL)-1;
-	printf("(mglMovieStandAlone) Got command: %s for movie: %i\n",commandName,movieID);
+	if (verbose) printf("(mglMovieStandAlone) Got command: %s for movie: %i\n",commandName,movieID);
 	if ((movieID > BUFLEN)||(movieID<0)) continue;
 	// get movieView associated with movie ID
 	movieView = movieViews[movieID];
@@ -250,6 +291,22 @@ int openSocketAndWaitForCommands(char *socketName, NSWindow *myWindow)
 	  else {
 	    printf("(mglMovieStandAlone) Movie is still loading, not playable yet\n");
 	  }
+	}
+	//++++++++++++++++++++++++++++++++
+	else if (strcmp(commandName,"close")==0) {
+	  // pause movie
+	  [movieView pause:nil];
+	  // remove it from the contentView if it is not already there
+	  if ([movieView superview] == [myWindow contentView]) {
+	    [movieView removeFromSuperview];
+	  }
+	  // hide movie
+	  [movieView setAlphaValue:0];
+	  [[myWindow contentView] display];
+	  [myWindow display];
+	  // dealloc (does this dealloc the QTMovie as well?
+	  [movieView dealloc];
+	  movieViews[movieID] = NULL;
 	}
 	//++++++++++++++++++++++++++++++++
 	else if (strcmp(commandName,"pause")==0) {
@@ -295,6 +352,7 @@ int openSocketAndWaitForCommands(char *socketName, NSWindow *myWindow)
 	  }
 	  // display it
 	  [movieView setAlphaValue:1];
+	  [movieView display];
 	  [[myWindow contentView] display];
 	  [myWindow display];
 	}
@@ -381,7 +439,7 @@ int openSocketAndWaitForCommands(char *socketName, NSWindow *myWindow)
 	  int x,y;
 	  x = (int)strtod(extraParams,&extraParams);
 	  y = (int)strtod(extraParams,&extraParams);
-	  printf("move: %i %i\n",x,y);
+	  if (verbose) printf("move: %i %i\n",x,y);
 	  // get current frame rect
 	  NSRect frameRect = [myWindow frame];
 	  // change origin

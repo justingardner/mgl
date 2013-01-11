@@ -44,6 +44,7 @@ if ~isempty(movieStructs)
       mglMovie(m,'close');
     end
   end
+  mglMovie('closeWindow');
   mglSetParam('movieStructs',{});
 end
 
