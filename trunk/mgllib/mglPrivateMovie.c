@@ -223,7 +223,9 @@ mxArray *doMovieCommand(int command, unsigned long moviePointer, const mxArray *
       }
     }
     else {
-      mexPrintf("(mglPrivateMovie) Could not connect to socket %s to communicate with mglMovieStandAlone. Perhaps you did not open any mglMovies yet.\n");
+      // Give a warning if we could not connect, but not if this is a closeWindow command
+      if (command != CLOSEWINDOW)
+	mexPrintf("(mglPrivateMovie) Could not connect to socket %s to communicate with mglMovieStandAlone. Perhaps you did not open any mglMovies yet.\n");
       close(socketDescriptor);
       return retval;
     }

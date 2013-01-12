@@ -259,8 +259,15 @@ msc.computer = params.computerName;
 msc.displayName = params.displayName;
 msc.allowpause = 0;
 
+% trun off movie mode for screen test
+movieMode = mglGetParam('movieMode');
+mglSetParam('movieMode',0);
+
 % now call initScreen with these parameters
 msc = initScreen(msc);
+
+% reset movie mode
+mglSetParam('movieMode',movieMode);
 
 %%%%%%%%%%%%%%%%%%%%%%
 %%   TestSettings   %%
