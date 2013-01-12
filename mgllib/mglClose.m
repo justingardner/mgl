@@ -44,9 +44,10 @@ if ~isempty(movieStructs)
       mglMovie(m,'close');
     end
   end
-  mglMovie('closeWindow');
-  mglSetParam('movieStructs',{});
+  mglSetParam('movieStructs',{}); 
 end
+% close movie window
+if mglGetParam('movieMode'), mglMovie('closeWindow');end
 
 % run mex function to actually close display
 mglPrivateClose;
