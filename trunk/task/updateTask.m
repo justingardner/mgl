@@ -312,33 +312,69 @@ end
 
 % if we have to collect observer response, then look for that
 if (task{tnum}.getResponse(task{tnum}.thistrial.thisseg))
+  % check keyboard if that is what is being asked for (code 1 or 2) 1
+  % is just keyboard check 2 is an old call for checking keyboard but
+  % staying in a tight loop for gettine better reaction time data (not
+  % necessary anymore because the keyboard events are being returned
+  % by the system with nanosecond precision timing. 3 means get both
+  % keyboard and mouse events and 4 means just mouse
+  task{tnum}.thistrial.mouseButton = [];
   % get keyboard state
   buttons = ismember(myscreen.keyboard.nums,myscreen.keyCodes);
-  % if a button was pressed, then record response
-  if (any(buttons) && (~isequal(buttons,task{tnum}.thistrial.buttonState)))
-    % set the button state to pass
-    task{tnum}.thistrial.buttonState = buttons;
-    task{tnum}.thistrial.whichButton = find(buttons);
-    task{tnum}.thistrial.whichButton = task{tnum}.thistrial.whichButton(1);
-    % get the time of the button press
-    whichKeyCode = find(myscreen.keyboard.nums(task{tnum}.thistrial.whichButton)==myscreen.keyCodes);
-    responseTime = myscreen.keyTimes(whichKeyCode(1));
-    % write out an event
-    myscreen = writeTrace(task{tnum}.thistrial.whichButton,task{tnum}.responseTrace,myscreen,1,responseTime);
-    % get reaction time
-    task{tnum}.thistrial.reactionTime = responseTime-task{tnum}.thistrial.segStartSeconds;
-    if isfield(task{tnum}.callback,'trialResponse')
-      [task{tnum} myscreen] = feval(task{tnum}.callback.trialResponse,task{tnum},myscreen);
+  if any(task{tnum}.getResponse(task{tnum}.thistrial.thisseg)==[1 2 3])
+    % if a button was pressed, then record response
+    if (any(buttons) && (~isequal(buttons,task{tnum}.thistrial.buttonState)))
+      % set the button state to pass
+      task{tnum}.thistrial.buttonState = buttons;
+      task{tnum}.thistrial.whichButton = find(buttons);
+      task{tnum}.thistrial.whichButton = task{tnum}.thistrial.whichButton(1);
+      % get the time of the button press
+      whichKeyCode = find(myscreen.keyboard.nums(task{tnum}.thistrial.whichButton)==myscreen.keyCodes);
+      responseTime = myscreen.keyTimes(whichKeyCode(1));
+      % write out an event
+      myscreen = writeTrace(task{tnum}.thistrial.whichButton,task{tnum}.responseTrace,myscreen,1,responseTime);
+      % get reaction time
+      task{tnum}.thistrial.reactionTime = responseTime-task{tnum}.thistrial.segStartSeconds;
+      if isfield(task{tnum}.callback,'trialResponse')
+	[task{tnum} myscreen] = feval(task{tnum}.callback.trialResponse,task{tnum},myscreen);
+      end
+      % set flush mode back
+      if (task{tnum}.getResponse(task{tnum}.thistrial.thisseg)==2)
+	myscreen.flushMode = myscreen.oldFlushMode;
+      end
+      % and set that we have got a response
+      task{tnum}.thistrial.gotResponse = task{tnum}.thistrial.gotResponse+1;
     end
-    % set flush mode back
-    if (task{tnum}.getResponse(task{tnum}.thistrial.thisseg)==2)
-      myscreen.flushMode = myscreen.oldFlushMode;
-    end
-    % and set that we have got a response
-    task{tnum}.thistrial.gotResponse = task{tnum}.thistrial.gotResponse+1;
   end
   % remember the current button state
   task{tnum}.thistrial.buttonState = buttons;
+  % check mouse state if getResponse is set to 3
+  if any(task{tnum}.getResponse(task{tnum}.thistrial.thisseg)==[3 4])
+    % get the mouse state
+    [task{tnum}.thistrial.mouseButton task{tnum}.thistrial.mouseWhen task{tnum}.thistrial.mouseX task{tnum}.thistrial.mouseY] = mglGetMouseEvent(0,1);
+    % remove events that happened before this segment
+    goodEvents = task{tnum}.thistrial.mouseWhen > task{tnum}.thistrial.segStartSeconds;
+    if ~isempty(task{tnum}.thistrial.mouseButton)
+      task{tnum}.thistrial.mouseButton = task{tnum}.thistrial.mouseButton(goodEvents);
+      task{tnum}.thistrial.mouseWhen = task{tnum}.thistrial.mouseWhen(goodEvents);
+      task{tnum}.thistrial.mouseX = task{tnum}.thistrial.mouseX(goodEvents);
+      task{tnum}.thistrial.mouseY = task{tnum}.thistrial.mouseY(goodEvents);
+    end
+    % if there was a mouse down event
+    if ~isempty(task{tnum}.thistrial.mouseButton)
+      responseTime = task{tnum}.thistrial.mouseWhen;
+      % write out an event (code the mouse events as negative numbers to
+      % distinguish them from keyboard events
+      myscreen = writeTrace(-task{tnum}.thistrial.mouseButton,task{tnum}.responseTrace,myscreen,1,responseTime);
+      % get reaction time
+      task{tnum}.thistrial.reactionTime = responseTime-task{tnum}.thistrial.segStartSeconds;
+      if isfield(task{tnum}.callback,'trialResponse')
+	[task{tnum} myscreen] = feval(task{tnum}.callback.trialResponse,task{tnum},myscreen);
+      end
+      % and set that we have got a response
+      task{tnum}.thistrial.gotResponse = task{tnum}.thistrial.gotResponse+1;
+    end
+  end
 end
 
 % update the stimuli, but only if we are actually updating the screen
