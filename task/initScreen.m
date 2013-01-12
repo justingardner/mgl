@@ -537,6 +537,15 @@ end
 % keep initial gamma table
 myscreen.initScreenGammaTable = mglGetGammaTable;
 
+% if movieMode then 
+if mglGetParam('movieMode') == 1
+  % bring up the movie window and order it behind
+  mglMovie('openWindow');
+  mglMovie('moveWindowBehind');
+  % and set background color to transparent
+  myscreen.background = [0 0 0 0];
+end
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Gamma correction of monitor
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
