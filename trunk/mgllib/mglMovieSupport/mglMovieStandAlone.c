@@ -434,6 +434,34 @@ int openSocketAndWaitForCommands(char *socketName, NSWindow *myWindow)
 	  free(outputPtr);
 	}
 	//++++++++++++++++++++++++++++++++
+	else if (strcmp(commandName,"getPosition")==0) {
+	  // get position
+	  NSRect frameRect = [movieView frame];
+	  sprintf(buf,"%f %f %f %f",frameRect.origin.x,frameRect.origin.y,frameRect.size.width,frameRect.size.height);
+	  if (verbose) printf("(mglMovieStandAlone) Sending size: %s\n",buf);
+	  // write it to socket
+	  if (write(connectionDescriptor,buf,strlen(buf)) != strlen(buf))
+	    printf("(mglMovieStandAlone) Could not write framerate string to scoket\n");
+	}
+	//++++++++++++++++++++++++++++++++
+	else if (strcmp(commandName,"getFramerate")==0) {
+	  // get current time
+	  // FIX, FIX, FIX: This always seems to return 0 - needs to be debugged
+	  double frameRate = [[movieView movie] rate];
+	  printf("(mglMovieStandAlone) The feature to return frameRate may not be working. Needs debugging. Read a rate: %f\n",(double)frameRate);
+	  sprintf(buf,"%f",frameRate);
+	  // write it to socket
+	  if (write(connectionDescriptor,buf,strlen(buf)) != strlen(buf))
+	    printf("(mglMovieStandAlone) Could not write framerate string to scoket\n");
+	}
+	//++++++++++++++++++++++++++++++++
+	else if (strcmp(commandName,"setFramerate")==0) {
+	  double frameRate;
+	  frameRate = strtod(extraParams,&extraParams);
+	  //	FIX, FIX, FIX, actually set frame rate
+	  printf("(mglMovieStandAlone) The feature to set frameRate is not yet implemented. Needs debugging. Got rate to set of: %f\n",(double)frameRate);
+	}
+	//++++++++++++++++++++++++++++++++
 	else if (strcmp(commandName,"move")==0) {
 	  // get the position to move to
 	  int x,y;
@@ -441,7 +469,7 @@ int openSocketAndWaitForCommands(char *socketName, NSWindow *myWindow)
 	  y = (int)strtod(extraParams,&extraParams);
 	  if (verbose) printf("move: %i %i\n",x,y);
 	  // get current frame rect
-	  NSRect frameRect = [myWindow frame];
+	  NSRect frameRect = [movieView frame];
 	  // change origin
 	  frameRect.origin.x = (CGFloat)x;
 	  frameRect.origin.y = (CGFloat)y;

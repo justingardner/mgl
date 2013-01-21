@@ -81,6 +81,8 @@ if myscreen.flushMode==0
 elseif myscreen.flushMode == 1
   mglFlush();
   myscreen.flushMode = -1;
+elseif myscreen.flushMode == 2
+  mglNoFlushWait();
 elseif myscreen.flushMode == inf
   % this simulates the vertical blanking time
   % for some display cards which don't wait
