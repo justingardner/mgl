@@ -34,12 +34,15 @@ $Id: mglPrivateOpen.c,v 1.14 2007/10/25 20:31:43 justin Exp $
 #define SET_CURRENT_TIME 11
 #define GET_FRAME 12
 #define MOVE 13
-#define OPENWINDOW 14
-#define CLOSEWINDOW 15
-#define MOVEWINDOW 16
-#define MOVEWINDOWBEHIND 17
-#define ORDERFRONT 18
-#define SETBACKGROUND 19
+#define GET_POSITION 14
+#define GET_FRAMERATE 15
+#define SET_FRAMERATE 16
+#define OPENWINDOW 17
+#define CLOSEWINDOW 18
+#define MOVEWINDOW 19
+#define MOVEWINDOWBEHIND 20
+#define ORDERFRONT 21
+#define SETBACKGROUND 22
 
 #define BUFLEN 4096
 #define NANMOVIEPOINTER 99999999
@@ -429,7 +432,7 @@ mxArray *doMovieCommand(int command, unsigned long moviePointer, const mxArray *
       break;
     //++++++++++++++++++++++++++++++++
     case SET_CURRENT_TIME:
-      if (arg1 == NULL) 
+      if ((arg1 == NULL) || (!mxIsChar(arg1)))
 	mexPrintf("(mglPrivateMovie) Must pass in a time string\n");
       else {
 	// write command
@@ -509,6 +512,55 @@ mxArray *doMovieCommand(int command, unsigned long moviePointer, const mxArray *
 	  sprintf(buf,"moveAndResize %i %i %i %i %i",(int)moviePointer,(int)position[0],(int)position[1],(int)position[2],(int)position[3]);
 	  write(socketDescriptor,buf,strlen(buf));
 	}
+      }
+      break;
+    //++++++++++++++++++++++++++++++++
+    case GET_POSITION:
+      sprintf(buf,"getPosition %i",(int)moviePointer);
+      if (verbose) mexPrintf("(mglPrivateMovie): Sending: %s\n",buf);
+      write(socketDescriptor,buf,strlen(buf));
+      // read back the current position
+      memset(buf,0,BUFLEN);
+      if ((readCount=read(socketDescriptor,buf,sizeof(buf))) > 0) {
+	retval = mxCreateDoubleMatrix(1,4,mxREAL);
+	double *pos = mxGetPr(retval);
+	char *readBuf;
+	pos[0] =  strtod(buf,&readBuf);
+	pos[1] =  strtod(readBuf,&readBuf);
+	pos[2] =  strtod(readBuf,&readBuf);
+	pos[3] =  strtod(readBuf,&readBuf);
+      }
+      else {
+	mexPrintf("(mglPrivateMovie) Could not read position from mglMovieStandAlone - perhaps socket has closed\n");
+      }
+
+      break;
+    //++++++++++++++++++++++++++++++++
+    case GET_FRAMERATE:
+      sprintf(buf,"getFramerate %i",(int)moviePointer);
+      if (verbose) mexPrintf("(mglPrivateMovie): Sending: %s\n",buf);
+      write(socketDescriptor,buf,strlen(buf));
+      // read back the current time
+      memset(buf,0,BUFLEN);
+      if ((readCount=read(socketDescriptor,buf,sizeof(buf))) > 0) {
+	retval = mxCreateDoubleMatrix(1,1,mxREAL);
+	double *outbuf = mxGetPr(retval);
+	outbuf[0] = strtod(buf,NULL);
+      }
+      else {
+	mexPrintf("(mglPrivateMovie) Could not read framerate from mglMovieStandAlone - perhaps socket has closed\n");
+      }
+
+      break;
+    //++++++++++++++++++++++++++++++++
+    case SET_FRAMERATE:
+      if (arg1 == NULL) 
+	mexPrintf("(mglPrivateMovie) Must pass in a time string\n");
+      else {
+	// write command
+	sprintf(buf,"setFramerate %i %f",(int)moviePointer,*mxGetPr(arg1));
+	if (verbose) mexPrintf("(mglPrivateMovie): Sending: %s\n",buf);
+	write(socketDescriptor,buf,strlen(buf));
       }
       break;
     //++++++++++++++++++++++++++++++++

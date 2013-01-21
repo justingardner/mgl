@@ -43,19 +43,22 @@
 %                      passed in. Make sure the string is one returned from getCurrentTime
 %            12:'getFrame' Returns a nxmx3 matrix containing RGB data for current frame
 %            13:'move' Moves the movie to the location specified as [x y width height]
+%            14:'getPosition' Gets the current position [x y width height] of the movie
+%            15:'frameRate' Get framerate
+%            16:'setFrameRate'Set frame rate, requires frameRate arg
 %
 %            There are a few commands that can be run to manipulate the movie window
 %            For these you don't need to pass in any movie id e.g. 
 %
 %            mglMovie('openWindow');
 %
-%            14:'openWindow' Opens the window without opening a movie - not necessary
+%            17:'openWindow' Opens the window without opening a movie - not necessary
 %                       to call - you can just open a movie and the window will open
-%            15:'closeWIndow' Closes the movie window
-%            16:'moveWindow' moves the window to the loc [x y] or [x y width height]
-%            17:'moveWindowBehind' moves the movie window behind the MGL window
-%            18:'orderFront' orders the movie in front
-%            19:'setBackground' sets the background color to [r g b]
+%            18:'closeWindow' Closes the movie window
+%            19:'moveWindow' moves the window to the loc [x y] or [x y width height]
+%            20:'moveWindowBehind' moves the movie window behind the MGL window
+%            21:'orderFront' orders the movie in front
+%            22:'setBackground' sets the background color to [r g b]
 %
 %mglSetParam('movieMode',1);
 %mglOpen(0);
@@ -77,7 +80,7 @@ end
 %end
 
 % list of commands and descriptions
-validCommands = {'close','play','pause','gotobeginning','gotoend','stepforward','stepbackward','hide','show','getduration','getcurrenttime','setcurrenttime','getframe','move'};
+validCommands = {'close','play','pause','gotobeginning','gotoend','stepforward','stepbackward','hide','show','getduration','getcurrenttime','setcurrenttime','getframe','move','getposition','framerate','setframerate'};
 validWindowCommands = {'openwindow','closewindow','movewindow','movewindowbehind','orderfront','setbackground'};
 
 % see if the first argument is a string in which case it is either a window command
@@ -189,14 +192,14 @@ if isstruct(varargin{1})
   end
     
   % run the command
-  if any(command == [11 13 14])
+  if any(command == [11 13 16 19 22])
     if nargin < 3
       % commands with a single argument
       disp(sprintf('(mglMovie) Command %s needs another argument',validCommands{command+1}));
       return;
     else
       % command that requires a position needs special checking for position
-      if any(command == [13 14])
+      if any(command == [13 19])
 	arg = getPositionFromArg(varargin{3});
       else
 	arg = varargin{3};
@@ -217,9 +220,6 @@ if isstruct(varargin{1})
   % return any return value
   if ~isempty(retval),movieStruct = retval;end
 end 
-
-
-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %    getPositionFromArg    %

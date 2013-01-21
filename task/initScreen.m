@@ -723,6 +723,13 @@ end
 myscreen.makeTraces = 0;
 myscreen.numTasks = 0;
 
+% if this is movieMode then set flushMode to simulate timing of flush
+% without actually doing a flush (since the transparent openGL screen
+% takes too long to flush
+if isequal(mglGetParam('movieMode'),1)
+  myscreen.flushMode = 2;
+end
+
 % get all pending keyboard events
 mglGetKeyEvent([],1);
 
