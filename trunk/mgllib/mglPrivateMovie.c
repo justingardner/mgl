@@ -129,10 +129,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 }
 
 //-----------------------------------------------------------------------------------///
-// **************************** mac cocoa specific code  **************************** //
+// ******************************* mac specific code  ******************************* //
 //-----------------------------------------------------------------------------------///
 #ifdef __APPLE__
-#ifdef __x86_64__ 
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <stdio.h>
@@ -572,27 +571,6 @@ mxArray *doMovieCommand(int command, unsigned long moviePointer, const mxArray *
   return retval;
 }
 
-//-----------------------------------------------------------------------------------///
-// **************************** mac carbon specific code  *************************** //
-//-----------------------------------------------------------------------------------///
-#else //__cocoa__
-///////////////////
-//   openMovie   //
-///////////////////
-unsigned long openMovie(char *filename, int xpos, int ypos, int width, int height)
-{
-  mexPrintf("(mglMovie) Not implemented for 32 bit Mac.\n");
-  return 0;
-}
-////////////////////////
-//   doMovieCommand   //
-////////////////////////
-mxArray *doMovieCommand(int command, unsigned long moviePointer, const mxArray *arg1, const mxArray *arg2)
-{
-  mexPrintf("(mglMovie) Not implemented\n");
-  return NULL;
-}
-#endif //_cocoa__
 #endif __APPLE__
 //-----------------------------------------------------------------------------------///
 // ****************************** linux specific code  ****************************** //
