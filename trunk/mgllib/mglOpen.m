@@ -43,17 +43,6 @@ else
   end
 end
 
-% see if we are running for movie mode
-if mglGetParam('movieMode')
-  % in this case, always use a windowed context
-  % full screen mode is spoofed by making a windowed context that
-  % is the same size as the screen and closing the task and menu
-  % bar
-  mglSetParam('transparentBackground',1);
-  mglSetParam('spoofFullScreen',whichScreen);
-  whichScreen = 0;
-end
-
 % set verbose off
 if isempty(mglGetParam('verbose'))
   mglSetParam('verbose',0);
@@ -87,6 +76,30 @@ if ~openDisplay && ~isempty(whichScreen) && (whichScreen >= 1)
   end
 end
 
+% see if we are running for movie mode
+if mglGetParam('movieMode')
+  % in this case, always use a windowed context
+  % full screen mode is spoofed by making a windowed context that
+  % is the same size as the screen and closing the task and menu
+  % bar
+  mglSetParam('transparentBackground',1);
+  if isempty(whichScreen)
+    res = mglResolution;
+    mglSetParam('spoofFullScreen',res.displayNumber);
+  else
+    mglSetParam('spoofFullScreen',whichScreen);
+  end
+
+  % close an open window if it is not a windowed context
+  if openDisplay && ~isequal(mglGetParam('displayNumber'),0)
+    disp(sprintf('(mglOpen) Closing currently open mgl window which is not compatible with movie mode'));
+    mglClose;
+    openDisplay = 0;
+  end
+  whichScreen = 0;
+end
+
+
 %mglSetParam('verbose',1);
 if ~openDisplay
   % default to showing that cocoa is not running
@@ -116,7 +129,7 @@ if ~openDisplay
     mglPrivateOpen(whichScreen);
   else % open, trying to set resolution
     % for full screen resolution
-    if isempty(whichScreen) || (whichScreen>=1)
+    if isempty(whichScreen) || (whichScreen>=1) 
       % get the current resolution, so we can return to it on close
       mglSetParam('originalResolution',mglResolution(whichScreen));
       % set the display resolution
@@ -131,6 +144,15 @@ if ~openDisplay
       end
       % and call mglPrivateOpen with the correct screen number
       mglPrivateOpen(whichScreen);
+    elseif ~isempty(mglGetParam('spoofFullScreen'));
+      % get the current resolution, so we can return to it on close
+      mglSetParam('originalResolution',mglResolution(whichScreen));
+      % set the display resolution
+      displayResolution = mglResolution(whichScreen,screenWidth,screenHeight,frameRate,bitDepth);
+      frameRate = displayResolution.frameRate;
+      bitDepth = displayResolution.bitDepth;
+      % and call mglPrivateOpen with the correct screen number
+      mglPrivateOpen(0);
     elseif whichScreen >= 0
       % open for a windowed mgl (i.e. whichScreen between 0 and 1
       mglPrivateOpen(whichScreen,screenWidth,screenHeight);
