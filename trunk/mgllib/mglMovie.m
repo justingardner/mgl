@@ -46,19 +46,21 @@
 %            14:'getPosition' Gets the current position [x y width height] of the movie
 %            15:'frameRate' Get framerate
 %            16:'setFrameRate'Set frame rate, requires frameRate arg
+%            17:'isValid' Checks to see if the passed in movie is valid (i.e. if the movie window has
+%                         closed your movie is no longer valid and you won't be able to play it)
 %
 %            There are a few commands that can be run to manipulate the movie window
 %            For these you don't need to pass in any movie id e.g. 
 %
 %            mglMovie('openWindow');
 %
-%            17:'openWindow' Opens the window without opening a movie - not necessary
+%            101:'openWindow' Opens the window without opening a movie - not necessary
 %                       to call - you can just open a movie and the window will open
-%            18:'closeWindow' Closes the movie window
-%            19:'moveWindow' moves the window to the loc [x y] or [x y width height]
-%            20:'moveWindowBehind' moves the movie window behind the MGL window
-%            21:'orderFront' orders the movie in front
-%            22:'setBackground' sets the background color to [r g b]
+%            102:'closeWindow' Closes the movie window
+%            103:'moveWindow' moves the window to the loc [x y] or [x y width height]
+%            104:'moveWindowBehind' moves the movie window behind the MGL window
+%            105:'orderFront' orders the movie in front
+%            106:'setBackground' sets the background color to [r g b]
 %
 %mglSetParam('movieMode',1);
 %mglOpen(0);
@@ -80,7 +82,7 @@ end
 %end
 
 % list of commands and descriptions
-validCommands = {'close','play','pause','gotobeginning','gotoend','stepforward','stepbackward','hide','show','getduration','getcurrenttime','setcurrenttime','getframe','move','getposition','framerate','setframerate'};
+validCommands = {'close','play','pause','gotobeginning','gotoend','stepforward','stepbackward','hide','show','getduration','getcurrenttime','setcurrenttime','getframe','move','getposition','framerate','setframerate','isvalid'};
 validWindowCommands = {'openwindow','closewindow','movewindow','movewindowbehind','orderfront','setbackground'};
 
 % see if the first argument is a string in which case it is either a window command
@@ -89,9 +91,9 @@ if isstr(varargin{1})
   % filename or window command
   windowCommand = find(strcmp(lower(varargin{1}),validWindowCommands));
   if length(windowCommand) == 1
-    % set the number for the window command such that they continue after valid commands
-    % this is important to match the numbering mglPrivateMovie
-    windowCommand = windowCommand + length(validCommands) - 1;
+    % set the number for the window command such that they start at 100 so as
+    % no conflict with the movie commands (this is important to match the numbering mglPrivateMovie)
+    windowCommand = windowCommand + 100;
     %% window command argument, so see if we need arguments
     if any(strcmp(lower(varargin{1}),{'movewindow'}))
       arg = getPositionFromArg(varargin{2});
@@ -185,12 +187,19 @@ if isstruct(varargin{1})
   end
   % now check to see if object is registered in global
   movieStructs = mglGetParam('movieStructs');
+  isValidMovie = 1;
   if (length(movieStructs) < m.id) || isempty(movieStructs{m.id}) || (movieStructs{m.id}.moviePointer ~= m.moviePointer)
-    disp(sprintf('(mglMovie) Movie struct is no longer valid (either it has been closed or it was made for a different display)'));
-    % FIX, FIX
-    %    return
+    isValidMovie = 0;
   end
-    
+  % if asked just to return is valid, stop here and report
+  if (command == 17)
+    movieStruct = isValidMovie;
+    return
+  % otherwise, if not valid, we need to stop, report error and return
+  elseif ~isValidMovie
+    disp(sprintf('(mglMovie) Movie struct is no longer valid (either it has been closed or it was made for a different display)'));
+    return
+  end
   % run the command
   if any(command == [11 13 16 19 22])
     if nargin < 3
