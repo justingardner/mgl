@@ -24,7 +24,10 @@ end
 % set the screen background color
 if (myscreen.background ~= 0)
   mglClearScreen(myscreen.background);
+else
+  mglClearScreen;
 end
+
 % display text if called for
 if (nargin > 1) && isstr(dispText) && ~isempty(dispText)
   mglTextDraw(dispText,[0 0]);
