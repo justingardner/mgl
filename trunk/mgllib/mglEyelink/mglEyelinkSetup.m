@@ -24,15 +24,13 @@ function mglEyelinkSetup(displayNumber, targetParams)
 
 % TODO: add MGL screen/context handling
 
-global MGL;
-
 if nargin > 2
 	error(help('mglEyelinkSetup'));
 end
 
 % Set the default display number if it isn't specified.
 if ~exist('displayNumber', 'var') || isempty(displayNumber)
-	displayNumber = MGL.displayNumber;
+  displayNumber = mglGetParam('displayNumber');
 end
 
 % Set the default target parameters if not specified.
@@ -49,8 +47,8 @@ if displayNumber ~= -1
 end
 
 % Make sure an MGL window is open.
-if MGL.displayNumber == -1
-	error('An MGL window must be opened prior to running mglEyelinkSteup.');
+if mglGetParam('displayNumber') == -1
+  error('(mglEyelinkSetup) An MGL window must be opened prior to running mglEyelinkSteup.');
 end
 
 % Make sure the targetParams struct is setup properly.
@@ -62,21 +60,21 @@ mglPrivateEyelinkSetup(displayNumber, targetParams);
 
 function targetParams = validateTargetParams(targetParams)
 if ~isstruct(targetParams)
-	error('"targetParams" must be a struct.');
+	error('(mglEyelinkSetup) "targetParams" must be a struct.');
 end
 
 % Make sure that the struct has all the appropriate fields.  If it's
 % missing a field, we'll stick in a default.
 if isfield(targetParams, 'outerRGB')
 	if ~isequal(size(targetParams.outerRGB), [1 3])
-		error('"outerRGB" must be a 1x3.');
+		error('(mglEyelinkSetup) "outerRGB" must be a 1x3.');
 	end
 else
 	targetParams.outerRGB = [1 0 0];
 end
 if isfield(targetParams, 'innerRGB')
 	if ~isequal(size(targetParams.innerRGB), [1 3])
-		error('"innerRGB" must be a 1x3.');
+		error('(mglEyelinkSetup) "innerRGB" must be a 1x3.');
 	end
 else
 	targetParams.innerRGB = ones(1,3) * 0.8;
