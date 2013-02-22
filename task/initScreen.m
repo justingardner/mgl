@@ -31,6 +31,9 @@ if ~isfield(myscreen,'computer')
   myscreen.computer = mglGetHostName;
 end
 
+% get the computer short name - which is like terranova if the full name is terranova.bnf.brain.riken.edu
+myscreen.computerShortname = strtok(myscreen.computer,'.');
+
 % default monitor gamma (used when there is no calibration file)
 defaultMonitorGamma = 1.8;
 
@@ -104,7 +107,7 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 foundComputer = 0;
 for pnum = 1:length(screenParams)
-  if ~isempty(strfind(myscreen.computer,screenParams{pnum}.computerName))
+  if ~isempty(findstr(myscreen.computerShortname,screenParams{pnum}.computerName))
     % if no displayName is asked for or no displayname is set in the screenParams
     % then only accept the computer if we haven't already found it
     if (foundComputer == 0) && (isempty(screenParams{pnum}.displayName) || ~isfield(myscreen,'displayName'))
@@ -124,7 +127,7 @@ end
 % not a match
 if ~foundComputer
   for pnum = 1:length(screenParams)
-    if ~isempty(strfind(myscreen.computer,screenParams{pnum}.computerName))
+    if ~isempty(findstr(myscreen.computerShortname,screenParams{pnum}.computerName))
       % choose a matching computer name and if possible one with an empty displayName
       if ~foundComputer || isempty(screenParams{pnum}.displayName) 
 	foundComputer = pnum;
