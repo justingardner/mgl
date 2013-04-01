@@ -77,13 +77,13 @@ int nidaqStartTask(int, int, TaskHandle *, TaskHandle *);
 void endDigIO(TaskHandle, TaskHandle, NSMutableArray *,NSMutableArray *,NSAutoreleasePool *);
 void nidaqStopTask(TaskHandle, TaskHandle);
 void logDigIO(TaskHandle, NSMutableArray *);
-void digin(void); 
+void digin(NSMutableArray *); 
 void digout(void);
 void diglist(void);
 void digquit(void);
-int openSocket(char *socketName);
+int openSocket(char *socketName, int *, int *);
 void processEvent(TaskHandle,NSMutableArray *);
-void readSocketCommand(int);
+void readSocketCommand(int,NSMutableArray *);
 void siginthandler(int);
 
 
@@ -94,7 +94,7 @@ static uInt8 nidaqInputStatePrevious[1] = {0};
 
 // These are declared as global just so that we can exit gracefully
 // if the user hits ctrl-c
-int socketDescriptor;
+int connectionDescriptor = 0,socketDescriptor = 0;
 NSAutoreleasePool *digIOPool = NULL;
 NSMutableArray *diginEventQueue = NULL, *digoutEventQueue = NULL;
 TaskHandle nidaqInputTaskHandle = 0,nidaqOutputTaskHandle = 0;
@@ -111,13 +111,13 @@ int main(int argc, char *argv[])
   if (initDigIO(1,2,&nidaqInputTaskHandle,&nidaqOutputTaskHandle,&diginEventQueue,&digoutEventQueue,&digIOPool) == 0) return;
 
   // open the communication socket, checking for error
-  socketDescriptor = openSocket(".mglDigIO");
-  if (socketDescriptor == 0) return;
+  if (openSocket(".mglDigIO",&connectionDescriptor,&socketDescriptor) == 0)
+    return;
   
   double startTimeInSeconds = getCurrentTimeInSeconds();
   while ((getCurrentTimeInSeconds()-startTimeInSeconds) < 60.0) {
     // read the socket for new commands
-    //    readSocketCommand(socketDescriptor);
+    readSocketCommand(connectionDescriptor,diginEventQueue);
     // log any dig IO event there is
     logDigIO(nidaqInputTaskHandle,diginEventQueue);
     // process events
@@ -197,38 +197,34 @@ void logDigIO(TaskHandle nidaqInputTaskHandle, NSMutableArray *diginEventQueue)
 /////////////////////////////
 //    readSocketCommand    //
 /////////////////////////////
-void readSocketCommand(int socketDescriptor)
+void readSocketCommand(int connectionDescriptor, NSMutableArray *diginEventQueue)
 {
-  int connectionDescriptor,readCount;
+  int readCount;
   char buf[BUFLEN], *commandName;
 
-  // check socket for any pending commands
-  if ( (connectionDescriptor = accept(socketDescriptor, NULL, NULL)) == -1) {
-     perror("(mglMovieStandAlone) Error accepting a connection on socket. This prevents communication between matlab and mglMovieStandAlone");
-     // FIX FIX FIX return error
-     return;
+  // clear command buffer
+  memset(buf,0,BUFLEN);
+
+  // read command
+  if ((readCount=read(connectionDescriptor,buf,BUFLEN)) > 0) {
+    // pull out command
+    commandName = strtok(buf," \n\0");
+
+    //++++++++++++++++++++++++++++++++
+    // Open
+    //++++++++++++++++++++++++++++++++
+    if (strcmp(commandName,"open")==0) {
+      printf("(mglStandaloneDigIO) Got open command\n");
     }
-
-    // clear command buffer
-    memset(buf,0,BUFLEN);
-
-    // FIX FIX FIX get whether there is something pending on queue
-
-    // read command
-    if ((readCount=read(connectionDescriptor,buf,BUFLEN)) > 0) {
-      // pull out command
-      commandName = strtok(buf," \n\0");
-
-      //++++++++++++++++++++++++++++++++
-      // Open
-      //++++++++++++++++++++++++++++++++
-      if (strcmp(commandName,"open")==0) {
-	printf("(mglStandaloneDigIO) Got open command\n");
-      }
-      else
-	printf("(mglStandaloneDigIO) Unknown command %s\n",commandName);
-      
+    //++++++++++++++++++++++++++++++++
+    // Open
+    //++++++++++++++++++++++++++++++++
+    else if (strcmp(commandName,"digin")==0) {
+      digin(diginEventQueue);
     }
+    else
+      printf("(mglStandaloneDigIO) Unknown command %s\n",commandName);
+  }
 }
 
 //////////////////////
@@ -476,47 +472,25 @@ void endDigIO(TaskHandle nidaqInputTaskHandle,TaskHandle nidaqOutputTaskHandle,N
 ////////////////
 //    digin   // 
 ////////////////
-void digin(void) 
+void digin(NSMutableArray *diginEvengtQueue) 
 {
-#if 0
-  // lock the mutex to avoid concurrent access to the global variables
-  pthread_mutex_lock(&digioMutex);
   // see how many events we have
-  unsigned count = [gDiginEventQueue count];
+  unsigned count = [diginEventQueue count];
   // if we have more than one,
   if (count > 0) {
-    int i = 0;
-    // return event as a matlab structure
-    const char *fieldNames[] =  {"type","line","when"};
-    int outDims[2] = {1, 1};
-    plhs[0] = mxCreateStructArray(1,outDims,3,fieldNames);
-    
-    mxSetField(plhs[0],0,"type",mxCreateDoubleMatrix(1,count,mxREAL));
-    double *typeOut = (double*)mxGetPr(mxGetField(plhs[0],0,"type"));
-    mxSetField(plhs[0],0,"line",mxCreateDoubleMatrix(1,count,mxREAL));
-    double *lineOut = (double*)mxGetPr(mxGetField(plhs[0],0,"line"));
-    mxSetField(plhs[0],0,"when",mxCreateDoubleMatrix(1,count,mxREAL));
-    double *whenOut = (double*)mxGetPr(mxGetField(plhs[0],0,"when"));
     while (count--) {
       digQueueEvent *qEvent;
       // get the last event
-      qEvent = [gDiginEventQueue objectAtIndex:0];
+      qEvent = [diginEventQueue objectAtIndex:0];
       // and get the value and time
-      typeOut[i] = [qEvent eventType];
-      lineOut[i] = [qEvent val];
-      whenOut[i++] = [qEvent time];
+      printf("(mglStandaloneDigIO:digin) Event type: %i line: %i time: %f\n",(int)[qEvent eventType],(int)[qEvent val],(float)[qEvent time]);
       // remove it from the queue
-      [gDiginEventQueue removeObjectAtIndex:0];
+      [diginEventQueue removeObjectAtIndex:0];
     }
-    // release the mutex
-    pthread_mutex_unlock(&digioMutex);
   }
   else {
-    // no event found, unlock mutex and return empty
-    pthread_mutex_unlock(&digioMutex);
-    plhs[0] = mxCreateDoubleMatrix(0,0,mxREAL);
+    // no events found
   }
-#endif
 } 
 
 /////////////////
@@ -608,13 +582,12 @@ void digquit(void)
 //////////////////////
 //    openSocket    //
 //////////////////////
-int openSocket(char *socketName)
+int openSocket(char *socketName, int *connectionDescriptor, int *socketDescriptor)
 {
   struct sockaddr_un socketAddress;
-  int socketDescriptor;
 
   // create socket and check for error
-  if ((socketDescriptor = socket(AF_UNIX, SOCK_STREAM, 0)) == -1) {
+  if ((*socketDescriptor = socket(AF_UNIX, SOCK_STREAM, 0)) == -1) {
     perror("(mglStandaloneDigIO) Could not create socket to communicate between matlab and mglStandaloneDigIO");
     return 0;
   }
@@ -629,24 +602,32 @@ int openSocket(char *socketName)
 
   // bind the socket to the address, this could fail if you don't have
   // write permission to the directory where the socket is being made
-  if (bind(socketDescriptor, (struct sockaddr*)&socketAddress, sizeof(socketAddress)) == -1) {
+  if (bind(*socketDescriptor, (struct sockaddr*)&socketAddress, sizeof(socketAddress)) == -1) {
     printf("(mglStandaloneDigIO) Could not bind socket to name %s. This prevents communication between matlab and mglStandaloneDigIO. This might have happened because you do not have permission to write the file %s",socketName,socketName);
     perror(NULL);
-    close(socketDescriptor);
+    close(*socketDescriptor);
     return 0;
   }
 
   // listen to the socket (accept up to 500 connects)
-  if (listen(socketDescriptor, 500) == -1) {
+  if (listen(*socketDescriptor, 500) == -1) {
     printf("(mglStandaloneDigIO) Could not listen to socket %s, which is used to communicate between matlab and mglStandaloneDigIO.",socketName);
     perror(NULL);
-    close(socketDescriptor);
+    close(*socketDescriptor);
     return 0;
   }
 
   printf("(mglStandaloneDigIO) Opened socket %s\n",socketName);
 
-  return socketDescriptor;
+  // check for a connection
+  printf("(mglStandaloneDigIO) Waiting for connection on %s\n",socketName);
+  if ( (*connectionDescriptor = accept(*socketDescriptor, NULL, NULL)) == -1) {
+     perror("(mglMovieStandAlone) Error accepting a connection on socket. This prevents communication between matlab and mglMovieStandAlone");
+     return 0;
+    }
+  printf("(mglStandaloneDigIO) Connection on %s accepted\n",socketName);
+
+  return 1;
 }
 
 #else// __APPLE__
