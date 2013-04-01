@@ -30,6 +30,7 @@
 #include <sys/un.h>
 #import <Foundation/Foundation.h>
 #include <signal.h>
+#include <errno.h>
 
 //-----------------------------------------------------------------------------------///
 // **************************** mac cocoa specific code  **************************** //
@@ -83,7 +84,7 @@ void diglist(void);
 void digquit(void);
 int openSocket(char *socketName, int *, int *);
 void processEvent(TaskHandle,NSMutableArray *);
-void readSocketCommand(int,NSMutableArray *);
+void readSocketCommand(int *, int, NSMutableArray *);
 void siginthandler(int);
 
 
@@ -108,7 +109,7 @@ int main(int argc, char *argv[])
   signal(SIGINT, siginthandler);
 
   // init digIO
-  if (initDigIO(1,2,&nidaqInputTaskHandle,&nidaqOutputTaskHandle,&diginEventQueue,&digoutEventQueue,&digIOPool) == 0) return;
+  //  if (initDigIO(1,2,&nidaqInputTaskHandle,&nidaqOutputTaskHandle,&diginEventQueue,&digoutEventQueue,&digIOPool) == 0) return;
 
   // open the communication socket, checking for error
   if (openSocket(".mglDigIO",&connectionDescriptor,&socketDescriptor) == 0)
@@ -117,7 +118,7 @@ int main(int argc, char *argv[])
   double startTimeInSeconds = getCurrentTimeInSeconds();
   while ((getCurrentTimeInSeconds()-startTimeInSeconds) < 60.0) {
     // read the socket for new commands
-    readSocketCommand(connectionDescriptor,diginEventQueue);
+    readSocketCommand(&connectionDescriptor,socketDescriptor,diginEventQueue);
     // log any dig IO event there is
     logDigIO(nidaqInputTaskHandle,diginEventQueue);
     // process events
@@ -197,16 +198,25 @@ void logDigIO(TaskHandle nidaqInputTaskHandle, NSMutableArray *diginEventQueue)
 /////////////////////////////
 //    readSocketCommand    //
 /////////////////////////////
-void readSocketCommand(int connectionDescriptor, NSMutableArray *diginEventQueue)
+void readSocketCommand(int *connectionDescriptor, int socketDescriptor, NSMutableArray *diginEventQueue)
 {
   int readCount;
-  char buf[BUFLEN], *commandName;
+  static char buf[BUFLEN], *commandName;
+
+  // check for closed connection, if so, try to reopen
+  if (*connectionDescriptor == -1) {
+    printf("(mglStandaloneDigIO) Waiting for a new connection\n");
+    if ((*connectionDescriptor = accept(socketDescriptor, NULL, NULL)) == -1)
+      return;
+    else
+      printf("(mglStandaloneDigIO) New connection made: %i\n",*connectionDescriptor);
+  }
 
   // clear command buffer
   memset(buf,0,BUFLEN);
 
   // read command
-  if ((readCount=read(connectionDescriptor,buf,BUFLEN)) > 0) {
+  if ((readCount=recv(*connectionDescriptor,buf,BUFLEN,0)) > 0) {
     // pull out command
     commandName = strtok(buf," \n\0");
 
@@ -224,6 +234,13 @@ void readSocketCommand(int connectionDescriptor, NSMutableArray *diginEventQueue
     }
     else
       printf("(mglStandaloneDigIO) Unknown command %s\n",commandName);
+  }
+  else {
+    // error on read, assume that connection was closed.
+    if (errno != EAGAIN) {
+      close(*connectionDescriptor);
+      *connectionDescriptor = -1;
+    }
   }
 }
 
@@ -489,7 +506,7 @@ void digin(NSMutableArray *diginEvengtQueue)
     }
   }
   else {
-    // no events found
+    printf("(mglStandaloneDigIO:digin) No events pending\n");
   }
 } 
 
@@ -616,7 +633,6 @@ int openSocket(char *socketName, int *connectionDescriptor, int *socketDescripto
     close(*socketDescriptor);
     return 0;
   }
-
   printf("(mglStandaloneDigIO) Opened socket %s\n",socketName);
 
   // check for a connection
@@ -626,6 +642,14 @@ int openSocket(char *socketName, int *connectionDescriptor, int *socketDescripto
      return 0;
     }
   printf("(mglStandaloneDigIO) Connection on %s accepted\n",socketName);
+
+#if 0
+  // make socket non-blocking
+  long on = 1L;
+  if (fcntl(*socketDescriptor, F_SETFL, O_NONBLOCK) < 0) {
+    printf("(mglStandaloneDigIO) Could not set socket to non-blocking. This will not record io events until a connection is made.");
+  }
+#endif
 
   return 1;
 }
