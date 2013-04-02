@@ -32,6 +32,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     *outptr = 0;
   }
 
+  // lock this function
+  mexCallMATLAB(0,NULL,0,NULL,"mlock");
+
   if (nrhs<1 || nrhs>2) /* What arguments should this take? */
     {
       usageError("mglPrivateEyelinkOpen");
