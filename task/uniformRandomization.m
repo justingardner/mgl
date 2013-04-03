@@ -14,7 +14,16 @@ if nargin == 1
   parameter = initRandomization(parameter);
   % set the block length (that is how many trials to compute out for)
   if ~isfield(parameter,'blocklen_')
-    parameter.blocklen_ = 250;
+    % get the length of the parameter with the largest number of unique values
+    maxParameterSize = 0;
+    if isfield(parameter,'size_') && ~isempty(parameter.size_)
+      maxParameterSize = max(parameter.size_(:));
+    end
+    % make the block default to 250 (just an arbitraty number, meant
+    % to be large) If there are more parameter values than 250, then
+    % make it at least as long as the maximum parameter size so that
+    % we sample all possible values of the parameter
+    parameter.blocklen_ = max(250,maxParameterSize);
   end
   retval = parameter;
   return
