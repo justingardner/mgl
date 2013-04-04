@@ -78,7 +78,7 @@ int nidaqStartTask(int, int, TaskHandle *, TaskHandle *);
 void endDigIO(TaskHandle, TaskHandle, NSMutableArray *,NSMutableArray *,NSAutoreleasePool *);
 void nidaqStopTask(TaskHandle, TaskHandle);
 void logDigIO(TaskHandle, NSMutableArray *);
-void digin(NSMutableArray *); 
+void digin(NSMutableArray *,int); 
 void digout(void);
 void diglist(void);
 void digquit(void);
@@ -86,7 +86,10 @@ int openSocket(char *socketName, int *, int *);
 void processEvent(TaskHandle,NSMutableArray *);
 void readSocketCommand(int *, int, NSMutableArray *);
 void siginthandler(int);
-
+void senduint8(int, uint8, int);
+void senduint32(int, uint32, int);
+void sendfloat32(int, float32, int);
+void sendflush(int, int);
 
 ////////////////
 //   globals  //
@@ -109,7 +112,7 @@ int main(int argc, char *argv[])
   signal(SIGINT, siginthandler);
 
   // init digIO
-  //  if (initDigIO(1,2,&nidaqInputTaskHandle,&nidaqOutputTaskHandle,&diginEventQueue,&digoutEventQueue,&digIOPool) == 0) return;
+  if (initDigIO(1,2,&nidaqInputTaskHandle,&nidaqOutputTaskHandle,&diginEventQueue,&digoutEventQueue,&digIOPool) == 0) return;
 
   // open the communication socket, checking for error
   if (openSocket(".mglDigIO",&connectionDescriptor,&socketDescriptor) == 0)
@@ -176,13 +179,11 @@ void logDigIO(TaskHandle nidaqInputTaskHandle, NSMutableArray *diginEventQueue)
 	if (((nidaqInputStatePrevious[0]>>bitnum)&0x1) != ((nidaqInputState[0]>>bitnum)&0x1)) {
 	  if ((nidaqInputState[0]>>bitnum)&0x1) {
 	    // add a digup event
-	    printf("Digup\n");
 	    digQueueEvent *qEvent = [[digQueueEvent alloc] initWithTypeAndValue:DIGUP_EVENT :bitnum];
 	    [diginEventQueue insertObject:qEvent atIndex:0];
 	    [qEvent release];
 	  }
 	  else {
-	    printf("Digdown\n");
 	    // add a digdown event
 	    digQueueEvent *qEvent = [[digQueueEvent alloc] initWithTypeAndValue:DIGDOWN_EVENT :bitnum];
 	    [diginEventQueue insertObject:qEvent atIndex:0];
@@ -202,14 +203,23 @@ void readSocketCommand(int *connectionDescriptor, int socketDescriptor, NSMutabl
 {
   int readCount;
   static char buf[BUFLEN], *commandName;
+  static int displayWaitingForConnection = 1;
 
   // check for closed connection, if so, try to reopen
   if (*connectionDescriptor == -1) {
-    printf("(mglStandaloneDigIO) Waiting for a new connection\n");
-    if ((*connectionDescriptor = accept(socketDescriptor, NULL, NULL)) == -1)
+    // display that we are waiting for connection (but only once)
+    if (displayWaitingForConnection) {
+      printf("(mglStandaloneDigIO) Waiting for a new connection\n");
+      displayWaitingForConnection = 0;
+    }
+    // try to make a connection
+    if ((*connectionDescriptor = accept(socketDescriptor, NULL, NULL)) == -1) {
       return;
-    else
+    }
+    else {
       printf("(mglStandaloneDigIO) New connection made: %i\n",*connectionDescriptor);
+      displayWaitingForConnection = 1;
+    }
   }
 
   // clear command buffer
@@ -227,10 +237,17 @@ void readSocketCommand(int *connectionDescriptor, int socketDescriptor, NSMutabl
       printf("(mglStandaloneDigIO) Got open command\n");
     }
     //++++++++++++++++++++++++++++++++
-    // Open
+    // digin
     //++++++++++++++++++++++++++++++++
     else if (strcmp(commandName,"digin")==0) {
-      digin(diginEventQueue);
+      digin(diginEventQueue,*connectionDescriptor);
+    }
+    //++++++++++++++++++++++++++++++++
+    // close
+    //++++++++++++++++++++++++++++++++
+    else if (strcmp(commandName,"close")==0) {
+      close(*connectionDescriptor);
+      *connectionDescriptor = -1;
     }
     else
       printf("(mglStandaloneDigIO) Unknown command %s\n",commandName);
@@ -489,26 +506,95 @@ void endDigIO(TaskHandle nidaqInputTaskHandle,TaskHandle nidaqOutputTaskHandle,N
 ////////////////
 //    digin   // 
 ////////////////
-void digin(NSMutableArray *diginEvengtQueue) 
+void digin(NSMutableArray *diginEvengtQueue,int connectionDescriptor) 
 {
   // see how many events we have
-  unsigned count = [diginEventQueue count];
-  // if we have more than one,
+  unsigned int count = [diginEventQueue count];
+  // send how many events to socket
+  senduint32(connectionDescriptor,count,1);
+  // if we have more than one, send the info about the events
+  // across the socket
   if (count > 0) {
     while (count--) {
       digQueueEvent *qEvent;
       // get the last event
-      qEvent = [diginEventQueue objectAtIndex:0];
-      // and get the value and time
-      printf("(mglStandaloneDigIO:digin) Event type: %i line: %i time: %f\n",(int)[qEvent eventType],(int)[qEvent val],(float)[qEvent time]);
+      qEvent = [diginEventQueue objectAtIndex:count];
+      // send its eventType (up or down), line number and event time
+      senduint8(connectionDescriptor,(uint8)[qEvent eventType],0);
+      senduint8(connectionDescriptor,(uint8)[qEvent val],0);
+      sendfloat32(connectionDescriptor,(float32)[qEvent time],0);
+      // flush the output buffer, but only if it is full
+      sendflush(connectionDescriptor,0);
+      // printm message
+      printf("(mglStandaloneDigIO:digin) %i: Event type: %i line: %i time: %f\n",count+1,(int)[qEvent eventType],(int)[qEvent val],(float)[qEvent time]);
       // remove it from the queue
-      [diginEventQueue removeObjectAtIndex:0];
+      [diginEventQueue removeObjectAtIndex:count];
     }
+    // flush the output buffer
+    sendflush(connectionDescriptor,1);
   }
   else {
     printf("(mglStandaloneDigIO:digin) No events pending\n");
   }
 } 
+
+////////////////////////////////
+//    send buffer variables   //
+////////////////////////////////
+#define SENDBUFSIZE (8192)
+#define SENDBUFTHRESHOLD (SENDBUFSIZE-16)
+unsigned char sendBuffer[SENDBUFSIZE];
+unsigned int sendBufferLoc = 0;
+
+////////////////////
+//    senduint8   // 
+////////////////////
+void senduint8(int connectionDescriptor, uint8 value, int flush)
+{
+  // load the send buffer
+  sendBuffer[sendBufferLoc++] = (unsigned char)value;
+  // flush it if called for
+  if (flush) sendflush(connectionDescriptor,1);
+}
+
+/////////////////////
+//    senduint32   // 
+/////////////////////
+void senduint32(int connectionDescriptor, uint32 value, int flush)
+{
+  // load the send buffer
+  *(uint32*)(sendBuffer+sendBufferLoc) = value;
+  sendBufferLoc += sizeof(uint32);
+  // flush it if called for
+  if (flush) sendflush(connectionDescriptor,1);
+}
+
+//////////////////////
+//    sendfloat32   //
+//////////////////////
+void sendfloat32(int connectionDescriptor, float32 value, int flush)
+{
+  // load the send buffer
+  *(float32*)(sendBuffer+sendBufferLoc) = value;
+  sendBufferLoc += sizeof(float32);
+  // flush it if called for
+  if (flush) sendflush(connectionDescriptor,1);
+}
+
+////////////////////
+//    sendflush   //
+////////////////////
+void sendflush(int connectionDescriptor,int force)
+{
+  int sentSize;
+  if (sendBufferLoc && (force || (sendBufferLoc > SENDBUFTHRESHOLD))) {
+    // send the buffer
+    if ((sentSize = write(connectionDescriptor,sendBuffer,sendBufferLoc)) < sendBufferLoc)
+      printf("(mglStgandaloneDigIO) ERROR Only sent %i of %i bytes across socket to matlab - data might be corrupted\n",sentSize,sendBufferLoc);
+    // clear send buffer
+    sendBufferLoc = 0;
+  }
+}
 
 /////////////////
 //    digout   // 
@@ -643,13 +729,11 @@ int openSocket(char *socketName, int *connectionDescriptor, int *socketDescripto
     }
   printf("(mglStandaloneDigIO) Connection on %s accepted\n",socketName);
 
-#if 0
   // make socket non-blocking
   long on = 1L;
   if (fcntl(*socketDescriptor, F_SETFL, O_NONBLOCK) < 0) {
     printf("(mglStandaloneDigIO) Could not set socket to non-blocking. This will not record io events until a connection is made.");
   }
-#endif
 
   return 1;
 }
