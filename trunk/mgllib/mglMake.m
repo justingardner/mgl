@@ -185,14 +185,14 @@ if ~digio
     end
   end
 else 
-  makeDigIO(rebuild);
+  makeDigIO(rebuild,optf);
 end
 cd(lastPath);
 
 %%%%%%%%%%%%%%%%%%%
 %%   makeDigIO   %%
 %%%%%%%%%%%%%%%%%%%
-function makeDigIO(rebuild)
+function makeDigIO(rebuild,optf)
 
 % check for compiled digIO stuff
 if ~isdir('/Library/Frameworks/nidaqmxbase.framework')
@@ -222,26 +222,50 @@ end
 % get the files in the utils dir
 mgldiodir = dir('*.c');
 
+% these functions get compiled by a makefile (since they run outside matlab)
+excludeList = {'mglStandaloneDigIO.c','mglDigIOSendCommand.c'};
+
+% for 64 bit, exclude some other files, and compile standalone commands
+if strcmp(mexext,'mexmaci64')
+  excludeList = {excludeList{:} 'readDigPort.c','writeDigPort.c'};
+  disp(sprintf('(mglMake) Making standalone functions for digio'));
+  system('make');
+end
+
+% check for mexopts file
+[dummy mexoptsFilename] = strtok(optf,' ');
+mexoptsFilename = strtrim(mexoptsFilename);
+if ~isfile(mexoptsFilename)
+  disp(sprintf('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!'));
+  disp(sprintf('(mglMake) Cannot find mexopts file for your setup: %s in the digin directory: %s',mexoptsFilename,pwd));
+  disp(sprintf('          Consider converting one from mgl/mgllib and moving into digin'));
+  disp(sprintf('          Ignoring mexopts flag for now - this may cause the comilation to fail'));
+  disp(sprintf('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!'));
+  optf = '';
+end
+  
 for i = 1:length(mgldiodir)
-  if (~strcmp('.#',mgldiodir(i).name(1:2)))
-    % see if it is already compiled
-    mexname = [stripext(mgldiodir(i).name) '.' mexext];
-    mexfile = dir(mexname);
-    % mex the file if either there is no mexfile or
-    % the date of the mexfile is older than the date of the source file
-    if (rebuild || length(mexfile)<1) || (datenum(mgldiodir(i).date) > datenum(mexfile(1).date)) || (datenum(hfile(1).date) > datenum(mexfile(1).date))
-      command = sprintf('mex %s',mgldiodir(i).name);
-                 % display the mex command
-                 disp(command);
-                 % now run it, catching an errors
-                 try
-                   eval(command);
-                 catch
-                   disp(['Error compiling ' mgldiodir(i).name]);
-                 end
-    else
-      disp(sprintf('%s is up to date',mgldiodir(i).name));
-    end    
+  if ~any(strcmp(mgldiodir(i).name,excludeList))
+    if (~strcmp('.#',mgldiodir(i).name(1:2)))
+      % see if it is already compiled
+      mexname = [stripext(mgldiodir(i).name) '.' mexext];
+      mexfile = dir(mexname);
+      % mex the file if either there is no mexfile or
+      % the date of the mexfile is older than the date of the source file
+      if (rebuild || length(mexfile)<1) || (datenum(mgldiodir(i).date) > datenum(mexfile(1).date)) || (datenum(hfile(1).date) > datenum(mexfile(1).date))
+	command = sprintf('mex %s %s',optf,mgldiodir(i).name);
+        % display the mex command
+	disp(command);
+	% now run it, catching an errors
+	try
+	  eval(command);
+	catch
+	  disp(['Error compiling ' mgldiodir(i).name]);
+	end
+      else
+	disp(sprintf('%s is up to date',mgldiodir(i).name));
+      end    
+    end
   end
 end
 
