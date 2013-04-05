@@ -21,7 +21,6 @@
 /////////////////////////
 #include <stdio.h>
 #include <pthread.h>
-#include "/Applications/National Instruments/NI-DAQmx Base/includes/NIDAQmxBase.h"
 #import <Foundation/Foundation.h>
 #include <mex.h>
 
@@ -29,6 +28,17 @@
 // **************************** mac cocoa specific code  **************************** //
 //-----------------------------------------------------------------------------------///
 #ifdef __APPLE__
+
+// This code works differently for 32 and 64 bit.
+// This is because NI-DAQmx Base is only available as a 32-bit library
+// To run under 64-bit, we call a separate program mglDigIOStandalone
+// and communicate via a socket
+#ifdef __i386__
+#include "/Applications/National Instruments/NI-DAQmx Base/includes/NIDAQmxBase.h"
+// NIDAQ error checking macro
+#define DAQmxErrChk(functionCall) { if( DAQmxFailed(error=(functionCall)) ) { goto Error; } }
+#define uint32 uInt32
+#endif
 
 ////////////////////////
 //   define section   //
@@ -39,8 +49,6 @@
 #define LIST 4
 #define QUIT 0
 #define SHUTDOWN -1
-// NIDAQ error checking macro
-#define DAQmxErrChk(functionCall) { if( DAQmxFailed(error=(functionCall)) ) { goto Error; } }
 // event types
 #define DIGDOWN_EVENT 0
 #define DIGUP_EVENT 1
@@ -54,13 +62,13 @@
 @interface digQueueEvent : NSObject {
   int type;
   double time;
-  uInt32 val;
+  uint32 val;
 }
-- (id)initWithTypeTimeAndValue:(int)initType :(double)initTime :(uInt32)initVal;
-- (id)initWithTypeAndValue:(int)initType :(uInt32)initVal;
+- (id)initWithTypeTimeAndValue:(int)initType :(double)initTime :(uint32)initVal;
+- (id)initWithTypeAndValue:(int)initType :(uint32)initVal;
 - (id)initWithType:(int)initType;
 - (double)time;
-- (uInt32)val;
+- (uint32)val;
 - (int)eventType;
 - (void)doEvent;
 - (NSComparisonResult)compareByTime:(digQueueEvent *)otherQueueEvent;
@@ -70,17 +78,30 @@
 ///////////////////////////////
 //   function declarations   //
 ///////////////////////////////
+double getCurrentTimeInSeconds();
+
+#ifdef __i386__
 void* nidaqThread(void *data);
 void launchNidaqThread();
-double getCurrentTimeInSeconds();
 // NIDAQ start/stop port reading/writing
 int nidaqStartTask();
 void nidaqStopTask();
+#endif
+
+// These functions will do different things depending on whether
+// we are running in 32 bit mode and using threads to communicate
+// with the digIO card or 64 bit mode and using a separate app with sockets
+void initDigIO(void); 
+mxArray *digin(void);
+mxArray *digout(const mxArray *prhs[]);
+mxArray *list(void);
+void quit(void);
 void mglPrivateDigIOOnExit(void);
- 
+
 ////////////////
 //   globals  //
 ////////////////
+#ifdef __i386__
 static pthread_mutex_t digioMutex;
 static nidaqThreadInstalled = FALSE;
 static NSAutoreleasePool *gDigIOPool;
@@ -90,21 +111,15 @@ static NSMutableArray *gDigoutEventQueue;
 static TaskHandle nidaqInputTaskHandle = 0,nidaqOutputTaskHandle = 0;
 static int nidaqInputPortNum = 1,nidaqOutputPortNum = 2;
 static int stopNidaqThread = 0;
+#endif
 
 //////////////
 //   main   //
 //////////////
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
-  // start auto release pool - I don't _think_ I need this autorelease
-  //pool, since we make a global one when we init. This one was not
-  // getting cleaned up properly and causing a memory fault. So
-  // commenting out.
-  //NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
-
   // get which command this is
   int command = mxGetScalar(prhs[0]);
-
 
   // INIT command -----------------------------------------------------------------
   if (command == INIT) {
@@ -112,183 +127,33 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     plhs[0] = mxCreateDoubleMatrix(1,1,mxREAL);
     *mxGetPr(plhs[0]) = 0;
 
-    // start the thread that will continue to handle reading and
-    // writing the NIDAQ card
-    if (!nidaqThreadInstalled) {
-      // display messsage
-      mexPrintf("(mglPrivateDigIO) Starting DigIO thread\n");
-      // turn off flag to shutdown thread
-      stopNidaqThread = 0;
-      // init pthread_mutex
-      pthread_mutex_init(&digioMutex,NULL);
-      // init the event queue
-      gDigIOPool = [[NSAutoreleasePool alloc] init];
-      gDiginEventQueue = [[NSMutableArray alloc] init];
-      gDigoutEventQueue = [[NSMutableArray alloc] init];
-      // set up the event tap
-      launchNidaqThread();
-      // and remember that we have an event tap thread running
-      nidaqThreadInstalled = TRUE;
-      // tell matlab to call mglPrivateDigIOOnExit when this
-      // function is cleared (e.g. clear all is used) so
-      // that we can close open displays
-      mexAtExit(mglPrivateDigIOOnExit);
-    }
     // get the nidaq ports
-    if (nrhs >=2) nidaqInputPortNum = mxGetScalar(prhs[1]);
-    if (nrhs >=3) nidaqOutputPortNum = mxGetScalar(prhs[2]);
-    // and pass an event to the thread to tell it to initialize
-    // note, that we have to do this in this way, since the NIDAQ
-    // library is *NOT THREAD SAFE* and the only way to insure
-    // proper functioning is to only call NIDAQ functions from 
-    // thread - which is the nidaq thread started above
-    digQueueEvent *qEvent = [[digQueueEvent alloc] initWithType:INIT_EVENT];
-    [gDigoutEventQueue insertObject:qEvent atIndex:0];
-    [qEvent release];
-
+    //    if (nrhs >=2) nidaqInputPortNum = mxGetScalar(prhs[1]);
+    //    if (nrhs >=3) nidaqOutputPortNum = mxGetScalar(prhs[2]);
+    
+    // start either the standalone or the thread
+    initDigIO();
+    
     // started running, return 1
     *mxGetPr(plhs[0]) = 1;
     return;
   }
-  // DIGIN command --------------------------------------------------------------
-  else if (command == DIGIN) {
-    if (nidaqThreadInstalled) {
-      // lock the mutex to avoid concurrent access to the global variables
-      pthread_mutex_lock(&digioMutex);
-      // see how many events we have
-      unsigned count = [gDiginEventQueue count];
-      // if we have more than one,
-      if (count > 0) {
-	int i = 0;
-	// return event as a matlab structure
-	const char *fieldNames[] =  {"type","line","when"};
-	int outDims[2] = {1, 1};
-	plhs[0] = mxCreateStructArray(1,outDims,3,fieldNames);
-      
-	mxSetField(plhs[0],0,"type",mxCreateDoubleMatrix(1,count,mxREAL));
-	double *typeOut = (double*)mxGetPr(mxGetField(plhs[0],0,"type"));
-	mxSetField(plhs[0],0,"line",mxCreateDoubleMatrix(1,count,mxREAL));
-	double *lineOut = (double*)mxGetPr(mxGetField(plhs[0],0,"line"));
-	mxSetField(plhs[0],0,"when",mxCreateDoubleMatrix(1,count,mxREAL));
-	double *whenOut = (double*)mxGetPr(mxGetField(plhs[0],0,"when"));
-	while (count--) {
-	  digQueueEvent *qEvent;
-	  // get the last event
-	  qEvent = [gDiginEventQueue objectAtIndex:0];
-	  // and get the value and time
-	  typeOut[i] = [qEvent eventType];
-	  lineOut[i] = [qEvent val];
-	  whenOut[i++] = [qEvent time];
-	  // remove it from the queue
-	  [gDiginEventQueue removeObjectAtIndex:0];
-	}
-	// release the mutex
-	pthread_mutex_unlock(&digioMutex);
-      }
-      else {
-	// no event found, unlock mutex and return empty
-	pthread_mutex_unlock(&digioMutex);
-	plhs[0] = mxCreateDoubleMatrix(0,0,mxREAL);
-      }
-    } 
-    else {
-      // nidaq not installed just return empty
-      plhs[0] = mxCreateDoubleMatrix(0,0,mxREAL);
-    }
-
-  }
-  // DIGOUT command --------------------------------------------------------------
-  else if (command == DIGOUT) {
-    if (nidaqThreadInstalled) {
-      // get value and time
-      double time = (double)mxGetScalar(prhs[1]);
-      uInt32 val = (uInt32)(double)mxGetScalar(prhs[2]);
-
-      // lock the mutex to avoid concurrent access to the global variables
-      pthread_mutex_lock(&digioMutex);
-
-      // create the event
-      digQueueEvent *qEvent = [[digQueueEvent alloc] initWithTypeTimeAndValue:DIGOUT_EVENT :time :val];
-
-      // add the event to the event queue
-      [gDigoutEventQueue addObject:qEvent];
-      [qEvent release];
-
-      // sort the event queue by time
-      SEL compareByTime = @selector(compareByTime:);
-      [gDigoutEventQueue sortUsingSelector:compareByTime];
-
-      // release mutex
-      pthread_mutex_unlock(&digioMutex);
-      // return 1
-      plhs[0] = mxCreateDoubleMatrix(1,1,mxREAL);
-      *mxGetPr(plhs[0]) = 1;
-    }
-    else {
-      // return 1
-      plhs[0] = mxCreateDoubleMatrix(1,1,mxREAL);
-      *mxGetPr(plhs[0]) = 1;
-    }
-  }
-  // LIST command --------------------------------------------------------------
-  else if (command == LIST) {
-    if (nidaqThreadInstalled) {
-      // lock the mutex to avoid concurrent access to the global variables
-      pthread_mutex_lock(&digioMutex);
-      // display which ports we are using
-      mexPrintf("(mglPrivateDigIO) DigIO thread is running\n");
-      if (nidaqInputTaskHandle != 0) {
-	// see if nidaq card is running
-	mexPrintf("(mglPrivtateDigIO) Input port is: Dev1/port%i. Output port is: Dev1/port%i\n",nidaqInputPortNum,nidaqOutputPortNum);
-	if ([gDigoutEventQueue count] == 0) {
-	  mexPrintf("(mglPrivateDigIO) No digiout events pending.\n");
-	}
-	else {
-	  int i;
-	  for(i = 0; i < [gDigoutEventQueue count]; i++) {
-	    mexPrintf("(mglPrivateDigIO) Set output port to %i is pending in %f seconds.\n",[[gDigoutEventQueue objectAtIndex:i] val],[[gDigoutEventQueue objectAtIndex:i] time] - getCurrentTimeInSeconds());
-	  }
-	}
-	// check input events
-	mexPrintf("(mglPrivateDigIO) %i digin events in queue\n",[gDiginEventQueue count]);
-      }
-      else
-	mexPrintf("(mglPrivateDigIO) NIDAQ card is not initialized.\n");
-      // release mutex
-      pthread_mutex_unlock(&digioMutex);
-      // return 1
-      plhs[0] = mxCreateDoubleMatrix(1,1,mxREAL);
-      *mxGetPr(plhs[0]) = 1;
-      return;
-    }
-    else {
-      mexPrintf("(mglPrivateDigIO) DigIO thread is not running.\n");
-    }
-    // return 0
-    plhs[0] = mxCreateDoubleMatrix(1,1,mxREAL);
-    *mxGetPr(plhs[0]) = 0;
-
-  }
-
-  // QUIT command -----------------------------------------------------------------
+  // digin command
+  else if (command == DIGIN)
+    plhs[0] = digin();
+  // digout command
+  else if (command == DIGOUT)
+    plhs[0] = digout(prhs);
+  // list command 
+  else if (command == LIST)
+    plhs[0] = list();
+  // quit command
   else if (command == QUIT) {
     // return argument set to []
     plhs[0] = mxCreateDoubleMatrix(0,0,mxREAL);
-
-    if (nidaqThreadInstalled) {
-      // lock the mutex to avoid concurrent access to the global variables
-      pthread_mutex_lock(&digioMutex);
-    
-      // add a quit event
-      digQueueEvent *qEvent = [[digQueueEvent alloc] initWithType:QUIT_EVENT];
-      [gDigoutEventQueue insertObject:qEvent atIndex:0];
-      [qEvent release];
-
-      // release mutex
-      pthread_mutex_unlock(&digioMutex);
-    }
+    quit();
   }
-  // SHUTDOWN command -----------------------------------------------------------------
+  // shutdown command
   else if (command == SHUTDOWN) {
     plhs[0] = mxCreateDoubleMatrix(0,0,mxREAL);
     mglPrivateDigIOOnExit();    
@@ -297,6 +162,298 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mexPrintf("(mglPrivateDigIO) Unknown command number %i\n",command);
     plhs[0] = mxCreateDoubleMatrix(0,0,mxREAL);
   }
+}
+
+////////////////////////
+//   getCurrentTime   //
+////////////////////////
+double getCurrentTimeInSeconds()
+{
+  // get current time
+  UnsignedWide currentTime; 
+  Microseconds(&currentTime); 
+
+  // convert microseconds to double
+  double twoPower32 = 4294967296.0; 
+  double doubleValue; 
+  
+  double upperHalf = (double)currentTime.hi; 
+  double lowerHalf = (double)currentTime.lo; 
+  doubleValue = (upperHalf * twoPower32) + lowerHalf; 
+  return(0.000001*doubleValue);
+}
+
+#ifndef __i386__
+/////////////////////////////////////////////////////////////////////
+// Implementation for 64 bit (this runs nidaq from a standalone function
+// and communciates via a socket)
+/////////////////////////////////////////////////////////////////////
+/////////////////////
+//    initDigIO    //
+/////////////////////
+void initDigIO(void) 
+{
+}
+
+/////////////////
+//    digin    //
+/////////////////
+mxArray *digin(void)
+{
+  mxArray *retval;
+  retval = mxCreateDoubleMatrix(0,0,mxREAL);
+  return(retval);
+}
+
+//////////////////
+//    digout    //
+//////////////////
+mxArray *digout(const mxArray *prhs[])
+{
+  mxArray *retval;
+  retval = mxCreateDoubleMatrix(0,0,mxREAL);
+  return(retval);
+}
+
+////////////////
+//    list    //
+////////////////
+mxArray *list(void)
+{
+  mxArray *retval;
+  retval = mxCreateDoubleMatrix(0,0,mxREAL);
+  return(retval);
+}
+
+////////////////
+//    quit    //
+////////////////
+void quit(void)
+{
+}
+///////////////////////////////
+//   mglPrivateDigIOOnExit   //
+///////////////////////////////
+void mglPrivateDigIOOnExit(void)
+{
+}
+#else
+/////////////////////////////////////////////////////////////////////
+// Implementation for 32 bit (this runs nidaq from within a thread)
+/////////////////////////////////////////////////////////////////////
+/////////////////////
+//    initDigIO    //
+/////////////////////
+void initDigIO(void) 
+{
+  // start the thread that will continue to handle reading and
+  // writing the NIDAQ card
+  if (!nidaqThreadInstalled) {
+    // display messsage
+    mexPrintf("(mglPrivateDigIO) Starting DigIO thread\n");
+    // turn off flag to shutdown thread
+    stopNidaqThread = 0;
+    // init pthread_mutex
+    pthread_mutex_init(&digioMutex,NULL);
+    // init the event queue
+    gDigIOPool = [[NSAutoreleasePool alloc] init];
+    gDiginEventQueue = [[NSMutableArray alloc] init];
+    gDigoutEventQueue = [[NSMutableArray alloc] init];
+    // set up the event tap
+    launchNidaqThread();
+    // and remember that we have an event tap thread running
+    nidaqThreadInstalled = TRUE;
+    // tell matlab to call mglPrivateDigIOOnExit when this
+    // function is cleared (e.g. clear all is used) so
+    // that we can close open displays
+    mexAtExit(mglPrivateDigIOOnExit);
+  }
+  // and pass an event to the thread to tell it to initialize
+  // note, that we have to do this in this way, since the NIDAQ
+  // library is *NOT THREAD SAFE* and the only way to insure
+  // proper functioning is to only call NIDAQ functions from 
+  // thread - which is the nidaq thread started above
+  digQueueEvent *qEvent = [[digQueueEvent alloc] initWithType:INIT_EVENT];
+  [gDigoutEventQueue insertObject:qEvent atIndex:0];
+  [qEvent release];
+}
+
+/////////////////
+//    digin    //
+/////////////////
+mxArray *digin(void)
+{
+  mxArray *retval;
+  if (nidaqThreadInstalled) {
+    // lock the mutex to avoid concurrent access to the global variables
+    pthread_mutex_lock(&digioMutex);
+    // see how many events we have
+    unsigned count = [gDiginEventQueue count];
+    // if we have more than one,
+    if (count > 0) {
+      int i = 0;
+      // return event as a matlab structure
+      const char *fieldNames[] =  {"type","line","when"};
+      int outDims[2] = {1, 1};
+      retval = mxCreateStructArray(1,outDims,3,fieldNames);
+      
+      mxSetField(retval,0,"type",mxCreateDoubleMatrix(1,count,mxREAL));
+      double *typeOut = (double*)mxGetPr(mxGetField(retval,0,"type"));
+      mxSetField(retval,0,"line",mxCreateDoubleMatrix(1,count,mxREAL));
+      double *lineOut = (double*)mxGetPr(mxGetField(retval,0,"line"));
+      mxSetField(retval,0,"when",mxCreateDoubleMatrix(1,count,mxREAL));
+      double *whenOut = (double*)mxGetPr(mxGetField(retval,0,"when"));
+      while (count--) {
+	digQueueEvent *qEvent;
+	// get the last event
+	qEvent = [gDiginEventQueue objectAtIndex:0];
+	// and get the value and time
+	typeOut[i] = [qEvent eventType];
+	lineOut[i] = [qEvent val];
+	whenOut[i++] = [qEvent time];
+	// remove it from the queue
+	[gDiginEventQueue removeObjectAtIndex:0];
+      }
+      // release the mutex
+      pthread_mutex_unlock(&digioMutex);
+    }
+    else {
+      // no event found, unlock mutex and return empty
+      pthread_mutex_unlock(&digioMutex);
+      retval = mxCreateDoubleMatrix(0,0,mxREAL);
+    }
+  } 
+  else {
+    // nidaq not installed just return empty
+    retval = mxCreateDoubleMatrix(0,0,mxREAL);
+  }
+  return(retval);
+}
+
+//////////////////
+//    digout    //
+//////////////////
+mxArray *digout(const mxArray *prhs[])
+{
+  mxArray *retval;
+  if (nidaqThreadInstalled) {
+    // get value and time
+    double time = (double)mxGetScalar(prhs[1]);
+    uint32 val = (uint32)(double)mxGetScalar(prhs[2]);
+
+    // lock the mutex to avoid concurrent access to the global variables
+    pthread_mutex_lock(&digioMutex);
+
+    // create the event
+    digQueueEvent *qEvent = [[digQueueEvent alloc] initWithTypeTimeAndValue:DIGOUT_EVENT :time :val];
+
+    // add the event to the event queue
+    [gDigoutEventQueue addObject:qEvent];
+    [qEvent release];
+
+    // sort the event queue by time
+    SEL compareByTime = @selector(compareByTime:);
+    [gDigoutEventQueue sortUsingSelector:compareByTime];
+
+    // release mutex
+    pthread_mutex_unlock(&digioMutex);
+    // return 1
+    retval = mxCreateDoubleMatrix(1,1,mxREAL);
+    *mxGetPr(retval) = 1;
+  }
+  else {
+    // return 0
+    retval = mxCreateDoubleMatrix(1,1,mxREAL);
+    *mxGetPr(retval) = 0;
+  }
+  return(retval);
+}
+
+////////////////
+//    list    //
+////////////////
+mxArray *list(void)
+{
+  mxArray *retval;
+  if (nidaqThreadInstalled) {
+    // lock the mutex to avoid concurrent access to the global variables
+    pthread_mutex_lock(&digioMutex);
+    // display which ports we are using
+    mexPrintf("(mglPrivateDigIO) DigIO thread is running\n");
+    if (nidaqInputTaskHandle != 0) {
+      // see if nidaq card is running
+      mexPrintf("(mglPrivtateDigIO) Input port is: Dev1/port%i. Output port is: Dev1/port%i\n",nidaqInputPortNum,nidaqOutputPortNum);
+      if ([gDigoutEventQueue count] == 0) {
+	mexPrintf("(mglPrivateDigIO) No digiout events pending.\n");
+      }
+      else {
+	int i;
+	for(i = 0; i < [gDigoutEventQueue count]; i++) {
+	  mexPrintf("(mglPrivateDigIO) Set output port to %i is pending in %f seconds.\n",[[gDigoutEventQueue objectAtIndex:i] val],[[gDigoutEventQueue objectAtIndex:i] time] - getCurrentTimeInSeconds());
+	}
+      }
+      // check input events
+      mexPrintf("(mglPrivateDigIO) %i digin events in queue\n",[gDiginEventQueue count]);
+    }
+    else
+      mexPrintf("(mglPrivateDigIO) NIDAQ card is not initialized.\n");
+    // release mutex
+    pthread_mutex_unlock(&digioMutex);
+    // return 1
+    retval = mxCreateDoubleMatrix(1,1,mxREAL);
+    *mxGetPr(retval) = 1;
+    return(retval);
+  }
+  else {
+    mexPrintf("(mglPrivateDigIO) DigIO thread is not running.\n");
+  }
+  // return 0
+  retval = mxCreateDoubleMatrix(1,1,mxREAL);
+  *mxGetPr(retval) = 0;
+  return(retval);
+}
+
+////////////////
+//    quit    //
+////////////////
+void quit(void)
+{
+  if (nidaqThreadInstalled) {
+    // lock the mutex to avoid concurrent access to the global variables
+    pthread_mutex_lock(&digioMutex);
+    
+    // add a quit event
+    digQueueEvent *qEvent = [[digQueueEvent alloc] initWithType:QUIT_EVENT];
+    [gDigoutEventQueue insertObject:qEvent atIndex:0];
+    [qEvent release];
+
+    // release mutex
+    pthread_mutex_unlock(&digioMutex);
+  }
+}
+///////////////////////////////
+//   mglPrivateDigIOOnExit   //
+///////////////////////////////
+void mglPrivateDigIOOnExit(void)
+{
+  if (nidaqThreadInstalled) {
+    // lock mutex
+    pthread_mutex_lock(&digioMutex);
+    // signal to shutdown thread
+    stopNidaqThread = 1;
+    // clear the queues
+    [gDigoutEventQueue removeAllObjects];
+    [gDiginEventQueue removeAllObjects];
+    // release the event queue
+    [gDigoutEventQueue release];
+    [gDiginEventQueue release];
+    [gDigIOPool drain];
+    // set to uninstalled
+    nidaqThreadInstalled = 0;
+    // and unlock mutex
+    pthread_mutex_unlock(&digioMutex);
+  }
+  mexPrintf("(mglPrivateDigIO) Shutting down digIO thread\n");
 }
 
 /////////////////////
@@ -308,7 +465,7 @@ void* nidaqThread(void *data)
 
   // read the port once to get current state
   int32       read;
-  uInt8 nidaqInputStatePrevious[1];
+  uint8 nidaqInputStatePrevious[1];
   nidaqInputStatePrevious[0] = 0;
   while(!stopNidaqThread) {
     // get the current time in seconds
@@ -321,7 +478,7 @@ void* nidaqThread(void *data)
     // the port
     if (nidaqInputTaskHandle != 0) {
       // read current state of digio port
-      uInt8 nidaqInputState[1];
+      uint8 nidaqInputState[1];
       DAQmxBaseReadDigitalU8(nidaqInputTaskHandle,1,0.01,DAQmx_Val_GroupByChannel,nidaqInputState,1,&read,NULL);
       // see if it is different from previous state
       if (nidaqInputState[0] != nidaqInputStatePrevious[0]) {
@@ -435,7 +592,7 @@ void launchNidaqThread()
   //return self
   return self;
 }
-- (id)initWithTypeTimeAndValue:(int)initType :(double)initTime :(uInt32)initVal;
+- (id)initWithTypeTimeAndValue:(int)initType :(double)initTime :(uint32)initVal;
 {
   // init parent
   [super init];
@@ -446,7 +603,7 @@ void launchNidaqThread()
   //return self
   return self;
 }
-- (id)initWithTypeAndValue:(int)initType :(uInt32)initVal; 
+- (id)initWithTypeAndValue:(int)initType :(uint32)initVal; 
 {
   // init parent
   [super init];
@@ -465,7 +622,7 @@ void launchNidaqThread()
 {
   return time;
 }
-- (uInt32)val
+- (uint32)val
 {
   return val;
 }
@@ -497,25 +654,6 @@ void launchNidaqThread()
 }
 @end
 
-////////////////////////
-//   getCurrentTime   //
-////////////////////////
-double getCurrentTimeInSeconds()
-{
-  // get current time
-  UnsignedWide currentTime; 
-  Microseconds(&currentTime); 
-
-  // convert microseconds to double
-  double twoPower32 = 4294967296.0; 
-  double doubleValue; 
-  
-  double upperHalf = (double)currentTime.hi; 
-  double lowerHalf = (double)currentTime.lo; 
-  doubleValue = (upperHalf * twoPower32) + lowerHalf; 
-  return(0.000001*doubleValue);
-}
-
 
 /////////////////////////
 //   nidaqStartTask   //
@@ -528,7 +666,7 @@ int nidaqStartTask()
 
   // write variables
   int32       written;
-  uInt32 val;
+  uint32 val;
 
   // Setup the channel parameter
   char inputChannel[256];
@@ -594,31 +732,7 @@ void nidaqStopTask()
   }
 }
 
-///////////////////////////////
-//   mglPrivateDigIOOnExit   //
-///////////////////////////////
-void mglPrivateDigIOOnExit(void)
-{
-  if (nidaqThreadInstalled) {
-    // lock mutex
-    pthread_mutex_lock(&digioMutex);
-    // signal to shutdown thread
-    stopNidaqThread = 1;
-    // clear the queues
-    [gDigoutEventQueue removeAllObjects];
-    [gDiginEventQueue removeAllObjects];
-    // release the event queue
-    [gDigoutEventQueue release];
-    [gDiginEventQueue release];
-    [gDigIOPool drain];
-    // set to uninstalled
-    nidaqThreadInstalled = 0;
-    // and unlock mutex
-    pthread_mutex_unlock(&digioMutex);
-  }
-  mexPrintf("(mglPrivateDigIO) Shutting down digIO thread\n");
-}
-
+#endif //__i386__
 #else// __APPLE__
 //-----------------------------------------------------------------------------------///
 // ***************************** other-os specific code  **************************** //
