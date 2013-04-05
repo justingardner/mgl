@@ -260,7 +260,7 @@ echo "Error: Did not imbed 'options.sh' code"; exit 1 #imbed options.sh glnxi64 
             LDEXTENSION='.mexmaci64'
             LDFLAGS="-Wl,-twolevel_namespace -undefined error -arch $ARCHS -Wl,-syslibroot,$SDKROOT -mmacosx-version-min=$MACOSX_DEPLOYMENT_TARGET"
 #           LDFLAGS="$LDFLAGS -bundle -Wl,-exported_symbols_list,$TMW_ROOT/extern/lib/$Arch/$MAPFILE  -framework agl -framework Carbon -framework Cocoa -framework CoreServices -framework openGL -pthread "
-            LDFLAGS="$LDFLAGS -bundle -Wl,-exported_symbols_list,$TMW_ROOT/extern/lib/$Arch/$MAPFILE -F$HOME/Library/Frameworks -framework Carbon -framework Cocoa -framework CoreServices -framework openGL -pthread"
+            LDFLAGS="$LDFLAGS -bundle -Wl,-exported_symbols_list,$TMW_ROOT/extern/lib/$Arch/$MAPFILE -framework Carbon -framework Cocoa -framework CoreServices -framework openGL -pthread"
             LDOPTIMFLAGS='-O'
             LDDEBUGFLAGS='-g'
 #
