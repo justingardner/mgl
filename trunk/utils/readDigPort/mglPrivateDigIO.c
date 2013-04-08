@@ -12,7 +12,13 @@
                 an NI USB device (NI USB-6501 24-line Digital I/O). See the
                 MGL wiki for info on how to install the NI driver and use
                 this code.
-			   
+
+    	        To deal with the lack of a 64 bit NI-DAQmx Base (64-bit
+                for NI means that it can compile as a 32 bit function on
+                a 64 bit OS but not that you can compile a function that
+                runs 64 bit), this code compiles a separate version that
+                talks to a standalone function (which runs outside matlab
+		as a 32-bit function) through a UNIX socket.
 =========================================================================
 #endif
 
@@ -28,17 +34,6 @@
 // **************************** mac cocoa specific code  **************************** //
 //-----------------------------------------------------------------------------------///
 #ifdef __APPLE__
-
-// This code works differently for 32 and 64 bit.
-// This is because NI-DAQmx Base is only available as a 32-bit library
-// To run under 64-bit, we call a separate program mglDigIOStandalone
-// and communicate via a socket
-#ifdef __i386__
-#include "/Applications/National Instruments/NI-DAQmx Base/includes/NIDAQmxBase.h"
-// NIDAQ error checking macro
-#define DAQmxErrChk(functionCall) { if( DAQmxFailed(error=(functionCall)) ) { goto Error; } }
-#define uint32 uInt32
-#endif
 
 ////////////////////////
 //   define section   //
@@ -80,14 +75,9 @@
 ///////////////////////////////
 double getCurrentTimeInSeconds();
 
-#ifdef __i386__
-void* nidaqThread(void *data);
-void launchNidaqThread();
-// NIDAQ start/stop port reading/writing
-int nidaqStartTask();
-void nidaqStopTask();
-#endif
-
+/////////////////////////
+//   OS Specific calls //
+/////////////////////////
 // These functions will do different things depending on whether
 // we are running in 32 bit mode and using threads to communicate
 // with the digIO card or 64 bit mode and using a separate app with sockets
@@ -97,21 +87,6 @@ mxArray *digout(const mxArray *prhs[]);
 mxArray *list(void);
 void quit(void);
 void mglPrivateDigIOOnExit(void);
-
-////////////////
-//   globals  //
-////////////////
-#ifdef __i386__
-static pthread_mutex_t digioMutex;
-static nidaqThreadInstalled = FALSE;
-static NSAutoreleasePool *gDigIOPool;
-static NSMutableArray *gDiginEventQueue;
-static NSMutableArray *gDigoutEventQueue;
-// NIDAQ specific globals
-static TaskHandle nidaqInputTaskHandle = 0,nidaqOutputTaskHandle = 0;
-static int nidaqInputPortNum = 1,nidaqOutputPortNum = 2;
-static int stopNidaqThread = 0;
-#endif
 
 //////////////
 //   main   //
@@ -188,11 +163,42 @@ double getCurrentTimeInSeconds()
 // Implementation for 64 bit (this runs nidaq from a standalone function
 // and communciates via a socket)
 /////////////////////////////////////////////////////////////////////
+/////////////////////////
+//   include section   //
+/////////////////////////
+#include <sys/socket.h>
+#include <sys/un.h>
+
+////////////////////////
+//   define section   //
+////////////////////////
+#define BUFLEN 8192
+#define DIGINEVENTSIZE 6
+
+// These have to match the command numbers in mglStandaloneDigIO
+#define OPEN_COMMAND 1
+#define DIGIN_COMMAND 2
+#define CLOSE_COMMAND 3
+
+///////////////////////////////
+//   function declarations   //
+///////////////////////////////
+void openSocket(char *filename);
+void closeSocket(void);
+void writeCommandByte(unsigned char);
+
+////////////////
+//   globals  //
+////////////////
+static int socketDescriptor = 0;
+
 /////////////////////
 //    initDigIO    //
 /////////////////////
 void initDigIO(void) 
 {
+  mexPrintf("(mglPrivateDigIO) Starting external program mglStandaloneDigIO.\n");
+  system("mglStandaloneDigIO &");
 }
 
 /////////////////
@@ -200,8 +206,39 @@ void initDigIO(void)
 /////////////////
 mxArray *digin(void)
 {
+  // return value
   mxArray *retval;
   retval = mxCreateDoubleMatrix(0,0,mxREAL);
+
+  // declare variables
+  unsigned char readbuf[BUFLEN];
+  int numEvents,eventCount,numThisEvents,readCount;
+
+  // write command byte 
+  writeCommandByte(DIGIN_COMMAND);
+
+  // read a byte specifying how many digin events there are
+  printf("Waiting for ack\n");
+  readCount = read(socketDescriptor,readbuf,BUFLEN);
+
+  // convert from uchar to int
+  numEvents = *(unsigned int *)(readbuf),
+  printf("received: %i bytes numEvents: %i\n",readCount,numEvents);
+
+  // get each one of the digin events associated with it.
+  while (numEvents) {
+    // read a block at most at a time. 
+    readCount = read(socketDescriptor,readbuf,floor(BUFLEN/DIGINEVENTSIZE)*DIGINEVENTSIZE);
+    numThisEvents = readCount/DIGINEVENTSIZE;
+    printf("received: %i bytes numThisEvents: %i of %i\n",readCount,numThisEvents,numEvents);
+    // update the number of events left to read
+    numEvents = numEvents-numThisEvents;
+    // display them
+    for(eventCount = 0;eventCount < numThisEvents; eventCount++) {
+      printf("%i: Digin: %i line: %i time: %f (sizeof: %i)\n",eventCount+1,(int)(readbuf[0+DIGINEVENTSIZE*eventCount]),(int)(readbuf[1+DIGINEVENTSIZE*eventCount]),*(float*)(readbuf+2+DIGINEVENTSIZE*eventCount),(int)sizeof(float));
+    }
+  }
+
   return(retval);
 }
 
@@ -231,16 +268,111 @@ mxArray *list(void)
 void quit(void)
 {
 }
+
 ///////////////////////////////
 //   mglPrivateDigIOOnExit   //
 ///////////////////////////////
 void mglPrivateDigIOOnExit(void)
 {
 }
+
+//////////////////////
+//    openSocket    //
+//////////////////////
+void openSocket(char *filename)
+{
+  struct sockaddr_un addr;
+  char buf[BUFLEN];
+
+  if ( (socketDescriptor = socket(AF_UNIX, SOCK_STREAM, 0)) == -1) {
+    mexPrintf("(mglPrivateDigIO) Could not open socket. This will prevent communication with the mglStandaloneDigIO function which runs outside of matlab and handles dig I/O.");
+    return;
+  }
+
+  // set the address
+  memset(&addr, 0, sizeof(addr));
+  addr.sun_family = AF_UNIX;
+  strncpy(addr.sun_path, filename, sizeof(addr.sun_path)-1);
+
+  // connect
+  if (connect(socketDescriptor, (struct sockaddr*)&addr, sizeof(addr)) == -1) {
+    printf("(mglPrivateDigIO) Could not connect to socket. This will prevent communication with the mglStandaloneDigIO function which runs outside of matlab and handles dig I/O.");
+    return;
+  }
+}
+
+///////////////////////
+//    closeSocket    //
+///////////////////////
+void closeSocket()
+{
+  // tell the other side we are closing
+  write(socketDescriptor,"close",5);
+
+  // and close
+  close(socketDescriptor);
+
+  // set socket Descriptor to -1 to specify closed
+  socketDescriptor = -1;
+}
+
+///////////////////////////
+//    writeCommandBye    //
+///////////////////////////
+void writeCommandByte(unsigned char commandByte)
+{
+  // check the socket is open
+  if (socketDescriptor <= 0) {
+    openSocket(".mglDigIO");
+    if (socketDescriptor <= 0)
+      // could not open. 
+      return;
+  }
+
+  // write the byte
+  if (write(socketDescriptor,&commandByte,1) != 1)
+    printf("(mglPrivateDigIO) Could not write to socket to communicate with mglStandalondDigIO\n");
+}
+
 #else
 /////////////////////////////////////////////////////////////////////
 // Implementation for 32 bit (this runs nidaq from within a thread)
 /////////////////////////////////////////////////////////////////////
+/////////////////////////
+//   include section   //
+/////////////////////////
+#include "/Applications/National Instruments/NI-DAQmx Base/includes/NIDAQmxBase.h"
+
+////////////////////////
+//   define section   //
+////////////////////////
+// NIDAQ error checking macro
+#define DAQmxErrChk(functionCall) { if( DAQmxFailed(error=(functionCall)) ) { goto Error; } }
+#define uint32 uInt32
+
+///////////////////////////////
+//   function declarations   //
+///////////////////////////////
+// functions for 32-bit matlab, which set up and run a thread
+void* nidaqThread(void *data);
+void launchNidaqThread();
+// NIDAQ start/stop port reading/writing
+int nidaqStartTask();
+void nidaqStopTask();
+
+////////////////
+//   globals  //
+////////////////
+static pthread_mutex_t digioMutex;
+static nidaqThreadInstalled = FALSE;
+static NSAutoreleasePool *gDigIOPool;
+static NSMutableArray *gDiginEventQueue;
+static NSMutableArray *gDigoutEventQueue;
+// NIDAQ specific globals
+static TaskHandle nidaqInputTaskHandle = 0,nidaqOutputTaskHandle = 0;
+static int nidaqInputPortNum = 1,nidaqOutputPortNum = 2;
+static int stopNidaqThread = 0;
+
 /////////////////////
 //    initDigIO    //
 /////////////////////

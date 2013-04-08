@@ -50,6 +50,10 @@
 #define INIT_EVENT 4
 #define BUFLEN 256
 
+#define OPEN_COMMAND 1
+#define DIGIN_COMMAND 2
+#define CLOSE_COMMAND 3
+
 /////////////////////
 //   queue event   //
 /////////////////////
@@ -227,25 +231,22 @@ void readSocketCommand(int *connectionDescriptor, int socketDescriptor, NSMutabl
 
   // read command
   if ((readCount=recv(*connectionDescriptor,buf,BUFLEN,0)) > 0) {
-    // pull out command
-    commandName = strtok(buf," \n\0");
-
     //++++++++++++++++++++++++++++++++
     // Open
     //++++++++++++++++++++++++++++++++
-    if (strcmp(commandName,"open")==0) {
+    if (buf[0] == OPEN_COMMAND) {
       printf("(mglStandaloneDigIO) Got open command\n");
     }
     //++++++++++++++++++++++++++++++++
     // digin
     //++++++++++++++++++++++++++++++++
-    else if (strcmp(commandName,"digin")==0) {
+    else if (buf[0] == DIGIN_COMMAND) {
       digin(diginEventQueue,*connectionDescriptor);
     }
     //++++++++++++++++++++++++++++++++
     // close
     //++++++++++++++++++++++++++++++++
-    else if (strcmp(commandName,"close")==0) {
+    else if (buf[0] = CLOSE_COMMAND) {
       close(*connectionDescriptor);
       *connectionDescriptor = -1;
     }
@@ -464,6 +465,7 @@ int initDigIO(int nidaqInputPortNum, int nidaqOutputPortNum, TaskHandle *nidaqIn
     printf("============================================================================\n");
     printf("(mglStandaloneDigIO) UHOH! Could not start NIDAQ ports digin: %i and digout: %i\n",nidaqInputPortNum,nidaqOutputPortNum);
     printf("============================================================================\n");
+    printf("(mglStandaloneDigIO) Ending mglStandaloneDigIO\n");
     return 0;
   }
 
