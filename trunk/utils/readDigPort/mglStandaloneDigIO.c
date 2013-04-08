@@ -53,6 +53,10 @@
 #define OPEN_COMMAND 1
 #define DIGIN_COMMAND 2
 #define CLOSE_COMMAND 3
+#define SHUTDOWN_COMMAND 4
+#define ACK_COMMAND 5
+
+#define DIGIOSOCKETNAME ".mglDigIO"
 
 /////////////////////
 //   queue event   //
@@ -88,7 +92,7 @@ void diglist(void);
 void digquit(void);
 int openSocket(char *socketName, int *, int *);
 void processEvent(TaskHandle,NSMutableArray *);
-void readSocketCommand(int *, int, NSMutableArray *);
+int readSocketCommand(int *, int, NSMutableArray *);
 void siginthandler(int);
 void senduint8(int, uint8, int);
 void senduint32(int, uint32, int);
@@ -99,6 +103,7 @@ void sendflush(int, int);
 //   globals  //
 ////////////////
 static uInt8 nidaqInputStatePrevious[1] = {0};
+static uInt8 digIOStatus = 0;
 
 // These are declared as global just so that we can exit gracefully
 // if the user hits ctrl-c
@@ -115,30 +120,34 @@ int main(int argc, char *argv[])
   // register sigint handler (this will clean up if the user hits ctrl-c)
   signal(SIGINT, siginthandler);
 
-  // init digIO
-  if (initDigIO(1,2,&nidaqInputTaskHandle,&nidaqOutputTaskHandle,&diginEventQueue,&digoutEventQueue,&digIOPool) == 0) return;
-
   // open the communication socket, checking for error
-  if (openSocket(".mglDigIO",&connectionDescriptor,&socketDescriptor) == 0)
+  if (openSocket(DIGIOSOCKETNAME,&connectionDescriptor,&socketDescriptor) == 0)
     return;
   
-  double startTimeInSeconds = getCurrentTimeInSeconds();
-  while ((getCurrentTimeInSeconds()-startTimeInSeconds) < 60.0) {
-    // read the socket for new commands
-    readSocketCommand(&connectionDescriptor,socketDescriptor,diginEventQueue);
+  // init digIO
+  if (initDigIO(1,2,&nidaqInputTaskHandle,&nidaqOutputTaskHandle,&diginEventQueue,&digoutEventQueue,&digIOPool) == 0) {
+    close(socketDescriptor);
+    return;
+  }
+  digIOStatus = 1;
+
+  // read socket commands, log dig IO events and process events
+  while (readSocketCommand(&connectionDescriptor,socketDescriptor,diginEventQueue)) {
     // log any dig IO event there is
     logDigIO(nidaqInputTaskHandle,diginEventQueue);
     // process events
     //    processEvent(nidaqOutputTaskHandle,digoutEventQueue);
   }
     
-
   // close socket
   close(socketDescriptor);
 
   // end digIO
   endDigIO(nidaqInputTaskHandle,nidaqOutputTaskHandle,diginEventQueue,digoutEventQueue,digIOPool);
-  
+
+  // shutdown
+  printf("(mglStandaloneDigIO) Shutdown mglStandaloneDigIO\n");
+
   return(0);
 }
 
@@ -203,7 +212,7 @@ void logDigIO(TaskHandle nidaqInputTaskHandle, NSMutableArray *diginEventQueue)
 /////////////////////////////
 //    readSocketCommand    //
 /////////////////////////////
-void readSocketCommand(int *connectionDescriptor, int socketDescriptor, NSMutableArray *diginEventQueue)
+int readSocketCommand(int *connectionDescriptor, int socketDescriptor, NSMutableArray *diginEventQueue)
 {
   int readCount;
   static char buf[BUFLEN], *commandName;
@@ -246,9 +255,29 @@ void readSocketCommand(int *connectionDescriptor, int socketDescriptor, NSMutabl
     //++++++++++++++++++++++++++++++++
     // close
     //++++++++++++++++++++++++++++++++
-    else if (buf[0] = CLOSE_COMMAND) {
+    else if (buf[0] == CLOSE_COMMAND) {
       close(*connectionDescriptor);
       *connectionDescriptor = -1;
+    }
+    //++++++++++++++++++++++++++++++++
+    // shutdown
+    //++++++++++++++++++++++++++++++++
+    else if (buf[0] == SHUTDOWN_COMMAND) {
+      close(*connectionDescriptor);
+      *connectionDescriptor = -1;
+      return(0);
+    }
+    //++++++++++++++++++++++++++++++++
+    // ack
+    //++++++++++++++++++++++++++++++++
+    else if (buf[0] == ACK_COMMAND) {
+      // send acknowledge byte 
+      if (digIOStatus)
+	// one if digIO is running
+	senduint8(*connectionDescriptor,1,1);
+      else
+	// two if not running
+	senduint8(*connectionDescriptor,2,1);
     }
     else
       printf("(mglStandaloneDigIO) Unknown command %s\n",commandName);
@@ -260,6 +289,7 @@ void readSocketCommand(int *connectionDescriptor, int socketDescriptor, NSMutabl
       *connectionDescriptor = -1;
     }
   }
+  return(1);
 }
 
 //////////////////////
