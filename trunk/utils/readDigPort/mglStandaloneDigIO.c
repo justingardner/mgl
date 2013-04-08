@@ -55,6 +55,8 @@
 #define CLOSE_COMMAND 3
 #define SHUTDOWN_COMMAND 4
 #define ACK_COMMAND 5
+#define DIGOUT_COMMAND 6
+#define LIST_COMMAND 7
 
 #define DIGIOSOCKETNAME ".mglDigIO"
 
@@ -87,8 +89,8 @@ void endDigIO(TaskHandle, TaskHandle, NSMutableArray *,NSMutableArray *,NSAutore
 void nidaqStopTask(TaskHandle, TaskHandle);
 void logDigIO(TaskHandle, NSMutableArray *);
 void digin(NSMutableArray *,int); 
-void digout(void);
-void diglist(void);
+void digout(NSMutableArray *,int);
+void diglist(NSMutableArray *,NSMutableArray *);
 void digquit(void);
 int openSocket(char *socketName, int *, int *);
 void processEvent(TaskHandle,NSMutableArray *);
@@ -239,7 +241,7 @@ int readSocketCommand(int *connectionDescriptor, int socketDescriptor, NSMutable
   memset(buf,0,BUFLEN);
 
   // read command
-  if ((readCount=recv(*connectionDescriptor,buf,BUFLEN,0)) > 0) {
+  if ((readCount=recv(*connectionDescriptor,buf,1,0)) > 0) {
     //++++++++++++++++++++++++++++++++
     // Open
     //++++++++++++++++++++++++++++++++
@@ -251,6 +253,18 @@ int readSocketCommand(int *connectionDescriptor, int socketDescriptor, NSMutable
     //++++++++++++++++++++++++++++++++
     else if (buf[0] == DIGIN_COMMAND) {
       digin(diginEventQueue,*connectionDescriptor);
+    }
+    //++++++++++++++++++++++++++++++++
+    // digout
+    //++++++++++++++++++++++++++++++++
+    else if (buf[0] == DIGOUT_COMMAND) {
+      digout(digoutEventQueue,*connectionDescriptor);
+    }
+    //++++++++++++++++++++++++++++++++
+    // list
+    //++++++++++++++++++++++++++++++++
+    else if (buf[0] == LIST_COMMAND) {
+      diglist(diginEventQueue,digoutEventQueue);
     }
     //++++++++++++++++++++++++++++++++
     // close
@@ -538,7 +552,7 @@ void endDigIO(TaskHandle nidaqInputTaskHandle,TaskHandle nidaqOutputTaskHandle,N
 ////////////////
 //    digin   // 
 ////////////////
-void digin(NSMutableArray *diginEvengtQueue,int connectionDescriptor) 
+void digin(NSMutableArray *diginEventQueue,int connectionDescriptor) 
 {
   // see how many events we have
   unsigned int count = [diginEventQueue count];
@@ -631,68 +645,59 @@ void sendflush(int connectionDescriptor,int force)
 /////////////////
 //    digout   // 
 /////////////////
-void digout(void)
+void digout(NSMutableArray *digoutEventQueue,int connectionDescriptor) 
 {
-#if 0
-  // get value and time
-  double time = (double)mxGetScalar(prhs[1]);
-  uInt32 val = (uInt32)(double)mxGetScalar(prhs[2]);
+  unsigned char buf[16];
 
-  // lock the mutex to avoid concurrent access to the global variables
-  pthread_mutex_lock(&digioMutex);
+  // get time of event
+  if (recv(connectionDescriptor,buf,sizeof(double),0) < sizeof(double)){
+    printf("(mglStandaloneDigIO) Could not read event time\n");
+    return;
+  }
+  double time = *(double*)buf;
+  // get value 
+  if (recv(connectionDescriptor,buf,sizeof(uInt32),0) < sizeof(uInt32)){
+    printf("(mglStandaloneDigIO) Could not read event value\n");
+    return;
+  }
+  uInt32 val = *(uInt32*)buf;
 
   // create the event
   digQueueEvent *qEvent = [[digQueueEvent alloc] initWithTypeTimeAndValue:DIGOUT_EVENT :time :val];
 
   // add the event to the event queue
-  [gDigoutEventQueue addObject:qEvent];
+  [digoutEventQueue addObject:qEvent];
   [qEvent release];
 
   // sort the event queue by time
   SEL compareByTime = @selector(compareByTime:);
-  [gDigoutEventQueue sortUsingSelector:compareByTime];
+  [digoutEventQueue sortUsingSelector:compareByTime];
 
-  // release mutex
-  pthread_mutex_unlock(&digioMutex);
-  // return 1
-  plhs[0] = mxCreateDoubleMatrix(1,1,mxREAL);
-  *mxGetPr(plhs[0]) = 1;
-#endif
 }
 
 //////////////////
 //    diglist   // 
 //////////////////
-void diglist(void)
+void diglist(NSMutableArray *digintEventQueue,NSMutableArray *digoutEventQueue)
 {
-#if 0
-  // lock the mutex to avoid concurrent access to the global variables
-  pthread_mutex_lock(&digioMutex);
   // display which ports we are using
   printf("(mglStandaloneDigIO) DigIO thread is running\n");
   if (nidaqInputTaskHandle != 0) {
-    // see if nidaq card is running
-    printf("(mglPrivtateDigIO) Input port is: Dev1/port%i. Output port is: Dev1/port%i\n",nidaqInputPortNum,nidaqOutputPortNum);
-    if ([gDigoutEventQueue count] == 0) {
+    // display events on event queue
+    if ([digoutEventQueue count] == 0) {
       printf("(mglStandaloneDigIO) No digiout events pending.\n");
     }
     else {
       int i;
-      for(i = 0; i < [gDigoutEventQueue count]; i++) {
-	printf("(mglStandaloneDigIO) Set output port to %i is pending in %f seconds.\n",[[gDigoutEventQueue objectAtIndex:i] val],[[gDigoutEventQueue objectAtIndex:i] time] - getCurrentTimeInSeconds());
+      for(i = 0; i < [digoutEventQueue count]; i++) {
+	printf("(mglStandaloneDigIO) Set output port to %i is pending in %f seconds.\n",(int)[[digoutEventQueue objectAtIndex:i] val],[[digoutEventQueue objectAtIndex:i] time] - getCurrentTimeInSeconds());
       }
     }
     // check input events
-    printf("(mglStandaloneDigIO) %i digin events in queue\n",[gDiginEventQueue count]);
+    printf("(mglStandaloneDigIO) %i digin events in queue\n",[diginEventQueue count]);
   }
   else
     printf("(mglStandaloneDigIO) NIDAQ card is not initialized.\n");
-  // release mutex
-  pthread_mutex_unlock(&digioMutex);
-  // return 1
-  plhs[0] = mxCreateDoubleMatrix(1,1,mxREAL);
-  *mxGetPr(plhs[0]) = 1;
-#endif
 }
 
 //////////////////

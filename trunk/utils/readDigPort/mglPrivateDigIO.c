@@ -83,7 +83,7 @@ double getCurrentTimeInSeconds();
 // with the digIO card or 64 bit mode and using a separate app with sockets
 void initDigIO(void); 
 mxArray *digin(void);
-mxArray *digout(const mxArray *prhs[]);
+mxArray *digout(double, uint32);
 mxArray *list(void);
 void quit(void);
 void mglPrivateDigIOOnExit(void);
@@ -93,6 +93,10 @@ void mglPrivateDigIOOnExit(void);
 //////////////
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
+  // declare vairables
+  double time;
+  uint32 val;
+
   // get which command this is
   int command = mxGetScalar(prhs[0]);
 
@@ -117,8 +121,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   else if (command == DIGIN)
     plhs[0] = digin();
   // digout command
-  else if (command == DIGOUT)
-    plhs[0] = digout(prhs);
+  else if (command == DIGOUT) {
+    // get value and time
+    time = (double)mxGetScalar(prhs[1]);
+    val = (uint32)(double)mxGetScalar(prhs[2]);
+    // call digout
+    plhs[0] = digout(time,val);
+  }
   // list command 
   else if (command == LIST)
     plhs[0] = list();
@@ -169,7 +178,7 @@ double getCurrentTimeInSeconds()
 #include <sys/socket.h>
 #include <sys/un.h>
 #include "../../mgllib/mgl.h"
-#define DIGIOSOCKETNAME ".mglDigIO"
+#define DEFAULT_DIGIO_SOCKETNAME ".mglDigIO"
 
 ////////////////////////
 //   define section   //
@@ -184,14 +193,18 @@ double getCurrentTimeInSeconds()
 #define CLOSE_COMMAND 3
 #define SHUTDOWN_COMMAND 4
 #define ACK_COMMAND 5
+#define DIGOUT_COMMAND 6
+#define LIST_COMMAND 7
 
 ///////////////////////////////
 //   function declarations   //
 ///////////////////////////////
-int openSocket(char *filename,int);
+int openSocket(int);
 void closeSocket(void);
 int writeCommandByte(unsigned char);
 uint8 readuint8(int);
+int writedouble(double val);
+int writeuint32(uint32 val);
 
 ////////////////
 //   globals  //
@@ -212,7 +225,7 @@ void initDigIO(void)
 
   // first, check to see if there is a standalone running
   // for which we can simply open a socket to and get an acknowledge from
-  if (openSocket(DIGIOSOCKETNAME,1) == 1) {
+  if (openSocket(1) == 1) {
     // send ack to standalone
     writeCommandByte(ACK_COMMAND);
     // wait for reply (shoudl be 1 if running, 2 if failed)
@@ -253,7 +266,7 @@ void initDigIO(void)
   int socketOpened = 0;
   double startTime = getCurrentTimeInSeconds();
   while (((getCurrentTimeInSeconds()-startTime)<TIMEOUT) && !socketOpened) {
-    socketOpened = openSocket(DIGIOSOCKETNAME,1);
+    socketOpened = openSocket(1);
   }
 
   // error, if not opened
@@ -354,10 +367,14 @@ mxArray *digin(void)
 //////////////////
 //    digout    //
 //////////////////
-mxArray *digout(const mxArray *prhs[])
+mxArray *digout(double time, uint32 val)
 {
   mxArray *retval;
   retval = mxCreateDoubleMatrix(0,0,mxREAL);
+  // send digout command
+  writeCommandByte(DIGOUT_COMMAND);
+  writedouble(time);
+  writeuint32(val);
   return(retval);
 }
 
@@ -368,6 +385,8 @@ mxArray *list(void)
 {
   mxArray *retval;
   retval = mxCreateDoubleMatrix(0,0,mxREAL);
+  // send list command
+  writeCommandByte(LIST_COMMAND);
   return(retval);
 }
 
@@ -401,10 +420,19 @@ void mglPrivateDigIOOnExit(void)
 //////////////////////
 //    openSocket    //
 //////////////////////
-int openSocket(char *filename,int suppressErrors)
+int openSocket(int suppressErrors)
 {
   struct sockaddr_un addr;
   char buf[BUFLEN];
+
+  // get socket name from global
+  char socketName[BUFLEN];
+  mxArray *digioSocketName = mglGetGlobalField("digioSocketName");
+  // check for null pointer
+  if (digioSocketName == NULL)
+    sprintf(socketName,DEFAULT_DIGIO_SOCKETNAME);
+  else
+    mxGetString(digioSocketName,socketName,BUFLEN);
 
   if ( (socketDescriptor = socket(AF_UNIX, SOCK_STREAM, 0)) == -1) {
     if (!suppressErrors)
@@ -415,7 +443,7 @@ int openSocket(char *filename,int suppressErrors)
   // set the address
   memset(&addr, 0, sizeof(addr));
   addr.sun_family = AF_UNIX;
-  strncpy(addr.sun_path, filename, sizeof(addr.sun_path)-1);
+  strncpy(addr.sun_path, socketName, sizeof(addr.sun_path)-1);
 
   // connect
   if (connect(socketDescriptor, (struct sockaddr*)&addr, sizeof(addr)) == -1) {
@@ -449,7 +477,7 @@ int writeCommandByte(unsigned char commandByte)
 {
   // check the socket is open
   if (socketDescriptor <= 0) {
-    openSocket(DIGIOSOCKETNAME,0);
+    openSocket(0);
     if (socketDescriptor <= 0)
       // could not open. 
       return -1;
@@ -467,21 +495,45 @@ int writeCommandByte(unsigned char commandByte)
 /////////////////////
 //    readuint8    //
 /////////////////////
-uint8 readuint8(int connectionDescriptor)
+uint8 readuint8(int socketDescriptor)
 {
   unsigned char buf;
   
   // check connection descirptor
-  if (connectionDescriptor <= 0) {
+  if (socketDescriptor <= 0) {
     mexPrintf("(mglPrivateDigIO) Could not read from socket = not open\n");
     return(0);
   }
   // read from 
-  if (recv(connectionDescriptor,&buf,1,0) == 1) 
+  if (recv(socketDescriptor,&buf,1,0) == 1) 
     return((uint8)buf);
   else
     mexPrintf("(mglPrivateDigIO) Could not read from socket\n");
   return(0);
+}
+
+///////////////////////
+//    writedouble    //
+///////////////////////
+int writedouble(double val)
+{
+  if ((write(socketDescriptor,&val,sizeof(double))) < sizeof(double)) {
+    mexPrintf("(mglPrivateDigIO) Could not write double: %f\n",val);
+    return(0);
+  }
+  return(1);
+}
+
+///////////////////////
+//    writeunit32    //
+///////////////////////
+int writeuint32(uint32 val)
+{
+  if ((write(socketDescriptor,&val,sizeof(uint32))) < sizeof(uint32)) {
+    mexPrintf("(mglPrivateDigIO) Could not write double: %f\n",val);
+    return(0);
+  }
+  return(1);
 }
 #else
 /////////////////////////////////////////////////////////////////////
@@ -614,14 +666,10 @@ mxArray *digin(void)
 //////////////////
 //    digout    //
 //////////////////
-mxArray *digout(const mxArray *prhs[])
+mxArray *digout(double time, uint32 val)
 {
   mxArray *retval;
   if (nidaqThreadInstalled) {
-    // get value and time
-    double time = (double)mxGetScalar(prhs[1]);
-    uint32 val = (uint32)(double)mxGetScalar(prhs[2]);
-
     // lock the mutex to avoid concurrent access to the global variables
     pthread_mutex_lock(&digioMutex);
 

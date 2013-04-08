@@ -92,14 +92,21 @@ elseif commandNum == 1
     end
     mglDigIOWarning = 1;
   elseif isempty(mglDigIOWarning) && (exist(['mglPrivateDigio.' mexext])==0)
-    if strcmp(questdlg('You do not seem to have mglPrivateDigio compiled. Have you run mglMake(''digio''). Note that mglDigio is only available for 32 bit Mac OS X platforms because NI does not supply a 64 bit library','(mglDigIO: Not compiled','Cancel','Cancel'),'Cancel')
+    if strcmp(questdlg('You do not seem to have mglPrivateDigio compiled. Have you run mglMake(''digio''). Note that NI does not supply a 64 bit library for Mac OS X, so the 64-bit version of mglPrivateDigIO runs a 32-bit program outside matlab and communicates via a socket to it','(mglDigIO: Not compiled','Cancel','Cancel'),'Cancel')
       retval = 0;
       mglDigIOWarning = -1;
       return
     end
     mglDigIOWarning = 1;
   end
-  
+  % set the name of the socket which digio will use to communicate
+  % to the standalone process (64 bit implementation only)
+  if isempty(mglGetParam('digioSocketName'))
+    % get home directory
+    curpath = pwd;cd('~');homepath = pwd;cd(curpath);
+    homepath='';
+    mglSetParam('digioSocketName',fullfile(homepath,'.mglDigIO'));
+  end
   if nargin > 1,inputPortNum = arg1;else inputPortNum = 2;end
   if nargin > 2,outputPortNum = arg2;else outputPortNum = 1;end
   retval = mglPrivateDigIO(commandNum,inputPortNum,outputPortNum);
