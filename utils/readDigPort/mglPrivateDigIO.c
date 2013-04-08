@@ -168,37 +168,122 @@ double getCurrentTimeInSeconds()
 /////////////////////////
 #include <sys/socket.h>
 #include <sys/un.h>
+#include "../../mgllib/mgl.h"
+#define DIGIOSOCKETNAME ".mglDigIO"
 
 ////////////////////////
 //   define section   //
 ////////////////////////
 #define BUFLEN 8192
 #define DIGINEVENTSIZE 6
+#define TIMEOUT 5
 
 // These have to match the command numbers in mglStandaloneDigIO
 #define OPEN_COMMAND 1
 #define DIGIN_COMMAND 2
 #define CLOSE_COMMAND 3
+#define SHUTDOWN_COMMAND 4
+#define ACK_COMMAND 5
 
 ///////////////////////////////
 //   function declarations   //
 ///////////////////////////////
-void openSocket(char *filename);
+int openSocket(char *filename,int);
 void closeSocket(void);
-void writeCommandByte(unsigned char);
+int writeCommandByte(unsigned char);
+uint8 readuint8(int);
 
 ////////////////
 //   globals  //
 ////////////////
 static int socketDescriptor = 0;
+static int verbose = 0;
 
 /////////////////////
 //    initDigIO    //
 /////////////////////
 void initDigIO(void) 
 {
+  // declare variables
+  int ack;
+  
+  // set verbose
+  verbose = mglGetGlobalDouble("verbose");
+
+  // first, check to see if there is a standalone running
+  // for which we can simply open a socket to and get an acknowledge from
+  if (openSocket(DIGIOSOCKETNAME,1) == 1) {
+    // send ack to standalone
+    writeCommandByte(ACK_COMMAND);
+    // wait for reply (shoudl be 1 if running, 2 if failed)
+    ack = readuint8(socketDescriptor);
+    // if we got an ack back then we are dune
+    mexPrintf("(mglPrivateDigIO) Connected to already running standalone\n");
+    return;
+  }
+  
+  // If we did not get acknowledge, then shutdown any process that is running
+  system("killall mglStandaloneDigIO");
+
+  // start mglStandaloneDigIO
   mexPrintf("(mglPrivateDigIO) Starting external program mglStandaloneDigIO.\n");
-  system("mglStandaloneDigIO &");
+  // first get correct path
+  mxArray *mxFilePath[1];
+  char filePath[BUFLEN],commandName[BUFLEN];
+  mxArray *callInput[] = {mxCreateString("mglDigIO")};
+  // call matlab to figure out wher mglDigIO lives
+  mexCallMATLAB(1,mxFilePath,1,callInput,"which");
+  mxGetString(mxFilePath[0],filePath,BUFLEN);
+  // look into what is returned to find mglDigIO (we will replace that with mglStandaloneDigIO
+  char *namePtr = strstr(filePath,"mglDigIO");
+  // make command
+  if (namePtr) {
+    // terminate at point wher mglDigIO is written in path
+    *namePtr = 0;
+    //make command
+    sprintf(commandName,"%smglStandaloneDigIO &",filePath);
+  }
+  else 
+    sprintf(commandName,"mglStandaloneDigIO &");
+  // run command
+  mexPrintf("(mglPrivateDigIO) Running: %s\n",commandName);
+  system(commandName);
+  
+  // open the socket
+  int socketOpened = 0;
+  double startTime = getCurrentTimeInSeconds();
+  while (((getCurrentTimeInSeconds()-startTime)<TIMEOUT) && !socketOpened) {
+    socketOpened = openSocket(DIGIOSOCKETNAME,1);
+  }
+
+  // error, if not opened
+  if (!socketOpened) {
+    mexPrintf("(mglPrivateDigIO) Could not open socket to mglStandaloneDigIO.\n");
+    return;
+  }
+
+  // socket has been opened
+  mexPrintf("(mglPrivateDigIO) Successfully opened socket to mglStandaloneDigIO\n");
+
+  // wait until we get an acknowledge that the digIO is running
+  ack=-1;
+  while ((ack != 1) && (ack != 0)) {
+    // send ack to standalone
+    writeCommandByte(ACK_COMMAND);
+    // wait for reply (shoudl be 1 if running, 2 if failed)
+    ack = readuint8(socketDescriptor);
+  }
+  
+  if (ack == 1)
+    mexPrintf("(mglPrivateDigIO) DigIO is running.\n");
+  else 
+    mexPrintf("(mglPrivateDigIO) DigIO is NOT running.\n");
+
+  
+  // set to call this function when cleared (but lock it so that
+  // it only gets cleared at exit
+  mexAtExit(mglPrivateDigIOOnExit);
+  mexCallMATLAB(0,NULL,0,NULL,"mlock");
 }
 
 /////////////////
@@ -212,33 +297,57 @@ mxArray *digin(void)
 
   // declare variables
   unsigned char readbuf[BUFLEN];
-  int numEvents,eventCount,numThisEvents,readCount;
+  int numEvents,eventCount,numThisEvents,readCount,outputCount = 0;
+  double *typeOut,*lineOut,*whenOut;
 
   // write command byte 
-  writeCommandByte(DIGIN_COMMAND);
+  if (writeCommandByte(DIGIN_COMMAND) == -1) return(retval);
 
   // read a byte specifying how many digin events there are
-  printf("Waiting for ack\n");
+  mexPrintf("(mglPrivateDigIO) Waiting for ack\n");
   readCount = read(socketDescriptor,readbuf,BUFLEN);
 
   // convert from uchar to int
-  numEvents = *(unsigned int *)(readbuf),
-  printf("received: %i bytes numEvents: %i\n",readCount,numEvents);
+  numEvents = *(unsigned int *)(readbuf);
+  mexPrintf("(mglPrivateDigIO) Received: %i bytes numEvents: %i\n",readCount,numEvents);
+
+  // make return structure
+  if (numEvents > 0) {
+    // create structure for returning events
+    const char *fieldNames[] =  {"type","line","when"};
+    int outDims[2] = {1, 1};
+    retval = mxCreateStructArray(1,outDims,3,fieldNames);
+    // set fields and get pointers to each array
+    mxSetField(retval,0,"type",mxCreateDoubleMatrix(1,numEvents,mxREAL));
+    typeOut = (double*)mxGetPr(mxGetField(retval,0,"type"));
+    mxSetField(retval,0,"line",mxCreateDoubleMatrix(1,numEvents,mxREAL));
+    lineOut = (double*)mxGetPr(mxGetField(retval,0,"line"));
+    mxSetField(retval,0,"when",mxCreateDoubleMatrix(1,numEvents,mxREAL));
+    whenOut = (double*)mxGetPr(mxGetField(retval,0,"when"));
+  }
 
   // get each one of the digin events associated with it.
   while (numEvents) {
     // read a block at most at a time. 
     readCount = read(socketDescriptor,readbuf,floor(BUFLEN/DIGINEVENTSIZE)*DIGINEVENTSIZE);
     numThisEvents = readCount/DIGINEVENTSIZE;
-    printf("received: %i bytes numThisEvents: %i of %i\n",readCount,numThisEvents,numEvents);
+    mexPrintf("(mglPrivateDigIO) Received: %i bytes numThisEvents: %i of %i\n",readCount,numThisEvents,numEvents);
+    if (readCount == 0) {
+      mexPrintf("(mglPrivateDigIO) !!! Could not read events from DigIO !!!\n");
+      return(retval);
+    }
     // update the number of events left to read
     numEvents = numEvents-numThisEvents;
-    // display them
+    // populate return array with events
     for(eventCount = 0;eventCount < numThisEvents; eventCount++) {
-      printf("%i: Digin: %i line: %i time: %f (sizeof: %i)\n",eventCount+1,(int)(readbuf[0+DIGINEVENTSIZE*eventCount]),(int)(readbuf[1+DIGINEVENTSIZE*eventCount]),*(float*)(readbuf+2+DIGINEVENTSIZE*eventCount),(int)sizeof(float));
+      // print info
+      mexPrintf("(mglPrivateDigIO) %i: Digin: %i line: %i time: %f (sizeof: %i)\n",eventCount+1,(int)(readbuf[0+DIGINEVENTSIZE*eventCount]),(int)(readbuf[1+DIGINEVENTSIZE*eventCount]),*(float*)(readbuf+2+DIGINEVENTSIZE*eventCount),(int)sizeof(float));
+      // set the type, line and time in output structure
+      typeOut[outputCount] = (double)(int)(readbuf[0+DIGINEVENTSIZE*eventCount]);
+      lineOut[outputCount] = (double)(int)(readbuf[1+DIGINEVENTSIZE*eventCount]);
+      whenOut[outputCount++] = (double)*(float*)(readbuf+2+DIGINEVENTSIZE*eventCount);
     }
   }
-
   return(retval);
 }
 
@@ -267,6 +376,11 @@ mxArray *list(void)
 ////////////////
 void quit(void)
 {
+  // send close command and shutdown socket
+  writeCommandByte(CLOSE_COMMAND);
+  
+  // close the socket
+  closeSocket();
 }
 
 ///////////////////////////////
@@ -274,19 +388,28 @@ void quit(void)
 ///////////////////////////////
 void mglPrivateDigIOOnExit(void)
 {
+  // let user know what is going on
+  mexPrintf("(mglPrivateDigIO) Shutting down mglPrivateDigIO\n");
+
+  // close the socket
+  writeCommandByte(SHUTDOWN_COMMAND);
+
+  // close the socket
+  closeSocket();
 }
 
 //////////////////////
 //    openSocket    //
 //////////////////////
-void openSocket(char *filename)
+int openSocket(char *filename,int suppressErrors)
 {
   struct sockaddr_un addr;
   char buf[BUFLEN];
 
   if ( (socketDescriptor = socket(AF_UNIX, SOCK_STREAM, 0)) == -1) {
-    mexPrintf("(mglPrivateDigIO) Could not open socket. This will prevent communication with the mglStandaloneDigIO function which runs outside of matlab and handles dig I/O.");
-    return;
+    if (!suppressErrors)
+      mexPrintf("(mglPrivateDigIO) Could not open socket. This will prevent communication with the mglStandaloneDigIO function which runs outside of matlab and handles dig I/O.");
+    return 0;
   }
 
   // set the address
@@ -296,9 +419,12 @@ void openSocket(char *filename)
 
   // connect
   if (connect(socketDescriptor, (struct sockaddr*)&addr, sizeof(addr)) == -1) {
-    printf("(mglPrivateDigIO) Could not connect to socket. This will prevent communication with the mglStandaloneDigIO function which runs outside of matlab and handles dig I/O.");
-    return;
+    if (!suppressErrors)
+      printf("(mglPrivateDigIO) Could not connect to socket. This will prevent communication with the mglStandaloneDigIO function which runs outside of matlab and handles dig I/O.");
+    close(socketDescriptor);
+    return 0;
   }
+  return 1;
 }
 
 ///////////////////////
@@ -319,21 +445,44 @@ void closeSocket()
 ///////////////////////////
 //    writeCommandBye    //
 ///////////////////////////
-void writeCommandByte(unsigned char commandByte)
+int writeCommandByte(unsigned char commandByte)
 {
   // check the socket is open
   if (socketDescriptor <= 0) {
-    openSocket(".mglDigIO");
+    openSocket(DIGIOSOCKETNAME,0);
     if (socketDescriptor <= 0)
       // could not open. 
-      return;
+      return -1;
   }
 
   // write the byte
-  if (write(socketDescriptor,&commandByte,1) != 1)
+  if (write(socketDescriptor,&commandByte,1) != 1) {
     printf("(mglPrivateDigIO) Could not write to socket to communicate with mglStandalondDigIO\n");
+    return -1;
+  }
+
+  return 0;
 }
 
+/////////////////////
+//    readuint8    //
+/////////////////////
+uint8 readuint8(int connectionDescriptor)
+{
+  unsigned char buf;
+  
+  // check connection descirptor
+  if (connectionDescriptor <= 0) {
+    mexPrintf("(mglPrivateDigIO) Could not read from socket = not open\n");
+    return(0);
+  }
+  // read from 
+  if (recv(connectionDescriptor,&buf,1,0) == 1) 
+    return((uint8)buf);
+  else
+    mexPrintf("(mglPrivateDigIO) Could not read from socket\n");
+  return(0);
+}
 #else
 /////////////////////////////////////////////////////////////////////
 // Implementation for 32 bit (this runs nidaq from within a thread)
