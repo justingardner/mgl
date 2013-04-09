@@ -232,6 +232,13 @@ if strcmp(mexext,'mexmaci64')
   system('make');
 end
 
+% clear the mglPrivateDigIO.mexmac function which is locked
+if (mislocked('mglPrivateDigIO'))
+  mglDigIO('shutdown');
+  munlock('mglPrivateDigIO');
+  clear mglPrivateDigIO;
+end
+  
 % check for mexopts file
 [dummy mexoptsFilename] = strtok(optf,' ');
 mexoptsFilename = strtrim(mexoptsFilename);
