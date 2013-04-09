@@ -50,7 +50,6 @@
 #define INIT_EVENT 4
 #define BUFLEN 256
 
-#define OPEN_COMMAND 1
 #define DIGIN_COMMAND 2
 #define CLOSE_COMMAND 3
 #define SHUTDOWN_COMMAND 4
@@ -58,7 +57,8 @@
 #define DIGOUT_COMMAND 6
 #define LIST_COMMAND 7
 
-#define DIGIOSOCKETNAME ".mglDigIO"
+#define DEFAULT_DIGIO_SOCKETNAME ".mglDigIO"
+#define BUFSIZE 1024
 
 /////////////////////
 //   queue event   //
@@ -74,7 +74,7 @@
 - (double)time;
 - (uInt32)val;
 - (int)eventType;
-- (void)doEvent;
+- (void)doEvent:(TaskHandle)nidaqOutputTaskHandle;
 - (NSComparisonResult)compareByTime:(digQueueEvent *)otherQueueEvent;
 - (void)dealloc;
 @end
@@ -90,7 +90,7 @@ void nidaqStopTask(TaskHandle, TaskHandle);
 void logDigIO(TaskHandle, NSMutableArray *);
 void digin(NSMutableArray *,int); 
 void digout(NSMutableArray *,int);
-void diglist(NSMutableArray *,NSMutableArray *);
+void diglist(int,NSMutableArray *,NSMutableArray *);
 void digquit(void);
 int openSocket(char *socketName, int *, int *);
 void processEvent(TaskHandle,NSMutableArray *);
@@ -99,6 +99,7 @@ void siginthandler(int);
 void senduint8(int, uint8, int);
 void senduint32(int, uint32, int);
 void sendfloat32(int, float32, int);
+void senddouble(int, double, int);
 void sendflush(int, int);
 
 ////////////////
@@ -106,10 +107,11 @@ void sendflush(int, int);
 ////////////////
 static uInt8 nidaqInputStatePrevious[1] = {0};
 static uInt8 digIOStatus = 0;
-
+static int verbose = 0;
+static gRunStatus = 0;
 // These are declared as global just so that we can exit gracefully
 // if the user hits ctrl-c
-int connectionDescriptor = 0,socketDescriptor = 0;
+static int connectionDescriptor = 0,socketDescriptor = 0;
 NSAutoreleasePool *digIOPool = NULL;
 NSMutableArray *diginEventQueue = NULL, *digoutEventQueue = NULL;
 TaskHandle nidaqInputTaskHandle = 0,nidaqOutputTaskHandle = 0;
@@ -119,26 +121,46 @@ TaskHandle nidaqInputTaskHandle = 0,nidaqOutputTaskHandle = 0;
 //////////////
 int main(int argc, char *argv[])
 {
+  // declare variables
+  int nidaqInputPortNum = 2;
+  int nidaqOutputPortNum = 1;
+  char socketName[BUFSIZE];
+
+  // set default socketName
+  strncpy(socketName,DEFAULT_DIGIO_SOCKETNAME,BUFSIZE);
+
+  // process input arguments. First one is socket name
+  if (argc>=2) sprintf(socketName,"%s",argv[1]);
+  if (argc>=3) nidaqInputPortNum = atoi(argv[2]);
+  if (argc>=4) nidaqOutputPortNum = atoi(argv[3]);
+  if (argc>=5) verbose = atoi(argv[4]);
+
+  // display settings
+  if (verbose) printf("(mglStandaloneDigIO) Starting with Input port: %i Ouptut port: %i Verbose: %i socketName: %s\n",nidaqInputPortNum,nidaqOutputPortNum,verbose,socketName);
+
   // register sigint handler (this will clean up if the user hits ctrl-c)
   signal(SIGINT, siginthandler);
 
   // open the communication socket, checking for error
-  if (openSocket(DIGIOSOCKETNAME,&connectionDescriptor,&socketDescriptor) == 0)
+  if (openSocket(socketName,&connectionDescriptor,&socketDescriptor) == 0)
     return;
   
   // init digIO
-  if (initDigIO(1,2,&nidaqInputTaskHandle,&nidaqOutputTaskHandle,&diginEventQueue,&digoutEventQueue,&digIOPool) == 0) {
+  if (initDigIO(nidaqInputPortNum,nidaqOutputPortNum,&nidaqInputTaskHandle,&nidaqOutputTaskHandle,&diginEventQueue,&digoutEventQueue,&digIOPool) == 0) {
     close(socketDescriptor);
     return;
   }
   digIOStatus = 1;
 
   // read socket commands, log dig IO events and process events
-  while (readSocketCommand(&connectionDescriptor,socketDescriptor,diginEventQueue)) {
+  int runStatus = 1;
+  while (runStatus) {
+    // read command
+    runStatus = readSocketCommand(&connectionDescriptor,socketDescriptor,diginEventQueue);
     // log any dig IO event there is
-    logDigIO(nidaqInputTaskHandle,diginEventQueue);
+    if (gRunStatus) logDigIO(nidaqInputTaskHandle,diginEventQueue);
     // process events
-    //    processEvent(nidaqOutputTaskHandle,digoutEventQueue);
+    processEvent(nidaqOutputTaskHandle,digoutEventQueue);
   }
     
   // close socket
@@ -148,7 +170,7 @@ int main(int argc, char *argv[])
   endDigIO(nidaqInputTaskHandle,nidaqOutputTaskHandle,diginEventQueue,digoutEventQueue,digIOPool);
 
   // shutdown
-  printf("(mglStandaloneDigIO) Shutdown mglStandaloneDigIO\n");
+  printf("(mglStandaloneDigIO) mglStandaloneDigIO is shutdown\n");
 
   return(0);
 }
@@ -164,7 +186,7 @@ void siginthandler(int param)
   // close socket
   if (socketDescriptor) {
     close(socketDescriptor);
-    printf("(mglStandaloneDigIO) Socket closed\n");
+    if (verbose) printf("(mglStandaloneDigIO) Socket closed\n");
   }
 
   // end digIO
@@ -224,7 +246,7 @@ int readSocketCommand(int *connectionDescriptor, int socketDescriptor, NSMutable
   if (*connectionDescriptor == -1) {
     // display that we are waiting for connection (but only once)
     if (displayWaitingForConnection) {
-      printf("(mglStandaloneDigIO) Waiting for a new connection\n");
+      if (verbose) printf("(mglStandaloneDigIO) Waiting for a new connection\n");
       displayWaitingForConnection = 0;
     }
     // try to make a connection
@@ -232,7 +254,7 @@ int readSocketCommand(int *connectionDescriptor, int socketDescriptor, NSMutable
       return;
     }
     else {
-      printf("(mglStandaloneDigIO) New connection made: %i\n",*connectionDescriptor);
+      printf("(mglStandaloneDigIO) New connection made: %i\n",(int)*connectionDescriptor);
       displayWaitingForConnection = 1;
     }
   }
@@ -242,49 +264,34 @@ int readSocketCommand(int *connectionDescriptor, int socketDescriptor, NSMutable
 
   // read command
   if ((readCount=recv(*connectionDescriptor,buf,1,0)) > 0) {
-    //++++++++++++++++++++++++++++++++
-    // Open
-    //++++++++++++++++++++++++++++++++
-    if (buf[0] == OPEN_COMMAND) {
-      printf("(mglStandaloneDigIO) Got open command\n");
-    }
-    //++++++++++++++++++++++++++++++++
-    // digin
-    //++++++++++++++++++++++++++++++++
-    else if (buf[0] == DIGIN_COMMAND) {
+    // digin command
+    if (buf[0] == DIGIN_COMMAND)
       digin(diginEventQueue,*connectionDescriptor);
-    }
-    //++++++++++++++++++++++++++++++++
-    // digout
-    //++++++++++++++++++++++++++++++++
-    else if (buf[0] == DIGOUT_COMMAND) {
+    // digout command
+    else if (buf[0] == DIGOUT_COMMAND)
       digout(digoutEventQueue,*connectionDescriptor);
-    }
-    //++++++++++++++++++++++++++++++++
-    // list
-    //++++++++++++++++++++++++++++++++
-    else if (buf[0] == LIST_COMMAND) {
-      diglist(diginEventQueue,digoutEventQueue);
-    }
-    //++++++++++++++++++++++++++++++++
-    // close
-    //++++++++++++++++++++++++++++++++
+    // list command
+    else if (buf[0] == LIST_COMMAND)
+      diglist(*connectionDescriptor,diginEventQueue,digoutEventQueue);
+    // close command
     else if (buf[0] == CLOSE_COMMAND) {
       close(*connectionDescriptor);
       *connectionDescriptor = -1;
+      // set status to paused
+      gRunStatus = 0;
     }
-    //++++++++++++++++++++++++++++++++
-    // shutdown
-    //++++++++++++++++++++++++++++++++
+    // shutdown command
     else if (buf[0] == SHUTDOWN_COMMAND) {
       close(*connectionDescriptor);
       *connectionDescriptor = -1;
+      // set status to paused
+      gRunStatus = 0;
       return(0);
     }
-    //++++++++++++++++++++++++++++++++
-    // ack
-    //++++++++++++++++++++++++++++++++
+    // ack command
     else if (buf[0] == ACK_COMMAND) {
+      // read any more pending bytes
+      //      while (recv(*connectionDescriptor,buf,1,0) > 0) ;
       // send acknowledge byte 
       if (digIOStatus)
 	// one if digIO is running
@@ -292,7 +299,10 @@ int readSocketCommand(int *connectionDescriptor, int socketDescriptor, NSMutable
       else
 	// two if not running
 	senduint8(*connectionDescriptor,2,1);
+      // set status to running
+      gRunStatus = 1;
     }
+    // unknown command
     else
       printf("(mglStandaloneDigIO) Unknown command %s\n",commandName);
   }
@@ -320,7 +330,7 @@ void processEvent(TaskHandle nidaqOutputTaskHandle, NSMutableArray *digoutEventQ
     // see if we need to post the top element on the queue
     if (currentTimeInSeconds > [[digoutEventQueue objectAtIndex:0] time]) {
       // set the port
-      [[digoutEventQueue objectAtIndex:0] doEvent];
+      [[digoutEventQueue objectAtIndex:0] doEvent:nidaqOutputTaskHandle];
       // and remove event from the queue
       [digoutEventQueue removeObjectAtIndex:0];
     }
@@ -380,14 +390,12 @@ void processEvent(TaskHandle nidaqOutputTaskHandle, NSMutableArray *digoutEventQ
 {
   [super dealloc];
 }
-- (void)doEvent
+- (void)doEvent:(TaskHandle)nidaqOutputTaskHandle
 {
   if (type == DIGOUT_EVENT) {
     int32       written;
     // DAQmxBaseWriteDigitalU8 
-    //    DAQmxBaseWriteDigitalU32(nidaqOutputTaskHandle,1,1,10.0,DAQmx_Val_GroupByChannel,&val,&written,NULL);
-    printf("Should output event here - get handle needs to be implemented\n");
-    // FIX FIX FIX
+    DAQmxBaseWriteDigitalU32(nidaqOutputTaskHandle,1,1,10.0,DAQmx_Val_GroupByChannel,&val,&written,NULL);
     return;
   }
 }
@@ -568,11 +576,11 @@ void digin(NSMutableArray *diginEventQueue,int connectionDescriptor)
       // send its eventType (up or down), line number and event time
       senduint8(connectionDescriptor,(uint8)[qEvent eventType],0);
       senduint8(connectionDescriptor,(uint8)[qEvent val],0);
-      sendfloat32(connectionDescriptor,(float32)[qEvent time],0);
+      senddouble(connectionDescriptor,[qEvent time],0);
       // flush the output buffer, but only if it is full
       sendflush(connectionDescriptor,0);
-      // printm message
-      printf("(mglStandaloneDigIO:digin) %i: Event type: %i line: %i time: %f\n",count+1,(int)[qEvent eventType],(int)[qEvent val],(float)[qEvent time]);
+      // print message
+      if (verbose>1)  printf("(mglStandaloneDigIO:digin) %i: Event type: %i line: %i time: %f\n",count+1,(int)[qEvent eventType],(int)[qEvent val],(float)[qEvent time]);
       // remove it from the queue
       [diginEventQueue removeObjectAtIndex:count];
     }
@@ -580,7 +588,7 @@ void digin(NSMutableArray *diginEventQueue,int connectionDescriptor)
     sendflush(connectionDescriptor,1);
   }
   else {
-    printf("(mglStandaloneDigIO:digin) No events pending\n");
+    if (verbose) printf("(mglStandaloneDigIO:digin) No events pending\n");
   }
 } 
 
@@ -627,6 +635,18 @@ void sendfloat32(int connectionDescriptor, float32 value, int flush)
   if (flush) sendflush(connectionDescriptor,1);
 }
 
+/////////////////////
+//    senddouble   //
+/////////////////////
+void senddouble(int connectionDescriptor, double value, int flush)
+{
+  // load the send buffer
+  *(double*)(sendBuffer+sendBufferLoc) = value;
+  sendBufferLoc += sizeof(double);
+  // flush it if called for
+  if (flush) sendflush(connectionDescriptor,1);
+}
+
 ////////////////////
 //    sendflush   //
 ////////////////////
@@ -661,6 +681,7 @@ void digout(NSMutableArray *digoutEventQueue,int connectionDescriptor)
     return;
   }
   uInt32 val = *(uInt32*)buf;
+  if (verbose) printf("(mglStandaloneDigIO) Queing event of %i at time %f\n",(int)val,time);
 
   // create the event
   digQueueEvent *qEvent = [[digQueueEvent alloc] initWithTypeTimeAndValue:DIGOUT_EVENT :time :val];
@@ -678,14 +699,16 @@ void digout(NSMutableArray *digoutEventQueue,int connectionDescriptor)
 //////////////////
 //    diglist   // 
 //////////////////
-void diglist(NSMutableArray *digintEventQueue,NSMutableArray *digoutEventQueue)
+void diglist(int connectionDescriptor,NSMutableArray *digintEventQueue,NSMutableArray *digoutEventQueue)
 {
   // display which ports we are using
-  printf("(mglStandaloneDigIO) DigIO thread is running\n");
+  printf("(mglStandaloneDigIO) DigIO standalone is running (connectionDescriptor = %i)\n",connectionDescriptor);
+  printf("(mglStandaloneDigIO) Status is %s\n",(gRunStatus) ? "running" : "paused");
+
   if (nidaqInputTaskHandle != 0) {
     // display events on event queue
     if ([digoutEventQueue count] == 0) {
-      printf("(mglStandaloneDigIO) No digiout events pending.\n");
+      printf("(mglStandaloneDigIO) No digout events pending.\n");
     }
     else {
       int i;
@@ -732,6 +755,12 @@ int openSocket(char *socketName, int *connectionDescriptor, int *socketDescripto
     return 0;
   }
 
+  // make socket non-blocking
+  long on = 1L;
+  if (fcntl(*socketDescriptor, F_SETFL, O_NONBLOCK) < 0) {
+    printf("(mglStandaloneDigIO) Could not set socket to non-blocking. This will not record io events until a connection is made.");
+  }
+
   // set up socket address
   memset(&socketAddress, 0, sizeof(socketAddress));
   socketAddress.sun_family = AF_UNIX;
@@ -756,21 +785,7 @@ int openSocket(char *socketName, int *connectionDescriptor, int *socketDescripto
     close(*socketDescriptor);
     return 0;
   }
-  printf("(mglStandaloneDigIO) Opened socket %s\n",socketName);
-
-  // check for a connection
-  printf("(mglStandaloneDigIO) Waiting for connection on %s\n",socketName);
-  if ( (*connectionDescriptor = accept(*socketDescriptor, NULL, NULL)) == -1) {
-     perror("(mglMovieStandAlone) Error accepting a connection on socket. This prevents communication between matlab and mglMovieStandAlone");
-     return 0;
-    }
-  printf("(mglStandaloneDigIO) Connection on %s accepted\n",socketName);
-
-  // make socket non-blocking
-  long on = 1L;
-  if (fcntl(*socketDescriptor, F_SETFL, O_NONBLOCK) < 0) {
-    printf("(mglStandaloneDigIO) Could not set socket to non-blocking. This will not record io events until a connection is made.");
-  }
+  if (verbose) printf("(mglStandaloneDigIO) Opened socket %s\n",socketName);
 
   return 1;
 }

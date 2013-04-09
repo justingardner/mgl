@@ -104,7 +104,6 @@ elseif commandNum == 1
   if isempty(mglGetParam('digioSocketName'))
     % get home directory
     curpath = pwd;cd('~');homepath = pwd;cd(curpath);
-    homepath='';
     mglSetParam('digioSocketName',fullfile(homepath,'.mglDigIO'));
   end
   if nargin > 1,inputPortNum = arg1;else inputPortNum = 2;end
@@ -114,7 +113,3 @@ else
   % run the command
   retval = mglPrivateDigIO(commandNum);
 end
-
-  
-
-
