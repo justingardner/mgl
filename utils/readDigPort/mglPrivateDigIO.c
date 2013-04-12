@@ -595,7 +595,6 @@ int writeuint32(uint32 val)
 ////////////////////////
 // NIDAQ error checking macro
 #define DAQmxErrChk(functionCall) { if( DAQmxFailed(error=(functionCall)) ) { goto Error; } }
-#define uint32 uInt32
 
 ///////////////////////////////
 //   function declarations   //
@@ -627,7 +626,7 @@ void initDigIO(int setNidaqInputPortNum,int setNidaqOutputPortNum)
 {
   // set the global portnum variables
   nidaqInputPortNum = setNidaqInputPortNum;
-  nidaqOutputPortNum = setNidaqInputPortNum;
+  nidaqOutputPortNum = setNidaqOutputPortNum;
   // start the thread that will continue to handle reading and
   // writing the NIDAQ card
   if (!nidaqThreadInstalled) {
@@ -1013,7 +1012,7 @@ void launchNidaqThread()
   if (type == DIGOUT_EVENT) {
     int32       written;
     // DAQmxBaseWriteDigitalU8 
-    DAQmxBaseWriteDigitalU32(nidaqOutputTaskHandle,1,1,10.0,DAQmx_Val_GroupByChannel,&val,&written,NULL);
+    DAQmxBaseWriteDigitalU32(nidaqOutputTaskHandle,1,1,10.0,DAQmx_Val_GroupByChannel,(uInt32*)&val,&written,NULL);
     return;
   }
 }
