@@ -277,8 +277,8 @@
             # CkeyVersion:
            CC=gcc
 #            CC='g++-4.0'
-            SDKROOT='/Developer/SDKs/MacOSX10.7.sdk'
-            MACOSX_DEPLOYMENT_TARGET='10.7'
+            SDKROOT='/Developer/SDKs/MacOSX10.6.sdk'
+            MACOSX_DEPLOYMENT_TARGET='10.6'
             ARCHS='x86_64'
             CFLAGS="-x objective-c -fno-common -no-cpp-precomp -arch $ARCHS -isysroot $SDKROOT -mmacosx-version-min=$MACOSX_DEPLOYMENT_TARGET -pthread"
             CFLAGS="$CFLAGS  -fexceptions"
@@ -313,7 +313,7 @@
             LD="$CC"
             LDEXTENSION='.mexmaci64'
             LDFLAGS="-Wl,-twolevel_namespace -undefined error -arch $ARCHS -Wl,-syslibroot,$SDKROOT -mmacosx-version-min=$MACOSX_DEPLOYMENT_TARGET"
-            LDFLAGS="$LDFLAGS -bundle -Wl,-exported_symbols_list,$TMW_ROOT/extern/lib/$Arch/$MAPFILE   -framework nidaqmxbase -framework nidaqmxbaselv"
+            LDFLAGS="$LDFLAGS -bundle -Wl,-exported_symbols_list,$TMW_ROOT/extern/lib/$Arch/$MAPFILE  -framework Cocoa -framework CoreServices"
             LDOPTIMFLAGS='-O'
             LDDEBUGFLAGS='-g'
 #

@@ -92,7 +92,7 @@ if ismac
     sysinfo = regexp(result, 'OS X 10.(?<ver>\d?)', 'names');
     ver = 10+str2double(sysinfo.ver)/10;
   end
-  if ver >= 10.7 % >= lion
+  if ver >= 10.6 % >= SnowLepard
     % now check where the SDKs live. If they are in /Developer
     if isdir('/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.8.sdk')
       optf = '-f ./mexopts.10.8.xcode.4.5.sh';
