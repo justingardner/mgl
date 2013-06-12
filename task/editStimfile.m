@@ -479,6 +479,8 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function [stimFilename carFilename] = getFilenamesFromView(v,scanNum,groupNum)
 
+carFilename = [];
+
 % set group
 if ~isempty(groupNum)
   v = viewSet(v,'curGroup',groupNum);
