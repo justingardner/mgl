@@ -88,14 +88,15 @@ if ismac
     ver = ver{1}(1);
   else
     % if that didn't work, try this way.
-    [dumpvar,result] = system('system_profiler SPSoftwareDataType');
+n    [dumpvar,result] = system('system_profiler SPSoftwareDataType');
     sysinfo = regexp(result, 'OS X 10.(?<ver>\d?)', 'names');
     ver = 10+str2double(sysinfo.ver)/10;
   end
   if ver >= 10.6 % >= SnowLepard
     % now check where the SDKs live. If they are in /Developer
     if isdir('/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.8.sdk')
-      optf = '-f ./mexopts.10.8.xcode.4.5.sh';
+      optf = '-f ./mexopts.sh';
+      %     optf = '-f ./mexopts.10.8.xcode.4.5.sh';
     elseif isdir('/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.7.sdk')
       optf = '-f ./mexopts.10.7.xcode.4.3.sh';
     elseif isdir('/Developer/SDKs/MacOSX10.7.sdk')

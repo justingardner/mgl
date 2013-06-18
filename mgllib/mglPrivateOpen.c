@@ -209,6 +209,8 @@ NSWindow *initWindow(double *displayNumber, int *screenWidth, int *screenHeight)
   int verbose = (int)mglGetGlobalDouble("verbose");
   int transparentBackground = (int)mglGetGlobalDouble("transparentBackground");
   int spoofFullScreen = (int)mglGetGlobalDouble("spoofFullScreen");
+  if (verbose)
+    mexPrintf("(mglPrivateOpen) Opening cocoa window: displayNumber: %i spoofFullScreen=%i transparentBackground=%i\n",*displayNumber,spoofFullScreen,transparentBackground);
 
   // start the application -- i.e. connect our code to the window server
   if (NSApplicationLoad() == NO) {
@@ -219,15 +221,25 @@ NSWindow *initWindow(double *displayNumber, int *screenWidth, int *screenHeight)
   // set initial size and location
   NSRect contentRect = NSMakeRect(100,100+*screenHeight,*screenWidth,*screenHeight);
 
+  // set the size to the display size if we are spoofing full screen
+  // which means that we are just making a window the size of the screen
+  // without calling enterFullScreen which captures the display. We
+  // also set the size here if displayNumber is set to >= 1
+  int setSizeToMatchDisplay = 0;
+  if (spoofFullScreen>0)
+    setSizeToMatchDisplay = spoofFullScreen;
+  if (*displayNumber>=1)
+    setSizeToMatchDisplay = *displayNumber;
+    
   // set size to match full screen if this has been set
-  if (spoofFullScreen>0) {
+  if (setSizeToMatchDisplay) {
     // get info about screens
     NSArray *screens = [NSScreen screens];
-    if ([screens count] >= spoofFullScreen) {
+    if ([screens count] >= setSizeToMatchDisplay) {
       // get the size of the sceen
-      NSRect screenRect = [[screens objectAtIndex:(spoofFullScreen-1)] frame];
+      NSRect screenRect = [[screens objectAtIndex:(setSizeToMatchDisplay-1)] frame];
       if (verbose)
-	mexPrintf("(mglPrivateOpen) Screen (%i of %i) size: [%0.0f %0.0f %0.0f %0.0f]\n",spoofFullScreen,[screens count],screenRect.origin.x,screenRect.origin.y,screenRect.size.width,screenRect.size.height);
+	mexPrintf("(mglPrivateOpen) Screen (%i of %i) size: [%0.0f %0.0f %0.0f %0.0f]\n",setSizeToMatchDisplay,[screens count],screenRect.origin.x,screenRect.origin.y,screenRect.size.width,screenRect.size.height);
       // set the content rect to make the window to the size of the screen
       contentRect = screenRect;
       // reset screenWidth and screenHeight
@@ -236,16 +248,16 @@ NSWindow *initWindow(double *displayNumber, int *screenWidth, int *screenHeight)
       // hide the task and menu bars if this is running on the main screen
       if (spoofFullScreen == 1) {
 	if (verbose) mexPrintf("(mglPrivateOpen) Hiding task and menu bar\n");
-	OSStatus setSystemUIModeStatus = SetSystemUIMode(kUIModeAllHidden,kUIOptionAutoShowMenuBar|kUIOptionDisableAppleMenu);
+	[NSMenu setMenuBarVisible:NO];
       }
     }
     else
-      mexPrintf("(mglPrivateOpen) Could not spoof non-existent screen %i (max %i screens available)\n",spoofFullScreen,[screens count]);
+      mexPrintf("(mglPrivateOpen) Could not set size to non-existent screen %i (max %i screens available)\n",setSizeToMatchDisplay,[screens count]);
   }
 
   // create the window
   myWindow = [[NSWindow alloc] initWithContentRect:contentRect styleMask:NSBorderlessWindowMask backing:NSBackingStoreBuffered defer:false];
-    
+
   // check for error
   if (myWindow==nil) {
     mexPrintf("(mglPrivateOpen:initWindow) Could not create window\n");
@@ -266,7 +278,7 @@ NSWindow *initWindow(double *displayNumber, int *screenWidth, int *screenHeight)
     [myWindow setBackgroundColor:[NSColor colorWithCalibratedRed:0.0f green:0.0f blue:0.0f alpha:1.0f]];
   }
 
-  // sleep for 50000 micro secs. The window manager appears to need a little bit of time
+  // sleep for 100000 micro secs. The window manager appears to need a little bit of time
   // to create the window. There should be a function call to check the window status
   // but, I don't know what it is. The symptom is that if we don't wait here, then
   // the screen comes up in white and then doesn't have the GLContext set properly.
@@ -345,6 +357,18 @@ NSOpenGLView *addOpenGLContext(NSWindow *myWindow, double *displayNumber, int *s
   glClear(GL_COLOR_BUFFER_BIT);
   CGLFlushDrawable(contextObj); 
 
+  // check if it is a full screen context, and make the view go full screen
+  if (*displayNumber >= 1) {
+    // get info about screens
+    NSArray *screens = [NSScreen screens];
+    if ([screens count] >= *displayNumber) {
+      // enter full screen
+      [myOpenGLView enterFullScreenMode:[screens objectAtIndex:(*displayNumber-1)] withOptions:nil];
+    }
+    else {
+      mexPrintf("(mglPrivateOpen) Could not open display %i: out of range [1 %i]\n",*displayNumber,[screens count]);
+    }
+  }
   return myOpenGLView;
 }
 
@@ -546,12 +570,14 @@ unsigned long cglOpen(double *displayNumber, int *screenWidth, int *screenHeight
     *displayNumber = (int)numDisplays;
   }
   else if (*displayNumber > numDisplays) {
-    mexPrintf("UHOH (mglPrivateOpen): Display %i out of range (0:%i)\n",*displayNumber,numDisplays);
+    mexPrintf("(mglPrivateOpen): Display %i out of range (0:%i)\n",*displayNumber,numDisplays);
     return;
   }
   else
     whichDisplay = displays[(int)*displayNumber-1];
-  CGDisplayCapture(whichDisplay);
+  CGError captureErrorNum = CGDisplayCapture(whichDisplay);
+  if (captureErrorNum != kCGErrorSuccess)
+    mexPrintf("(mglPrivateOpen) Error %i capturing display %i\n",captureErrorNum,whichDisplay);
 
   // get what the display driver says the settings are
   *screenWidth=CGDisplayPixelsWide( whichDisplay );
@@ -632,10 +658,22 @@ unsigned long cglOpen(double *displayNumber, int *screenWidth, int *screenHeight
 
   // set the drawing context
   CGLSetCurrentContext( contextObj ) ;
-  CGLSetFullScreen( contextObj ) ;
-  // THIS IS MACOS 10.6 SPECIFIC AND SHOULDN'T BE USED WITHOUT
-  // A MAKEFILE THAT TESTS FOR OS VERSION...
-  //CGLSetFullScreenOnDisplay( contextObj, displayMask );
+
+  // now go full screen. Both these calls are being deprecated. This
+  // is the older call which was replaced by the CGLSetFullScreenOnDisplay
+  // which was soon deprecated as well. What is wrong with those people
+  // in Cupertino? Anyway, for the time being (6/18/2013) this call works
+  // up to matlab2013 and the other call works after. So, we check
+  // matlab versions
+  if ((mglGetGlobalDouble("matlabMajorVersion") >= 8) && (mglGetGlobalDouble("matlabMinorVersion") >= 1)) {
+    // This is the new call for getting the display on version 10.6
+#if MAC_OS_X_VERSION_10_6 > MACS_VERSION_MIN_REQUIRED
+    CGLSetFullScreenOnDisplay( contextObj, displayMask );
+#endif
+  }
+  else
+    CGLSetFullScreen( contextObj ) ;
+
   // Hide cursor
   CGDisplayHideCursor( kCGDirectMainDisplay ) ;
 
