@@ -99,6 +99,14 @@ if mglGetParam('movieMode')
   whichScreen = 0;
 end
 
+% set version of matlab, for mglPrivateOpen.c to check - this is to handle
+% deprecated functions which cause the screen not to work in version 8.1
+vInfo = ver('MATLAB');
+[majorVersion theRest] = strtok(vInfo.Version,'.');
+[minorVersion theRest] = strtok(theRest,'.');
+mglSetParam('matlabMajorVersion',str2num(majorVersion));
+mglSetParam('matlabMinorVersion',str2num(minorVersion));
+
 
 %mglSetParam('verbose',1);
 if ~openDisplay
@@ -174,7 +182,6 @@ if ~openDisplay
   mglClearScreen(0);
   mglFlush;
 end
-mglSetParam('verbose',0);
 
 % round down to remove any decimal alpha request
 whichScreen = floor(whichScreen);

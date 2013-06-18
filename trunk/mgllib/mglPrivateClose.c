@@ -105,6 +105,7 @@ void cocoaClose(displayNumber,verbose)
   if (displayNumber >= 1) {
     if (verbose) mexPrintf("(mglPrivateClose) Closing full screen mode\n");
     [[myWindow contentView] exitFullScreenModeWithOptions:nil];
+    usleep(1000000);
   }
 
   // display retain counts
