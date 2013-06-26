@@ -122,6 +122,15 @@ if ~isfile(eyeTrackerFilename)
   return
 end
 
+% replace tilde
+if exist('mlrReplaceTilde') == 2
+  eyeTrackerFilename = mlrReplaceTilde(eyeTrackerFilename);
+else
+  if ~isempty(findstr('~',eyeTrackerFilename))
+    disp(sprintf('(getTaskEyeTraces) The ~ in filename %s may not be parsed correctly',eyeTrackerFilename));
+  end
+end
+
 % load the file
 disppercent(-inf,sprintf('(getTaskEyeTraces) Opening edf file %s',eyeTrackerFilename));
 sprintf('\n');
