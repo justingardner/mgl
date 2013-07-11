@@ -285,8 +285,12 @@ NSWindow *initWindow(double *displayNumber, int *screenWidth, int *screenHeight)
   usleep(100000);
 
   // show window
-  [myWindow orderFront:nil];
-  [myWindow orderFrontRegardless];
+  if (!mglGetGlobalDouble("offscreenContext")) {
+    [myWindow orderFront:nil];
+    [myWindow orderFrontRegardless];
+  }
+  else
+    if (verbose) mexPrintf("(mglPrivateOpen) Offscreen context\n");
   [myWindow display];
   
   // return the window

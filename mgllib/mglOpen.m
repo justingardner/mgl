@@ -152,7 +152,7 @@ if ~openDisplay
       end
       % and call mglPrivateOpen with the correct screen number
       mglPrivateOpen(whichScreen);
-    elseif ~isempty(mglGetParam('spoofFullScreen'));
+    elseif ~isempty(mglGetParam('spoofFullScreen')) && (mglGetParam('spoofFullScreen') > 0);
       % get the current resolution, so we can return to it on close
       mglSetParam('originalResolution',mglResolution(whichScreen));
       % set the display resolution
