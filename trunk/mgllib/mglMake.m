@@ -25,12 +25,26 @@
 %             not one of the commands listed above it will also be treated  as
 %             a command line option.) Command line options must begin with a '-'.
 %
+%             To force a rebuild for a specific version of MacOS (you will need
+%             to have the correct SDKs installed). Note normally this will auto-detect
+%             which version to compile for:
+%             mglMake('ver=10.6');
+%
 function retval = mglMake(rebuild, varargin)
 
 % check arguments
 if any(nargin > 10) % arbitrary...
   help mglMake
   return
+end
+
+% user can set os version to force recompile for by setting ver=1.6
+if (nargin>=1) && isstr(rebuild) && (length(rebuild)>4) && strcmp(lower(rebuild(1:4)),'ver=')
+  forceVer = str2num(rebuild(5:end));
+  disp(sprintf('(mglMake) Forcing remake for version: %f',forceVer));
+  rebuild = 1;
+else
+  forceVer = [];
 end
 
 % interpret rebuild argument
@@ -88,22 +102,26 @@ if ismac
     ver = ver{1}(1);
   else
     % if that didn't work, try this way.
-n    [dumpvar,result] = system('system_profiler SPSoftwareDataType');
+    [dumpvar,result] = system('system_profiler SPSoftwareDataType');
     sysinfo = regexp(result, 'OS X 10.(?<ver>\d?)', 'names');
     ver = 10+str2double(sysinfo.ver)/10;
   end
   if ver >= 10.6 % >= SnowLepard
     % now check where the SDKs live. If they are in /Developer
-    if isdir('/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.8.sdk')
+    if (isempty(forceVer) && isdir('/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.8.sdk')) || (forceVer == 10.8)
       optf = '-f ./mexopts.10.8.xcode.4.5.sh';
-    elseif isdir('/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.7.sdk')
+    elseif (isempty(forceVer) && isdir('/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.7.sdk')) || (forceVer == 10.7)
       optf = '-f ./mexopts.10.7.xcode.4.3.sh';
-    elseif isdir('/Developer/SDKs/MacOSX10.7.sdk')
+    elseif (isempty(forceVer) && isdir('/Developer/SDKs/MacOSX10.7.sdk'))
       optf = '-f ./mexopts.10.7.sh';
-    elseif isdir('/Developer/SDKs/MacOSX10.6.sdk')
+    elseif (isempty(forceVer) && isdir('/Developer/SDKs/MacOSX10.6.sdk')) || (forceVer == 10.6)
       optf = '-f ./mexopts.sh';
     else
-      disp(sprintf('(mglMake) !!! Could not find MacOSX sdk. Have you installed XCode? !!!'));
+      if isempty(forceVer)
+	disp(sprintf('(mglMake) !!! Could not find MacOSX sdk. Have you installed XCode? !!!'));
+      else
+	disp(sprintf('(mglMake) !!! Could not force compile for version %f !!!',forceVer));
+      end
       return
     end
   else
