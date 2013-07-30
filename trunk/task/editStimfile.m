@@ -423,7 +423,9 @@ if ~isempty(g.carFilename)
   % and print the volume number when it occurred
   if ~isempty(car.acqTriggerType)
     for iVol = unique([find(car.acqTriggerType<=0) first(find(car.acqTriggerType>0)):10:car.acqVols car.acqVols(end)])
-      text(car.acqTriggers((iVol-1)*car.acqTriggersPerVol+1),1.5,car.acqTriggerName{iVol},'HorizontalAlignment','center','Color','k','Parent',a);
+      if round(iVol) == iVol
+	text(car.acqTriggers((iVol-1)*car.acqTriggersPerVol+1),1.5,car.acqTriggerName{iVol},'HorizontalAlignment','center','Color','k','Parent',a);
+      end
     end
     axis(a,[extra.minTime extra.maxTime -0.1 2.0]);
   else
