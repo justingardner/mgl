@@ -27,6 +27,7 @@ else
 end
 
 % quit keyboard listener
+myscreen.mouseEventsAtEndScreen = mglGetMouseEvent(0,1);
 mglListener('quit');
 
 % turn off eye tracker
