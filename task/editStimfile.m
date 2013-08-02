@@ -348,7 +348,9 @@ end
 
 % and print the volume number when it occurred
 for iVol = unique([1 10:10:length(extra.triggerTimes) length(extra.triggerTimes)])
-  text(extra.triggerTimes(iVol),1.5,sprintf('%i',iVol),'HorizontalAlignment','center','Color','k','Parent',a);
+  if (iVol >= 1) && (iVol <= length(extra.triggerTimes))
+    text(extra.triggerTimes(iVol),1.5,sprintf('%i',iVol),'HorizontalAlignment','center','Color','k','Parent',a);
+  end
 end
 
 % set the axis limits
@@ -537,17 +539,29 @@ for iFile = 1:gEditStimfile.n
     
     % get first volume, so that we can rest the time of myscreen to be 0 at first acq
     triggers = getedges(stimfile.myscreen.traces(1,:),0.5);
-    firstTriggerTime = stimfile.myscreen.time(triggers.rising(1));
-    lastTriggerTime = stimfile.myscreen.time(triggers.rising(end));
-    extra.triggerTimes = stimfile.myscreen.time(triggers.rising)-firstTriggerTime;
-    extra.time = stimfile.myscreen.time-firstTriggerTime;
-    extra.firstTriggerTime = firstTriggerTime;
-    extra.lastTriggerTime = lastTriggerTime;
-    extra.scanEndTime = lastTriggerTime-firstTriggerTime+median(diff(stimfile.myscreen.time(triggers.rising)));
+    
+    if triggers.n ~= 0
+      firstTriggerTime = stimfile.myscreen.time(triggers.rising(1));
+      lastTriggerTime = stimfile.myscreen.time(triggers.rising(end));
+      extra.triggerTimes = stimfile.myscreen.time(triggers.rising)-firstTriggerTime;
+      extra.time = stimfile.myscreen.time-firstTriggerTime;
+      extra.firstTriggerTime = firstTriggerTime;
+      extra.lastTriggerTime = lastTriggerTime;
+      extra.scanEndTime = lastTriggerTime-firstTriggerTime+median(diff(stimfile.myscreen.time(triggers.rising)));
 
-    % get min and max time
-    extra.minTime = min(extra.time);
-    extra.maxTime = max(extra.time);
+      % get min and max time
+      extra.minTime = min(extra.time);
+      extra.maxTime = max(extra.time);
+    else
+      % no triggers default fields to something 
+      extra.triggerTimes = [];
+      extra.time = stimfile.myscreen.time;
+      extra.firstTriggerTime = 0;
+      extra.lastTriggerTime = 0;
+      extra.scanEndTime = 0;
+      extra.minTime = min(extra.time);
+      extra.maxTime = max(extra.time);
+    end
     
     % put stimfile in global
     gEditStimfile.stimfile{iFile} = stimfile;

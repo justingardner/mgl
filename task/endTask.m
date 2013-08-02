@@ -17,8 +17,6 @@ if ~any(nargin == [2])
 end
 
 mydisp(sprintf('(endTask) Ending task...\n'));
-% quit keyboard listener
-mglListener('quit');
 
 % if there are calculated random variables, in the last trial, save them
 task = saveCalculatedVariables(task);
