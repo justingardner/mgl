@@ -23,6 +23,10 @@
 %             % if you want to display a figure with the eye positon
 %             e = getTaskEyeTraces(('101203_stim03','dispFig=1');
 %
+%             To get the eye traces relative to a segment other than 1
+%             set the alternative field segNum equal to that segment
+%             e = getTaskEyeTraces('100616_stim01','segNum=2');
+%
 %    e = getTaskEyeTraces('100616_stim01','taskNum=1','phaseNum=1','dataPad=3');
 %
 function e = getTaskEyeTraces(stimfileName,varargin)
@@ -42,7 +46,7 @@ end
 
 taskNum=[];phaseNum=[];dispFig=[];dataPad=[];removeBlink=[];
 if exist('getArgs') == 2
-  getArgs(varargin,{'taskNum=1','phaseNum=1','dispFig=0','dataPad=3','removeBlink=0'});
+  getArgs(varargin,{'taskNum=1','phaseNum=1','dispFig=0','dataPad=3','removeBlink=0','segNum=1'});
 else
   disp(sprintf('(getTaskEyeTraces) To run this program you need functions from the mrTools distribution. \nSee here: http://gru.brain.riken.jp/doku.php/mgl/gettingStarted#initial_setup'));
   return
@@ -172,7 +176,7 @@ for i = 1:max(edf.mgl.trialNum(edf.mgl.taskID == taskID))
   %%% deadtime related to waiting for backtics, user start, etc
   segmentZeroTime = edf.mgl.time((edf.mgl.taskID == taskID) &  ...
                                    (edf.mgl.trialNum==i) &  ...
-                                   (edf.mgl.segmentNum==1));
+                                   (edf.mgl.segmentNum==segNum));
   
   % call this the startTime
   if ~isempty(segmentZeroTime)
