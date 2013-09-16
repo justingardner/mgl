@@ -174,20 +174,28 @@ for i = 1:max(edf.mgl.trialNum(edf.mgl.taskID == taskID))
   %%% I think this should be segment 1--at least in my code segment 1 == seg1
   %%% and that seems to be what updateTask writes out. The seg==0 often includes
   %%% deadtime related to waiting for backtics, user start, etc
-  segmentZeroTime = edf.mgl.time((edf.mgl.taskID == taskID) &  ...
+  segmentOneTime = edf.mgl.time((edf.mgl.taskID == taskID) &  ...
                                    (edf.mgl.trialNum==i) &  ...
-                                   (edf.mgl.segmentNum==segNum));
+                                   (edf.mgl.segmentNum==1));
+  segNumTime = edf.mgl.time((edf.mgl.taskID == taskID) &  ...
+			    (edf.mgl.trialNum==i) &  ...
+			    (edf.mgl.segmentNum==segNum));
   
   % call this the startTime
-  if ~isempty(segmentZeroTime)
-    startTime(i) = segmentZeroTime;
+  if ~isempty(segNumTime)
+    startTime(i) = segNumTime;
   else
     startTime(i) = nan;
   end
+  % end time is the start of the next trial
+  if i > 1
+    if ~isempty(segmentOneTime)
+      endTime(i-1) = segmentOneTime;
+    else
+      endTime(i-1) = nan;
+    end
+  end
 end
-
-% get the end times
-endTime(1:length(startTime)-1) = startTime(2:end);
 
 % make the end time of the last trial, at most as long as the longest trial so far
 if ~isempty(endTime)
