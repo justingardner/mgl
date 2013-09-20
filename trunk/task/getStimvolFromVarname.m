@@ -104,6 +104,59 @@ if ~exist('phaseNum','var')
 end
 if ~exist('verbose','var'),verbose = true;end
 
+if iscell(varnameIn)
+  % make into a 2 level cell array, one element for each set of conditions
+  varnameIn = cellArray(varnameIn,2);
+  % the purpose of this code is to handle the {} cell array conditions
+  % for every cell aray element
+  for iVarname = 1:length(varnameIn)
+    % we are going to create a single entry in the stimvolOut and other arrays
+    thisVarnameIn = varnameIn{iVarname};
+    stimvolOut{iVarname} = [];
+    % each element may have several conditions like: side=1 or contrast=[0.5 1]
+    for iCond = 1:length(thisVarnameIn)
+      thisCond = thisVarnameIn{iCond};
+      % recursively call this fucntion to get the current condition
+      [stimvol stimNames trialNum] = getStimvolFromVarname(thisCond,myscreen,task,taskNum,phaseNum,segmentNum);
+      if isempty(stimvolOut{iVarname}) 
+	% first time, just get stimvols /names and trial nums
+	stimvolOut{iVarname} = stimvol;
+	stimNamesOut{iVarname} = stimNames;
+	trialNumOut{iVarname} = trialNum;
+      else
+	% next times, combine what we already have with the new condition
+	oldStimvolOut = stimvolOut;oldStimNamesOut = stimNamesOut;oldTrialNumOut = trialNumOut;
+	stimvolOut{iVarname} = [];stimNamesOut{iVarname} = {};trialNumOut{iVarname} = {};
+	for iOldStimvolOut = 1:length(oldStimvolOut{iVarname})
+	  % intersect each condition with existing conditions and union them together
+	  for iStimvol = 1:length(stimvol)
+	    if iStimvol == 1
+	      stimvolOut{iVarname}{1} = intersect(oldStimvolOut{iVarname}{iOldStimvolOut},stimvol{iStimvol});
+	      stimNamesOut{iVarname}{1} = sprintf('(%s & %s)',oldStimNamesOut{iVarname}{iOldStimvolOut},stimNames{iStimvol});
+	      trialNumOut{iVarname}{1} = intersect(oldTrialNumOut{iVarname}{iOldStimvolOut},trialNum{iStimvol});
+	    else
+	      stimvolOut{iVarname}{1} = union(stimvolOut{iVarname}{1},intersect(oldStimvolOut{iVarname}{iOldStimvolOut},stimvol{iStimvol}));
+	      stimNamesOut{iVarname}{1} = sprintf('%s or (%s & %s)',stimNamesOut{iVarname}{1},oldStimNamesOut{iVarname}{iOldStimvolOut},stimNames{iStimvol});
+	      trialNumOut{iVarname}{1} = union(trialNumOut{iVarname}{1},intersect(oldTrialNumOut{iVarname}{iOldStimvolOut},trialNum{iStimvol}));
+	    end
+	  end
+	end
+      end
+    end
+  end
+  % make into a cell array with depth 1 (the procedure above returns a cell array of cell arrays
+  oldStimvolOut = stimvolOut;oldStimNamesOut = stimNamesOut;oldTrialNumOut = trialNumOut;
+  stimvolOut = oldStimvolOut{1};
+  stimNamesOut = oldStimNamesOut{1};
+  trialNumOut = oldTrialNumOut{1};
+  for iVarname = 2:length(oldStimvolOut)
+    stimvolOut = {stimvolOut{:} oldStimvolOut{iVarname}{:}};
+    stimNamesOut = {stimNamesOut{:} oldStimNamesOut{iVarname}{:}};
+    trialNumOut = {trialNumOut{:} oldTrialNumOut{iVarname}{:}};
+  end
+  return
+end
+
 % check to see if the varnameIn is a comma separated list. In which
 % case we return the stimvols for each variable in the list concatenated
 % together
