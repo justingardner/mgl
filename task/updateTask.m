@@ -477,7 +477,7 @@ else
     % each trial) If we have multiple trials, but less than the current 
     % trial number than cycle through the rows
     fieldRow = mod(task.trialnum-1,task.seglenPrecompute.(fieldName).nTrials)+1;
-    task.(fieldName) = task.seglenPrecompute.(fieldName).vals{fieldRow};
+    task.thistrial.(fieldName) = task.seglenPrecompute.(fieldName).vals{fieldRow};
   end
   % now get the seglen for this trial (note that seglen is a cell array
   % which allows for trials with different numbers of segments)

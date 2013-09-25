@@ -924,6 +924,9 @@ task = seglenPrecomputeValidate(task);
 if ~isempty(numVolumes) && ~isfield(task.seglenPrecompute,'numVolumes') 
   task.seglenPrecompute.numVolumes = numVolumes;
 end
+if ~isfield(task.seglenPrecompute,'totalLength') 
+  task.seglenPrecompute.totalLength = sum(trialLength);
+end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%
 %    computeTriallen    %
