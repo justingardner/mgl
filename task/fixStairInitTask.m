@@ -54,6 +54,7 @@ if ~isfield(fixStimulus,'pos') fixStimulus.pos = [0 0]; end
 if ~isfield(fixStimulus,'fixWidth') fixStimulus.fixWidth = 1; end
 if ~isfield(fixStimulus,'fixLineWidth') fixStimulus.fixLineWidth = 3; end
 if ~isfield(fixStimulus,'trainingMode') fixStimulus.trainingMode = 0;end
+if ~isfield(fixStimulus,'verbose') fixStimulus.verbose = 1;end
 
 % for trainingMode set text
 if fixStimulus.trainingMode
@@ -87,7 +88,9 @@ function [task myscreen] = fixTrialStartCallback(task, myscreen)
 global fixStimulus;
 % choose stimulus interval
 task.thistrial.sigInterval = 1+(rand > 0.5);
-disp(sprintf('sigint = %i threshold = %0.2f',task.thistrial.sigInterval,fixStimulus.threshold));
+if fixStimulus.verbose
+  disp(sprintf('sigint = %i threshold = %0.2f',task.thistrial.sigInterval,fixStimulus.threshold));
+end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % function that gets called at the start of each segment
