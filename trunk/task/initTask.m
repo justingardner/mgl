@@ -69,7 +69,11 @@ knownFieldnames = ...
      'segmin', ...
      'segmax', ...
      'segquant', ...
+     'segdur',...
+     'segprob',...
      'segnames', ...
+     'seglenPrecompute',...
+     'seglenPrecomputeSettings',...
      'synchToVol', ...
      'writeTrace', ...
      'getResponse', ...
@@ -86,7 +90,8 @@ knownFieldnames = ...
      'private', ...
      'randVars', ...
      'fudgeLastVolume', ...
-     'collectEyeData'};
+     'collectEyeData',...
+    };
 
 taskFieldnames = fieldnames(task);
 for i = 1:length(taskFieldnames)
@@ -109,67 +114,6 @@ end
 % set up trial and block numbers
 task.blocknum = 0;
 task.thistrial.thisseg = inf;
-
-% find out how many segments we have and
-% check to see if they are specified correctly
-if isfield(task,'seglen')
-  if isfield(task,'segmin') || isfield(task,'segmax')
-    disp(sprintf('(initTask) Found both seglen field and segmin/segmax. Using seglen'));
-  end
-  task.segmin = task.seglen;
-  task.segmax = task.seglen;
-end
-
-if ~isfield(task,'segmin') || ~isfield(task,'segmax')
-  error(sprintf('(initTask) Must specify task.segmin and task.segmax'));
-  return
-end
-
-% look for seqment length quantization pramater, if it 
-% is not set, default to 0. what this does is if you
-% randomize times between segmin and segmax, it will
-% give you a value that is quantized to this value.
-% for example say we have;
-% segmin = 1, segmax =5, segquant = 1.5
-% then the random values that are possible are 1, 2.5, and 4
-% if it is set to 0 then all random values  between 1 and 5 are possible
-if ~isfield(task,'segquant') 
-  task.segquant = zeros(1,length(task.segmin));
-end
-
-if ~isfield(task,'synchToVol')
-  task.synchToVol = zeros(1,length(task.segmin));
-elseif length(task.synchToVol) < length(task.segmin)
-  % if sycnhToVol is not long enough, pad it out with 0s
-  task.synchToVol(end+1:length(task.segmin)) = 0;
-end
-
-% just warn if user has a writeTrace field. It is no longer necessary
-if isfield(task,'writeTrace') || isfield(task,'writetrace')
-  disp(sprintf('(initTask) There is no longer any need to use writeTrace. All variable settings are correctly stored in the task variables and can be extracted after the experiment using getTaskParameters. The passed in writeTrace field will be ignored'));
-end
-
-task.numsegs = length(task.segmin);
-if length(task.segmin) ~= length(task.segmax)
-  error(sprintf('(initTask) task.segmin and task.segmax not of same length\n'));
-  return
-end
-if any((task.segmax - task.segmin) < 0)
-  error(sprintf('(initTask) task.segmin not smaller than task.segmax\n'));
-  return
-end
-
-% if we have specified segment names, setup the index
-if isfield(task, 'segnames') 
-  if numel(task.segnames) ~= task.numsegs
-    error(sprintf('(initTask) task.segnames does not match the number of segments\n'));
-  else
-    for nSeg = 1:task.numsegs
-      task.segndx.(task.segnames{nSeg}) = ...
-	  strmatch(task.segnames{nSeg}, task.segnames);
-    end
-  end
-end
 
 % keep the task randstate. Note that initScreen initializes the
 % state of the random generator to a random value (set by clock)
@@ -196,6 +140,139 @@ task.randstate.trialState = floor((2^32-1)*rand);
 % set the random state
 randstate = rand(myscreen.randstate.type);
 rand(task.randstate.type,task.randstate.state);
+
+% see if seglen has been precomputed
+if isfield(task,'seglenPrecompute')  && isstruct(task.seglenPrecompute)
+  % then validate the structure
+  task = seglenPrecomputeValidate(task);
+else
+  % find out how many segments we have and
+  % check to see if they are specified correctly
+  if isfield(task,'seglen')
+    if isfield(task,'segmin') || isfield(task,'segmax')
+      disp(sprintf('(initTask) Found both seglen field and segmin/segmax. Using seglen'));
+    end
+    task.segmin = task.seglen;
+    task.segmax = task.seglen;
+  end
+
+  if ~isfield(task,'segmin') || ~isfield(task,'segmax')
+    disp(sprintf('(initTask) Must specify task.segmin and task.segmax'));
+    keyboard
+  end
+
+  % look for seqment length quantization pramater, if it 
+  % is not set, default to 0. what this does is if you
+  % randomize times between segmin and segmax, it will
+  % give you a value that is quantized to this value.
+  % for example say we have;
+  % segmin = 1, segmax =5, segquant = 1.5
+  % then the random values that are possible are 1, 2.5, and 4
+  % if it is set to 0 then all random values  between 1 and 5 are possible
+  if ~isfield(task,'segquant') 
+    task.segquant = zeros(1,length(task.segmin));
+  elseif length(task.segquant) < length(task.segmin)
+    task.segquant(end+1:length(task.segmin)) = 0;
+  end
+
+  if ~isfield(task,'synchToVol')
+    task.synchToVol = zeros(1,length(task.segmin));
+  elseif length(task.synchToVol) < length(task.segmin)
+    % if sycnhToVol is not long enough, pad it out with 0s
+    task.synchToVol(end+1:length(task.segmin)) = 0;
+  end
+  
+  % check for segdur - segdur allows one to set 
+  % an array of possible durations
+  if ~isfield(task,'segdur') || (length(task.segdur) < length(task.segmin))
+    task.segdur{length(task.segmin)} = [];
+  % check length
+  elseif length(task.segdur) > length(task.segmin)
+    task.segmin(end+1:length(task.segdur)) = nan;
+    task.segmax(end+1:length(task.segdur)) = nan;
+    if length(task.segquant) < length(task.segmin)
+      task.segquant(end+1) = 0;
+    end
+    if length(task.synchToVol) < length(task.segmin)
+      task.synchToVol(end+1) = 0;
+    end
+  end
+  % check for segprob
+  if ~isfield(task,'segprob') || (length(task.segprob) < length(task.segmin))
+    task.segprob{length(task.segmin)} = [];
+  end
+  
+  % check matching segdur / segprob and segmin
+  for iSeg = 1:length(task.segmin)
+    % check if there isa segdur
+    if ~isempty(task.segdur{iSeg})
+      % check for matching freq
+      if isempty(task.segprob{iSeg})
+	% no matching frequency. set to equal frequencies
+	task.segprob{iSeg} = repmat(1/length(task.segdur{iSeg}),1,length(task.segdur{iSeg}));
+      elseif length(task.segprob{iSeg})~=length(task.segdur{iSeg})
+	disp(sprintf('(initTask) segprob{%i} must have the same number of elements as segdur{%i}',iSeg,iSeg));
+	keyboard
+      elseif sum(task.segprob{iSeg}) ~= 1
+	disp(sprintf('(initTask) segprob{%i} must add up to 1',iSeg));
+	keyboard
+      end
+      % set segmin/segmax to nan
+      task.segmin(iSeg) = nan;
+      task.segmax(iSeg) = nan;
+      % make probabilities
+      task.segprob{iSeg} = cumsum(task.segprob{iSeg});
+      task.segprob{iSeg} = [0 task.segprob{iSeg}(1:end-1)];
+    elseif ~isempty(task.segprob{iSeg})
+      disp(sprintf('(initTask) Non-empty segprob{%i} for empty segdur{%i}',iSeg,iSeg));
+      keyboard
+    elseif isnan(task.segmin(iSeg))
+      disp(sprintf('(initTask) Segmin is nan without a segdur{%i}',iSeg));
+      keyboard
+    end
+  end
+
+  task.numsegs = length(task.segmin);
+  if length(task.segmin) ~= length(task.segmax)
+    error(sprintf('(initTask) task.segmin and task.segmax not of same length\n'));
+    return
+    end
+  if any((task.segmax - task.segmin) < 0)
+    error(sprintf('(initTask) task.segmin not smaller than task.segmax\n'));
+    return
+  end
+
+  % if we have specified segment names, setup the index
+  if isfield(task, 'segnames') 
+    if numel(task.segnames) ~= task.numsegs
+      error(sprintf('(initTask) task.segnames does not match the number of segments\n'));
+    else
+      for nSeg = 1:task.numsegs
+	task.segndx.(task.segnames{nSeg}) = ...
+	    strmatch(task.segnames{nSeg}, task.segnames);
+      end
+    end
+  end
+end
+
+% check for time in ticks
+if ~isfield(task,'timeInTicks')
+  task.timeInTicks = 0;
+end
+% check for time in vols
+if ~isfield(task,'timeInVols')
+  task.timeInVols = 0;
+end
+% check for both
+if task.timeInTicks && task.timeInVols
+  disp(sprintf('(initTask) Time is both ticks and vols, setting to vols'));
+  task.timeInTicks = 0;
+end
+
+% just warn if user has a writeTrace field. It is no longer necessary
+if isfield(task,'writeTrace') || isfield(task,'writetrace')
+  disp(sprintf('(initTask) There is no longer any need to use writeTrace. All variable settings are correctly stored in the task variables and can be extracted after the experiment using getTaskParameters. The passed in writeTrace field will be ignored'));
+end
 
 % here we deal with randVars (see wiki for how to use randVars). The randVars
 % are independent random variables from parameters. Note that this code allows
@@ -341,21 +418,6 @@ if ~isfield(task,'random')
 end
 task.parameter.doRandom_ = task.random;
 
-% check for time in ticks
-if ~isfield(task,'timeInTicks')
-  task.timeInTicks = 0;
-end
-% check for time in vols
-if ~isfield(task,'timeInVols')
-  task.timeInVols = 0;
-end
-
-% check for both
-if task.timeInTicks && task.timeInVols
-  disp(sprintf('(initTask) Time is both ticks and vols, setting to vols'));
-  task.timeInTicks = 0;
-end
-
 % set how many total trials we have run (trialnumTotal is there for
 % compatibility, but doesn't get set anymore)
 task.trialnum = 1;
@@ -434,6 +496,16 @@ end
 % initialize the parameters
 task.parameter = feval(task.callback.rand,task.parameter);
 
+% if seglenPrecompute is set to true then we set it up
+if isfield(task,'seglenPrecompute') 
+  if ~isstruct(task.seglenPrecompute)
+    task = seglenPrecompute(task);
+  end
+else
+  % otherwise turn it off
+  task.seglenPrecompute = false;
+end
+
 % get calling name
 if ~isfield(task,'taskFilename')
   [st,i] = dbstack;
@@ -470,6 +542,632 @@ task.randstate.state = rand(task.randstate.type);
 rand(myscreen.randstate.type,randstate);
 
 % set the debug mode to stop on error
-dbstop if error
+dbstop('if','error');
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+%    seglenPrecompute    %
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+function task = seglenPrecompute(task)
+
+
+% this sets up the seglenPrecompute
+
+
+% segmin/segmax/seglen/segquant/synchToVol have already
+% been validated. So base the precomputed seglen on these
+% values
+task.seglenPrecompute = [];
+if ~isfield(task,'seglenPrecomputeSettings')
+  task.seglenPrecomputeSettings = [];
+end
+
+% default to equal frequency computation. What this does is everywhere
+% there is a segquant or a synchToVol it assigns equal probabilities
+% defaults
+settingsDefaults = {{'synchWaitBeforeTime',0.1},{'verbose',1},{'averageLen',[]},{'numTrials',[]},{'maxTries',500},{'idealDiffFromIdeal',[]}};
+
+for iSettings = 1:length(settingsDefaults)
+  % get this setting
+  settingsName = settingsDefaults{iSettings}{1};
+  settingsDefault = settingsDefaults{iSettings}{2};
+  % and set default if it is no already set
+  if ~isfield(task.seglenPrecomputeSettings,settingsName) || isempty(task.seglenPrecomputeSettings.(settingsName))
+    task.seglenPrecomputeSettings.(settingsName) = settingsDefault;
+  end
+end
+
+% grab some settings from the sturcture = just so they are easier to reference
+for iSettings = 1:length(settingsDefaults)
+  settingsName = settingsDefaults{iSettings}{1};
+  eval(sprintf('%s = task.seglenPrecomputeSettings.%s;',settingsName,settingsName));
+end
+
+% see if any synchToVol is set.
+synchToVol = any(task.synchToVol);
+if synchToVol
+  % make sure the last one is set otherwise it will be
+  % hard to compute what will happen (since each trial will
+  % start at some unknown time relative to the beginning
+  % of a volume - why would you even want this?)
+  if ~task.synchToVol(end)
+    disp(sprintf('(initTask:seglenPrecompute) You have not set the last segment to have synchToVol (though other segments do have synchToVol set). Can not precompute the seglens. Usually you should have your last segment synchToVol so that the start of the trial is synched to acquisition. If you cannot arrange this, then you will need to precompute your own seglens.\n!!!! Not precomputing segments !!!!'));
+    keyboard
+    return
+  end
+  % chceck to see if frame period
+  if ~isfield(task.seglenPrecomputeSettings,'framePeriod')
+    disp(sprintf('(initTask:seglenPrecompute) You have set seglenPrecompute, and you have synchToVol. To compute the lengths of trials, initTask needs to know the framePeriod (the time each volume takes - i.e. how often you get an acquisition pulse from the magnet - sometimes every TR). Set the filed task.seglenPrecomputeSettings.framePeriod.\n!!! Not precomputing segments !!!'));
+    keyboard
+    return
+  end
+  framePeriod = task.seglenPrecomputeSettings.framePeriod;
+  % set the fudgeLastVol setting so that the task will end
+  if ~isfield(task,'fudgeLastVolume') || isempty(task.fudgeLastVolume)
+    task.fudgeLastVolume = true;
+  end
+else
+  framePeriod = nan;
+end
+
+% compute average length of trial unless we are passed in one
+if isempty(averageLen)
+  % now we are going to figure out all possibilities for how long
+  % a trial should take. If there is no quantization or synchTovol
+  % then this is just a range from min to max. But if we do, then
+  % essentially there are a set of possibliites 
+  nSegs = length(task.segmin);
+  trialLens(1).freq = 1;
+  trialLens(1).min = 0;
+  trialLens(1).max = 0;
+  trialLens(1).segmin = [];
+  trialLens(1).segmax = [];
+  trialLens(1).synchmin = [];
+  trialLens(1).synchmax = [];
+  for iSeg = 1:nSegs
+    % if this has no seg quant
+    if isnan(task.segmin(iSeg))
+      % nan means to choose from the segdur with segprob, so create one trialLen for each of these possiblitites
+      newTrialLens = [];
+      segprob = diff([task.segprob{iSeg} 1]);
+      for iTrialLen = 1:length(trialLens)
+	for iSegdur = 1:length(task.segdur{iSeg})
+	  % copy old structure
+	  if isempty(newTrialLens)
+	    newTrialLens = trialLens(iTrialLen);
+	  else
+	    newTrialLens(end+1) = trialLens(iTrialLen);
+	  end
+	  % and add this probability
+	  newTrialLens(end).segmin(end+1) = task.segdur{iSeg}(iSegdur);
+	  newTrialLens(end).segmax(end+1) = task.segdur{iSeg}(iSegdur);
+	  newTrialLens(end).synchmin(end+1) = task.segdur{iSeg}(iSegdur);
+	  newTrialLens(end).synchmax(end+1) = task.segdur{iSeg}(iSegdur);
+	  % compute probability
+	  newTrialLens(end).freq = newTrialLens(end).freq*segprob(iSegdur);
+	  % set min and max
+	  newTrialLens(end).min = newTrialLens(end).min + task.segdur{iSeg}(iSegdur);
+	  newTrialLens(end).max = newTrialLens(end).max + task.segdur{iSeg}(iSegdur);
+	end
+      end
+      trialLens = newTrialLens;
+    elseif task.segquant(iSeg) == 0
+      % just add the segmin and segmax on to each min / max trial len
+      for iTrialLen = 1:length(trialLens)
+	trialLens(iTrialLen).min = trialLens(iTrialLen).min + task.segmin(iSeg);
+	trialLens(iTrialLen).max = trialLens(iTrialLen).max + task.segmax(iSeg);
+	% add add on this segmin and segmax 
+	trialLens(iTrialLen).segmin(end+1) = task.segmin(iSeg);
+	trialLens(iTrialLen).segmax(end+1) = task.segmax(iSeg);
+	trialLens(iTrialLen).synchmin(end+1) = task.segmin(iSeg);
+	trialLens(iTrialLen).synchmax(end+1) = task.segmax(iSeg);
+      end
+    else
+      % if the segments are quantized then break into each possibility
+      % figure out all possible quantizations
+      segLens = task.segmin(iSeg):task.segquant(iSeg):task.segmax(iSeg);
+      if segLens(end) ~= task.segmax(iSeg)
+	segLens(end+1) = task.segmax(iSeg);
+      end
+      % add a trialLens struct for each of these possibilities
+      newTrialLens = [];
+      for iTrialLen = 1:length(trialLens)
+	% used for computing probability
+	thisSegLenMin = task.segmin(iSeg);
+	thisSegLen = (task.segmax(iSeg)-task.segmin(iSeg));
+	for iSegLen = 1:length(segLens)
+	  if isempty(newTrialLens)
+	    newTrialLens = trialLens(iTrialLen);
+	  else
+	    newTrialLens(end+1) = trialLens(iTrialLen);
+	  end
+	  % compute the frequency with which this will happen
+	  if thisSegLen > 0
+	    thisSegLenMax = min(thisSegLenMin+task.segquant(iSeg),task.segmax(iSeg));
+	    freq = (thisSegLenMax-thisSegLenMin)/thisSegLen;
+	    thisSegLenMin = thisSegLenMax;
+	  else
+	    freq = 1;
+	  end
+	  newTrialLens(end).freq = newTrialLens(end).freq*freq;
+	  % and add to the whole length of the trial
+	  newTrialLens(end).min = newTrialLens(end).min+segLens(iSegLen);
+	  newTrialLens(end).max = newTrialLens(end).max+segLens(iSegLen);
+	  % and add the segmin / segmax
+	  newTrialLens(end).segmin(end+1) = segLens(iSegLen);
+	  newTrialLens(end).segmax(end+1) = segLens(iSegLen);
+	  newTrialLens(end).synchmin(end+1) = segLens(iSegLen);
+	  newTrialLens(end).synchmax(end+1) = segLens(iSegLen);
+	end
+      end
+      trialLens = newTrialLens;
+    end
+    % now handle the synchToVol setting
+    if task.synchToVol(iSeg)
+      newTrialLens = [];
+      % go through each possible trialLen and quantize
+      for iTrialLen = 1:length(trialLens)
+	% figure out what synchToVols you would get
+	% (This assumes that the trial started on a volume
+	% acquisition - which is why we force the trial
+	% to end on a synchToVol - but note that synchToVol
+	% can happen any segment within a trial as well
+	minLen = trialLens(iTrialLen).min;
+	maxLen = trialLens(iTrialLen).max;
+	segLens = ceil(minLen/framePeriod)*framePeriod:framePeriod:ceil(maxLen/framePeriod)*framePeriod;
+	segLensProbCompute = [minLen segLens];
+	% make a new trial len for each of these seglens
+	for iSegLen = 1:length(segLens)
+	  if isempty(newTrialLens)
+	    newTrialLens = trialLens(iTrialLen);
+	  else
+	    newTrialLens(end+1) = trialLens(iTrialLen);
+	  end
+	  % set the length of the trial
+	  newTrialLens(end).min = segLens(iSegLen);
+	  newTrialLens(end).max = segLens(iSegLen);
+	  % compute frequency
+	  % do actual computation of frequency - this looks at how often the amount of
+	  % time before each synchToVol happens will actually occur is and divides
+	  % by the full possible lengths of the segment. Get the segmin/segmax
+	  if sum(newTrialLens(end).synchmin) == sum(newTrialLens(end).synchmax)
+	    freq = 1;
+	  else
+	    freq = computeLenProb(newTrialLens(end).synchmin,newTrialLens(end).synchmax,segLensProbCompute(iSegLen),segLensProbCompute(iSegLen+1));
+	  end
+	  newTrialLens(end).freq = newTrialLens(end).freq*freq;
+	  % and change the segmin segmax to account for the extra time needed to wait for synch
+	  synchWaitTime = newTrialLens(end).max-sum(newTrialLens(end).segmin);
+	  % set synchWaitTime back a fudge factor (synchWaitBeforeTime seconds) so that the segment
+	  % has enough time to wait for the synch pulse
+	  synchWaitTime = max(synchWaitTime-synchWaitBeforeTime,0);
+	  newTrialLens(end).segmin(end) = newTrialLens(end).segmin(end)+synchWaitTime;
+	  % set segmax to segmin since for synchToVol we are computing a different
+	  % trial type for each possible synchToVol length
+	  newTrialLens(end).segmax(end) = newTrialLens(end).segmin(end);
+	  % now reset synchmin / synchmax
+	  newTrialLens(end).synchmin = newTrialLens(end).min;
+	  newTrialLens(end).synchmax = newTrialLens(end).max;
+	end
+      end
+      trialLens = newTrialLens;
+    end
+  end
+
+  % compute the average length a trial should take
+  averageLen = 0;actualNumTrials = 0;
+  for iTrialLen = 1:length(trialLens)
+    averageLen = averageLen + trialLens(iTrialLen).freq*(trialLens(iTrialLen).max+trialLens(iTrialLen).min)/2;
+  end
+
+  % display what is going on
+  if verbose>1
+    for iTrialLen = 1:length(trialLens)
+      % display the seglens
+      seglenStr = sprintf('seglen=[');
+      for iSeg = 1:length(trialLens(iTrialLen).segmin)
+	% add synchWaitBeforeTime (the fudge factor)
+	if task.synchToVol(iSeg)
+	  seglen = trialLens(iTrialLen).segmin(iSeg)+synchWaitBeforeTime;
+	  % and display with a * for synchToVol
+	  seglenStr = sprintf('%s*%0.2f ',seglenStr,seglen);
+	else
+	  % display the seglen
+	  if trialLens(iTrialLen).segmin(iSeg) == trialLens(iTrialLen).segmax(iSeg)
+	    seglenStr = sprintf('%s%0.2f ',seglenStr,trialLens(iTrialLen).segmax(iSeg));
+	  else
+	    seglenStr = sprintf('%s%0.2f-%0.2f ',seglenStr,trialLens(iTrialLen).segmin(iSeg),trialLens(iTrialLen).segmax(iSeg));
+	  end
+	end
+      end
+      seglenStr = sprintf('%s]',seglenStr(1:end-1));
+
+      % display for trial length
+      if trialLens(iTrialLen).min == trialLens(iTrialLen).max
+	trialLenStr = sprintf('trialLen: %f',trialLens(iTrialLen).min);
+      else
+	trialLenStr = sprintf('trialMin: %f trialMax: %f',trialLens(iTrialLen).min,trialLens(iTrialLen).max);
+      end
+      % display for frequency
+      trialFreqStr = sprintf('frequency: %f',trialLens(iTrialLen).freq);
+      % display
+      disp(sprintf('(initTask:seglenPrecompute) %s %s %s',trialLenStr,seglenStr,trialFreqStr));
+    end
+  end
+end
+
+% figure out how many trials to precompute for
+if isempty(numTrials)
+  if isfield(task,'numTrials') && ~isempty(task.numTrials) && ~isinf(task.numTrials)
+    numTrials = task.numTrials;
+  elseif isfield(task,'numBlocks') && ~isempty(task.numBlocks) && isinf(task.numTrials)
+    numTrials = task.numBlocks * task.parameter.totalN_;
+  else
+    disp(sprintf('(initTask:seglenPrecompute) Must set number of trials to precompute either by task.seglenPrecompute.numTrials, task.numTrials or task.numBlocks'));
+    keyboard
+  end
+end
+
+disp(sprintf('(initTask) Computing %i trials with average length %f',numTrials,averageLen));
+
+% we were asked for a number of trials
+for iTrial = 1:numTrials
+  % compute length for each trial
+  [seglen task] = getTaskSeglen(task);
+  % compute trial length and adjust any segments that are synchToVol to allow at least 
+  % synchWaitBeforeTime till the synch happens
+  [trialLength(iTrial) seglen] = computeTrialLen(seglen,task.synchToVol,framePeriod,synchWaitBeforeTime);
+  % and remember seglen
+  task.seglenPrecompute.seglen{iTrial} = seglen;
+end
+
+% set the random state
+randstate = rand(task.randstate.type);
+rand(task.randstate.type,task.randstate.trialState);
+
+% adjust trials until we have a match
+diffFromIdeal = numTrials*averageLen-sum(trialLength);
+% compute how close we should be (generally less than a framePeriod
+if isempty(idealDiffFromIdeal)
+  if ~isnan(framePeriod)
+    idealDiffFromIdeal = framePeriod/2;
+  else
+    idealDiffFromIdeal = 1;
+  end
+end
+
+nTries = 0;
+while abs(diffFromIdeal) > idealDiffFromIdeal
+  % choose a random trial
+  randTrialNum = ceil(rand*numTrials);
+  % compute new segment lengths
+  [seglen task] = getTaskSeglen(task);
+  [newTrialLength seglen] = computeTrialLen(seglen,task.synchToVol,framePeriod,synchWaitBeforeTime);
+  newDiffFromIdeal = numTrials*averageLen-(sum(trialLength([1:(randTrialNum-1) (randTrialNum+1):end]))+newTrialLength);
+  % only accept change if it reduces error
+  if (abs(newDiffFromIdeal) < abs(diffFromIdeal)) || (rand < 0.1)
+    trialLength(randTrialNum) = newTrialLength;
+    task.seglenPrecompute.seglen{randTrialNum} = seglen;
+    diffFromIdeal = newDiffFromIdeal;
+  end
+  % see if we should keep trying
+  nTries = nTries + 1;
+  if mod(nTries,maxTries) == 0
+    if askuser(sprintf('(initTask:seglenPrecompute) Could not find a good trial sequence after %i iterations. Current difference = %0.2f. Keep trying',nTries,diffFromIdeal))==0
+      keyboard
+    end
+  end
+end
+
+% remember the status of the random number generator
+task.randstate.trialState = rand(task.randstate.type);
+% and reset it to what it was before this call
+rand(task.randstate.type,randstate);
+
+% check again, and display compute lengths
+trialLength = [];
+for iTrial = 1:numTrials
+  [trialLength(iTrial) seglen] = computeTrialLen(task.seglenPrecompute.seglen{iTrial},task.synchToVol,framePeriod,synchWaitBeforeTime);
+  % display if called for
+  if verbose>1
+    disp(sprintf('(initTask:seglenPrecompute) Trial %i: seglen [%s] trialLen: %0.2f',iTrial,num2str(seglen,'%0.2f '),trialLength(iTrial)));
+  end
+end
+% compute number of volumes needed
+numVolumes = [];
+if ~isnan(framePeriod)
+  numVolumes = round((numTrials*averageLen)/framePeriod);
+end
+
+if verbose
+  disp(sprintf('(initTask:seglenPrecompute) Total length: %0.2f Desired length: %0.2f Diff: %0.2f',sum(trialLength),numTrials*averageLen,sum(trialLength)-numTrials*averageLen));
+  if ~isempty(numVolumes)
+    disp(sprintf('(initTask:seglenPrecompute) %i volumes needed',numVolumes));
+  end
+end
+
+% display frequency of all trials against expected - only do
+% this for synchToVol since then we don't have to deal with
+% what to do for expected lengths that are a range between segmin-segmax
+if synchToVol || isequal([trialLens.min],[trialLens.max])
+  % compute trial lengths and frequencies
+  lens = unique(trialLength);
+  freq = diff([0 find(diff(sort(trialLength))) length(trialLength)]);
+  % if we have computed expected lengths then display those too
+  if exist('trialLens')
+    % get unique lengths
+    [expectedLens dummy indexes]= unique([trialLens(:).max]);
+    for iLen = 1:length(expectedLens)
+      expectedFreq(iLen) = sum([trialLens(indexes==iLen).freq]);
+    end
+  else
+    expectedLens = lens;
+    expectedFreq = nan(1,length(lens));
+  end
+  % round to a few decimal places to avoid numerical round-off misses
+  lens = round(lens*10e5)/10e5;
+  expectedLens = round(expectedLens*10e5)/10e5;
+  % now go print out
+  for iLens = 1:length(expectedLens)
+    matchLen = find(expectedLens(iLens) == lens);
+    if isempty(matchLen)
+      disp(sprintf('(initTask:seglenPrecompute) trialLen: %0.2f freq: 0.00 (0/%i, %0.2f expected)',expectedLens(iLens),numTrials,expectedFreq(iLens)));
+    else
+      disp(sprintf('(initTask:seglenPrecompute) trialLen: %0.2f freq: %0.2f (%i/%i, %0.2f expected)',expectedLens(iLens),freq(matchLen)/numTrials,freq(matchLen),numTrials,expectedFreq(iLens)));
+    end
+  end
+end
+
+% validate the structure
+task = seglenPrecomputeValidate(task);
+
+if ~isempty(numVolumes) && ~isfield(task.seglenPrecompute,'numVolumes') 
+  task.seglenPrecompute.numVolumes = numVolumes;
+end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%
+%    computeTriallen    %
+%%%%%%%%%%%%%%%%%%%%%%%%%
+function [trialLen seglen] = computeTrialLen(seglen,synchToVol,framePeriod,synchWaitBeforeTime)
+
+seglenSynch = seglen;
+
+for iSeg = find(synchToVol)
+  % check synchToVol segs and set them to be *exact* - i.e. they now specify exactly
+  % how long everything is expected to take.
+  seglenSynch(iSeg) = ceil(sum(seglenSynch(1:iSeg))/framePeriod)*framePeriod - sum(seglenSynch(1:(iSeg-1)));
+end
+trialLen = sum(seglenSynch);
+
+% now for each synchToVol remove time to allow a little fudge
+for iSeg = find(synchToVol)
+  if seglenSynch(iSeg) > synchWaitBeforeTime
+    seglen(iSeg) = min(seglen(iSeg),seglenSynch(iSeg)-synchWaitBeforeTime);
+  end
+end
+
+%%%%%%%%%%%%%%%%%%%%%%%%
+%    computeLenProb    %
+%%%%%%%%%%%%%%%%%%%%%%%%
+function prob = computeLenProb(segmin,segmax,lenmin,lenmax)
+
+% find all segmin/segmaxthat are not the same
+segdiff = find(segmin ~= segmax);
+
+if length(segdiff) == 0
+  % all segments are the same length, so just check
+  % to see whether the sum of all semgnets is within
+  % legmin/max limits
+  if (sum(segmin) > lenmin) && (sum(segmin) < lenmax)
+    prob = 1;
+  else
+    prob = 0;
+  end
+  return
+elseif length(segdiff) == 1
+  % one segment is randomized in length
+  trialLenMin = sum(segmin);
+  trialLenMax = sum(segmax);
+  % compute overlap
+  overlapMin = max(trialLenMin,lenmin);
+  overlapMax = min(trialLenMax,lenmax);
+  % compute probability
+  prob = max((overlapMax-overlapMin)/(trialLenMax-trialLenMin),0);
+  return
+elseif length(segdiff) == 2
+  % remove all fixed length segments from lengths so
+  % we don't have to worry about them
+  fixedLen = sum(segmin(find(segmin==segmax)));
+  trialLenMin = lenmin - fixedLen;
+  trialLenMax = lenmax - fixedLen;
+  % get the lengths of the two segments
+  segmin1 = segmin(segdiff(1));
+  segmax1 = segmax(segdiff(1));
+  seglen1 = segmax1-segmin1;
+  segmin2 = segmin(segdiff(2));
+  segmax2 = segmax(segdiff(2));
+  seglen2 = segmax2-segmin2;
+  % some locations we need
+  topLeft = [segmin1 segmax2];
+  bottomRight = [segmax1 segmin2];
+  % to compute the probability we compute the length of time
+  % as the polygon within the rectangle bounded by the two 
+  % segmin and segmax boundaries. (uncomment the figure
+  % to see what this means)
+  % check if the trialLenMin is less than the shortest trial
+  % this means that the minimum boundary is the minimum of the
+  %seglens, so we put that in the vertex list
+  nVertex = 0;
+  if trialLenMin < (segmin1+segmin2)
+    nVertex = nVertex+1;
+    vertexList(nVertex,:) = [segmin1 segmin2];
+  % check if the trialLenMin is greater than the longest trial
+  elseif trialLenMin > (segmax1+segmax2)
+    prob = 0;
+    return;
+  else
+    % first get where the boundary crosses the bottom/right
+    if trialLenMin < (segmax1+segmin2)
+      % crosses the bottom
+      nVertex = nVertex+1;
+      vertexList(nVertex,:) = [(trialLenMin-segmin2) segmin2];
+    else
+      % crosses the right side
+      nVertex = nVertex+1;
+      vertexList(nVertex,:) = [segmax1 (trialLenMin-segmax1)];
+      % bottomRight can no longer be a vertex
+      bottomRight = [];
+    end
+    % now get where the topLeft crossing is
+    if trialLenMin > (segmin1+segmax2)
+      % crosses the top
+      nVertex = nVertex+1;
+      vertexList(nVertex,:) = [(trialLenMin-segmax2) segmax2];
+      topLeft = [];
+    else
+      % crosses the top 
+      nVertex = nVertex+1;
+      vertexList(nVertex,:) = [segmin1 (trialLenMin-segmin1)];
+    end
+  end
+  % ok, now find the corssing of the top boundary
+  if trialLenMax < (segmin1+segmin2)
+    % minimum length is smaller than possible
+    prob = 0;
+    return
+  % check if the trialLenMax is greater than the longest trial
+  elseif trialLenMax > (segmax1+segmax2)
+    % add top right corner (pluse topLeft and bottomRight if it exists
+    if ~isempty(topLeft)
+      nVertex = nVertex+1;
+      vertexList(nVertex,:) = topLeft;
+    end
+    nVertex = nVertex+1;
+    vertexList(nVertex,:) = [segmax1 segmax2];
+    if ~isempty(bottomRight)
+      nVertex = nVertex+1;
+      vertexList(nVertex,:) = bottomRight;
+    end
+  else
+    % get where the boundary crosses the left
+    if trialLenMax < (segmin1+segmax2)
+      nVertex = nVertex+1;
+      vertexList(nVertex,:) = [segmin1 (trialLenMax-segmin1)];
+    else
+      % crosses the top
+      if ~isempty(topLeft)
+	nVertex = nVertex+1;
+	vertexList(nVertex,:) = topLeft;
+      end
+      nVertex = nVertex+1;
+      vertexList(nVertex,:) = [(trialLenMax-segmax2) segmax2];
+    end
+    % now get where the right crossing is
+    if trialLenMax < (segmax1+segmin2)
+      % crosses the bottom
+      nVertex = nVertex+1;
+      vertexList(nVertex,:) = [(trialLenMax-segmin2) segmin2];
+    else
+      % crosses the right
+      nVertex = nVertex+1;
+      vertexList(nVertex,:) = [segmax1 (trialLenMax-segmax1)];
+      if ~isempty(bottomRight)
+	nVertex = nVertex+1;
+	vertexList(nVertex,:) = bottomRight;
+      end
+    end
+  end
+  % compute probability as ratio of area we just computed
+  % to the full area (full possible lengths of trial)
+  prob = polyarea(vertexList(:,1),vertexList(:,2)) / ((segmax1-segmin1)*(segmax2-segmin2));
+  if 0
+    mlrSmartfig('initTask:computeLenProb','reuse');clf
+    xmin = segmin1-100;xmax = segmax1+100;ymin = segmin2-100;ymax = segmax2+100;
+    axis([xmin xmax ymin ymax]);hold on
+    xlabel('seg 1 length');ylabel('seg 2 length');
+    vline(segmin1,'k-');vline(segmax1,'k-');hline(segmin2,'k-');hline(segmax2,'k-');
+    plot([xmin xmax],trialLenMin-[xmin xmax],'k-');
+    plot([xmin xmax],trialLenMax-[xmin xmax],'k-');
+    for iVertex = 1:nVertex
+      plot(vertexList(iVertex,1),vertexList(iVertex,2),'ro');
+    end
+    title(sprintf('Probability = %f',prob));
+    keyboard
+  end
+else
+  disp(sprintf('(initTask:computeLenProb) Computing the probability of trial length not yet implemnted for cases in which more than 2 segments have randomized times'));
+  keyboard
+end
+  
+
+    
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%    seglenPrecomputeValidate    %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function task = seglenPrecomputeValidate(task)
+
+if isequal(task.seglenPrecompute,false),return,end
+
+% make sure it is a structure
+if ~isstruct(task.seglenPrecompute)
+  disp(sprintf('(initTask) seglenPrecompute should either be true or a strucutre with fields that contains precomputed fields'));
+  keyboard
+end
+
+if ~isfield(task.seglenPrecompute,'seglen')
+  disp(sprintf('(initTask) seglenPrecompute must have the field seglen'));
+  keyboard
+end
+
+% get the fields
+task.seglenPrecompute.fieldNames = fieldnames(task.seglenPrecompute);
+task.seglenPrecompute.nFields = length(task.seglenPrecompute.fieldNames);
+
+% now for each field precompute number of rows
+for iField = 1:task.seglenPrecompute.nFields
+  % set each field to be a struct that contains the vals for each trial
+  % and the number of values there are
+  x.vals = task.seglenPrecompute.(task.seglenPrecompute.fieldNames{iField});
+  % convert to cell array
+  if ~iscell(x.vals)
+    % if is just an array of values
+    if isequal(length(x.vals),numel(x.vals))
+      x.vals = num2cell(x.vals);
+    else
+      % this is an array, so one row per trial
+      for iRow = 1:size(x.vals,1)
+	vals{iRow} = x.vals(iRow,:);
+      end
+      x.vals = vals;
+    end
+  end
+  x.nTrials = length(x.vals);
+  task.seglenPrecompute.(task.seglenPrecompute.fieldNames{iField}) = x;
+end
+
+% remove seglen from list of fields
+task.seglenPrecompute.fieldNames = setdiff(task.seglenPrecompute.fieldNames,'seglen');
+task.seglenPrecompute.nFields = task.seglenPrecompute.nFields-1;
+
+% compute numsegs (maximum number of segments)
+task.numsegs = 0;
+for iVal = 1:task.seglenPrecompute.seglen.nTrials
+  task.numsegs = max(task.numsegs,length(task.seglenPrecompute.seglen.vals{iVal}));
+end
+
+% now add enough synchToVol, segquant, segdur and segprob
+if ~isfield(task,'synchToVol') || (length(task.synchToVol) < task.numsegs)
+  task.synchToVol(task.numsegs) = 0;
+end
+if ~isfield(task,'segquant') || (length(task.segquant) < task.numsegs)
+  task.segquant(task.numsegs) = 0;
+end
+if ~isfield(task,'segdur') || (length(task.segdur) < task.numsegs)
+  task.segdur{task.numsegs} = [];
+end
+if ~isfield(task,'segprob') || (length(task.segprob) < task.numsegs)
+  task.segprob{task.numsegs} = [];
+end
+
 
 

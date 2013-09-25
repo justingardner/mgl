@@ -457,31 +457,33 @@ task.thistrial.segstart = -inf;
 % set up start volume for checking for backticks
 task.thistrial.startvolnum = myscreen.volnum;
 
-% set the segment length
-segminlen = task.segmin;
-segmaxlen = task.segmax;
-
-% set the random state
-randstate = rand(task.randstate.type);
-rand(task.randstate.type,task.randstate.trialState);
-
-% for time in ticks and vols, we want an integer value
-if (task.timeInTicks || task.timeInVols)
-  task.thistrial.seglen = segminlen + floor(rand(1,numel(segmaxlen)).*(segmaxlen-segminlen+1));
+% here we deal with precomputed seglen
+if isequal(task.seglenPrecompute,false)
+  % set the segment length
+  [seglen task] = getTaskSeglen(task);
+  task.thistrial.seglen = seglen;
 else
-  task.thistrial.seglen = segminlen + rand(1,numel(segmaxlen)).*(segmaxlen-segminlen);
-
-  % deal with the segment quantization, if segquant is set to
-  % zero there is no effect, otherwise we will round segment
-  % lengths to something evenly divisible by segquant
-  task.thistrial.seglen(task.segquant~=0) = round((task.thistrial.seglen(task.segquant~=0)-task.segmin(task.segquant~=0))./task.segquant(task.segquant~=0)).*task.segquant(task.segquant~=0)+task.segmin(task.segquant~=0);
-
+  % note that if seglens are precomputed, also anything else having to do
+  % with semgents need to be recomputed (i.e. you may want to compute
+  % synchToVol or getResponse on a trial by trial basis - for example,
+  % you may have trials in which on different trials the synchToVol changes
+  % or which segment is the response segment changes.Whatever fields
+  % there are in seglenPrecompute get placed into task at this stage
+  for iField = 1:task.seglenPrecompute.nFields
+    % get the name of the field getting set from precompute
+    fieldName = (task.seglenPrecompute.fieldNames{iField});
+    % get what cell to take (i.e. if the field only has one row
+    % then we will take that otherwise there should be one cell for
+    % each trial) If we have multiple trials, but less than the current 
+    % trial number than cycle through the rows
+    fieldRow = mod(task.trialnum-1,task.seglenPrecompute.(fieldName).nTrials)+1;
+    task.(fieldName) = task.seglenPrecompute.(fieldName).vals{fieldRow};
+  end
+  % now get the seglen for this trial (note that seglen is a cell array
+  % which allows for trials with different numbers of segments)
+  fieldRow = min(task.seglenPrecompute.seglen.nTrials,task.trialnum);
+  task.thistrial.seglen = task.seglenPrecompute.seglen.vals{fieldRow};
 end
-
-% remember the status of the random number generator
-task.randstate.trialState = rand(task.randstate.type);
-% and reset it to what it was before this call
-rand(task.randstate.type,randstate);
 
 % see if we need to wait for backtick
 if task.waitForBacktick && (task.blocknum == 1) && (task.blockTrialnum == 1)
