@@ -1,49 +1,67 @@
-% taskTemplate.m
+% taskTemplateSeglenPrecompute.m
 %
-%        $Id: taskTemplate.m 835 2010-06-29 04:04:08Z justin $
-%      usage: taskTemplate
+%        $Id: taskTemplateSeglenPrecompute.m 835 2010-06-29 04:04:08Z justin $
+%      usage: taskTemplateSeglenPrecompute
 %         by: justin gardner
-%       date: 09/07/06 
+%       date: 09/25/2013 
 %  copyright: (c) 2006 Justin Gardner (GPL see mgl/COPYING)
-%    purpose: example program to show how to use the task structure
+%    purpose: example program to show how to use seglenPrecompute feature
 %
-function myscreen = taskTemplateSeglenPrecompute
+function myscreen = taskTemplateSeglenPrecompute(type)
 
 % check arguments
-if ~any(nargin == [0])
+if ~any(nargin == [0 1])
   help taskTemplate
   return
+end
+if nargin == 0
+  type = 1;
 end
 
 % initalize the screen
 myscreen = initScreen;
 
-% fix: set waitForBacktick if you want to synch with the scanner
-% by waiting for the backtick key to be pressed before starting the experiment
-% (for systems that use NI digital I/O, this will wait for the digital
-% signal that the scanner has started collecting data)
-task{1}.waitForBacktick = 0;
-% fix: the task defined here has two segments, one that
-% is 3 seconds long followed by another that is 
-% 6-9 seconds (randomized in steps of 1.5 seconds)
-% change this to what you want for your trial
-task{1}.segmin = [6.75 0.75 0.75 3];
-task{1}.segmax = [6.75 0.75 0.75 3];
-task{1}.segdur{5} = [1 4 6];
-task{1}.segprob{5} = [0.3 0.2 0.5];
-task{1}.segquant = [0 0 0];
-task{1}.synchToVol = [0 0 0 0 0];
-task{1}.seglenPrecompute = 1;
+if type == 1
+  task{1}.waitForBacktick = 0;
+  task{1}.segmin = [3 1];
+  task{1}.segmax = [3 6];
+  task{1}.seglenPrecompute = 1;
+  task{1}.random = 1;
+  task{1}.numTrials = 10;
+elseif type == 2
+  task{1}.waitForBacktick = 1;
+  task{1}.segmin = [3 1.5];
+  task{1}.segmax = [3 6];
+  task{1}.synchToVol = [0 1];
+  task{1}.seglenPrecompute = 1;
+  task{1}.seglenPrecomputeSettings.framePeriod = 1.5;
+  task{1}.random = 1;
+  task{1}.numTrials = 5;
+elseif type == 3
+  task{1}.segmin = [3 6];
+  task{1}.segmax = [3 6];
+  task{1}.segdur{3} = [1 3 7];
+  task{1}.segprob{3} = [0.2 0.5 0.3];
+  task{1}.seglenPrecompute = 1;
+  task{1}.random = 1;
+  task{1}.numTrials = 20;
+elseif type == 4
+  task{1}.seglenPrecompute.seglen{1} = [1 10];
+  task{1}.seglenPrecompute.seglen{2} = [2 1];
+  task{1}.seglenPrecompute.seglen{3} = [3 4];
+  task{1}.seglenPrecompute.seglen{4} = [2 1 5];
+  task{1}.seglenPrecompute.myVar = {'huh','wow','uhm','yowsa'};
+  task{1}.random = 1;
+  task{1}.numTrials = 8;
+end  
+
+%task{1}.segdur{5} = [1 4 6];
+%task{1}.segprob{5} = [0.3 0.2 0.5];
+%task{1}.seglenPrecompute = 1;
 %task{1}.seglenPrecomputeSettings.framePeriod = 1.5;
-task{1}.seglenPrecomputeSettings.verbose = 1;
+%task{1}.seglenPrecomputeSettings.verbose = 1;
 %task{1}.seglenPrecomputeSettings.idealDiffFromIdeal = 0.5;
 %task{1}.seglenPrecomputeSettings.maxTries = inf;
-% fix: set which segment(s) you want to collect subject responses for
-task{1}.getResponse = [0 1];
-% fix: enter the parameter of your choice
-task{1}.parameter.myParameter = [0 30 90];
-task{1}.random = 1;
-task{1}.numTrials = 50;
 
 % initialize the task
 for phaseNum = 1:length(task)
@@ -83,10 +101,9 @@ myscreen = endTask(myscreen,task);
 function [task myscreen] = startSegmentCallback(task, myscreen)
 
 global stimulus;
-
-% fix: do anything that needs to be done at the beginning
-% of a segment (like for example setting the stimulus correctly
-% according to the parameters etc).
+if isempty(stimulus.starttime)
+  stimulus.starttime = mglGetSecs;
+end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % function that gets called to draw the stimulus each frame
@@ -95,19 +112,23 @@ function [task myscreen] = screenUpdateCallback(task, myscreen)
 
 global stimulus
 
-% fix: display your stimulus here, for this code we just display 
-% a fixation cross that changes color depending on the segment
-% we are on.
 
 mglClearScreen;
-if (task.thistrial.thisseg == 1)
-  mglFixationCross(1,1,[0 1 1]);
+mglTextDraw(sprintf('Trial %i/%i',task.trialnum,task.seglenPrecompute.seglen.nTrials),[0 8]);
+mglTextDraw(sprintf('Segment %i',task.thistrial.thisseg),[0 4]);
+mglTextDraw(sprintf('Segments: [%s]',num2str(task.thistrial.seglen,'%0.2f ')),[0 0]);
+mglTextDraw(sprintf('Trial Length: %0.1f/%0.1f',mglGetSecs(task.thistrial.trialstart),sum(task.thistrial.seglen)),[0 -4]);
+if isfield(task.seglenPrecompute,'totalLength')
+  mglTextDraw(sprintf('Total Length: %0.1f/%0.1f',mglGetSecs(stimulus.starttime),task.seglenPrecompute.totalLength),[0 -8]);
 else
-  mglFixationCross(1,1,[1 1 1]);
-end  
-
-
-
+  mglTextDraw(sprintf('Total Length: %0.1f',mglGetSecs(stimulus.starttime)),[0 -8]);
+end
+if isfield(task.seglenPrecompute,'numVolumes')
+  mglTextDraw(sprintf('Volume number: %i/%i',myscreen.volnum,task.seglenPrecompute.numVolumes),[0 -12]);
+end
+if isfield(task.thistrial,'myVar')
+  mglTextDraw(sprintf('myVar: %s',task.thistrial.myVar),[0 -12]);
+end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 %    responseCallback    %
@@ -129,5 +150,5 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function stimulus = myInitStimulus(stimulus,myscreen)
 
-% fix: add stuff to initalize your stimulus
 
+stimulus.starttime = [];
