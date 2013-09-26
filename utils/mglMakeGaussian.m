@@ -27,7 +27,7 @@
 % tex = mglCreateTexture(gabor);
 % mglBltTexture(tex,[0 0]);
 % mglFlush;
-function m = mglMakeGaussian(width,height,sdx,sdy,xCenter,yCenter,xDeg2pix,yDeg2pix)
+function [m xMesh yMesh] = mglMakeGaussian(width,height,sdx,sdy,xCenter,yCenter,xDeg2pix,yDeg2pix)
 
 % check arguments
 m = [];
