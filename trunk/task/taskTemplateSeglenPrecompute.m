@@ -55,14 +55,6 @@ elseif type == 4
   task{1}.numTrials = 8;
 end  
 
-%task{1}.segdur{5} = [1 4 6];
-%task{1}.segprob{5} = [0.3 0.2 0.5];
-%task{1}.seglenPrecompute = 1;
-%task{1}.seglenPrecomputeSettings.framePeriod = 1.5;
-%task{1}.seglenPrecomputeSettings.verbose = 1;
-%task{1}.seglenPrecomputeSettings.idealDiffFromIdeal = 0.5;
-%task{1}.seglenPrecomputeSettings.maxTries = inf;
-
 % initialize the task
 for phaseNum = 1:length(task)
   [task{phaseNum} myscreen] = initTask(task{phaseNum},myscreen,@startSegmentCallback,@screenUpdateCallback,@responseCallback);
@@ -114,7 +106,7 @@ global stimulus
 
 
 mglClearScreen;
-mglTextDraw(sprintf('Trial %i/%i',task.trialnum,task.seglenPrecompute.seglen.nTrials),[0 8]);
+mglTextDraw(sprintf('Trial %i/%i',task.trialnum,task.numTrials),[0 8]);
 mglTextDraw(sprintf('Segment %i',task.thistrial.thisseg),[0 4]);
 mglTextDraw(sprintf('Segments: [%s]',num2str(task.thistrial.seglen,'%0.2f ')),[0 0]);
 mglTextDraw(sprintf('Trial Length: %0.1f/%0.1f',mglGetSecs(task.thistrial.trialstart),sum(task.thistrial.seglen)),[0 -4]);
