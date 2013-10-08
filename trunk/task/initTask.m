@@ -911,7 +911,9 @@ if synchToVol || isequal([trialLens.min],[trialLens.max])
   for iLens = 1:length(expectedLens)
     matchLen = find(expectedLens(iLens) == lens);
     if isempty(matchLen)
-      disp(sprintf('(initTask:seglenPrecompute) trialLen: %0.2f freq: 0.00 (0/%i, %0.2f expected)',expectedLens(iLens),numTrials,expectedFreq(iLens)));
+      if expectedFreq(iLens)>0
+	disp(sprintf('(initTask:seglenPrecompute) trialLen: %0.2f freq: 0.00 (0/%i, %0.2f expected)',expectedLens(iLens),numTrials,expectedFreq(iLens)));
+      end
     else
       disp(sprintf('(initTask:seglenPrecompute) trialLen: %0.2f freq: %0.2f (%i/%i, %0.2f expected)',expectedLens(iLens),freq(matchLen)/numTrials,freq(matchLen),numTrials,expectedFreq(iLens)));
     end
