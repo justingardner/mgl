@@ -28,12 +28,6 @@ if (task.timeInTicks || task.timeInVols)
   seglen = task.segmin + floor(rand(1,numel(task.segmax)).*(task.segmax-task.segmin+1));
 else
   seglen = task.segmin + rand(1,numel(task.segmax)).*(task.segmax-task.segmin);
-
-  % deal with the segment quantization, if segquant is set to
-  % zero there is no effect, otherwise we will round segment
-  % lengths to something evenly divisible by segquant
-  seglen(task.segquant~=0) = floor((seglen(task.segquant~=0)-task.segmin(task.segquant~=0))./task.segquant(task.segquant~=0)).*task.segquant(task.segquant~=0)+task.segmin(task.segquant~=0);
-
 end
 
 % if any of the seglen are nan then we must choose a value from segdur
