@@ -174,7 +174,6 @@ else
   elseif length(task.segquant) < length(task.segmin)
     task.segquant(end+1:length(task.segmin)) = 0;
   end
-
   if ~isfield(task,'synchToVol')
     task.synchToVol = zeros(1,length(task.segmin));
   elseif length(task.synchToVol) < length(task.segmin)
@@ -229,6 +228,20 @@ else
     elseif isnan(task.segmin(iSeg))
       disp(sprintf('(initTask) Segmin is nan without a segdur{%i}',iSeg));
       keyboard
+    end
+  end
+
+  % now implement segquant using segdur and segprob
+  for iSeg = 1:length(task.segquant)
+    if task.segquant(iSeg) ~= 0
+      if isempty(task.segdur{iSeg})
+	task.segdur{iSeg} = task.segmin(iSeg):task.segquant(iSeg):task.segmax(iSeg);
+	task.segprob{iSeg} = cumsum(ones(1,length(task.segdur{iSeg}))/length(task.segdur{iSeg}));
+	task.segprob{iSeg} = [0 task.segprob{iSeg}(1:end-1)];
+	task.segquant(iSeg) = 0;
+	task.segmin(iSeg) = nan;
+	task.segmax(iSeg) = nan;
+      end
     end
   end
 
