@@ -36,14 +36,27 @@
 %
 %             {{'var1=[1]','var2=[2 3]'},{'var1=[2]','var2=[1]'}}
 %
-%             If you want to return a set of stimvols for different variables
-%             concatenated together - for example, you have variable1 and
-%             variable 2 and you want a cell array of stimvols for each
-%             one of the settings of variable 1 and variable 2 (note that
-%             this may return the same stimvol multiple times), then you
-%             can tset the varname to a comma delimited list:
+%             This will return two sets of stimvols. One in which var1=1 and var2 = 2 or 3
+%             and another set in which var1=2 and var2=1
+%
+%             If you want to return a set of stimvols for each value of a
+%             different variable, say var1 and var2 which can have values
+%             var1 = 1 or 2 and var2 = 3 or 4, Then use a comma separated list
 % 
-%             getStimvolFromVarname('varname1,varname2',myscreen,task);
+%             getStimvolFromVarname('var1,var2',myscreen,task);
+%
+%             This will then return 4 stimvols, one in which var1 =1, one in which
+%             var1 = 2, one in which var2 = 3 and one in which var2 = 4. Note
+%             that these are not guaranteed to be non-overlapping stimvols
+%
+%             If you want to get the cross between different variables, then
+%             put _x_ between the variable names
+%
+%             getStimvolFromVarname('var1_x_var2',myscreen,task)
+%
+%             Following the example above, this will return 4 sets of stimvols
+%             One in which var1 = 1 and var2 = 3, one in which var1 = 1 and var2 = 4
+%             one in which var1 = 2 and var2 = 3 and one in which var1 = 2 and var2 = 4
 %
 function [stimvolOut stimNamesOut trialNumOut] = getStimvolFromVarname(varnameIn,myscreen,task,taskNum,phaseNum,segmentNum)
 
@@ -172,6 +185,43 @@ if ~isempty(strfind(varnameIn,','))
     stimNamesOut = {stimNamesOut{:} stimNames{:}};
     trialNumOut = {trialNumOut{:} trialNum{:}};
   end
+  return
+end
+
+% check to see if the varnameIn is a _x_ separated list. In which
+% case we return the stimvols for each variable crossed with each other variable
+if ~isempty(strfind(varnameIn,'_x_'))
+  crossStimvol = [];crossStimNames = [];crossTrialNum = [];
+  % go through each of the varnames
+  while ~isempty(varnameIn)
+    % get this varname
+    [thisVarname varnameIn] = strtok(varnameIn,'_x_');
+    % recursively call this fucntion to get the current variable name
+    [stimvol stimNames trialNum] = getStimvolFromVarname(thisVarname,myscreen,task,taskNum,phaseNum,segmentNum);
+    % first time, just set the cross variables
+    if isempty(crossStimvol)
+      crossStimvol = stimvol;
+      crossStimNames = stimNames;
+      crossTrialNum = trialNum;
+    else
+      % next time we cross each new variable with the last one
+      newCrossStimvol = {};newCrossStimNames = {};newCrossTrialNum = {};
+      for iCross = 1:length(crossStimvol)
+	for iStimvol = 1:length(stimvol)
+	  [newCrossStimvol{end+1} crossIndex] = intersect(crossStimvol{iCross},stimvol{iStimvol});
+	  newCrossStimNames{end+1} = sprintf('%s and %s',crossStimNames{iCross},stimNames{iStimvol});
+	  newCrossTrialNum{end+1} = crossTrialNum{iCross}(crossIndex);
+	end
+      end
+      crossStimvol = newCrossStimvol;
+      crossStimNames = newCrossStimNames;
+      crossTrialNum = newCrossTrialNum;
+    end
+  end
+  % set in output argument
+  stimvolOut = {stimvolOut{:} crossStimvol{:}};
+  stimNamesOut = {stimNamesOut{:} crossStimNames{:}};
+  trialNumOut = {trialNumOut{:} crossTrialNum{:}};
   return
 end
 % now check if we have been called with two segmentNums in which
