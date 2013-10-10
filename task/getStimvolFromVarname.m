@@ -195,7 +195,7 @@ if ~isempty(strfind(varnameIn,'_x_'))
   % go through each of the varnames
   while ~isempty(varnameIn)
     % get this varname
-    [thisVarname varnameIn] = strtok(varnameIn,'_x_');
+    [thisVarname varnameIn] = strtok(varnameIn,'_x_ ');
     % recursively call this fucntion to get the current variable name
     [stimvol stimNames trialNum] = getStimvolFromVarname(thisVarname,myscreen,task,taskNum,phaseNum,segmentNum);
     % first time, just set the cross variables
