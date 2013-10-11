@@ -212,7 +212,7 @@ else
       elseif length(task.segprob{iSeg})~=length(task.segdur{iSeg})
 	disp(sprintf('(initTask) segprob{%i} must have the same number of elements as segdur{%i}',iSeg,iSeg));
 	keyboard
-      elseif sum(task.segprob{iSeg}) ~= 1
+      elseif round(10000*sum(task.segprob{iSeg}))/10000 ~= 1
 	disp(sprintf('(initTask) segprob{%i} must add up to 1',iSeg));
 	keyboard
       end
