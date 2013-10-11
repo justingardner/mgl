@@ -177,7 +177,7 @@ if ~isempty(strfind(varnameIn,','))
   % go through each of the varnames
   while ~isempty(varnameIn)
     % get this varname
-    [thisVarname varnameIn] = strtok(varnameIn,', ');
+    [thisVarname varnameIn] = mystrtok(varnameIn,',');
     % recursively call this fucntion to get the current variable name
     [stimvol stimNames trialNum] = getStimvolFromVarname(thisVarname,myscreen,task,taskNum,phaseNum,segmentNum);
     % set in output argument
@@ -195,7 +195,7 @@ if ~isempty(strfind(varnameIn,'_x_'))
   % go through each of the varnames
   while ~isempty(varnameIn)
     % get this varname
-    [thisVarname varnameIn] = strtok(varnameIn,'_x_ ');
+    [thisVarname varnameIn] = mystrtok(varnameIn,'_x_');
     % recursively call this fucntion to get the current variable name
     [stimvol stimNames trialNum] = getStimvolFromVarname(thisVarname,myscreen,task,taskNum,phaseNum,segmentNum);
     % first time, just set the cross variables
@@ -507,3 +507,24 @@ for i = 1:prod(parameterLength)
     varname{i}{j} = sprintf(sprintf('%%s=%%.%if',numSigDigits),parameterNames{j},val);
   end
 end
+
+%%%%%%%%%%%%%%%%%%
+%    mystrtok    %
+%%%%%%%%%%%%%%%%%%
+function [tok str] = mystrtok(str,delim)
+
+% like strtok but treats the delim as a string
+% you have to search for: e.g. '_x_' and
+% strips the tokens of leading/trailing white space
+
+delimloc = findstr(delim,str);
+% no token return whole string
+% stripping whitespace from beginning and end
+if isempty(delimloc)
+  tok = strtrim(str);
+  str = '';
+else
+  tok = strtrim(str(1:delimloc(1)-1));
+  str = str(delimloc(1)+length(delim):end);
+end
+
