@@ -340,10 +340,10 @@ else
 	  for j = 1:length(varname{i})
 	    % get the value of the variable in question
 	    % on each trial
-	    varval = getVarFromParameters(strtok(varname{i}{j},'='),e{tnum}(pnum));
+	    varval = getVarFromParameters(mystrtok(varname{i}{j},'='),e{tnum}(pnum));
 	    % check to make sure it is not empty
 	    if isempty(varval)
-	      disp(sprintf('(getStimvolFromVarname) Could not find variable %s in task %i phase %i',strtok(varname{i}{j},'='),tnum,pnum));
+	      disp(sprintf('(getStimvolFromVarname) Could not find variable %s in task %i phase %i',mystrtok(varname{i}{j},'='),tnum,pnum));
 	      return;
 	    end
 	    % see if it is a strict variable name
@@ -365,7 +365,7 @@ else
 	  for j = 1:length(varname{i})
 	    % get the value of the variable in question
 	    % on each trial
-	    varval = getVarFromParameters(strtok(varname{i}{j},'='),e{tnum}(pnum));
+	    varval = getVarFromParameters(mystrtok(varname{i}{j},'='),e{tnum}(pnum));
 	    % round the values to numSigDigits. This is so that if you have
 	    % multiple significant digits you still get the string to match, which
 	    % won't have as many significant digits. (e.g. if your value was pi, and
@@ -377,14 +377,14 @@ else
 	      nUniqueVarval = length(unique(varval));
 	      varval = round(varval*10^numSigDigits)/10^numSigDigits;
 	      if length(unique(varval)) ~= nUniqueVarval
-		disp(sprintf('(getStimvolFromVarname) WARNING: Variable %s has values that only differe after %i significant figures that will be grouped together',strtok(varname{i}{j},'='),numSigDigits));
+		disp(sprintf('(getStimvolFromVarname) WARNING: Variable %s has values that only differe after %i significant figures that will be grouped together',mystrtok(varname{i}{j},'='),numSigDigits));
 	      end
 	    end
 	    % see if it is a conditional variable, that is,
 	    % one that is like var=[1 2 3].
 	    if ~isempty(strfind(varname{i}{j},'='))
-	      [t,r] = strtok(varname{i}{j},'=');
-	      varcond = strtok(r,'=');
+	      [t,r] = mystrtok(varname{i}{j},'=');
+	      varcond = mystrtok(r,'=');
 	      % if it is then get the conditions
 	      varval = eval(sprintf('ismember(varval,%s)',varcond));
   	      % if we dont have any applied conditions applied then
