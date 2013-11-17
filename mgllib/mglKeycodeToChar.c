@@ -75,11 +75,18 @@ mxArray *keycodeToChar(const mxArray *arrayOfKeycodes)
   // now get the unicode key layout data
   if (currentKeyLayoutRef) {
     CFDataRef currentKeyLayoutDataRef = (CFDataRef )TISGetInputSourceProperty(currentKeyLayoutRef,kTISPropertyUnicodeKeyLayoutData);
+    CFRelease(currentKeyLayoutDataRef);
     if (currentKeyLayoutDataRef) 
       chr_data = CFDataGetBytePtr(currentKeyLayoutDataRef);
-    else
+    else {
       mexPrintf("(mglCharToKeycode) Could not get UnicodeKeyLayoutData\n");
-  };
+      return(out);
+    }
+  }
+  else {
+    mexPrintf("(mglCharToKeycode) Could not get Current Keyboard Layout Input Source\n");
+    return(out);
+  }
 
   for (keyNum=0; keyNum<nkeys; keyNum++) {
     // convert double to keycode. We ignore all modifiers.
