@@ -100,11 +100,18 @@ mxArray *charToKeycode(const mxArray *cellArrayOfChars, int returnAllMatches)
   // now get the unicode key layout data
   if (currentKeyLayoutRef) {
     CFDataRef currentKeyLayoutDataRef = (CFDataRef )TISGetInputSourceProperty(currentKeyLayoutRef,kTISPropertyUnicodeKeyLayoutData);
+    CFRelease(currentKeyLayoutRef);
     if (currentKeyLayoutDataRef) 
       chr_data = CFDataGetBytePtr(currentKeyLayoutDataRef);
-    else
+    else {
       mexPrintf("(mglCharToKeycode) Could not get UnicodeKeyLayoutData\n");
-  };
+      return(keycodeArray);
+    }
+  }
+  else {
+    mexPrintf("(mglCharToKeycode) Could not get Current Keyboard Layout Input Source\n");
+    return(keycodeArray);
+  }
   unsigned short virtualKeyCode;
 
   // allocate space for key matches array, which stores what keys have matched
