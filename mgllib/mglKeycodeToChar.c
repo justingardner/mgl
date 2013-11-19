@@ -75,7 +75,8 @@ mxArray *keycodeToChar(const mxArray *arrayOfKeycodes)
   // now get the unicode key layout data
   if (currentKeyLayoutRef) {
     CFDataRef currentKeyLayoutDataRef = (CFDataRef )TISGetInputSourceProperty(currentKeyLayoutRef,kTISPropertyUnicodeKeyLayoutData);
-    CFRelease(currentKeyLayoutDataRef);
+    // release the input source
+    CFRelease(currentKeyLayoutRef);
     if (currentKeyLayoutDataRef) 
       chr_data = CFDataGetBytePtr(currentKeyLayoutDataRef);
     else {
