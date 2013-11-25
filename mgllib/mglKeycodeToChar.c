@@ -77,10 +77,13 @@ mxArray *keycodeToChar(const mxArray *arrayOfKeycodes)
     CFDataRef currentKeyLayoutDataRef = (CFDataRef )TISGetInputSourceProperty(currentKeyLayoutRef,kTISPropertyUnicodeKeyLayoutData);
     // release the input source
     CFRelease(currentKeyLayoutRef);
-    if (currentKeyLayoutDataRef) 
+    if (currentKeyLayoutDataRef)  
       chr_data = CFDataGetBytePtr(currentKeyLayoutDataRef);
     else {
       mexPrintf("(mglCharToKeycode) Could not get UnicodeKeyLayoutData\n");
+      for (keyNum=0; keyNum<nkeys; keyNum++) {
+	mexPrintf("keycode: %i\n",(int)*(mxGetPr(arrayOfKeycodes)+keyNum) - 1);
+      }
       return(out);
     }
   }
@@ -93,10 +96,12 @@ mxArray *keycodeToChar(const mxArray *arrayOfKeycodes)
     // convert double to keycode. We ignore all modifiers.
     UInt16 keycode=(UInt16)*(mxGetPr(arrayOfKeycodes)+keyNum) - 1; // remove 1-offset  
 
-    // get the keycode using UCKeyTranslate
-    UCKeyTranslate(chr_data,keycode,kUCKeyActionDown,0,keyboard_type,0,&deadKeyState,maxStringLength,&actualStringLength,unicodeString);
+    if ((keycode>=0) && (keycode<=128)) {
+      // get the keycode using UCKeyTranslate
+      UCKeyTranslate(chr_data,keycode,kUCKeyActionDown,0,keyboard_type,0,&deadKeyState,maxStringLength,&actualStringLength,unicodeString);
     
-    mxSetCell(out, keyNum, mxCreateString( (char*)unicodeString ));
+      mxSetCell(out, keyNum, mxCreateString( (char*)unicodeString ));
+    }
   }
   return (out);
 
