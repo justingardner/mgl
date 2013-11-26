@@ -1,7 +1,7 @@
 #ifdef documentation
 =========================================================================
 
-     program: mglKeycodeToChar.c
+     program: mglPrivateKeycodeToChar.c
           by: Jonas Larsson
         date: 09/12/06
      purpose: return the (first) char corresponding to a keycode.  
