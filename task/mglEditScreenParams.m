@@ -293,6 +293,7 @@ val = 0;
 mglClose;
 msc = testOpenDisplay(params);
 if isempty(msc),return,end
+msc.autoCloseScreen = 1;
 
 % display some text on the screen
 mglTextSet('Helvetica',32,[1 1 1 1],0,0,0,0,0,0,0);
@@ -344,7 +345,6 @@ if thisWaitSecs(waitTime,params)<=0,endScreen(msc);return,end
 testTickScreen(waitTime,params,msc);
 
 % close screen and return
-msc.autoCloseScreen = 1;
 endScreen(msc);
 
 %%%%%%%%%%%%%%%%%%%%%%
