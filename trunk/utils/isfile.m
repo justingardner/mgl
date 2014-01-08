@@ -5,6 +5,8 @@
 %       date: 08/20/03
 %       e.g.: isfile('filename')
 %    purpose: function to check whether file exists
+%             Note meta characters like "?", "*", or "~user" are not recognized but "~/" can be used for filename.
+
 %
 function [isit permission] = isfile(filename)
 
