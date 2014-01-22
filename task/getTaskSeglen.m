@@ -28,6 +28,7 @@ if (task.timeInTicks || task.timeInVols)
   seglen = task.segmin + floor(rand(1,numel(task.segmax)).*(task.segmax-task.segmin+1));
 else
   seglen = task.segmin + rand(1,numel(task.segmax)).*(task.segmax-task.segmin);
+ seglen(isinf(task.segmin) | isinf(task.segmax)) = inf;
 end
 
 % if any of the seglen are nan then we must choose a value from segdur
