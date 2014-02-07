@@ -108,7 +108,7 @@ void sendflush(int, int);
 static uInt8 nidaqInputStatePrevious[1] = {0};
 static uInt8 digIOStatus = 0;
 static int verbose = 0;
-static gRunStatus = 0;
+static int gRunStatus = 0;
 // These are declared as global just so that we can exit gracefully
 // if the user hits ctrl-c
 static int connectionDescriptor = 0,socketDescriptor = 0;
@@ -143,12 +143,12 @@ int main(int argc, char *argv[])
 
   // open the communication socket, checking for error
   if (openSocket(socketName,&connectionDescriptor,&socketDescriptor) == 0)
-    return;
+    return(0);
   
   // init digIO
   if (initDigIO(nidaqInputPortNum,nidaqOutputPortNum,&nidaqInputTaskHandle,&nidaqOutputTaskHandle,&diginEventQueue,&digoutEventQueue,&digIOPool) == 0) {
     close(socketDescriptor);
-    return;
+    return(0);
   }
   digIOStatus = 1;
 
@@ -251,7 +251,7 @@ int readSocketCommand(int *connectionDescriptor, int socketDescriptor, NSMutable
     }
     // try to make a connection
     if ((*connectionDescriptor = accept(socketDescriptor, NULL, NULL)) == -1) {
-      return;
+      return(-1);
     }
     else {
       printf("(mglStandaloneDigIO) New connection made: %i\n",(int)*connectionDescriptor);
@@ -476,12 +476,12 @@ int nidaqStartTask(int nidaqInputPortNum, int nidaqOutputPortNum, TaskHandle *ni
    // output error, but only if it is not device idnetifier is invalid
    // since this happens when you simply don't have a card in the
    // computer
-   if (error)
-     if (error != -200220)
+   if (error) {
+     if (error != -200220) 
        printf("(mglStandaloneDigIO) DAQmxBase Error %d: %s\n", (int)error, errBuff);
      else
        printf("(mglStandaloneDigIO) No device found. DAQmxBase Error %d: %s\n", (int)error, errBuff);
-       
+   }
    return 0;
 }
 
@@ -528,7 +528,7 @@ int initDigIO(int nidaqInputPortNum, int nidaqOutputPortNum, TaskHandle *nidaqIn
   *diginEventQueue = [[NSMutableArray alloc] init];
   *digoutEventQueue = [[NSMutableArray alloc] init];
 
-  printf("(mglStandaloneDigIO) Successfully initialized NI device\n",nidaqInputPortNum,nidaqOutputPortNum);
+  printf("(mglStandaloneDigIO) Successfully initialized NI device (Input port: %i Output port: %i)\n",nidaqInputPortNum,nidaqOutputPortNum);
 
   // return ok
   return 1;
