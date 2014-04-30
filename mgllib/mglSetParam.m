@@ -7,6 +7,9 @@
 %    purpose: Set MGL parameters, if perisistent is set to 1, then
 %             the parameter will be saved in a file .mglParams.mat
 %             in the users home directory.
+%             If persistent is set to 2, then the parameter will
+%             be save into the file /Users/Shared/.mglParams.mat
+%             and be saved for all users
 %
 %mglSetParam('verbose',1);
 function mglSetParam(paramName,paramValue,makePersistent)
@@ -19,10 +22,16 @@ end
 global MGL
 MGL.(paramName) = paramValue;
 
-if (nargin >= 3) && isequal(makePersistent,1)
+if (nargin >= 3) && (isequal(makePersistent,1) || isequal(makePersistent,2))
   persistentParams = [];
   % try to load the persistentParams from a file
-  persistentParamsFilename = '~/.mglParams.mat';
+  if isequal(makePersistent,1)
+    % user file
+    persistentParamsFilename = '~/.mglParams.mat';
+  else
+    % shared file
+    persistentParamsFilename = '/Users/Shared/.mglParams.mat';
+  end
   if isfile(persistentParamsFilename)
     load(persistentParamsFilename);
   end
@@ -30,5 +39,9 @@ if (nargin >= 3) && isequal(makePersistent,1)
   persistentParams.(paramName) = paramValue;
   % now save it back
   eval(sprintf('save %s persistentParams',persistentParamsFilename));
+  % if persistent then make sure that we give write permission to everyone
+  if isequal(makePersistent,2)
+    fileattrib(persistentParamsFilename,'+w');
+  end
 end
 
