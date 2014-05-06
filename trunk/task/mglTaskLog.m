@@ -82,7 +82,8 @@ logpath = mglGetParam('logpath');
 if isempty(logpath),logpath = '~/data/log';end
 
 % check for directory
-[logpath logdir] = fileparts(logpath);
+logdir = getLastDir(logpath);
+logpath = fileparts(logpath);
 if ~isdir(logpath)
   disp(sprintf('(mglWriteLog) !!! Could not find log path %s. Unable to save log !!!',logpath));
   return
@@ -241,7 +242,7 @@ if ~isdir(logpath)
 end
 
 % check for existence of a file for this year
-logfilename = fullfile(logpath,setext(sprintf('mgllog%i',year),'csv'));
+logfilename = fullfile(logpath,setext(sprintf('mgllog%i',year),'csv',0));
 if isfile(logfilename)
   % load the log
   log = readtable(logfilename);
@@ -292,4 +293,29 @@ for iRow = 1:numRows
 end
 disp(sprintf('%s %s (sid: %s, n=%i)',thisdate,thisusername,thissid,length(thisstimfile)));
 
+%%%%%%%%%%%%%%%%%%%%
+%    getLastDir    %
+%%%%%%%%%%%%%%%%%%%%
+function lastDir = getLastDir(pathStr,levels)
 
+% check arguments
+if ~any(nargin == [1 2])
+  help getLastDir
+  return
+end
+
+if ieNotDefined('levels'),levels = 1;end
+if levels == 0,lastDir = '';return;end
+
+% remove trailing fileseparator if it is there
+if length(pathStr) && (pathStr(end) == filesep)
+  pathStr = pathStr(1:end-1);
+end
+
+% get last dir
+[pathStr lastDir ext] = fileparts(pathStr);
+
+% paste back on extension
+lastDir = [lastDir ext];
+
+lastDir = fullfile(getLastDir(pathStr,levels-1),lastDir);
