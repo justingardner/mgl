@@ -224,11 +224,8 @@ if isempty(sidDatabaseFilename)
   return
 end
 
-% strip extensims
-sidDatabaseFilename = stripext(sidDatabaseFilename);
-
 % decrypt file name
-sidDatabaseDecrypt = setext(sidDatabaseFilename,'csv');
+sidDatabaseDecrypt = setext(sidDatabaseFilename,'csv',0);
 
 % check if data base exists
 if ~isfile(sidDatabaseFilename)
@@ -296,9 +293,6 @@ if isempty(sidDatabaseFilename)
   return
 end
 
-% strip extensions
-sidDatabaseFilename = stripext(sidDatabaseFilename);
-
 % check if data base exists
 if ~isfile(sidDatabaseFilename)
   disp(sprintf('(mglSetSID) Could not find SID database file %s',sidDatabaseFilename));
@@ -309,7 +303,7 @@ if ~isfile(sidDatabaseFilename)
 end
 
 % write sids to file
-sidDatabaseDecrypt = setext(sidDatabaseFilename,'csv');
+sidDatabaseDecrypt = setext(sidDatabaseFilename,'csv',0);
 writetable(sidDatabase,sidDatabaseDecrypt);
 tryToEncrypt = true;
 
@@ -653,7 +647,7 @@ tf = false;
 if ~mglIsMrToolsLoaded,return,end
 
 % get the filename of the database lock
-sidDatabaseLockFilename = setext(mglGetParam('sidDatabaseFilename'),'lock');
+sidDatabaseLockFilename = setext(mglGetParam('sidDatabaseFilename'),'lock',0);
 
 % see if it exists
 if isfile(sidDatabaseLockFilename)
@@ -705,7 +699,7 @@ function releaseLock(warnOnStolenLock)
 if nargin < 1,warnOnStolenLock = false;end
 
 % get the filename of the database lock
-sidDatabaseLockFilename = setext(mglGetParam('sidDatabaseFilename'),'lock');
+sidDatabaseLockFilename = setext(mglGetParam('sidDatabaseFilename'),'lock',0);
 
 % check if lock is there
 if ~isfile(sidDatabaseLockFilename)
