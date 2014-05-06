@@ -26,6 +26,16 @@ end
 % set version number
 myscreen.ver = 2.0;
 
+% Get SID
+myscreen.SID = mglGetSID;
+% check if we have to set sid and it has not been set
+if isempty(myscreen.SID) && mglGetParam('mustSetSID')
+  disp(sprintf('(initScreen) !!! You must set a SID before running. !!!'));
+  myscreen = [];
+  disp(sprintf('Quit out of debug mode K>> by doing dbquit then run mglSetSID'));
+  keyboard
+end
+
 % get computer name
 if ~isfield(myscreen,'computer')
   myscreen.computer = mglGetHostName;
@@ -138,6 +148,13 @@ end
 
 % display hail string
 disp(sprintf('%s Begin initScreen %s',repmat('=+',1,20),repmat('=+',1,20)));
+
+% display subject ID
+if isfield(myscreen,'SID') && ~isempty(myscreen.SID)
+  disp(sprintf('(initScreen) SID is: %s',myscreen.SID));
+else
+  disp(sprintf('(initScreen) No SID has been set'));
+end
 
 % check to make sure that we have found the computer in the table
 if foundComputer
@@ -274,7 +291,14 @@ end
 
 
 % if subjectID is set then make a special data dir
-if isfield(myscreen,'subjectID')
+if isfield(myscreen,'subjectID') || (isfield(myscreen,'SID') && ~isempty(myscreen.SID))
+  % subjectID used to be specified. Keeping that, but also now
+  % alllowing for setting by mglSetSID (which gets set as myscreen.SID);
+  if isfield(myscreen,'subjectID')
+    SID = myscreen.subjectID;
+  else
+    SID = myscreen.SID;
+  end
   % first get calling function name
   [st,i] = dbstack;
   callingFunName = st(min(i+1,length(st))).file;
@@ -287,8 +311,8 @@ if isfield(myscreen,'subjectID')
       mkdir(myscreen.datadir);
     end
     % add subjectID
-    if ~isempty(myscreen.subjectID)
-      myscreen.datadir = fullfile(myscreen.datadir,myscreen.subjectID);
+    if ~isempty(SID)
+      myscreen.datadir = fullfile(myscreen.datadir,SID);
       if ~isdir(myscreen.datadir)
 	mkdir(myscreen.datadir);
       end

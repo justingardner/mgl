@@ -48,7 +48,7 @@ end
 % set end time
 myscreen.endtimeSecs = mglGetSecs;
 myscreen.endtime = datestr(clock);
-  
+
 disp(sprintf('-----------------------------'));
 if ((nargin == 1) && (isfield(myscreen,'makeTraces')) && (myscreen.makeTraces == 1))
   myscreen = makeTraces(myscreen);
