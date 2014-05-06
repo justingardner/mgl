@@ -5,24 +5,68 @@
 %         by: justin gardner
 %       date: 04/20/14
 %    purpose: Sets the subject ID which is used by initScreen
-%             and mglTaskLog. Brings up an interface to set
-%             a subject ID or look it up in a searchable encrypted
-%             database
+%             and mglTaskLog. Subject ID is then retrieved with
+%             mglGetSID
+%
+%             To set a known SID:
+%             mglSetSID('s001');
+%             mglSetSID(1);
+%
+%             To lookup a name in the SID database:
+%             mglSetSID('justin');
+%             You will need to enter the password for the databse.
+%
+%             To edit the database:
+%             mglSetSID('edit');
+%             You will need to enter the password for the databse.
+%
+%             To clear the current SID:
+%             mglSetSID([]);
+%
+%             The SID database is saved in file specified by:
+%             mglGetParam('sidDatabaseFilename');
+%
+%             After setting an SID, the SID will be valid for:
+%             mglGetParam('sidValidIntervalInHours');
+%             If not set, this defaults to 1 hour. This is
+%             so that you can run multiple experiments without
+%             having to reset the mglSetSID - but if you are gone for
+%             some time and someone else comes to run an experiment
+%             they will need to reset the SID. Note that running
+%             mglGetSID will reset the valid timer.
+% 
+%             If you set:
+%             mglSetParam('mustSetSID',1,2);
+% 
+%             Then every user of the computer will have to set an SID
+%             before initScreen will allow them to run a subject.
 %
 function retval = mglSetSID(sid)
 
 % check arguments
-if ~any(nargin == [0 1])
+if ~any(nargin == [1])
   help mglSetSID
   return
 end
 
+% race and ethnic categories from NIH
+%http://grants.nih.gov/grants/guide/notice-files/NOT-OD-01-053.html
+global ethnicCategories;
+global racialCategories;
+ethnicCategories = {'Decline','Hispanic or Latino','Not Hispanic or Latino'};
+racialCategories = {'Decline','American Indian or Alaska Native','Asian','Black or African American','Native Hawaiian or Other Pacific Islander','White'};
+
 % if passed in one argument and it is a number
 if (nargin == 1)
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  % is empty then set sid to empty
+  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  if isempty(sid)
+    setSID([])
+  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   % is a number, so format correctly and set
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-  if (isnumeric(sid) && (length(sid) == 1))
+  elseif (isnumeric(sid) && (length(sid) == 1))
     if ((sid>=1)&&(sid<=999))
       setSID(sprintf('s%03i',round(sid)));
     elseif (sid == -1)
@@ -40,13 +84,13 @@ if (nargin == 1)
     % get the lock
     if ~getLock return, end
     % load existing database
-    sids = loadSIDs;
-    if ~istable(sids),releaseLock;return;,end
+    sidDatabase = loadSIDDatabase;
+    if ~istable(sidDatabase),releaseLock;return;,end
     % edit the database
-    sids = editSIDs(sids);
+    sidDatabase = editSIDDatabase(sidDatabase);
     % save the database
-    if ~isempty(sids)
-      saveSIDs(sids);
+    if ~isempty(sidDatabase)
+      saveSIDDatabase(sidDatabase);
       % release lock
       releaseLock(true);
     else
@@ -93,6 +137,14 @@ end
 %%%%%%%%%%%%%%%%
 function setSID(sidStr)
 
+% clear sid
+if isempty(sidStr)
+  disp(sprintf('(mglSetSID) Clearing SID'));
+  mglSetParam('sid',[]);
+  mglSetParam('sidValidUntil',[]);
+  return;
+end
+  
 disp(sprintf('(mglSetSID) Setting SID: %s',sidStr));
 
 % set the subject id
@@ -130,158 +182,215 @@ firstName = [];
 lastName = [];
 
 % load sid database
-sids = loadSIDs;
+sidDatabase = loadSIDDatabase;
+if isempty(sidDatabase),return,end
+
+% case insensitive
+sidstr = lower(sidstr);
+rownum = [];
 % lookup matching row
-rownum = find(strcmp(lower(sidstr),lower(sids.firstName)) | strcmp(lower(sidstr),lower(sids.lastName)));
+for iRow = 1:size(sidDatabase,1)
+  if ~isempty(findstr(sidstr,lower(sidDatabase.firstName{iRow}))) || ~isempty(findstr(sidstr,lower(sidDatabase.lastName{iRow})))
+    rownum(end+1) = iRow;
+  end
+end
+  
 if ~isempty(rownum)
   % return matches
   for i = 1:length(rownum)
-    sid{i} = sids.sid{rownum(i)};
-    firstName{i} = sids.firstName{rownum(i)};
-    lastName{i} = sids.lastName{rownum(i)};
+    sid{i} = sidDatabase.sid{rownum(i)};
+    firstName{i} = sidDatabase.firstName{rownum(i)};
+    lastName{i} = sidDatabase.lastName{rownum(i)};
   end
 end
 
-%%%%%%%%%%%%%%%%%%
-%    loadSIDs    %
-%%%%%%%%%%%%%%%%%%
-function sids = loadSIDs
+%%%%%%%%%%%%%%%%%%%%%%%%%
+%    loadSIDDatabase    %
+%%%%%%%%%%%%%%%%%%%%%%%%%
+function sidDatabase = loadSIDDatabase
 
-sids = [];
+global ethnicCategories;
+global racialCategories;
+global columnNames;
+sidDatabase = [];
 
 % need mrTools
 if ~mglIsMrToolsLoaded,return,end
 
 % get filename for SID database
-sidsFilename = mglGetParam('sids');
-if isempty(sidsFilename)
-  disp(sprintf('(mglSetSID) Can not look up sid because filename has not been set: use mglSetParam(''sids'',''filename'');'));
+sidDatabaseFilename = mglGetParam('sidDatabaseFilename');
+if isempty(sidDatabaseFilename)
+  disp(sprintf('(mglSetSID) !!! Can not load SID Database because filename has not been set: use mglSetParam(''sidDatabaseFilename'',''filename''); !!!'));
   return
 end
 
 % strip extensims
-sidsFilename = stripext(sidsFilename);
+sidDatabaseFilename = stripext(sidDatabaseFilename);
 
 % decrypt file name
-sidsDecrypt = setext(sidsFilename,'csv');
+sidDatabaseDecrypt = setext(sidDatabaseFilename,'csv');
 
 % check if data base exists
-if ~isfile(sidsFilename)
-  if askuser(sprintf('(mglSetSID) Could not find sids file %s, create one from scratch?',sidsFilename))
+if ~isfile(sidDatabaseFilename)
+  if askuser(sprintf('(mglSetSID) Could not find SID Database file %s, create one from scratch?',sidDatabaseFilename))
     % create a new table
-    sids = table;
-    sids.sid = {};
-    sids.firstName = {};
-    sids.lastName = {};
+    sidDatabase = table;
+    sidDatabase.sid = {};
+    sidDatabase.firstName = {};
+    sidDatabase.lastName = {};
+    sidDatabase.gender = {};
+    sidDatabase.dob = {};
+    sidDatabase.dateAdded = {};
+    sidDatabase.ethnicity = {};
+    sidDatabase.race = {};
+    for iRace = 3:length(racialCategories)
+      sidDatabase.(sprintf('otherRace%i',iRace-2)) = {};
+    end
+    % set column names
+    columnNames = sidDatabase.Properties.VariableNames;
   end
   return
 end
 
+
 % try to unencrypt file using openssl des3
 disp(sprintf('(mglSetSID) Loading SID database, enter password'));
-status = system(sprintf('openssl des3 -d -in %s -out %s',sidsFilename,sidsDecrypt));
+status = system(sprintf('openssl des3 -d -in %s -out %s',sidDatabaseFilename,sidDatabaseDecrypt));
 
 % see if decrypt was successful
 if isequal(status,1)
-  delete(sidsDecrypt);
-  disp(sprintf('(mglSetSID) Did not decrypt %s',sidsFilename));
+  delete(sidDatabaseDecrypt);
+  disp(sprintf('(mglSetSID) Did not decrypt %s',sidDatabaseFilename));
   return
 end
 
 % if so, then load it and delete the decrypt file
-sids = readtable(sidsDecrypt);
-delete(sidsDecrypt);
-if isempty(sids)
-  disp(sprintf('(mglSetSID) Could not load SID database %s',sidsDecrypt));
+sidDatabase = readtable(sidDatabaseDecrypt);
+delete(sidDatabaseDecrypt);
+if isempty(sidDatabase)
+  disp(sprintf('(mglSetSID) Could not load SID database %s',sidDatabaseDecrypt));
   return
 end
 % check format
 checkFields = {'sid','lastName','firstName'};
-if ~istable(sids) || ~isempty(setxor(intersect(sids.Properties.VariableNames,checkFields),checkFields))
-  disp(sprintf('(mglSetSID) Bad table format for file %s',sidsFilename));
-  sids = [];
+if ~istable(sidDatabase) || ~isempty(setxor(intersect(sidDatabase.Properties.VariableNames,checkFields),checkFields))
+  disp(sprintf('(mglSetSID) Bad table format for file %s',sidDatabaseFilename));
+  sidDatabase = [];
 end
 
-%%%%%%%%%%%%%%%%%%
-%    saveSIDs    %
-%%%%%%%%%%%%%%%%%%
-function saveSIDs(sids)
+% set column names
+columnNames = sidDatabase.Properties.VariableNames;
+
+%%%%%%%%%%%%%%%%%%%%%%%%%
+%    saveSIDDatabase    %
+%%%%%%%%%%%%%%%%%%%%%%%%%
+function saveSIDDatabase(sidDatabase)
 
 % check for mrTools
 if ~mglIsMrToolsLoaded,return,end
 
 % get filename for SID s
-sidsFilename = mglGetParam('sids');
-if isempty(sidsFilename)
-  disp(sprintf('(mglSetSID) Can not look up sid because filename has not been set: use mglSetParam(''sids'',''filename'');'));
+sidDatabaseFilename = mglGetParam('sidDatabaseFilename');
+if isempty(sidDatabaseFilename)
+  disp(sprintf('(mglSetSID) Can not look up sid because filename has not been set: use mglSetParam(''sidDatabaseFilename'',''filename'');'));
   return
 end
 
 % strip extensions
-sidsFilename = stripext(sidsFilename);
+sidDatabaseFilename = stripext(sidDatabaseFilename);
 
 % check if data base exists
-if ~isfile(sidsFilename)
-  disp(sprintf('(mglSetSID) Could not find sids file %s',sidsFilename));
+if ~isfile(sidDatabaseFilename)
+  disp(sprintf('(mglSetSID) Could not find SID database file %s',sidDatabaseFilename));
   
-  if (~askuser(sprintf('(mglSetSID) Create sids file: %s',sidsFilename)))
+  if (~askuser(sprintf('(mglSetSID) Create SID database file: %s',sidDatabaseFilename)))
     return
   end
 end
 
 % write sids to file
-sidsDecrypt = setext(sidsFilename,'csv');
-writetable(sids,sidsDecrypt);
+sidDatabaseDecrypt = setext(sidDatabaseFilename,'csv');
+writetable(sidDatabase,sidDatabaseDecrypt);
 tryToEncrypt = true;
 
 disp(sprintf('(mglSetSID) Saving SID database, enter password'));
 while tryToEncrypt
   % try to encrypt file using openssl des3
-  status = system(sprintf('openssl des3 -salt -in %s -out %s',sidsDecrypt,sidsFilename));
+  status = system(sprintf('openssl des3 -salt -in %s -out %s',sidDatabaseDecrypt,sidDatabaseFilename));
 
   % see if encrypt was successful
   if isequal(status,1)
-    if ~askuser(sprintf('(mglSetSID) Did not encrypt %s. Try again',sidsDecrypt));
-      disp(sprintf('(mglSetSID) !!! WARNING file %s is not encyrpted !!!',sidsDecrypt));
-      if askuser(sprintf('(mglSetSID) Remove unencrypted file %s and lose changes',sidsDecrypt))
-	delete(sidsDecrypt);
+    if ~askuser(sprintf('(mglSetSID) Did not encrypt %s. Try again',sidDatabaseDecrypt));
+      disp(sprintf('(mglSetSID) !!! WARNING file %s is not encyrpted !!!',sidDatabaseDecrypt));
+      if askuser(sprintf('(mglSetSID) Remove unencrypted file %s and lose changes',sidDatabaseDecrypt))
+	delete(sidDatabaseDecrypt);
       end
       tryToEncrypt = false;
     end
   else
     % file encrypted ok, so delete decrypted version
-    delete(sidsDecrypt);
+    delete(sidDatabaseDecrypt);
     tryToEncrypt = false;
   end
 end
 
-%%%%%%%%%%%%%%%%%%
-%    editSIDs    %
-%%%%%%%%%%%%%%%%%%
-function sids = editSIDs(sids)
+%%%%%%%%%%%%%%%%%%%%%%%%%
+%    editSIDDatabase    %
+%%%%%%%%%%%%%%%%%%%%%%%%%
+function sidDatabase = editSIDDatabase(sidDatabase)
 
 % sort based on subject id
-sids = sortrows(sids,'sid');
+sidDatabase = sortrows(sidDatabase,'sid');
 
-% get the column names
-columnNames = sids.Properties.VariableNames;
-nCols = width(sids);
-nRows = length(sids.(columnNames{1}));
+% get the column names (set when table is loaded)
+global columnNames;
+nCols = width(sidDatabase);
+nRows = length(sidDatabase.(columnNames{1}));
 
 % get the existing data
-d = {};
-for i = 1:nCols
-  for j = 1:length(sids.(columnNames{i}))
-    d{j,i} = sids.(columnNames{i}){j};
+originalData = table2cell(sidDatabase);
+
+% validate enries
+for iRow = 1:nRows
+  for iCol = 1:nCols
+    [tf fieldVal] = validateField(originalData{iRow,iCol},iCol);
+    if tf
+      originalData{iRow,iCol} = fieldVal;
+    else
+      originalData{iRow,iCol} = '';
+    end
   end
 end
 
 % add 100 empty rows for editing
 for i= 1:100
   for j = 1:nCols
-    d{nRows+i,j} = '';
+    originalData{nRows+i,j} = '';
   end
 end
+
+% set column formats
+colWidth = 50;
+columnFormat = {'char','char','char',{'M','F'},'char','char'};
+columnEditable = [true true true true true false];
+columnWidth = {colWidth colWidth*2 colWidth*2 colWidth colWidth*1.5 colWidth*1.5};
+if mglGetParam('sidRaceEthnicity')
+  % add ethnic and racial categories
+  global ethnicCategories;
+  global racialCategories;
+  columnFormat{end+1} = ethnicCategories;
+  columnWidth{end+1} = colWidth*3;
+  columnEditable(end+1) = true;
+  for iRace = 2:length(racialCategories)
+    columnFormat{end+1} = {'None' racialCategories{:}};
+    columnWidth{end+1} = colWidth*3;
+    columnEditable(end+1) = true;
+  end
+end
+numColumns = length(columnFormat);
+
+% table width
+tableWidth = sum(cell2mat(columnWidth))+colWidth;
 
 % bring up figure
 f = mlrSmartfig('mglSetSID','reuse');clf;
@@ -289,11 +398,25 @@ set(f,'MenuBar','none');
 
 % size figure
 p = get(f,'Position');
-p(3) = 340;p(4) = 600;
-set(f,'Position',p);
+if p(3) < (tableWidth+2*colWidth)
+  p(3) = (tableWidth+2*colWidth);
+  set(f,'Position',p);
+end
+
+% copy over fields into a display variable (so that we can hide
+% ehtnicity/race when sidRaceEthnicity is set to false)
+if numColumns < size(originalData,2)
+  for iCol = 1:numColumns
+    for iRow = 1:size(originalData,1)
+      displayData{iRow,iCol} = originalData{iRow,iCol};
+    end
+  end
+else
+  displayData = originalData;
+end
 
 % add the table
-hTable = uitable(f,'Data',d,'ColumnName',columnNames,'ColumnEditable',true,'Position',[20 50 300 530],'CellEditCallback',@editSIDcell);
+hTable = uitable(f,'Data',displayData,'ColumnName',{columnNames{1:numColumns}},'ColumnEditable',true,'Position',[20 50 tableWidth 530],'CellEditCallback',@editSIDcell,'ColumnFormat',columnFormat,'ColumnWidth',columnWidth,'ColumnEditable',columnEditable);
 
 % add ok,cancel buttons
 uicontrol(f,'Style','pushbutton','Position',[130 20 90 20],'String','Cancel','Callback',@editSIDCancel);
@@ -306,30 +429,49 @@ uiwait
 global gEditSID;
 if gEditSID
   % grab data from table
-  d = get(hTable,'data');
+  displayData = get(hTable,'data');
   
   % put it back into table
   nRows = 0;vals = [];
-  for iRow = 1:size(d,1)
-    if ~isempty(d{iRow,1})
+  for iRow = 1:size(originalData,1)
+    % only add if there is an SID field set
+    if ~isempty(displayData{iRow,1})
       nRows = nRows + 1;
-      for iCol = 1:length(columnNames)
-	% if there is data, then add it
-	vals.(columnNames{iCol}){nRows,1} = d{iRow,iCol};
+      for iCol = 1:size(originalData,2)
+	if iCol <= size(displayData,2)
+	  % if it is in the displayed data, grab from there
+	  [tf fieldVal] = validateField(displayData{iRow,iCol},iCol);
+	else
+	  % if it is in original grab from there (like when not showing
+	  % ethnicity fields
+	  [tf fieldVal] = validateField(originalData{iRow,iCol},iCol);
+	end
+	if tf
+	  % if there is data, then add it
+	  vals.(columnNames{iCol}){nRows,1} = fieldVal;
+	else
+	  vals.(columnNames{iCol}){nRows,1} = '';
+	end
+      end
+      % see if there is a date
+      if isempty(vals.dateAdded{nRows,1})
+	% if not add the now date
+	vals.dateAdded{nRows,1} = datestr(now);
       end
     end
   end
-  sidsnew = struct2table(vals);
-  % sort based on subject id
-  sidsnew = sortrows(sidsnew,'sid');
-  % no change, then return empty
-  if isequal(sidsnew,sids)
-    sids = [];
-  else
-    sids = sidsnew;
+  sidDatabase = [];
+  if ~isempty(vals)
+    sidDatabaseNew = struct2table(vals);
+    % sort based on subject id
+    sidDatabaseNew = sortrows(sidDatabaseNew,'sid');
+    % check if changed or not
+    if ~isequal(sidDatabaseNew,sidDatabase)
+      sidDatabase = sidDatabaseNew;
+    end
   end
 else
-  sids = [];
+  sidDatabase = [];
 end
 
 % close figure
@@ -341,46 +483,112 @@ pause(0.1);
 %%%%%%%%%%%%%%%%%%%%%
 function editSIDcell(src, eventdata)
 
-% get new setting
-str = lower(eventdata.NewData);
+% check formatting of field
+[tf fieldVal] = validateField(eventdata.NewData,eventdata.Indices(2));
 
-% check formatting
-if eventdata.Indices(2) == 1
-  % first column should be either sxxx or test
-  if (length(str) < 1)
-    disp(sprintf('(mglSetSID) Subject ID should be sXXX format or test'));
-    str = eventdata.PreviousData;
-  % if begins with s, then extract number and reformat (to make uniform
-  elseif strcmp(str(1),'s')
-    num = str2num(str(2:end));
-    if isempty(num)
-      disp(sprintf('(mglSetSID) Subject ID should be sXXX format or test'));
-      str = eventdata.PreviousData;
-    else
-      str = sprintf('s%03i',num);
+% check if there is an age limit
+global columnNames;
+if strcmp(columnNames{eventdata.Indices(2)},'dob')
+  ageLimit = mglGetParam('sidAgeLimit');
+  if ~isempty(ageLimit)
+    age = datevec(datenum(now)-datenum(fieldVal));
+    if age(1) < ageLimit
+      tf = false;
+      warndlg(sprintf('Subject is less than %i years old. Using this subject in an fMRI experiment could be a protocol violation.',ageLimit),'Age Violation','modal');
     end
-  % if is just number, then convert to sxxx
-  elseif ~strcmp(str,'test')
-    num = str2num(str);
-    if isempty(num)
-      disp(sprintf('(mglSetSID) Subject ID should be sXXX format or test'));
-      str = eventdata.PreviousData;
-    else
-      str = sprintf('s%03i',num);
-    end
-  end
-else
-  if length(str) >= 1
-    str = fixBadChars(str);
-    str = sprintf('%s%s',upper(str(1)),lower(str(2:end)));
   end
 end
 
-% write back into data
-d = get(src,'data');
-d{eventdata.Indices(1),eventdata.Indices(2)} = str;
-set(src,'data',d);
+if ~tf
+  % if field did not validate, then set it back to what it once was
+  d = get(src,'data');
+  d{eventdata.Indices(1),eventdata.Indices(2)} = eventdata.PreviousData;
+  set(src,'data',d);
+else
+  % if it did validate, check if it changed, if so then replace it
+  if ~isequal(eventdata.NewData,fieldVal)
+    d = get(src,'data');
+    d{eventdata.Indices(1),eventdata.Indices(2)} = fieldVal;
+    set(src,'data',d);
+  end
+end
 
+%%%%%%%%%%%%%%%%%%%
+%    mglSetSID    %
+%%%%%%%%%%%%%%%%%%%
+function [tf fieldVal] = validateField(fieldVal,fieldNum)
+
+tf = true;
+
+% column names should be set when the table is loaded/created
+global columnNames;
+global ethnicCategories;
+global racialCategories;
+
+% subjectID
+if fieldNum > length(columnNames)
+  disp(sprintf('(mglSetSID:validateField) Field %i does not exist',fieldNum));
+  tf = false;
+  return
+elseif isequal(columnNames{fieldNum},'sid')
+  fieldVal = lower(fieldVal);
+  % first column should be either sxxx or test
+  if (length(fieldVal) < 1)
+    disp(sprintf('(mglSetSID) Subject ID should be sXXX format or test'));
+    tf = false;return
+  % if begins with s, then extract number and reformat (to make uniform
+  elseif strcmp(fieldVal(1),'s')
+    num = str2num(fieldVal(2:end));
+    if isempty(num)
+      disp(sprintf('(mglSetSID) Subject ID should be sXXX format or test'));
+      tf = false;return
+    else
+      fieldVal = sprintf('s%03i',num);
+    end
+  % if is just number, then convert to sxxx
+  elseif ~strcmp(fieldVal,'test')
+    num = str2num(fieldVal);
+    if isempty(num)
+      disp(sprintf('(mglSetSID) Subject ID should be sXXX format or test'));
+      tf = false;return
+    else
+      fieldVal = sprintf('s%03i',num);
+    end
+  end
+% DOB
+elseif isequal(columnNames{fieldNum},'dob')
+  try
+    % convert to a date vector
+    if ~isempty(fieldVal)
+      dob = datevec(datenum(fieldVal));
+      fieldVal = sprintf('%i/%i/%i',dob(2),dob(3),dob(1));
+    else
+      tf = false;
+    end
+  catch me
+    tf = false;
+  end
+elseif isequal(columnNames{fieldNum},'ethnicity')
+  if isnan(fieldVal)
+    tf = false;
+  else
+    tf = ismember(fieldVal,ethnicCategories);
+  end
+elseif isequal(columnNames{fieldNum},'race')
+  if isnan(fieldVal)
+    tf = false;
+  else
+    tf = ismember(fieldVal,racialCategories);
+  end   
+elseif strncmp(columnNames{fieldNum},'otherRace',9)
+  if isnan(fieldVal)
+    tf = false;
+  else
+    tf = ismember(fieldVal,{'None',racialCategories{:}});
+  end
+end
+
+if isnan(fieldVal),fieldVal = '';end
 %%%%%%%%%%%%%%%%%%%
 %    editSIDOK    %
 %%%%%%%%%%%%%%%%%%%
@@ -445,12 +653,12 @@ tf = false;
 if ~mglIsMrToolsLoaded,return,end
 
 % get the filename of the database lock
-sidsLockFilename = setext(mglGetParam('sids'),'lock');
+sidDatabaseLockFilename = setext(mglGetParam('sidDatabaseFilename'),'lock');
 
 % see if it exists
-if isfile(sidsLockFilename)
+if isfile(sidDatabaseLockFilename)
   % try to load it
-  [username locktime] = readlock(sidsLockFilename);
+  [username locktime] = readlock(sidDatabaseLockFilename);
   if isempty(username),return,end
   % see if it has been locked for greater than an hour (in which
   % case we spit out a message and ignore.
@@ -468,16 +676,16 @@ if isfile(sidsLockFilename)
 end
 
 % create the lock
-fLock = fopen(sidsLockFilename,'w');
+fLock = fopen(sidDatabaseLockFilename,'w');
 if (fLock == -1)
-  disp(sprintf('(mglSetSID) Could not open lock file: %s',sidsLockFilename));
+  disp(sprintf('(mglSetSID) Could not open lock file: %s',sidDatabaseLockFilename));
   if askuser(sprintf('(mglSetSID) You may not have permissions to write the SID database. Ignore and try to edit sid database anyway?'))
     tf = true;
     return;
   end
 end
 % set the attributes of the lock file to allow write by anyone
-fileattrib(sidsLockFilename,'+w');
+fileattrib(sidDatabaseLockFilename,'+w');
 
 % write into the sidsLock the user name and time stamp
 fprintf(fLock,'%s %s\n',getusername,datestr(now));
@@ -497,37 +705,37 @@ function releaseLock(warnOnStolenLock)
 if nargin < 1,warnOnStolenLock = false;end
 
 % get the filename of the database lock
-sidsLockFilename = setext(mglGetParam('sids'),'lock');
+sidDatabaseLockFilename = setext(mglGetParam('sidDatabaseFilename'),'lock');
 
 % check if lock is there
-if ~isfile(sidsLockFilename)
+if ~isfile(sidDatabaseLockFilename)
   disp(sprintf('(mglSetSID) Lock has already been removed'));
   return
 end
 
 % open lock file, just to check if we haven't got it stolen.
-[username locktime] = readlock(sidsLockFilename);
+[username locktime] = readlock(sidDatabaseLockFilename);
 if ~strcmp(username,getusername)
   if warnOnStolenLock
     disp(sprintf('(mglSetSID) !!! Warning, your lock was stolen by %s, they may overwrite your changes. !!!',username));
   end
 else
   % remove the lock
-  delete(sidsLockFilename);
+  delete(sidDatabaseLockFilename);
   disp('(mglSetSID) Releasing lock file on SID database');
 end
 
 %%%%%%%%%%%%%%%%%%
 %    readlock    %
 %%%%%%%%%%%%%%%%%%
-function [username locktime] = readlock(sidsLockFilename)
+function [username locktime] = readlock(sidDatabaseLockFilename)
 
 username = []; locktime = [];
 
 % try to load it
-fLock = fopen(sidsLockFilename);
+fLock = fopen(sidDatabaseLockFilename);
 if (fLock == -1) 
-  disp(sprintf('(mglSetSID) Could not open lock file %s',sidsLockFilename));
+  disp(sprintf('(mglSetSID) Could not open lock file %s',sidDatabaseLockFilename));
 else
   % get info from lockfile
   lockline = fgetl(fLock);

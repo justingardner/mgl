@@ -28,6 +28,15 @@ myscreen = endScreen(myscreen);
 % matched, as the stim and eyelink will have the same file number.
 myscreen = saveStimData(myscreen,task);
 
+% write task log if needed
+if mglGetParam('writeTaskLog')
+  % only write log if stimfile has been saved
+  if ~isfield(myscreen,'stimfile') || ~isempty(myscreen.stimfile)
+    mglTaskLog(myscreen);
+  end
+end
+
+% end eye tracker
 if myscreen.eyetracker.init && isfield(myscreen.eyetracker.callback, 'endTracking')
   feval(myscreen.eyetracker.callback.endTracking,task,myscreen);
 end
