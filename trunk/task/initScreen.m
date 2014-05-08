@@ -29,7 +29,7 @@ myscreen.ver = 2.0;
 % Get SID
 myscreen.SID = mglGetSID;
 % check if we have to set sid and it has not been set
-if isempty(myscreen.SID) && mglGetParam('mustSetSID')
+if isempty(myscreen.SID) && isequal(mglGetParam('mustSetSID'),1)
   disp(sprintf('(initScreen) !!! You must set a SID before running. !!!'));
   myscreen = [];
   disp(sprintf('Quit out of debug mode K>> by doing dbquit then run mglSetSID'));
