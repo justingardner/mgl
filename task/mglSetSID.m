@@ -513,22 +513,26 @@ if strcmp(columnNames{eventdata.Indices(2)},'firstName') || strcmp(columnNames{e
   d = get(src,'data');
   n = size(d,1);
   i = eventdata.Indices(1);
-  firstName = d{i,find(strcmp('firstName',columnNames))};
-  lastName = d{i,find(strcmp('lastName',columnNames))};
+  firstName = lower(d{i,find(strcmp('firstName',columnNames))});
+  lastName = lower(d{i,find(strcmp('lastName',columnNames))});
   if ~isempty(firstName) && ~isempty(lastName)
     % now check if there is someone else in the database with the same name
-    firstNames = {d{:,find(strcmp('firstName',columnNames))}};
+    firstNames = lower({d{:,find(strcmp('firstName',columnNames))}});
     % see if there is any matches
     firstNameMatches = find(strcmp(firstName,firstNames));
     % see if there is also a lastName match
-    lastNames = {d{:,find(strcmp('lastName',columnNames))}};
+    lastNames = lower({d{:,find(strcmp('lastName',columnNames))}});
     lastNameMatches = find(strcmp(lastName,lastNames));
     % find where there is a match of both first name and last name, excluding this roww
     matchingRows = setdiff(intersect(firstNameMatches,lastNameMatches),i);
     % if this is different than this row, then it means there is a repeat
     if ~isempty(matchingRows)
       warndlg(sprintf('(mglSetSID) Subject %s %s has already been entered with SIDs: %s',firstName,lastName,d{matchingRows(1),find(strcmp('sid',columnNames))}),'Duplicate subject name','modal');
-      tf = false;
+      % clear the whole row
+      for fieldNum = 1:size(d,2)
+	d{i,fieldNum} = '';
+      end
+      set(src,'data',d);
     end
   end
 end
