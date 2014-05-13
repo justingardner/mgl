@@ -56,6 +56,13 @@ global racialCategories;
 ethnicCategories = {'Decline','Hispanic or Latino','Not Hispanic or Latino'};
 racialCategories = {'Decline','American Indian or Alaska Native','Asian','Black or African American','Native Hawaiian or Other Pacific Islander','White'};
 
+% required fields
+global requiredFields;
+requiredFields = {'sid','firstName','lastName','gender','dob'};
+if mglGetParam('sidRaceEthnicity')
+  requiredFields = {requiredFields{:} 'ethnicity','race'};
+end
+		    
 % if passed in one argument and it is a number
 if (nargin == 1)
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -409,8 +416,13 @@ else
   displayData = originalData;
 end
 
+% keep track of what row the user is editing so that we can validate each row entry
+global gEditingRow;
+gEditingRow = nan;
+
 % add the table
-hTable = uitable(f,'Data',displayData,'ColumnName',{columnNames{1:numColumns}},'ColumnEditable',true,'Position',[20 50 tableWidth 530],'CellEditCallback',@editSIDcell,'ColumnFormat',columnFormat,'ColumnWidth',columnWidth,'ColumnEditable',columnEditable);
+global hTable;
+hTable = uitable(f,'Data',displayData,'ColumnName',{columnNames{1:numColumns}},'ColumnEditable',true,'Position',[20 50 tableWidth 530],'CellEditCallback',@editSIDcell,'CellSelectionCallback',@selectSIDcell,'ColumnFormat',columnFormat,'ColumnWidth',columnWidth,'ColumnEditable',columnEditable);
 
 % add ok,cancel buttons
 uicontrol(f,'Style','pushbutton','Position',[130 20 90 20],'String','Cancel','Callback',@editSIDCancel);
@@ -471,6 +483,66 @@ end
 % close figure
 close(f);
 pause(0.1);
+
+%%%%%%%%%%%%%%%%%%%%%
+%    validateRow    %
+%%%%%%%%%%%%%%%%%%%%%
+function [tf invalidFieldNum invalidFieldName] = validateRow(data,rownum)
+
+global requiredFields;
+global columnNames;
+
+% default values
+tf = true;invalidFieldNum = [];invalidFieldName = [];
+
+% check for missing row
+if size(data,1) < rownum
+  disp(sprintf('(mglSetSID:validateRow) No row %i to validate',rownum));
+  return
+end
+
+% check all required fields
+for iField = 1:length(requiredFields)
+  fieldNum = find(strcmp(requiredFields{iField},columnNames));
+  % check if that field is empty
+  if ~isempty(fieldNum) && (size(data,2)>=fieldNum) && isempty(data{rownum,fieldNum})
+    tf = false;
+    invalidFieldNum = fieldNum;
+    invalidFieldName = requiredFields{iField};
+    return
+  end
+end
+
+%%%%%%%%%%%%%%%%%%%%%%%
+%    selectSIDcell    %
+%%%%%%%%%%%%%%%%%%%%%%%
+function selectSIDcell(src, eventdata)
+
+global gEditingRow;
+
+% check for bad selection data
+if length(eventdata.Indices) < 1,return,end
+
+% get row that the user has select
+currentRow = eventdata.Indices(1);
+
+% check if the user is editing a new row
+if ~isnan(gEditingRow)
+  if ~isequal(gEditingRow,currentRow)
+    % validate the row the user just finished editing, if it has a subjectID set
+    data = get(src,'data');
+    if size(data,1) >= gEditingRow
+      if ~isempty(data{gEditingRow,1})
+	[tf fieldNum fieldName] = validateRow(get(src,'data'),gEditingRow);
+	if ~tf
+	  warndlg(sprintf('(mglSetSID) You must set field %s for %s',fieldName,data{gEditingRow,1}),'Missing Field','modal');
+	  return
+	end
+      end
+    end
+  end
+end
+gEditingRow = currentRow;
 
 %%%%%%%%%%%%%%%%%%%%%
 %    editSIDcell    %
@@ -627,11 +699,28 @@ elseif strncmp(columnNames{fieldNum},'otherRace',9)
 end
 
 if isnan(fieldVal),fieldVal = '';end
+
 %%%%%%%%%%%%%%%%%%%
 %    editSIDOK    %
 %%%%%%%%%%%%%%%%%%%
 function editSIDOK(src, eventdata)
 
+% validate the row the user just finished editing
+global hTable;
+data = get(hTable,'data');
+for iRow = 1:size(data,1)
+  % for all rows with a non-empty SID
+  if ~isempty(data{iRow,1})
+    % validate
+    [tf fieldNum fieldName] = validateRow(data,iRow);
+    if ~tf
+      warndlg(sprintf('(mglSetSID) You must set field %s for %s',fieldName,data{iRow,1}),'Missing Field','modal');
+      return
+    end
+  end
+end
+
+% otherwise close dialog and let calling routine know that we need to save
 global gEditSID;
 gEditSID = true;
 uiresume;
