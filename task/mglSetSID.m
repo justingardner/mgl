@@ -557,10 +557,11 @@ global columnNames;
 if strcmp(columnNames{eventdata.Indices(2)},'dob')
   ageLimit = mglGetParam('sidAgeLimit');
   if ~isempty(ageLimit)
-    age = datevec(datenum(now)-datenum(fieldVal));
+    % age - accounting for birthday happening on same as today
+    age = datevec(datenum(floor(now)+1)-datenum(fieldVal));
     if age(1) < ageLimit
       tf = false;
-      warndlg(sprintf('Subject is less than %i years old. Using this subject in an fMRI experiment could be a protocol violation.',ageLimit),'Age Violation','modal');
+      warndlg(sprintf('Subject was born on %s (%i years old) is less than %i years old. Using this subject in an fMRI experiment could be a protocol violation.',fieldVal,age(1),ageLimit),'Age Violation','modal');
     end
   end
 end
