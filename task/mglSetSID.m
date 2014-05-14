@@ -41,6 +41,11 @@
 %             Then every user of the computer will have to set an SID
 %             before initScreen will allow them to run a subject.
 %
+%             If you need to have race/ethnicity info in sid database
+%             then set the following.
+%
+%             mglSetParam('sidRaceEthnicity',true,2)
+%     
 function retval = mglSetSID(sid)
 
 % check arguments
@@ -153,6 +158,22 @@ if isempty(sidStr)
 end
   
 disp(sprintf('(mglSetSID) Setting SID: %s',sidStr));
+
+% if this is not test, then try to validate
+if ~strcmp(lower(sidStr),'test')
+  sidDatabaseSID = setext(mglGetParam('sidDatabaseFilename'),'mat',0);
+  if ~isfile(sidDatabaseSID)
+    disp(sprintf('(mglSetSID) Could not find SID file %s, so cannot validate',sidDatabaseSID));
+  else
+    sid = load(sidDatabaseSID);
+    if isfield(sid,'sid')
+      if isempty(find(strcmp(lower(sidStr),lower(sid.sid))))
+	disp(sprintf('(mglSetSID) SID %s is not in database. Must be added with mglSetSID(''edit'')) before you can set it',sidStr));
+	return
+      end
+    end
+  end
+end
 
 % set the subject id
 mglSetParam('sid',sidStr);
@@ -334,6 +355,12 @@ while tryToEncrypt
     tryToEncrypt = false;
   end
 end
+
+% write out SIDs
+sidDatabaseSID = setext(sidDatabaseFilename,'mat',0);
+sid = table2cell(sidDatabase);
+sid = {sid{:,1}};
+save(sidDatabaseSID,'sid');
 
 %%%%%%%%%%%%%%%%%%%%%%%%%
 %    editSIDDatabase    %
