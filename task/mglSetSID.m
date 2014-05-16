@@ -168,7 +168,8 @@ if ~strcmp(lower(sidStr),'test')
     sid = load(sidDatabaseSID);
     if isfield(sid,'sid')
       if isempty(find(strcmp(lower(sidStr),lower(sid.sid))))
-	disp(sprintf('(mglSetSID) SID %s is not in database. Must be added with mglSetSID(''edit'')) before you can set it',sidStr));
+	disp(sprintf('(mglSetSID) SID %s is not in database. Must be added with mglSetSID(''edit'') before you can set it',sidStr));
+	setSID([]);
 	return
       end
     end
