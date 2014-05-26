@@ -109,20 +109,30 @@ logpath = fullfile(logpath,logdir);
 logfilename = fullfile(logpath,sprintf('mgllog%i.csv',year));
 if isfile(logfilename)
   % load the log
-  log = readtable(logfilename);
+  log = myreadtable(logfilename);
 else
   % create a new log
-  log = table;
+  log = [];
+end
+
+% figure out how many rows
+if isempty(log)
+  nRows = 0;
+else
+  nRows = length(log.date);
 end
 
 % add a new entry into table
 tableCols = {'date','username','time','sid','stimfile','stimlen'};
-newEntry = cell2table({datenow,username,timenow,sid,stimfile,stimlen});
-newEntry.Properties.VariableNames = tableCols;
-log = [log;newEntry];
+log.date{nRows+1} = datenow;
+log.username{nRows+1} = username;
+log.time{nRows+1} = timenow;
+log.sid{nRows+1} = sid;
+log.stimfile{nRows+1} = stimfile;
+log.stimlen{nRows+1} = stimlen;
 
 % write table back
-writetable(log,logfilename);
+mywritetable(log,logfilename);
 fileattrib(logfilename,'+w');
 disp(sprintf('(mglWriteLog) Wrote log entry: %s %s %s %s %s %s',datenow,username,timenow,sid,stimfile,stimlen));
 
@@ -245,7 +255,7 @@ end
 logfilename = fullfile(logpath,setext(sprintf('mgllog%i',year),'csv',0));
 if isfile(logfilename)
   % load the log
-  log = readtable(logfilename);
+  log = myreadtable(logfilename);
 else
   disp(sprintf('(mglDispLog) Could not find log: %s',logfilename));
   return
@@ -259,7 +269,7 @@ end
 
 % init variables
 thisdate = [];thisusername = [];thissid = [];thisstimfile= {};thismonth = [];
-numRows = size(log,1);
+numRows = length(log.date);
 
 % cycle through each row
 for iRow = 1:numRows
@@ -319,3 +329,87 @@ end
 lastDir = [lastDir ext];
 
 lastDir = fullfile(getLastDir(pathStr,levels-1),lastDir);
+
+%%%%%%%%%%%%%%%%%%%%%
+%    myreadtable    %
+%%%%%%%%%%%%%%%%%%%%%
+function t = myreadtable(filename)
+
+t = [];
+f = fopen(filename);
+if (f==-1)
+  disp(sprintf('(mglSetSID:myreadtable) Could not open file: %s',filename));
+  return
+end
+
+% read variable names
+varNamesLine = fgets(f);
+varNames = {};
+while ~isempty(varNamesLine)
+  [varNames{end+1} varNamesLine] = strtok(varNamesLine,',');
+  varNames{end} = strtrim(varNames{end});
+end
+
+% read the lines
+l = fgets(f);
+iLine = 1;
+while ~isequal(l,-1)
+  % read each entry in the line
+  iEntry = 1;
+  % try to read all fields
+  cloc = strfind(l,',');
+  if (length(cloc) ~= (length(varNames)-1))
+    disp(sprintf('(mglSetSID) File: %s has a line with only %i comma delimited fields when %i is expected',filename,length(cloc),length(varNames)-1));
+    fclose(f);
+    return
+  end
+  cloc = [0 cloc length(l)];
+  for iField = 1:length(varNames)
+    t.(varNames{iField}){iLine} = l((cloc(iField)+1):(cloc(iField+1)-1));
+    iEntry = iEntry+1;
+  end
+  % read another line
+  l = fgets(f);
+  iLine = iLine+1;
+end
+
+% close file
+fclose(f);
+
+
+%%%%%%%%%%%%%%%%%%%%%
+%    mywritetable    %
+%%%%%%%%%%%%%%%%%%%%%
+function mywritetable(t,filename)
+
+f = fopen(filename,'w');
+if (f==-1)
+  disp(sprintf('(mglSetSID) Could not open %s for writing',filename));
+  return
+end
+
+% write the column names
+fields = fieldnames(t);
+for iField = 1:length(fields)
+  if (iField==1)
+    fprintf(f,'%s',fields{iField});
+  else
+    fprintf(f,',%s',fields{iField});
+  end
+end
+fprintf(f,'\n');
+
+% write out each row
+for iRow = 1:length(t.sid)
+  for iField = 1:length(fields)
+    if (iField==1)
+      fprintf(f,'%s',t.(fields{iField}){iRow});
+    else
+      fprintf(f,',%s',t.(fields{iField}){iRow});
+    end
+  end
+  fprintf(f,'\n');
+end
+
+% close file
+fclose(f);
