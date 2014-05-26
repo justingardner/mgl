@@ -97,7 +97,7 @@ if (nargin == 1)
     if ~getLock return, end
     % load existing database
     sidDatabase = loadSIDDatabase;
-    if ~istable(sidDatabase),releaseLock;return;,end
+    if isempty(sidDatabase),releaseLock;return;,end
     % edit the database
     sidDatabase = editSIDDatabase(sidDatabase);
     % save the database
@@ -260,7 +260,6 @@ sidDatabaseDecrypt = setext(sidDatabaseFilename,'csv',0);
 if ~isfile(sidDatabaseFilename)
   if askuser(sprintf('(mglSetSID) Could not find SID Database file %s, create one from scratch?',sidDatabaseFilename))
     % create a new table
-    sidDatabase = table;
     sidDatabase.sid = {};
     sidDatabase.firstName = {};
     sidDatabase.lastName = {};
@@ -273,11 +272,10 @@ if ~isfile(sidDatabaseFilename)
       sidDatabase.(sprintf('otherRace%i',iRace-2)) = {};
     end
     % set column names
-    columnNames = sidDatabase.Properties.VariableNames;
+    columnNames = fieldnames(sidDatabase);
   end
   return
 end
-
 
 % try to unencrypt file using openssl des3
 disp(sprintf('(mglSetSID) Loading SID database, enter password'));
@@ -291,21 +289,22 @@ if isequal(status,1)
 end
 
 % if so, then load it and delete the decrypt file
-sidDatabase = readtable(sidDatabaseDecrypt);
+sidDatabase = myreadtable(sidDatabaseDecrypt);
 delete(sidDatabaseDecrypt);
 if isempty(sidDatabase)
   disp(sprintf('(mglSetSID) Could not load SID database %s',sidDatabaseDecrypt));
   return
 end
+
+% set column names
+columnNames = fieldnames(sidDatabase);
+
 % check format
 checkFields = {'sid','lastName','firstName'};
-if ~istable(sidDatabase) || ~isempty(setxor(intersect(sidDatabase.Properties.VariableNames,checkFields),checkFields))
+if ~isempty(setxor(intersect(columnNames,checkFields),checkFields))
   disp(sprintf('(mglSetSID) Bad table format for file %s',sidDatabaseFilename));
   sidDatabase = [];
 end
-
-% set column names
-columnNames = sidDatabase.Properties.VariableNames;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%
 %    saveSIDDatabase    %
@@ -333,7 +332,7 @@ end
 
 % write sids to file
 sidDatabaseDecrypt = setext(sidDatabaseFilename,'csv',0);
-writetable(sidDatabase,sidDatabaseDecrypt);
+mywritetable(sidDatabase,sidDatabaseDecrypt);
 tryToEncrypt = true;
 
 disp(sprintf('(mglSetSID) Saving SID database, enter password'));
@@ -359,8 +358,7 @@ end
 
 % write out SIDs
 sidDatabaseSID = setext(sidDatabaseFilename,'mat',0);
-sid = table2cell(sidDatabase);
-sid = {sid{:,1}};
+sid = sidDatabase.sid;
 save(sidDatabaseSID,'sid');
 
 %%%%%%%%%%%%%%%%%%%%%%%%%
@@ -369,32 +367,33 @@ save(sidDatabaseSID,'sid');
 function sidDatabase = editSIDDatabase(sidDatabase)
 
 % sort based on subject id
-sidDatabase = sortrows(sidDatabase,'sid');
+[vals sortorder] = sort(sidDatabase.sid);
+fields = fieldnames(sidDatabase);
+for iField = 1:length(fields);
+  sidDatabase.(fields{iField}) = {sidDatabase.(fields{iField}){sortorder}};
+end
 
 % get the column names (set when table is loaded)
 global columnNames;
-nCols = width(sidDatabase);
+nCols = length(columnNames);
 nRows = length(sidDatabase.(columnNames{1}));
-
-% get the existing data
-originalData = table2cell(sidDatabase);
 
 % validate enries
 for iRow = 1:nRows
   for iCol = 1:nCols
-    [tf fieldVal] = validateField(originalData{iRow,iCol},iCol);
+    [tf fieldVal] = validateField(sidDatabase.(columnNames{iCol}){iRow},iCol);
     if tf
-      originalData{iRow,iCol} = fieldVal;
+      sidDatabase.(columnNames{iCol}){iRow} = fieldVal;
     else
-      originalData{iRow,iCol} = '';
+      sidDatabase.(columnNames{iCol}){iRow} = '';
     end
   end
 end
 
 % add 100 empty rows for editing
 for i= 1:100
-  for j = 1:nCols
-    originalData{nRows+i,j} = '';
+  for iCol = 1:nCols
+    sidDatabase.(columnNames{iCol}){end+1} = '';
   end
 end
 
@@ -434,14 +433,10 @@ end
 
 % copy over fields into a display variable (so that we can hide
 % ehtnicity/race when sidRaceEthnicity is set to false)
-if numColumns < size(originalData,2)
-  for iCol = 1:numColumns
-    for iRow = 1:size(originalData,1)
-      displayData{iRow,iCol} = originalData{iRow,iCol};
-    end
+for iCol = 1:numColumns
+  for iRow = 1:length(sidDatabase.sid)
+    displayData{iRow,iCol} = sidDatabase.(columnNames{iCol}){iRow};
   end
-else
-  displayData = originalData;
 end
 
 % keep track of what row the user is editing so that we can validate each row entry
@@ -463,22 +458,21 @@ uiwait
 global gEditSID;
 if gEditSID
   % grab data from table
-  displayData = get(hTable,'data');
-  
+  displayData = get(hTable,'data');  
   % put it back into table
   nRows = 0;vals = [];
-  for iRow = 1:size(originalData,1)
+  for iRow = 1:length(sidDatabase.sid)
     % only add if there is an SID field set
     if ~isempty(displayData{iRow,1})
       nRows = nRows + 1;
-      for iCol = 1:size(originalData,2)
+      for iCol = 1:length(columnNames)
 	if iCol <= size(displayData,2)
 	  % if it is in the displayed data, grab from there
 	  [tf fieldVal] = validateField(displayData{iRow,iCol},iCol);
 	else
 	  % if it is in original grab from there (like when not showing
 	  % ethnicity fields
-	  [tf fieldVal] = validateField(originalData{iRow,iCol},iCol);
+	  [tf fieldVal] = validateField(sidDatabase.(columnNames{iCol}){iRow},iCol);
 	end
 	if tf
 	  % if there is data, then add it
@@ -494,15 +488,18 @@ if gEditSID
       end
     end
   end
-  sidDatabase = [];
-  if ~isempty(vals)
-    sidDatabaseNew = struct2table(vals);
-    % sort based on subject id
-    sidDatabaseNew = sortrows(sidDatabaseNew,'sid');
-    % check if changed or not
-    if ~isequal(sidDatabaseNew,sidDatabase)
-      sidDatabase = sidDatabaseNew;
-    end
+  % sort based on subject id
+  sidDatabaseNew = vals;
+  [vals sortorder] = sort(sidDatabaseNew.sid);
+  fields = fieldnames(sidDatabaseNew);
+  for iField = 1:length(fields);
+    sidDatabaseNew.(fields{iField}) = {sidDatabaseNew.(fields{iField}){sortorder}};
+  end
+  % check if changed or not
+  if ~isequal(sidDatabaseNew,sidDatabase)
+    sidDatabase = sidDatabaseNew;
+  else
+    sidDatabase = [];
   end
 else
   sidDatabase = [];
@@ -944,3 +941,87 @@ if (retval == 0)
 else
   username = 'unknown';
 end
+
+%%%%%%%%%%%%%%%%%%%%%
+%    myreadtable    %
+%%%%%%%%%%%%%%%%%%%%%
+function t = myreadtable(filename)
+
+t = [];
+f = fopen(filename);
+if (f==-1)
+  disp(sprintf('(mglSetSID:myreadtable) Could not open file: %s',filename));
+  return
+end
+
+% read variable names
+varNamesLine = fgets(f);
+varNames = {};
+while ~isempty(varNamesLine)
+  [varNames{end+1} varNamesLine] = strtok(varNamesLine,',');
+  varNames{end} = strtrim(varNames{end});
+end
+
+% read the lines
+l = fgets(f);
+iLine = 1;
+while ~isequal(l,-1)
+  % read each entry in the line
+  iEntry = 1;
+  % try to read all fields
+  cloc = strfind(l,',');
+  if (length(cloc) ~= (length(varNames)-1))
+    disp(sprintf('(mglSetSID) File: %s has a line with only %i comma delimited fields when %i is expected',filename,length(cloc),length(varNames)-1));
+    fclose(f);
+    return
+  end
+  cloc = [0 cloc length(l)];
+  for iField = 1:length(varNames)
+    t.(varNames{iField}){iLine} = l((cloc(iField)+1):(cloc(iField+1)-1));
+    iEntry = iEntry+1;
+  end
+  % read another line
+  l = fgets(f);
+  iLine = iLine+1;
+end
+
+% close file
+fclose(f);
+
+
+%%%%%%%%%%%%%%%%%%%%%
+%    mywritetable    %
+%%%%%%%%%%%%%%%%%%%%%
+function mywritetable(t,filename)
+
+f = fopen(filename,'w');
+if (f==-1)
+  disp(sprintf('(mglSetSID) Could not open %s for writing',filename));
+  return
+end
+
+% write the column names
+fields = fieldnames(t);
+for iField = 1:length(fields)
+  if (iField==1)
+    fprintf(f,'%s',fields{iField});
+  else
+    fprintf(f,',%s',fields{iField});
+  end
+end
+fprintf(f,'\n');
+
+% write out each row
+for iRow = 1:length(t.sid)
+  for iField = 1:length(fields)
+    if (iField==1)
+      fprintf(f,'%s',t.(fields{iField}){iRow});
+    else
+      fprintf(f,',%s',t.(fields{iField}){iRow});
+    end
+  end
+  fprintf(f,'\n');
+end
+
+% close file
+fclose(f);
