@@ -218,7 +218,7 @@ if isempty(sidDatabase),return,end
 sidstr = lower(sidstr);
 rownum = [];
 % lookup matching row
-for iRow = 1:size(sidDatabase,1)
+for iRow = 1:size(sidDatabase.sid,2)
   if ~isempty(findstr(sidstr,lower(sidDatabase.firstName{iRow}))) || ~isempty(findstr(sidstr,lower(sidDatabase.lastName{iRow})))
     rownum(end+1) = iRow;
   end
