@@ -146,7 +146,7 @@ NSAutoreleasePool *digIOPool = NULL;
 NSMutableArray *diginEventQueue = NULL, *outEventQueue = NULL;
 TaskHandle nidaqInputTaskHandle = 0,nidaqOutputTaskHandle = 0;
 TaskHandle nidaqAOTaskHandle[NUMAO] = {0};
-
+static double lastAOEndTime = 0;
 //////////////
 //   main   //
 //////////////
@@ -637,10 +637,28 @@ int ao(NSMutableArray *outEventQueue,int connectionDescriptor)
   // ok, now we have all the parameters for setting up the ao event, display them
   printf("(mglStandaloneDigIO) Setting up frequency output at time: %f channelNum: %lu freq: %f amplitude: %f duration: %f (sampleRate: %lu)\n",eventTime,channelNum,freq,amplitude,duration,sampleRate);
 
+  // the init event HAS to start AFTER the last ao event has ended (this is some strageness in the
+  // NI-DAQmx Library - I would have thought that you could create a Task on one AO channel independent
+  // of another, but so far I have not gotten this to work. Instead, once you have loaded the data to
+  // output for one channel, you can't load any new data until that task has ended. So here we init
+  // new Tasks (that is, load the sine waveform) only after the last analog output event has ended
+  // the timing of the last event is kept in a global variable. We assume that it takes about
+  // 25 ms to init events (that's what I was getting on my Mac Pro. So we make sure that we
+  // have 25 ms to create the event before running - that is the epsilonTime variable here).
+  double epsilonTime = 0.025;
+  if (lastAOEndTime == 0) lastAOEndTime = getCurrentTimeInSeconds();
+  if (eventTime < (lastAOEndTime + epsilonTime)) {
+    printf("(mglStandaloneDigIO) !!! AO events -even if they are on different channels- need to happen consecutively. You need to specify an AO event time at least %f ms after the last one for this function to work. Ignoring this AO event request !!!\n",epsilonTime*1000);
+    return 0;
+  }
+
   // create the init, start and end events
-  queueEvent *qInitEvent = [[queueEvent alloc] initAO:getCurrentTimeInSeconds() :channelNum :freq :amplitude :sampleRate];
+  queueEvent *qInitEvent = [[queueEvent alloc] initAO:lastAOEndTime+0.001 :channelNum :freq :amplitude :sampleRate];
   queueEvent *qStartEvent = [[queueEvent alloc] startAO:eventTime :[qInitEvent nidaqTaskHandle]];
   queueEvent *qEndEvent = [[queueEvent alloc] endAO:eventTime+duration :[qInitEvent nidaqTaskHandle]];
+
+  // remember the end time of these event as the last one
+  lastAOEndTime = eventTime+duration;
 
   // add the events to the event queue
   [outEventQueue addObject:qInitEvent];
