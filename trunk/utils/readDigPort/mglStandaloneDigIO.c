@@ -83,18 +83,21 @@
   int type;
   double time;
   uInt32 val;
-  uInt32 channelNum;
-  double freq;
-  double amplitude;
+  // the following are specific for ao events
+  uInt32 numChannels;
+  uInt32 devnum;
+  uInt32 *channelNum;
+  double *freq;
+  double *amplitude;
   uInt32 sampleRate;
   TaskHandle nidaqTaskHandle;
 }
 - (id)initWithTypeTimeAndValue:(int)initType :(double)initTime :(uInt32)initVal;
 - (id)initWithTypeAndValue:(int)initType :(uInt32)initVal;
 - (id)initWithType:(int)initType;
-- (id)initAO:(double)initTime :(uInt32)initChannelNum :(double)initFreq :(double)initAmplitude :(uInt32)initSampleRate; 
+- (id)initAO:(double)initTime :(uInt32)initDev :(uInt32)initNumChannels :(uInt32*)initChannelNum :(double*)initFreq :(double*)initAmplitude :(uInt32)initSampleRate; 
 - (id)startAO:(double)startTime :(TaskHandle)taskToStart; 
-- (id)endAO:(double)endTime :(TaskHandle)taskToEnd; 
+- (id)endAO:(double)endTime :(TaskHandle)taskToEnd :(uInt32)initDevnum :(uInt32)initNumChannels :(uInt32*)initChannelNum; 
 - (double)time;
 - (uInt32)val;
 - (TaskHandle)nidaqTaskHandle;
@@ -109,12 +112,12 @@
 ///////////////////////////////
 double getCurrentTimeInSeconds();
 int ao(NSMutableArray *,int);
-TaskHandle createAO(uInt32 channelNum, double amplitude);
-TaskHandle initAO(TaskHandle nidaqTaskHandle, double freq, double amplitude, uInt32 sampleRate);
+TaskHandle createAO(uInt32 devnum, uInt32 numChannels, uInt32 *channelNum, double *amplitude);
+TaskHandle initAO(TaskHandle nidaqTaskHandle, uInt32 numChannels, double *freq, double *amplitude, uInt32 sampleRate);
 void startAO(TaskHandle nidaqTaskHandle);
-void endAO(TaskHandle nidaqTaskHandle,uInt32 channelNum);
-int initDigIO(int, int, TaskHandle *, TaskHandle *, NSMutableArray **,NSMutableArray **,NSAutoreleasePool **);
-int nidaqStartTask(int, int, TaskHandle *, TaskHandle *);
+void endAO(TaskHandle nidaqTaskHandle, uInt32 devnum, uInt32 numChannels, uInt32 *channelNum);
+int initDigIO(int, int, int, int, TaskHandle *, TaskHandle *, NSMutableArray **,NSMutableArray **,NSAutoreleasePool **);
+int nidaqStartTask(int, int, int, int, TaskHandle *, TaskHandle *);
 void endDigIO(TaskHandle, TaskHandle, NSMutableArray *,NSMutableArray *,NSAutoreleasePool *);
 void nidaqStopTask(TaskHandle, TaskHandle);
 void logDigIO(TaskHandle, NSMutableArray *);
@@ -145,7 +148,6 @@ static int connectionDescriptor = 0,socketDescriptor = 0;
 NSAutoreleasePool *digIOPool = NULL;
 NSMutableArray *diginEventQueue = NULL, *outEventQueue = NULL;
 TaskHandle nidaqInputTaskHandle = 0,nidaqOutputTaskHandle = 0;
-TaskHandle nidaqAOTaskHandle[NUMAO] = {0};
 static double lastAOEndTime = 0;
 //////////////
 //   main   //
@@ -155,6 +157,8 @@ int main(int argc, char *argv[])
   // declare variables
   int nidaqInputPortNum = 2;
   int nidaqOutputPortNum = 1;
+  int inputDevnum = 1;
+  int outputDevnum = 1;
   char socketName[BUFSIZE];
 
   // set default socketName
@@ -164,7 +168,9 @@ int main(int argc, char *argv[])
   if (argc>=2) sprintf(socketName,"%s",argv[1]);
   if (argc>=3) nidaqInputPortNum = atoi(argv[2]);
   if (argc>=4) nidaqOutputPortNum = atoi(argv[3]);
-  if (argc>=5) verbose = atoi(argv[4]);
+  if (argc>=4) inputDevnum = atoi(argv[4]);
+  if (argc>=5) outputDevnum = atoi(argv[5]);
+  if (argc>=6) verbose = atoi(argv[6]);
   verbose = 1;
 
   // display settings
@@ -178,7 +184,7 @@ int main(int argc, char *argv[])
     return(0);
   
   // init digIO
-  if (initDigIO(nidaqInputPortNum,nidaqOutputPortNum,&nidaqInputTaskHandle,&nidaqOutputTaskHandle,&diginEventQueue,&outEventQueue,&digIOPool) == 0) {
+  if (initDigIO(nidaqInputPortNum,nidaqOutputPortNum,inputDevnum,outputDevnum,&nidaqInputTaskHandle,&nidaqOutputTaskHandle,&diginEventQueue,&outEventQueue,&digIOPool) == 0) {
     close(socketDescriptor);
     return(0);
   }
@@ -409,18 +415,20 @@ void processEvent(TaskHandle nidaqOutputTaskHandle, NSMutableArray *outEventQueu
   //return self
   return self;
 }
-- (id)initAO:(double)initTime :(uInt32)initChannelNum :(double)initFreq :(double)initAmplitude :(uInt32)initSampleRate; 
+- (id)initAO:(double)initTime :(uInt32)initDevnum :(uInt32)initNumChannels :(uInt32*)initChannelNum :(double*)initFreq :(double*)initAmplitude :(uInt32)initSampleRate; 
 {
   // init parent
   [super init];
   // set internals
   type = AO_INIT_EVENT;
+  devnum = initDevnum;
+  numChannels = initNumChannels;
   channelNum = initChannelNum;
   time = initTime;
   freq = initFreq;
   amplitude = initAmplitude;
   sampleRate = initSampleRate;
-  nidaqTaskHandle = createAO(channelNum,amplitude);
+  nidaqTaskHandle = createAO(devnum,numChannels,channelNum,amplitude);
   //return self
   return self;
 }
@@ -435,13 +443,16 @@ void processEvent(TaskHandle nidaqOutputTaskHandle, NSMutableArray *outEventQueu
   //return self
   return self;
 }
-- (id)endAO:(double)endTime :(TaskHandle)taskToEnd; 
+- (id)endAO:(double)endTime :(TaskHandle)taskToEnd :(uInt32)initDevnum :(uInt32)initNumChannels :(uInt32*)initChannelNum; 
 {
   // init parent
   [super init];
   // set internals
   type = AO_END_EVENT;
   time = endTime;
+  devnum = initDevnum;
+  numChannels = initNumChannels;
+  channelNum = initChannelNum;
   nidaqTaskHandle = taskToEnd;
   //return self
   return self;
@@ -476,11 +487,12 @@ void processEvent(TaskHandle nidaqOutputTaskHandle, NSMutableArray *outEventQueu
     return;
   }
   else if (type == AO_INIT_EVENT)
-    initAO(nidaqTaskHandle,freq,amplitude,sampleRate);
+    initAO(nidaqTaskHandle,numChannels,freq,amplitude,sampleRate);
   else if (type == AO_START_EVENT)
     startAO(nidaqTaskHandle);
-  else if (type == AO_END_EVENT)
-    endAO(nidaqTaskHandle,channelNum);
+  else if (type == AO_END_EVENT) 
+    endAO(nidaqTaskHandle,devnum,numChannels,channelNum);
+
 }
 // comparison function, used to sort the queue in time order
 - (NSComparisonResult)compareByTime:(queueEvent*)otherQueueEvent
@@ -518,7 +530,7 @@ double getCurrentTimeInSeconds()
 /////////////////////////
 //   nidaqStartTask   //
 /////////////////////////
-int nidaqStartTask(int nidaqInputPortNum, int nidaqOutputPortNum, TaskHandle *nidaqInputTaskHandle, TaskHandle *nidaqOutputTaskHandle)
+int nidaqStartTask(int nidaqInputPortNum, int nidaqOutputPortNum, int inputDevnum, int outputDevnum, TaskHandle *nidaqInputTaskHandle, TaskHandle *nidaqOutputTaskHandle)
 {
   // Error variables
   int32       error = 0;
@@ -530,9 +542,9 @@ int nidaqStartTask(int nidaqInputPortNum, int nidaqOutputPortNum, TaskHandle *ni
 
   // Setup the channel parameter
   char inputChannel[256];
-  sprintf(inputChannel,"Dev1/port%i",nidaqInputPortNum);
+  sprintf(inputChannel,"Dev%i/port%i",inputDevnum,nidaqInputPortNum);
   char outputChannel[256];
-  sprintf(outputChannel,"Dev1/port%i",nidaqOutputPortNum);
+  sprintf(outputChannel,"Dev%i/port%i",outputDevnum,nidaqOutputPortNum);
 
   // open as a digital input
   DAQmxErrChk (DAQmxBaseCreateTask ("", nidaqInputTaskHandle));
@@ -594,39 +606,80 @@ int ao(NSMutableArray *outEventQueue,int connectionDescriptor)
   // It reads the parameters and the creates events to init, start and end
   // the analog output
 
+  int i;
+
   // buffer for reading
   unsigned char buf[16];
 
-  // get time of event
-  if (recv(connectionDescriptor,buf,sizeof(double),0) < sizeof(double)){
+  // get number of channels
+  if (recv(connectionDescriptor,buf,sizeof(uInt32),0) < sizeof(uInt32)){
     printf("(mglStandaloneDigIO) Could not read event time\n");
     return 0;
   }
-  double eventTime = *(double*)buf;
+  uInt32 numChannels = *(uInt32*)buf;
+
+  // get time of event, this can be an array since we support multiple channels
+  // though, note that the eventTime parameter does not actually do anything
+  // differently for different channels as of now.
+  double *eventTime;
+  // this malloc is freed below
+  eventTime = (double*)malloc(numChannels*sizeof(double));
+  for (i=0;i<numChannels;i++) {
+    if (recv(connectionDescriptor,buf,sizeof(double),0) < sizeof(double)){
+      printf("(mglStandaloneDigIO) Could not read event time\n");
+      return 0;
+    }
+    eventTime[i] = *(double*)buf;
+  }
+
   // get channelNum
-  if (recv(connectionDescriptor,buf,sizeof(uInt32),0) < sizeof(uInt32)){
-    printf("(mglStandaloneDigIO) Could not read channelNum\n");
-    return 0;
+  uInt32 *channelNum;
+  // this malloc is freed in endAO
+  channelNum = (uInt32*)malloc(numChannels*sizeof(uInt32));
+  for (i=0;i<numChannels;i++) {
+    if (recv(connectionDescriptor,buf,sizeof(uInt32),0) < sizeof(uInt32)){
+      printf("(mglStandaloneDigIO) Could not read channelNum\n");
+      return 0;
+    }
+    channelNum[i] = *(uInt32*)buf;
   }
-  uInt32 channelNum = *(uInt32*)buf;
+
   // get frequency
-  if (recv(connectionDescriptor,buf,sizeof(double),0) < sizeof(double)){
-    printf("(mglStandaloneDigIO) Could not read frequency\n");
-    return 0;
+  double *freq;
+  // this malloc is freed in initAO
+  freq = (double*)malloc(numChannels*sizeof(double));
+  for (i=0;i<numChannels;i++) {
+    if (recv(connectionDescriptor,buf,sizeof(double),0) < sizeof(double)){
+      printf("(mglStandaloneDigIO) Could not read frequency\n");
+      return 0;
+    }
+    freq[i] = *(double*)buf;
   }
-  double freq = *(double*)buf;
+
   // get amplitude
-  if (recv(connectionDescriptor,buf,sizeof(double),0) < sizeof(double)){
-    printf("(mglStandaloneDigIO) Could not read amplitude\n");
-    return 0;
+  double *amplitude;
+  // this malloc is freed in initAO
+  amplitude = (double*)malloc(numChannels*sizeof(double));
+  for (i=0;i<numChannels;i++) {
+    if (recv(connectionDescriptor,buf,sizeof(double),0) < sizeof(double)){
+      printf("(mglStandaloneDigIO) Could not read amplitude\n");
+      return 0;
+    }
+    amplitude[i] = *(double*)buf;
   }
-  double amplitude = *(double*)buf;
+
   // get duration
-  if (recv(connectionDescriptor,buf,sizeof(double),0) < sizeof(double)){
-    printf("(mglStandaloneDigIO) Could not read duration\n");
-    return 0;
+  double *duration;
+  // this malloc is freed below
+  duration = (double*)malloc(numChannels*sizeof(double));
+  for (i=0;i<numChannels;i++) {
+    if (recv(connectionDescriptor,buf,sizeof(double),0) < sizeof(double)){
+      printf("(mglStandaloneDigIO) Could not read duration\n");
+      return 0;
+    }
+    duration[i] = *(double*)buf;
   }
-  double duration = *(double*)buf;
+
   // get sampleRate
   if (recv(connectionDescriptor,buf,sizeof(uInt32),0) < sizeof(uInt32)){
     printf("(mglStandaloneDigIO) Could not read sampleRate\n");
@@ -634,8 +687,23 @@ int ao(NSMutableArray *outEventQueue,int connectionDescriptor)
   }
   uInt32 sampleRate = *(uInt32*)buf;
 
+  // get device number
+  if (recv(connectionDescriptor,buf,sizeof(uInt32),0) < sizeof(uInt32)){
+    printf("(mglStandaloneDigIO) Could not read devnum\n");
+    return 0;
+  }
+  uInt32 devnum = *(uInt32*)buf;
+
+  // although we passed in an array for eventTime and duration, we cannot
+  // actually set different dureations and start times for the NI-DAQ
+  // call, so we discard that here - in the future, if we figure out how
+  // to do it correctly, can build that functionality from here
+  double thisEventTime = *eventTime;free(eventTime);
+  double thisDuration = *duration;free(duration);
+
   // ok, now we have all the parameters for setting up the ao event, display them
-  printf("(mglStandaloneDigIO) Setting up frequency output at time: %f channelNum: %lu freq: %f amplitude: %f duration: %f (sampleRate: %lu)\n",eventTime,channelNum,freq,amplitude,duration,sampleRate);
+  for (i=0;i<numChannels;i++) 
+    printf("(mglStandaloneDigIO) Setting up frequency output at time: %f dev%lu/an%lu freq: %f amplitude: %f duration: %f (sampleRate: %lu)\n",thisEventTime,devnum,channelNum[i],freq[i],amplitude[i],thisDuration,sampleRate);
 
   // the init event HAS to start AFTER the last ao event has ended (this is some strageness in the
   // NI-DAQmx Library - I would have thought that you could create a Task on one AO channel independent
@@ -647,18 +715,18 @@ int ao(NSMutableArray *outEventQueue,int connectionDescriptor)
   // have 25 ms to create the event before running - that is the epsilonTime variable here).
   double epsilonTime = 0.025;
   if (lastAOEndTime == 0) lastAOEndTime = getCurrentTimeInSeconds();
-  if (eventTime < (lastAOEndTime + epsilonTime)) {
+  if (thisEventTime < (lastAOEndTime + epsilonTime)) {
     printf("(mglStandaloneDigIO) !!! AO events -even if they are on different channels- need to happen consecutively. You need to specify an AO event time at least %f ms after the last one for this function to work. Ignoring this AO event request !!!\n",epsilonTime*1000);
     return 0;
   }
 
   // create the init, start and end events
-  queueEvent *qInitEvent = [[queueEvent alloc] initAO:lastAOEndTime+0.001 :channelNum :freq :amplitude :sampleRate];
-  queueEvent *qStartEvent = [[queueEvent alloc] startAO:eventTime :[qInitEvent nidaqTaskHandle]];
-  queueEvent *qEndEvent = [[queueEvent alloc] endAO:eventTime+duration :[qInitEvent nidaqTaskHandle]];
+  queueEvent *qInitEvent = [[queueEvent alloc] initAO:lastAOEndTime+0.001 :devnum :numChannels :channelNum :freq :amplitude :sampleRate];
+  queueEvent *qStartEvent = [[queueEvent alloc] startAO:thisEventTime :[qInitEvent nidaqTaskHandle]];
+  queueEvent *qEndEvent = [[queueEvent alloc] endAO:thisEventTime+thisDuration :[qInitEvent nidaqTaskHandle] :devnum :numChannels :channelNum];
 
   // remember the end time of these event as the last one
-  lastAOEndTime = eventTime+duration;
+  lastAOEndTime = thisEventTime+thisDuration;
 
   // add the events to the event queue
   [outEventQueue addObject:qInitEvent];
@@ -680,7 +748,7 @@ int ao(NSMutableArray *outEventQueue,int connectionDescriptor)
 ///////////////////
 //   createAO    //
 ///////////////////
-TaskHandle createAO(uInt32 channelNum,double amplitude)
+TaskHandle createAO(uInt32 devnum, uInt32 numChannels, uInt32 *channelNum,double *amplitude)
 {
   // Error handling
   int32       error = 0;
@@ -691,57 +759,77 @@ TaskHandle createAO(uInt32 channelNum,double amplitude)
 
   // Channel parameters
   char        chanName[256];
-  float64     maxVoltage = (float64)amplitude;
+  int i;
+  float64     maxVoltage = (float64)amplitude[0];
+  for (i=0;i<numChannels;i++)
+    if (maxVoltage < amplitude[i]) 
+      maxVoltage = (float64)amplitude[i];
 
   // create channel name
-  sprintf(chanName,"Dev1/ao%lu",channelNum);
+  for(i=0;i<numChannels;i++) {
+    if (i==0)
+      sprintf(chanName,"Dev%lu/ao%lu",devnum,channelNum[i]);
+    else
+      sprintf(chanName,"%s,Dev%lu/ao%lu",chanName,devnum,channelNum[i]);
+  }
+  printf("(mglStandaloneDigIO) Creating %lu channels: %s with maxVoltage: %f\n",numChannels,chanName,maxVoltage);
 
   // create analog output task
   DAQmxErrChk (DAQmxBaseCreateTask("",&nidaqTaskHandle));
   DAQmxErrChk (DAQmxBaseCreateAOVoltageChan(nidaqTaskHandle,chanName,"",-maxVoltage,maxVoltage,DAQmx_Val_Volts,NULL));
 
+  printf("success\n");
   return(nidaqTaskHandle);
 
 Error:
   if( DAQmxFailed(error) )
     DAQmxBaseGetExtendedErrorInfo(errBuff,2048);
-  if( nidaqAOTaskHandle[channelNum]!=0 ) {
-    DAQmxBaseStopTask(nidaqAOTaskHandle[channelNum]);
-    DAQmxBaseClearTask(nidaqAOTaskHandle[channelNum]);
+  if( nidaqTaskHandle!=0 ) {
+    DAQmxBaseStopTask(nidaqTaskHandle);
+    DAQmxBaseClearTask(nidaqTaskHandle);
   }
   if( DAQmxFailed(error) )
-    printf ("DAQmxBase Error %ld: %s\n on channel %lu", error, errBuff, channelNum);
+    printf ("DAQmxBase Error %ld: %s\n", error, errBuff);
   return NULL;
 }
 
 /////////////////
 //   initAO    //
 /////////////////
-TaskHandle initAO(TaskHandle nidaqTaskHandle, double freq, double amplitude, uInt32 sampleRate)
+TaskHandle initAO(TaskHandle nidaqTaskHandle, uInt32 numChannels, double *freq, double *amplitude, uInt32 sampleRate)
 {
   double startTime = getCurrentTimeInSeconds();
 
   // Error handling
   int32       error = 0;
   char        errBuff[2048]={'\0'};
+  int i;
+  // we can only handle one frequency for the time being - since we have to compute a buffer
+  // which contains one cycle of the correct sine wave - and if we have different frequencies
+  // that buffer will be need to be different lengths, so just ignore all but the first value here
+  double thisFreq = *freq;
+  free(freq);
 
   // Calculate buffer size
-  uInt64 bufferSize = (uInt64)((double)sampleRate/freq);
+  uInt64 bufferSize = (uInt64)((double)sampleRate/thisFreq);
   // the upper end cutoff here is just arbitrary - can be expanded, but this seemed realistically large.
   if ((bufferSize < 1) || (bufferSize > 10000000)) {
-    printf("(mglStandaloneDigIO) Required bufferSize for freq %f and sampleRate %lu is out of range: %llu\n",freq,sampleRate,bufferSize);
+    printf("(mglStandaloneDigIO) Required bufferSize for freq %f and sampleRate %lu is out of range: %llu\n",thisFreq,sampleRate,bufferSize);
+    free(amplitude);
     return NULL;
   }
   printf("(mglStandaloneDigIO) bufferSize: %llu\n",bufferSize);
 
   // Data write parameters
-  float64     data[bufferSize];
+  float64     data[bufferSize*numChannels];
   int32       pointsWritten;
   
   // load buffer with one cycle of a sine wave
   for(int i=0;i<bufferSize;i++)
-    data[i] = amplitude*sin((double)i*2.0*PI/(double)bufferSize);
-
+    for(int iChannel=0;iChannel<numChannels;iChannel++) 
+      data[i+(iChannel*bufferSize)] = amplitude[iChannel]*sin((double)i*2.0*PI/(double)bufferSize);
+  free(amplitude);
+  
   // set up timing for continuous repeating of this sine wave
   DAQmxErrChk (DAQmxBaseCfgSampClkTiming(nidaqTaskHandle,"",(double)sampleRate,DAQmx_Val_Rising,DAQmx_Val_ContSamps,bufferSize));
 
@@ -756,7 +844,7 @@ TaskHandle initAO(TaskHandle nidaqTaskHandle, double freq, double amplitude, uIn
   }
   
   printf("(mglStandaloneDigIO) Creating analog output task took: %f ms\n",1000*(getCurrentTimeInSeconds()-startTime));
-
+  
   return nidaqTaskHandle;
 
 Error:
@@ -804,7 +892,7 @@ Error:
 //////////////////
 //    endAO     // 
 //////////////////
-void endAO(TaskHandle nidaqTaskHandle,uInt32 channelNum)
+void endAO(TaskHandle nidaqTaskHandle,uInt32 devnum, uInt32 numChannels, uInt32 *channelNum)
 {
   // no handle, no nothing to do
   if (nidaqTaskHandle == NULL) return;
@@ -814,6 +902,16 @@ void endAO(TaskHandle nidaqTaskHandle,uInt32 channelNum)
   char        errBuff[2048]={'\0'};
 
   printf("(mglStandaloneDigIO) End AO\n");
+
+  // create channel name
+  char        chanName[256];
+  for(int i=0;i<numChannels;i++) {
+    if (i==0)
+      sprintf(chanName,"Dev%lu/ao%lu",devnum,channelNum[i]);
+    else
+      sprintf(chanName,"%s,Dev%lu/ao%lu",chanName,devnum,channelNum[i]);
+  }
+  free(channelNum);
 
   // stop task
   float64     data = 0.0;
@@ -825,8 +923,7 @@ void endAO(TaskHandle nidaqTaskHandle,uInt32 channelNum)
 
   // Now set the voltage to 0
   DAQmxErrChk (DAQmxBaseCreateTask("",&nidaqTaskHandle));
-  char        chanName[256];
-  sprintf(chanName,"Dev1/ao%lu",channelNum);
+
   DAQmxErrChk (DAQmxBaseCreateAOVoltageChan(nidaqTaskHandle,chanName,"",-5,5,DAQmx_Val_Volts,NULL));
   DAQmxErrChk (DAQmxBaseStartTask(nidaqTaskHandle));
   DAQmxErrChk (DAQmxBaseWriteAnalogF64(nidaqTaskHandle,1,0,0.1,DAQmx_Val_GroupByChannel,&data,&pointsWritten,NULL));
@@ -851,13 +948,13 @@ Error:
 ////////////////////
 //    initDigIO   // 
 ////////////////////
-int initDigIO(int nidaqInputPortNum, int nidaqOutputPortNum, TaskHandle *nidaqInputTaskHandle, TaskHandle *nidaqOutputTaskHandle, NSMutableArray **diginEventQueue, NSMutableArray **outEventQueue, NSAutoreleasePool **digIOPool)
+int initDigIO(int nidaqInputPortNum, int nidaqOutputPortNum, int inputDevnum, int outputDevnum, TaskHandle *nidaqInputTaskHandle, TaskHandle *nidaqOutputTaskHandle, NSMutableArray **diginEventQueue, NSMutableArray **outEventQueue, NSAutoreleasePool **digIOPool)
 {
   // display message
-  printf("(mglStandaloneDigIO) Initializing NI device with digin port: Dev1/port%i digout port: Dev1/port%i. End with mglDigIO('quit').\n",nidaqInputPortNum,nidaqOutputPortNum);
+  printf("(mglStandaloneDigIO) Initializing NI device with digin port: Dev%i/port%i digout port: Dev%i/port%i. End with mglDigIO('quit').\n",inputDevnum,nidaqInputPortNum,outputDevnum,nidaqOutputPortNum);
 
   // Attempt to start NIDAQ task
-  if (nidaqStartTask(nidaqInputPortNum, nidaqOutputPortNum, nidaqInputTaskHandle, nidaqOutputTaskHandle) == 0) {
+  if (nidaqStartTask(nidaqInputPortNum, nidaqOutputPortNum, inputDevnum, outputDevnum, nidaqInputTaskHandle, nidaqOutputTaskHandle) == 0) {
     printf("============================================================================\n");
     printf("(mglStandaloneDigIO) UHOH! Could not start NIDAQ ports digin: %i and digout: %i\n",nidaqInputPortNum,nidaqOutputPortNum);
     printf("============================================================================\n");
