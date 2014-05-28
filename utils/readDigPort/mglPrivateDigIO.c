@@ -82,13 +82,13 @@ double getCurrentTimeInSeconds();
 // These functions will do different things depending on whether
 // we are running in 32 bit mode and using threads to communicate
 // with the digIO card or 64 bit mode and using a separate app with sockets
-void initDigIO(int,int); 
+void initDigIO(int,int,int,int); 
 mxArray *digin(void);
 mxArray *digout(double, uint32);
 mxArray *list(void);
 void quit(void);
 void mglPrivateDigIOOnExit(void);
-int ao(double time,uint32 channelNum, double freq, double amplitude, double duration, uint32 sampleRate);
+mxArray *ao(const mxArray **);
 
 //////////////
 //   main   //
@@ -111,11 +111,15 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     // get the nidaq ports
     int nidaqInputPortNum = 2;
     int nidaqOutputPortNum = 1;
+    int inputDevnum = 1;
+    int outputDevnum = 1;
     if (nrhs >=2) nidaqInputPortNum = mxGetScalar(prhs[1]);
     if (nrhs >=3) nidaqOutputPortNum = mxGetScalar(prhs[2]);
+    if (nrhs >=4) inputDevnum = mxGetScalar(prhs[3]);
+    if (nrhs >=5) outputDevnum = mxGetScalar(prhs[4]);
 
     // start either the standalone or the thread
-    initDigIO(nidaqInputPortNum,nidaqOutputPortNum);
+    initDigIO(nidaqInputPortNum,nidaqOutputPortNum,inputDevnum,outputDevnum);
     
     // started running, return 1
     *mxGetPr(plhs[0]) = 1;
@@ -137,17 +141,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     plhs[0] = list();
   // send an ao event
   else if (command == AO) {
-    // return argument
-    mxArray *retval;
-    plhs[0] = mxCreateDoubleMatrix(1,1,mxREAL);
-    // get input arguments
-    time = (double)mxGetScalar(prhs[1]);
-    uint32 channelNum = (uint32)(double)mxGetScalar(prhs[2]);
-    double freq = (double)mxGetScalar(prhs[3]);
-    double amplitude = (double)mxGetScalar(prhs[4]);
-    double duration = (double)mxGetScalar(prhs[5]);
-    uint32 sampleRate = (uint32)(double)mxGetScalar(prhs[6]);
-    *mxGetPr(plhs[0]) = ao(time,channelNum,freq,amplitude,duration,sampleRate);
+    plhs[0] = ao(prhs);
   }
   // quit command
   else if (command == QUIT) {
@@ -233,23 +227,55 @@ static int verbose = 0;
 ///////////////
 //    ao     //
 ///////////////
-int ao(double time,uint32 channelNum, double freq, double amplitude, double duration, uint32 sampleRate)
+mxArray *ao(const mxArray **prhs)
 {
+  int i;
   // send command to do AO
   writeCommandByte(AO_FREQOUT_COMMAND);
-  writedouble(time);
-  writeuint32(channelNum);
-  writedouble(freq);
-  writedouble(amplitude);
-  writedouble(duration);
+
+  // write number of channels
+  uint32 numChannels = (uint32)(double)mxGetScalar(prhs[1]);
+  writeuint32(numChannels);
+
+  // write time
+  double *time = (double*)mxGetData(prhs[2]);
+  for (i=0;i<numChannels;i++) writedouble(*(time+i));
+
+  // write channelNum
+  double *channelNum = (double*)mxGetData(prhs[3]);
+  for (i=0;i<numChannels;i++) writeuint32((uint32)*(channelNum+i));
+
+  // write freq
+  double *freq = (double*)mxGetData(prhs[4]);
+  for (i=0;i<numChannels;i++) writedouble(*(freq+i));
+
+  // write amplitude
+  double *amplitude = (double*)mxGetData(prhs[5]);
+  for (i=0;i<numChannels;i++) writedouble(*(amplitude+i));
+
+  // write duration
+  double *duration = (double*)mxGetData(prhs[6]);
+  for (i=0;i<numChannels;i++) writedouble(*(duration+i));
+
+  // write sampleRate
+  uint32 sampleRate = (uint32)(double)mxGetScalar(prhs[7]);
   writeuint32(sampleRate);
-  return 1;
+  
+  // write devnum
+  uint32 devnum = (uint32)(double)mxGetScalar(prhs[8]);
+  writeuint32(devnum);
+
+  // return argument
+  mxArray *retval;
+  retval = mxCreateDoubleMatrix(1,1,mxREAL);
+  *mxGetPr(retval) = 1;
+  return retval;
 }
 
 /////////////////////
 //    initDigIO    //
 /////////////////////
-void initDigIO(int nidaqInputPortNum,int nidaqOutputPortNum) 
+void initDigIO(int nidaqInputPortNum,int nidaqOutputPortNum,int inputDevnum,int outputDevnum) 
 {
   // declare variables
   int ack;
@@ -301,10 +327,10 @@ void initDigIO(int nidaqInputPortNum,int nidaqOutputPortNum)
     // terminate at point wher mglDigIO is written in path
     *namePtr = 0;
     //make command
-    sprintf(commandName,"%smglStandaloneDigIO %s %i %i %i &",filePath,socketName,nidaqInputPortNum,nidaqOutputPortNum,verbose);
+    sprintf(commandName,"%smglStandaloneDigIO %s %i %i %i %i %i &",filePath,socketName,nidaqInputPortNum,nidaqOutputPortNum,inputDevnum,outputDevnum,verbose);
   }
   else 
-    sprintf(commandName,"mglStandaloneDigIO %s %i %i %i &",socketName,nidaqInputPortNum,nidaqOutputPortNum,verbose);
+    sprintf(commandName,"mglStandaloneDigIO %s %i %i %i %i %i &",socketName,nidaqInputPortNum,nidaqOutputPortNum,inputDevnum,outputDevnum,verbose);
 
   // run command
   if (verbose) mexPrintf("(mglPrivateDigIO) Running: %s\n",commandName);
@@ -652,19 +678,10 @@ static TaskHandle nidaqInputTaskHandle = 0,nidaqOutputTaskHandle = 0;
 static int nidaqInputPortNum = 2,nidaqOutputPortNum = 1;
 static int stopNidaqThread = 0;
 
-/////////////////
-//    initAO   //
-/////////////////
-int initAO();
-{
-  mexPrintf("(mglPrivateDigIO) Analog output not implemented in 32 bit\n");
-  return(0);
-}
-
 ///////////////
 //    ao     //
 ///////////////
-int ao(double time,int channelNum, double freq, double amplitude, double duration)
+mxArray *ao(const mxArray **)
 {
   mexPrintf("(mglPrivateDigIO) Analog output not implemented in 32 bit\n");
   return(0);
@@ -673,8 +690,10 @@ int ao(double time,int channelNum, double freq, double amplitude, double duratio
 /////////////////////
 //    initDigIO    //
 /////////////////////
-void initDigIO(int setNidaqInputPortNum,int setNidaqOutputPortNum) 
+void initDigIO(int setNidaqInputPortNum,int setNidaqOutputPortNum,int inputDevnum, int outputDevnum) 
 {
+  // Note that inputDevnum and outputDevnum are currently ignored.
+
   // set the global portnum variables
   nidaqInputPortNum = setNidaqInputPortNum;
   nidaqOutputPortNum = setNidaqOutputPortNum;
