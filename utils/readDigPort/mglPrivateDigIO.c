@@ -42,6 +42,7 @@
 #define DIGIN 2
 #define DIGOUT 3
 #define LIST 4
+#define AO 5
 #define QUIT 0
 #define SHUTDOWN -1
 // event types
@@ -87,13 +88,14 @@ mxArray *digout(double, uint32);
 mxArray *list(void);
 void quit(void);
 void mglPrivateDigIOOnExit(void);
+int ao(double time,uint32 channelNum, double freq, double amplitude, double duration, uint32 sampleRate);
 
 //////////////
 //   main   //
 //////////////
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
-  // declare vairables
+  // declare variables
   double time;
   uint32 val;
 
@@ -133,6 +135,20 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   // list command 
   else if (command == LIST)
     plhs[0] = list();
+  // send an ao event
+  else if (command == AO) {
+    // return argument
+    mxArray *retval;
+    plhs[0] = mxCreateDoubleMatrix(1,1,mxREAL);
+    // get input arguments
+    time = (double)mxGetScalar(prhs[1]);
+    uint32 channelNum = (uint32)(double)mxGetScalar(prhs[2]);
+    double freq = (double)mxGetScalar(prhs[3]);
+    double amplitude = (double)mxGetScalar(prhs[4]);
+    double duration = (double)mxGetScalar(prhs[5]);
+    uint32 sampleRate = (uint32)(double)mxGetScalar(prhs[6]);
+    *mxGetPr(plhs[0]) = ao(time,channelNum,freq,amplitude,duration,sampleRate);
+  }
   // quit command
   else if (command == QUIT) {
     // return argument set to []
@@ -196,6 +212,7 @@ double getCurrentTimeInSeconds()
 #define ACK_COMMAND 5
 #define DIGOUT_COMMAND 6
 #define LIST_COMMAND 7
+#define AO_FREQOUT_COMMAND 8
 
 ///////////////////////////////
 //   function declarations   //
@@ -212,6 +229,22 @@ int writeuint32(uint32 val);
 ////////////////
 static int socketDescriptor = 0;
 static int verbose = 0;
+
+///////////////
+//    ao     //
+///////////////
+int ao(double time,uint32 channelNum, double freq, double amplitude, double duration, uint32 sampleRate)
+{
+  // send command to do AO
+  writeCommandByte(AO_FREQOUT_COMMAND);
+  writedouble(time);
+  writeuint32(channelNum);
+  writedouble(freq);
+  writedouble(amplitude);
+  writedouble(duration);
+  writeuint32(sampleRate);
+  return 1;
+}
 
 /////////////////////
 //    initDigIO    //
@@ -618,6 +651,24 @@ static NSMutableArray *gDigoutEventQueue;
 static TaskHandle nidaqInputTaskHandle = 0,nidaqOutputTaskHandle = 0;
 static int nidaqInputPortNum = 2,nidaqOutputPortNum = 1;
 static int stopNidaqThread = 0;
+
+/////////////////
+//    initAO   //
+/////////////////
+int initAO();
+{
+  mexPrintf("(mglPrivateDigIO) Analog output not implemented in 32 bit\n");
+  return(0);
+}
+
+///////////////
+//    ao     //
+///////////////
+int ao(double time,int channelNum, double freq, double amplitude, double duration)
+{
+  mexPrintf("(mglPrivateDigIO) Analog output not implemented in 32 bit\n");
+  return(0);
+}
 
 /////////////////////
 //    initDigIO    //

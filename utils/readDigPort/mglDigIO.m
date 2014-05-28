@@ -19,6 +19,9 @@
 %             You will need to compile the mglPrivateDigIO.c function using mglMake('digio') 
 %             for this to work. See instructions on the wiki.
 %
+%             This can also output analog sine waves of different frequencies and amplitudes
+%             If you are using an NI USB-6211 that has analog output ports.
+%
 %             Here are the commands it accepts:
 %             
 %             1:'init' Init the digIO thread. You need to run this before anything else will work. You
@@ -34,6 +37,12 @@
 %                        relative to now if it is a negative value:
 %                        mglDigIO('digout',-5,0) -> Sets the output port to 0 five secs from now.
 %             4:'list' Lists all pending digout events
+%             5:'ao'   Sets the output port to produce a sine wave and then return to 0, you call it with
+%                      parameters time (like digout above), channel (0 or 1 for A0 or A1), frequency,
+%                      amplitude (volts peak - it will produce a sine wave that goes from -amplitude to 
+%                      amplitude) and duration in seconds. For example:
+%                      mglDigIO('ao',-1,0,500,2.5,1);
+%                      Will produce a 500Hz sine wave of amplitude -2.5 <-> 2.5 volts for 1 second on A0
 %             0:'quit' Closes the nidaq ports, after this you won't be able to run other commands. Note
 %                      that this does not shutdown the digIO thread. The reason for this is that the
 %                      NIDAQ library is not thread safe, so you can only call its functions from one
@@ -44,20 +53,20 @@
 %             -1:'shutdown' Quits the digIO thread if it is running, after this you won't be able to run other commands
 %
 %
-function retval = mglDigIO(command,arg1,arg2)
+function retval = mglDigIO(command,arg1,arg2,arg3,arg4,arg5,arg6)
 
 retval = [];
 global mglDigIOWarning
 if isequal(mglDigIOWarning,-1),retval = 0;return,end
 
 % check arguments
-if ~any(nargin == [1 2 3])
+if nargin < 1
   help mglDigIO
   return
 end
 
 if isstr(command)
-  commandNum = find(strcmp(lower(command),{'shutdown','quit','init','digin','digout','list'}))-2;
+  commandNum = find(strcmp(lower(command),{'shutdown','quit','init','digin','digout','list','ao'}))-2;
   if isempty(commandNum)
     disp(sprintf('(mglDigIO) Unknown command %s',command));
     return
@@ -69,7 +78,9 @@ else
   return
 end
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % check for digout command which has three arguments
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 if commandNum == 3
   if (nargin ~= 3)
     disp(sprintf('(mglDigIO) DIGOUT command requires a time and a value'));
@@ -81,7 +92,29 @@ if commandNum == 3
   end
   % run the command
   mglPrivateDigIO(commandNum,arg1,arg2);
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% check for ao which has multiple ways of being called
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+elseif commandNum == 5
+  if ~any(nargin == [6 7])
+    disp(sprintf('(mglDigIO) AO command requires a time, channel, freq, ampitude, duration'));
+    disp(sprintf('           e.g. mglDigIO(''ao'',-1,0,500,1,2);'));
+    return
+  end
+  % set a relative time if arg1 is less than zero
+  if arg1 <= 0
+    arg1 = mglGetSecs-arg1;
+  end
+  % default samplerate
+  if nargin < 7
+    % this is maximum samles/second for NI USB-6211
+    arg6 = 250000;
+  end
+  % run the command
+  mglPrivateDigIO(commandNum,arg1,arg2,arg3,arg4,arg5,arg6);
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % check for init command which can specify input and output ports
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 elseif commandNum == 1
   % first check if the niddq libraries look like they exist
   if isempty(mglDigIOWarning) && ~isdir('/Library/Frameworks/nidaqmxbase.framework')
@@ -109,6 +142,9 @@ elseif commandNum == 1
   if nargin > 1,inputPortNum = arg1;else inputPortNum = 2;end
   if nargin > 2,outputPortNum = arg2;else outputPortNum = 1;end
   retval = mglPrivateDigIO(commandNum,inputPortNum,outputPortNum);
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% all other command numbers
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 else
   % run the command
   retval = mglPrivateDigIO(commandNum);
