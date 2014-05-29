@@ -813,7 +813,7 @@ TaskHandle initAO(TaskHandle nidaqTaskHandle, uInt32 numChannels, double *freq, 
   // Error handling
   int32       error = 0;
   char        errBuff[2048]={'\0'};
-  int i;
+  int i,iChannel;
   // we can only handle one frequency for the time being - since we have to compute a buffer
   // which contains one cycle of the correct sine wave - and if we have different frequencies
   // that buffer will be need to be different lengths, so just ignore all but the first value here
@@ -833,10 +833,9 @@ TaskHandle initAO(TaskHandle nidaqTaskHandle, uInt32 numChannels, double *freq, 
   // Data write parameters
   float64     data[bufferSize*numChannels];
   int32       pointsWritten;
-  
   // load buffer with one cycle of a sine wave
-  for(int i=0;i<bufferSize;i++)
-    for(int iChannel=0;iChannel<numChannels;iChannel++) 
+  for(i=0;i<bufferSize;i++)
+    for(iChannel=0;iChannel<numChannels;iChannel++) 
       data[i+(iChannel*bufferSize)] = amplitude[iChannel]*sin((double)i*2.0*PI/(double)bufferSize);
   free(amplitude);
   
@@ -915,7 +914,8 @@ void endAO(TaskHandle nidaqTaskHandle,uInt32 devnum, uInt32 numChannels, uInt32 
 
   // create channel name
   char        chanName[256];
-  for(int i=0;i<numChannels;i++) {
+  int i;
+  for(i=0;i<numChannels;i++) {
     if (i==0)
       sprintf(chanName,"Dev%lu/ao%lu",devnum,channelNum[i]);
     else
