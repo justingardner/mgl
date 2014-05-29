@@ -191,6 +191,16 @@ int main(int argc, char *argv[])
   digIOStatus = 1;
 
   // read socket commands, log dig IO events and process events
+  // this is the main body of this function. The events are kept 
+  // on a queue so that they can be timed as precisely as possible
+  // That is, for output events (digitial or analog), they are placed
+  // on a queue and the code here checks to see if it is time to 
+  // act on them - like for example, if you ask to change the digout
+  // at a particular time, this code will run that when the time comes
+  // and the event is ready to be processed. Likewise, every loop
+  // here digin events are stored on another queue. When matlab
+  // asks for digital IO events this code pulls those events of that
+  // queue and sends them back to matlab
   int runStatus = 1;
   while (runStatus) {
     // read command
@@ -1142,6 +1152,8 @@ void digout(NSMutableArray *outEventQueue,int connectionDescriptor)
 //////////////////
 void diglist(int connectionDescriptor,NSMutableArray *digintEventQueue,NSMutableArray *outEventQueue)
 {
+  int eventType,i;
+
   // display which ports we are using
   printf("(mglStandaloneDigIO) DigIO standalone is running (connectionDescriptor = %i)\n",connectionDescriptor);
   printf("(mglStandaloneDigIO) Status is %s\n",(gRunStatus) ? "running" : "paused");
@@ -1152,9 +1164,17 @@ void diglist(int connectionDescriptor,NSMutableArray *digintEventQueue,NSMutable
       printf("(mglStandaloneDigIO) No digout events pending.\n");
     }
     else {
-      int i;
       for(i = 0; i < [outEventQueue count]; i++) {
-	printf("(mglStandaloneDigIO) Set output port to %i is pending in %f seconds.\n",(int)[[outEventQueue objectAtIndex:i] val],[[outEventQueue objectAtIndex:i] time] - getCurrentTimeInSeconds());
+	// get evenType
+	eventType = (int)[[outEventQueue objectAtIndex:i] eventType];
+	// check for DIGOUT events
+	if (eventType==DIGOUT_EVENT)
+	  printf("(mglStandaloneDigIO) Set output port to %i is pending in %f seconds.\n",(int)[[outEventQueue objectAtIndex:i] val],[[outEventQueue objectAtIndex:i] time] - getCurrentTimeInSeconds());
+	// check for AO events
+	else if ((eventType>=AO_INIT_EVENT) && (eventType<=AO_END_EVENT))
+	  printf("(mglStandaloneDigIO) Analog ouput %s event in %f seconds.\n",(eventType==AO_INIT_EVENT?"init":((eventType==AO_START_EVENT)?"start":"end")),([[outEventQueue objectAtIndex:i] time] - getCurrentTimeInSeconds()));
+	else
+	  printf("(mglStandaloneDigIO) Unknown event type in %f seconds.\n",([[outEventQueue objectAtIndex:i] time] - getCurrentTimeInSeconds()));
       }
     }
     // check input events
