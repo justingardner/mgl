@@ -25,7 +25,7 @@
 %             Here are the commands it accepts:
 %             
 %             1:'init' Init the digIO thread. You need to run this before anything else will work. You
-%                      can optional specify input and output ports which default to 1 and 2 respectively
+%                      can optional specify input and output ports which default to 2 and 1 respectively
 %                      mglDigIO('init',inputPortNum,outputPortNum);
 %                      You can also specify the device number using: 
 %                      mglDigIO('init',inputPortNum,outputPortNum,inputDevnum,outputDevnum). 
