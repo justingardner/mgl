@@ -929,10 +929,15 @@ end
 function portNum = initSerialPortUsingSerial(baudRate,parity,dataLen,stopBits,portNum)
 
 portNum = 0;
-disp(sprintf('This does not work yet!!!!'));
+disp(sprintf('(moncalib) This works for Topcon - but may bnot be working for Minolta. See code comments'));
+% This should be working for Topcon with a Plugable USB/Serial adaptor. It does not seem to work for Minolta.
+% For minolta, whatever I do, I.e. send MES with CR/LF it returns 2 weird characters followed by 00 followed by
+% another weird character. Not sure what is getting mangled there (CR/LF not right?) Anyway, it works
+% now for Topcon so the serial port itself must be working correctly
 
 % display all serial devices
 serialDev = dir('/dev/cu.*');
+%serialDev = dir('/dev/*serial*');
 nSerialDev = length(serialDev);
 for i = 1:nSerialDev
   disp(sprintf('%i: %s', i,serialDev(i).name));
@@ -942,6 +947,7 @@ if serialDevNum == 0,return,end
 
 % try to open the device
 s = serial(fullfile('/dev',serialDev(serialDevNum).name));
+
 set(s,'BaudRate',baudRate);
 set(s,'Parity',parity);
 set(s,'StopBits',stopBits);
@@ -956,31 +962,53 @@ portNum = s;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function closeSerialPortUsingSerial(portNum)
 
-if portNum
+if ~isempty(portNum)
   fclose(portNum);
 end
-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % write to the serial port
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function writeSerialPortUsingSerial(portNum, str)
 
-fprintf(portNum,str);
+fwrite(portNum,str);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % read from the serial port
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function str = readSerialPortUsingSerial(portNum, numbytes)
 
-str = char(fread(portNum,numbytes,'uint8'));
+if portNum.BytesAvailable == 0
+  disp(sprintf('(moncalib:readSerialPortUsingComm) 0 bytes available'));
+  str = '';
+else
+  disp(sprintf('(moncalib:readSerialPortUsingComm) Reading %i bytes',portNum.BytesAvailable));
+  str = char(fread(portNum,portNum.BytesAvailable,'uint8'));
+  disp(sprintf('(moncalib:readSerialPortUsingComm) Received %s',str));
+end
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % read one line (ending in 0xA) from the serial port
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function str = readLineSerialPortUsingSerial(portNum)
 
-str = fgetl(portNum);
+% check for input
+str = '';
+if portNum.BytesAvailable == 0
+  return
+end
+
+iRead = 0;
+% if there is input, read until you get a LF 0x0A 10 character
+while (iRead == 0) || (str(end) ~= 10)
+  bytesAvailable = portNum.BytesAvailable;
+  if bytesAvailable ~= 0
+    iRead = iRead + 1;
+    str(iRead) = char(fread(portNum,1,'uint8'))';
+  end
+end
+str = strtrim(str);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % init the serial port
@@ -1082,7 +1110,7 @@ gCommFun('write',portNum,str);
 function str = readSerialPortUsingComm(portNum, numbytes)
 
 global gCommFun;
-str = char(gCommFun('read',portNum,numbytes))';
+str = char(gCommFun('read',portNum,numbytes));
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % read one line (ending in 0xA) from the serial port
