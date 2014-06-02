@@ -934,6 +934,14 @@ disp(sprintf('(moncalib) This works for Topcon - but may bnot be working for Min
 % For minolta, whatever I do, I.e. send MES with CR/LF it returns 2 weird characters followed by 00 followed by
 % another weird character. Not sure what is getting mangled there (CR/LF not right?) Anyway, it works
 % now for Topcon so the serial port itself must be working correctly
+%
+% Some notes. The functions that read/write charcter strings with the default Terminators liek
+% fgets, fgetl do not seem to work. They just hang. The Terminator setting below is basically
+% ignored if you use fread and fwrite instead. So, that is what I did.
+%
+% To chekc that things are basically working (i.e. it is connected to the device. I found that
+% you could check the serial objects (s.PinStatus) and plugging in and plugging in a device
+% would read as changes on one of the pins (presumably going high to low).
 
 % display all serial devices
 serialDev = dir('/dev/cu.*');
@@ -978,6 +986,9 @@ fwrite(portNum,str);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function str = readSerialPortUsingSerial(portNum, numbytes)
 
+% This function may not be working properly yet. It now just
+% reads however many bytes are available, rather than the numbytes (but not sure
+% this might be what was expected).
 if portNum.BytesAvailable == 0
   disp(sprintf('(moncalib:readSerialPortUsingComm) 0 bytes available'));
   str = '';
