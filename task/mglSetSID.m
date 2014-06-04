@@ -843,7 +843,11 @@ if (fLock == -1)
   end
 end
 % set the attributes of the lock file to allow write by anyone
-fileattrib(sidDatabaseLockFilename,'+w');
+try
+  fileattrib(sidDatabaseLockFilename,'+w');
+catch
+  disp(sprintf('(mglSetSID) Could not set writeable attribute on: %s',sidDatabaseLockFilename));
+end
 
 % write into the sidsLock the user name and time stamp
 fprintf(fLock,'%s %s\n',getusername,datestr(now));

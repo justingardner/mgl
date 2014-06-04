@@ -133,8 +133,13 @@ log.stimlen{nRows+1} = stimlen;
 
 % write table back
 mywritetable(log,logfilename);
-fileattrib(logfilename,'+w');
-disp(sprintf('(mglWriteLog) Wrote log entry: %s %s %s %s %s %s',datenow,username,timenow,sid,stimfile,stimlen));
+try
+  fileattrib(logfilename,'+w');
+  disp(sprintf('(mglWriteLog) Wrote log entry: %s %s %s %s %s %s',datenow,username,timenow,sid,stimfile,stimlen));
+catch
+  disp(sprintf('(mglTaskLog) Could not set writeable attrib on file: %s',logfilename));
+end
+
 
 %%%%%%%%%%%%%%%%%%%%%
 %    getusername    %
