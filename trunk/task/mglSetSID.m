@@ -113,6 +113,11 @@ if (nargin == 1)
   % see if it is a subject name
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   elseif (isstr(sid))
+    % check if it is test
+    if strcmp(lower(sid),'test')
+      setSID('test');
+      return
+    end
     % lookup name
     sidstr = sid;
     [sid firstName lastName] = lookupSID(sidstr);
