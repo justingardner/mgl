@@ -171,7 +171,6 @@ int main(int argc, char *argv[])
   if (argc>=4) inputDevnum = atoi(argv[4]);
   if (argc>=5) outputDevnum = atoi(argv[5]);
   if (argc>=6) verbose = atoi(argv[6]);
-  verbose = 1;
 
   // display settings
   if (verbose) printf("(mglStandaloneDigIO) Starting with Input port: %i Ouptut port: %i Verbose: %i socketName: %s\n",nidaqInputPortNum,nidaqOutputPortNum,verbose,socketName);
@@ -713,7 +712,7 @@ int ao(NSMutableArray *outEventQueue,int connectionDescriptor)
 
   // ok, now we have all the parameters for setting up the ao event, display them
   for (i=0;i<numChannels;i++) 
-    printf("(mglStandaloneDigIO) Setting up frequency output at time: %f dev%lu/an%lu freq: %f amplitude: %f duration: %f (sampleRate: %lu)\n",thisEventTime,devnum,channelNum[i],freq[i],amplitude[i],thisDuration,sampleRate);
+    if (verbose>1) printf("(mglStandaloneDigIO) Setting up frequency output at time: %f dev%lu/an%lu freq: %f amplitude: %f duration: %f (sampleRate: %lu)\n",thisEventTime,devnum,channelNum[i],freq[i],amplitude[i],thisDuration,sampleRate);
 
   // the init event HAS to start AFTER the last ao event has ended (this is some strageness in the
   // NI-DAQmx Library - I would have thought that you could create a Task on one AO channel independent
@@ -782,13 +781,12 @@ TaskHandle createAO(uInt32 devnum, uInt32 numChannels, uInt32 *channelNum,double
     else
       sprintf(chanName,"%s,Dev%lu/ao%lu",chanName,devnum,channelNum[i]);
   }
-  printf("(mglStandaloneDigIO) Creating %lu channels: %s with maxVoltage: %f\n",numChannels,chanName,maxVoltage);
+  if (verbose>1) printf("(mglStandaloneDigIO) Creating %lu channels: %s with maxVoltage: %f\n",numChannels,chanName,maxVoltage);
 
   // create analog output task
   DAQmxErrChk (DAQmxBaseCreateTask("",&nidaqTaskHandle));
   DAQmxErrChk (DAQmxBaseCreateAOVoltageChan(nidaqTaskHandle,chanName,"",-maxVoltage,maxVoltage,DAQmx_Val_Volts,NULL));
 
-  printf("success\n");
   return(nidaqTaskHandle);
 
 Error:
@@ -828,7 +826,7 @@ TaskHandle initAO(TaskHandle nidaqTaskHandle, uInt32 numChannels, double *freq, 
     free(amplitude);
     return NULL;
   }
-  printf("(mglStandaloneDigIO) bufferSize: %llu\n",bufferSize);
+  if (verbose>1) printf("(mglStandaloneDigIO) bufferSize: %llu\n",bufferSize);
 
   // Data write parameters
   float64     data[bufferSize*numChannels];
@@ -852,7 +850,7 @@ TaskHandle initAO(TaskHandle nidaqTaskHandle, uInt32 numChannels, double *freq, 
     return NULL;
   }
   
-  printf("(mglStandaloneDigIO) Creating analog output task took: %f ms\n",1000*(getCurrentTimeInSeconds()-startTime));
+  if (verbose>1) printf("(mglStandaloneDigIO) Creating analog output task took: %f ms\n",1000*(getCurrentTimeInSeconds()-startTime));
   
   return nidaqTaskHandle;
 
@@ -880,7 +878,7 @@ void startAO(TaskHandle nidaqTaskHandle)
   int32       error = 0;
   char        errBuff[2048]={'\0'};
 
-  printf("(mglStandaloneDigIO) Start AO\n");
+  if (verbose>1) printf("(mglStandaloneDigIO) Start AO\n");
   
   // start the task
   DAQmxErrChk (DAQmxBaseStartTask(nidaqTaskHandle));
@@ -910,7 +908,7 @@ void endAO(TaskHandle nidaqTaskHandle,uInt32 devnum, uInt32 numChannels, uInt32 
   int32       error = 0;
   char        errBuff[2048]={'\0'};
 
-  printf("(mglStandaloneDigIO) End AO\n");
+  if (verbose>1) printf("(mglStandaloneDigIO) End AO\n");
 
   // create channel name
   char        chanName[256];
@@ -940,7 +938,7 @@ void endAO(TaskHandle nidaqTaskHandle,uInt32 devnum, uInt32 numChannels, uInt32 
   DAQmxErrChk (DAQmxBaseStopTask(nidaqTaskHandle));
   DAQmxErrChk (DAQmxBaseClearTask(nidaqTaskHandle));
 
-  printf("(mglStandaloneDigIO) Stopped\n");
+  if (verbose>1) printf("(mglStandaloneDigIO) Stopped\n");
   return;
 
 Error:
@@ -1039,7 +1037,7 @@ void digin(NSMutableArray *diginEventQueue,int connectionDescriptor)
     sendflush(connectionDescriptor,1);
   }
   else {
-    if (verbose) printf("(mglStandaloneDigIO:digin) No events pending\n");
+    //if (verbose) printf("(mglStandaloneDigIO:digin) No events pending\n");
   }
 } 
 
