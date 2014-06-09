@@ -481,7 +481,7 @@ else
   end
   % now get the seglen for this trial (note that seglen is a cell array
   % which allows for trials with different numbers of segments)
-  fieldRow = min(task.seglenPrecompute.seglen.nTrials,task.trialnum);
+  fieldRow = mod(task.trialnum-1,task.seglenPrecompute.seglen.nTrials)+1;
   task.thistrial.seglen = task.seglenPrecompute.seglen.vals{fieldRow};
 end
 
