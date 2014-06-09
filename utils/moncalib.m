@@ -1258,7 +1258,7 @@ for minx = minxrange
   %  for maxx = 0.8:0.05:1
   for maxx = 1
     warning off
-    [fitparams resnorm residual exitflag output lambda jacobian] = lsqnonlin(@experr,initparams,minfit,maxfit,optimset('LevenbergMarquardt','on','MaxIter',maxiter,'Display',displsqnonlin),x,y,minx,maxx);
+    [fitparams resnorm residual exitflag output lambda jacobian] = lsqnonlin(@experr,initparams,minfit,maxfit,optimset('Algorithm','levenberg-marquardt','MaxIter',maxiter,'Display',displsqnonlin),x,y,minx,maxx);
     warning on
     if (resnorm < bestparams.resnorm)
       bestparams.resnorm = resnorm;
