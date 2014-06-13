@@ -123,8 +123,10 @@ if nStimfiles == 0
   return
 end
 
-% otherwise display how many we found
-disp(sprintf('(getLastStimfile) Found %i stimfiles in: %s',nStimfiles,datadir));
+% otherwise display how many we foun
+if verbose
+  disp(sprintf('(getLastStimfile) Found %i stimfiles in: %s',nStimfiles,datadir));
+end
 
 % inf means to return all stimfiles
 if isinf(stimfileNum)
