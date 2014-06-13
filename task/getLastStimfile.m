@@ -16,6 +16,15 @@
 %                which means the last stimfile. -k would be the kth last stimfile. A
 %                positive value means the kth stimfile (e.g. 2 would be the 2nd stimfile
 %                in the directory). A value of inf means to return all stimfiles.
+%             onlyToday (default false). If set to true, will return only stimfiles from
+%                today. If set to a date, will return only files from that day. For
+%                example: onlyToday=140608 (will return only files from 06/08/2014
+%                or, you can format in anything datestr can parse: onlyToday='06/08/2014'
+%                if a negative integer e.g. onlyToday=-3, then specifies to use stimfiles
+%                that many days back (e.g. 3 days ago)
+%                if a positive integer specifies to use stimfiles only within
+%                the last number of days. e.g. onlyToday=7 would only retrieve
+%                stimfiles from the last week
 %
 function [s nStimfiles] = getLastStimfile(msc,varargin)
 
@@ -42,8 +51,42 @@ end
 % parse arguments
 verbose = [];
 stimfileNum = [];
-getArgs(varargin,{'verbose=1','stimfileNum=-1'});
+getArgs(varargin,{'verbose=1','stimfileNum=-1','onlyToday',false});
 
+% convert onlyToday argument into a date number
+if isstr(onlyToday)
+  try
+    % see if it is a yymmdd format
+    if (length(onlyToday)==6) && (length(regexp(onlyToday,'[0-9]'))==6)
+      onlyToday = datenum(onlyToday,'yymmdd');
+    else
+      onlyToday = datenum(onlyToday);
+    end
+  catch
+    disp(sprintf('(getLastStimfile) !!! Ignoring unrecognized data format for onlyToday: %s !!!',onlyToday));
+    onlyToday = false;
+  end
+elseif isnumeric(onlyToday) 
+  % if numeric and negative, means to get the date that many days back
+  if onlyToday<0
+    nowvec = datevec(now);
+    nowvec = nowvec(1:3);
+    onlyToday = datenum(nowvec+[0 0 onlyToday]);
+  % if positive means to get all stimfiles within the number of days specified
+  elseif onlyToday>0
+    nowvec = datevec(now);
+    nowvec = nowvec(1:3);
+    datenums = [];
+    for daysBack = -onlyToday:1:0
+      datenums(end+1) = datenum(nowvec+[0 0 daysBack]);
+    end
+    onlyToday = datenums;
+  end
+elseif onlyToday
+  onlyToday = now;
+end
+
+    
 % now check datadirectory
 if ~isdir(datadir)
   disp(sprintf('(getLastStimfile) Could not find data directory: %s',datadir));
@@ -51,14 +94,37 @@ if ~isdir(datadir)
 end
 
 % load list of stimfiles
-dirlist = dir(fullfile(datadir,'*stim*.mat'));
-nStimfiles = length(dirlist);
-disp(sprintf('(getLastStimfile) Found %i stimfiles in: %s',nStimfiles,datadir));
+if onlyToday
+  dirlist = [];
+  % go through all dates
+  for iDate = 1:length(onlyToday)
+    % lookup directory
+    thisDirlist = dir(fullfile(datadir,sprintf('%s_stim*.mat',datestr(onlyToday(iDate),'yymmdd'))));
+    % if not empty
+    if ~isempty(thisDirlist)
+      % concatenate to existing list
+      if isempty(dirlist)
+	dirlist = thisDirlist;
+      else
+	dirlist(end+1:end+length(thisDirlist)) = thisDirlist;
+      end
+    end
+  end
+else
+  dirlist = dir(fullfile(datadir,'*stim*.mat'));
+end
 
+% count them
+nStimfiles = length(dirlist);
+
+% if none exist, then return
 if nStimfiles == 0
   disp(sprintf('(getLastStimfile) No existing stimfiles found in %s',datadir));
   return
 end
+
+% otherwise display how many we found
+disp(sprintf('(getLastStimfile) Found %i stimfiles in: %s',nStimfiles,datadir));
 
 % inf means to return all stimfiles
 if isinf(stimfileNum)
@@ -86,6 +152,7 @@ end
     
 % display all data in directory
 for i = 1:length(dirlist)
+  % load stimfile
   x = load(fullfile(datadir,dirlist(i).name));
   % see how many trials
   x.task = cellArray(x.task,2);
