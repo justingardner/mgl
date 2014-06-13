@@ -1,7 +1,7 @@
 % getLastStimfile.m
 %
 %        $Id:$ 
-%      usage: stimfile = getLastStimfile(myscreen,<verbose=1>,<stimfileNum=-1>)
+%      usage: stimfile = getLastStimfile(myscreen,<verbose=1>,<stimfileNum=-1>,<onlyToday=false>)
 %         by: justin gardner
 %       date: 06/08/11
 %    purpose: retrieves the latest stimfile from the data directory. This is useful
@@ -20,10 +20,10 @@
 %                today. If set to a date, will return only files from that day. For
 %                example: onlyToday=140608 (will return only files from 06/08/2014
 %                or, you can format in anything datestr can parse: onlyToday='06/08/2014'
-%                if a negative integer e.g. onlyToday=-3, then specifies to use stimfiles
+%                if a negative integer e.g. ('onlyToday',-3), then specifies to use stimfiles
 %                that many days back (e.g. 3 days ago)
 %                if a positive integer specifies to use stimfiles only within
-%                the last number of days. e.g. onlyToday=7 would only retrieve
+%                the last number of days. e.g. ('onlyToday',7) would only retrieve
 %                stimfiles from the last week
 %
 function [s nStimfiles] = getLastStimfile(msc,varargin)
