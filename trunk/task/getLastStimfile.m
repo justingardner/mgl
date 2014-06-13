@@ -15,7 +15,7 @@
 %             stimfileNum (default = -1) which stimfile to return. The default is -1
 %                which means the last stimfile. -k would be the kth last stimfile. A
 %                positive value means the kth stimfile (e.g. 2 would be the 2nd stimfile
-%                in the directory). A value of [] means to return all stimfiles.
+%                in the directory). A value of inf means to return all stimfiles.
 %
 function [s nStimfiles] = getLastStimfile(msc,varargin)
 
@@ -53,12 +53,18 @@ end
 % load list of stimfiles
 dirlist = dir(fullfile(datadir,'*stim*.mat'));
 nStimfiles = length(dirlist);
+disp(sprintf('(getLastStimfile) Found %i stimfiles in: %s',nStimfiles,datadir));
 
 if nStimfiles == 0
   disp(sprintf('(getLastStimfile) No existing stimfiles found in %s',datadir));
   return
 end
-  
+
+% inf means to return all stimfiles
+if isinf(stimfileNum)
+  stimfileNum = 1:nStimfiles;
+end
+
 % now get stimfile number to return
 for i = 1:length(stimfileNum)
   if stimfileNum(i) < 0
