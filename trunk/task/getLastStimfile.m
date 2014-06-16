@@ -155,23 +155,34 @@ end
 % display all data in directory
 for i = 1:length(dirlist)
   % load stimfile
-  x = load(fullfile(datadir,dirlist(i).name));
+  stimfiles{i} = load(fullfile(datadir,dirlist(i).name));
+end
+
+% sort the stimfiles by end time
+% get the endtime as a datenum for all elements of the array
+endtime = cellfun(@(x) datenum(x.myscreen.endtime),stimfiles);
+% sort
+[dummy,sortIndex] = sort(endtime);
+% and reorder the array
+stimfiles = {stimfiles{sortIndex}};
+
+for i = 1:length(stimfiles)
   % see how many trials
-  x.task = cellArray(x.task,2);
-  for iTask = 1:length(x.task)
+  stimfiles{i}.task = cellArray(stimfiles{i}.task,2);
+  for iTask = 1:length(stimfiles{i}.task)
     trialnum(iTask) = 0;
-    for iPhase = 1:length(x.task{iTask})
-      trialnum(iTask) = trialnum(iTask) + x.task{iTask}{iPhase}.trialnum;
+    for iPhase = 1:length(stimfiles{i}.task{iTask})
+      trialnum(iTask) = trialnum(iTask) + stimfiles{i}.task{iTask}{iPhase}.trialnum;
     end
   end
   % see whether we need to return this stimfile
   if isempty(stimfileNum) 
-    s{end+1} = x;
+    s{end+1} = stimfiles{i};
     verboseStr = '*';
   elseif any(stimfileNum == i)
     % put into correct location in array
     for sLoc = find(stimfileNum==i)
-      s{sLoc} = x;
+      s{sLoc} = stimfiles{i};
     end
     verboseStr = '*';
   else
@@ -180,7 +191,7 @@ for i = 1:length(dirlist)
   
   % display string
   if verbose
-    disp(sprintf('%s%s: Date %s Length: %s trials: %s',verboseStr,dirlist(i).name,x.myscreen.starttime,dispTimeDiff(x.myscreen.endtime,x.myscreen.starttime),num2str(trialnum)));
+    disp(sprintf('%s%s: Date %s Length: %s trials: %s',verboseStr,dirlist(i).name,stimfiles{i}.myscreen.starttime,dispTimeDiff(stimfiles{i}.myscreen.endtime,stimfiles{i}.myscreen.starttime),num2str(trialnum)));
   end
 end
 
