@@ -50,5 +50,16 @@ saveScreenParams = mglValidateScreenParams(saveScreenParams);
 
 % save the new one
 screenParams = saveScreenParams;
-eval(sprintf('save %s screenParams',screenParamsFilename));
+disp(sprintf('(mglSetScreenParams) Saving screen params file: %s',screenParamsFilename));
+try
+  eval(sprintf('save %s screenParams',screenParamsFilename));
+catch
+  disp(sprintf('(mglSetScreenParams) !!! Could not save screen params in: %s',screenParamsFilename));
+  newScreenParamsFilename = input('Enter a new name (e.g. ~/.mglScreenParams) or hit ENTER to ignore: ','s');
+  if ~isempty(newScreenParamsFilename)
+    disp(sprintf('(mglSetScreenParams) Using mglSetParam(''screenParamsFilename'',''%s'',1); to set screenParamsFilename',newScreenParamsFilename));
+    mglSetParam('screenParamsFilename',newScreenParamsFilename,1);
+    mglSetScreenParams(saveScreenParams);
+  end
+end
 
