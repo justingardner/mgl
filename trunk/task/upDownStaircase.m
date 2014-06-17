@@ -278,7 +278,7 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 function s = computeThreshold(s,args)
 
-getArgs(args,{'dispFig=0','maxIter=1000'});
+getArgs(args,{'dispFig=0','maxIter=1000','dogoodnessoffit=0','dobootstrap=0'});
 
 % compute the mean of last k reversals
 if isfield(s,'reversals') && (length(s.reversals) > 0)
@@ -300,7 +300,9 @@ end
 
 % compute weibull fit
 if exist('fitweibull') == 2
-  s.computedThresholds.weibullFitParams = fitweibull(s.strength,s.response,'dispfig',dispFig,'maxIter',maxIter);
+  s.computedThresholds.weibullFitParams = fitweibull(s.strength,...
+    s.response,'dispfig',dispFig,'maxIter',maxIter,'dogoodnessoffit',...
+    dogoodnessoffit,'dobootstrap',dobootstrap);
   s.computedThresholds.weibull = s.computedThresholds.weibullFitParams.fitparams(1);
 end
 
