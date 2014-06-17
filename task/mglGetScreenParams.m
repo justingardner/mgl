@@ -31,7 +31,7 @@ end
 
 % check for file
 if ~isfile(screenParamsFilename)
-  disp(sprintf('(mglEditScreenParams) Could not find screenParams file %s',screenParamsFilename));
+  disp(sprintf('(mglGetScreenParams) Could not find screenParams file %s',screenParamsFilename));
   screenParams = {};
 else
   % load the file
@@ -42,7 +42,7 @@ end
 if isfield(screenParams,'screenParams')
   screenParams = screenParams.screenParams;
 elseif ~isempty(screenParams)
-  disp(sprintf('(mglEditScreenParams) File %s does not contain screenParams',screenParamsFilename));
+  disp(sprintf('(mglGetScreenParams) File %s does not contain screenParams',screenParamsFilename));
   screenParams = {};
 end
 
