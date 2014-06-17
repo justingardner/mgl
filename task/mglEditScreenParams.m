@@ -47,6 +47,8 @@ end
 % get the screenParams
 screenParams = mglGetScreenParams;
 if isempty(screenParams)
+  disp(sprintf('(mglEditScreenParams) No saved screen params found, creating a new one'));
+  disp(sprintf('(mglEditScreenParams) This new params will only be saved if you click ok to the next two dialog boxes.'));
   screenParams{1} = mglDefaultScreenParams;
 end
 
