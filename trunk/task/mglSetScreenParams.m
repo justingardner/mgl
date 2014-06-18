@@ -24,6 +24,7 @@ if isempty(screenParamsFilename)
   screenParamsFilename = fullfile('~','.mglScreenParams');
   mglSetParam('screenParamsFilename',screenParamsFilename,1);
 end
+screenParamsFilename = mglReplaceTilde(screenParamsFilename);
 
 % make sure we have a .mat extension 
 if (length(screenParamsFilename)<3) || ~isequal(screenParamsFilename(end-2:end),'mat')
