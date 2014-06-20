@@ -79,7 +79,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 	}
 
 	// Make sure the target screen is in bounds.
-	if (targetScreen < 0 || targetScreen >= numDisplays) {
+	if (targetScreen >= numDisplays) {
 		mexPrintf("(mglSetMousePosition) targetScreen is out of bounds (%d)\n", targetScreen+1);
 		return;
 	}

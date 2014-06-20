@@ -77,12 +77,15 @@ void aglClose(int displayNumber, int verbose);
 void closeDisplay(int displayNumber,int verbose)
 {
   // if display number is set to -1, then the display is closed
-  if (displayNumber>=0)
+  if (displayNumber>=0) {
     // otherwise see if it is a cocoa or a cgl window
-    if (mglGetGlobalDouble("isCocoaWindow"))
+    if (mglGetGlobalDouble("isCocoaWindow")) {
       cocoaClose(displayNumber,verbose);
-    else
+    }
+    else {
       cglClose(displayNumber,verbose);
+    }
+  }
 }
 
 ////////////////////
@@ -146,12 +149,14 @@ void cocoaClose(displayNumber,verbose)
 void closeDisplay(int displayNumber,int verbose)
 {
   // if display number is set to -1, then the display is closed
-  if (displayNumber>0)
+  if (displayNumber>0) {
     // if it is greater than 0, then it is a full screen CGL context
     cglClose(displayNumber, verbose);
+  }
  // if displayNumber is 0, then it is a window AGL contex 
-  else if (displayNumber==0)
+  else if (displayNumber==0) {
     aglClose(displayNumber,verbose);
+  }
 }
 //////////////////
 //   aglClose   //

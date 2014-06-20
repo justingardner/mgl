@@ -9,6 +9,8 @@
 %             dates to see whether it should rebuild. With
 %             rebuild set to 1 removes all mex files for
 %             the current platform and rebuilds
+%             
+%             rebuild set to 2 shows all deprecated function warnings (which are otherwise suppressed)
 %
 %             If rebuild is set to 'carbon' then it will rebuild mac files using only carbon
 %             function calls (obsolete in 64bit Mac os). If set to 'cocoa' will build using
@@ -60,6 +62,8 @@ if ~exist('rebuild','var')
 else
   if isequal(rebuild,1) || isequal(rebuild,'rebuild')
     rebuild = 1;
+  elseif isequal(rebuild,2)
+    rebuild = 2;
   elseif isequal(rebuild,'carbon')
     varargin = {'-D__carbon__', varargin{:}};
     rebuild = 1;
@@ -109,7 +113,11 @@ if ismac
   if ver >= 10.6 % >= SnowLepard
     % now check where the SDKs live. If they are in /Developer
     if (isempty(forceVer) && isdir('/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.8.sdk')) || (forceVer == 10.8)
-      optf = '-f ./mexopts.10.8.xcode.4.5.sh';
+      if rebuild > 1
+	optf = '-f ./mexopts.10.8.xcode.4.5.all.warnings.sh';
+      else
+	optf = '-f ./mexopts.10.8.xcode.4.5.sh';
+      end
     elseif (isempty(forceVer) && isdir('/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.7.sdk')) || (forceVer == 10.7)
       optf = '-f ./mexopts.10.7.xcode.4.3.sh';
     elseif (isempty(forceVer) && isdir('/Developer/SDKs/MacOSX10.7.sdk'))

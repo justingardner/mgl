@@ -381,6 +381,19 @@ void* eventDispatcher(void *data)
 ////////////////////////
 double getCurrentTimeInSeconds()
 {
+#ifdef __MAC_10_8
+  static const double kOneBillion = 1000 * 1000 * 1000; 
+  static mach_timebase_info_data_t sTimebaseInfo;
+
+  if (sTimebaseInfo.denom == 0) {
+    (void) mach_timebase_info(&sTimebaseInfo);
+  }
+  // This seems to work on Mac OS 10.9 with a Mac PRO. But note that sTimebaseInfo is hardware implementation
+  // dependent. The mach_absolute_time is ticks since the machine started and to convert it to ms you
+  // multiply by the fraction in sTimebaseInfo - worried that this could possibly overflow the
+  // 64 bit int values depending on what is actually returned. Maybe that is not a problem
+  return((double)((mach_absolute_time()*(uint64_t)(sTimebaseInfo.numer)/(uint64_t)(sTimebaseInfo.denom)))/kOneBillion);
+#else
   // get current time
   UnsignedWide currentTime; 
   Microseconds(&currentTime); 
@@ -393,6 +406,7 @@ double getCurrentTimeInSeconds()
   double lowerHalf = (double)currentTime.lo; 
   doubleValue = (upperHalf * twoPower32) + lowerHalf; 
   return(0.000001*doubleValue);
+#endif
 }
 
 ////////////////////////
@@ -546,6 +560,7 @@ void launchEventDispatcherAsThread()
     else
       descriptionString = [NSString stringWithFormat:@"keyCode: %i up", keyCode];
   }
+  return descriptionString;
 }
 // dealloc the event
 - (void)dealloc

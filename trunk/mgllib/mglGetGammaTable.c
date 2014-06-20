@@ -174,7 +174,7 @@ Bool getGammaTable(int *gammaTableSize, GAMMAVALUE **redTable,GAMMAVALUE **green
       whichDisplay = displays[displayNumber-1];
 
     // and get the gamma table
-    CGTableCount capacity=*gammaTableSize, sampleCount;
+    uint32_t capacity=*gammaTableSize, sampleCount;
 
     displayErrorNum = CGGetDisplayTransferByTable(whichDisplay,*gammaTableSize,*redTable,*greenTable,*blueTable,&sampleCount);
     if (displayErrorNum) {
