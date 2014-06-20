@@ -675,8 +675,9 @@ unsigned long cglOpen(double *displayNumber, int *screenWidth, int *screenHeight
     CGLSetFullScreenOnDisplay( contextObj, displayMask );
 #endif
   }
-  else
+  else {
     CGLSetFullScreen( contextObj ) ;
+  }
 
   // Hide cursor
   CGDisplayHideCursor( kCGDirectMainDisplay ) ;

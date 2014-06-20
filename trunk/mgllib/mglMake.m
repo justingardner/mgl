@@ -32,6 +32,9 @@
 %             which version to compile for:
 %             mglMake('ver=10.6');
 %
+%             You can also force compile individual functions
+%             mglMake mglFlush
+%
 function retval = mglMake(rebuild, varargin)
 
 % check arguments
@@ -47,6 +50,21 @@ if (nargin>=1) && isstr(rebuild) && (length(rebuild)>4) && strcmp(lower(rebuild(
   rebuild = 1;
 else
   forceVer = [];
+end
+
+% check to see if user wants to recompile a specific file
+forceCompileSingleFile = false;
+if (nargin>=1) && isstr(rebuild)
+  % get mglpath
+  mglpath = fileparts(fileparts(which('mglOpen')));
+  % check if we have a file
+  mglfile = sprintf('%s.c',stripext(rebuild));
+  % check if it exists
+  mglFilename = fullfile(mglpath,'mgllib',mglfile);
+  if isfile(mglFilename)
+    forceCompileSingleFile = mglFilename;
+    rebuild = 2;
+  end
 end
 
 % interpret rebuild argument
@@ -172,7 +190,20 @@ else
   mexdir{1} = mgldir;
 end
 
-if ~digio
+
+% force compile as single file
+if forceCompileSingleFile
+  command = sprintf('mex %s %s', optf,forceCompileSingleFile);
+  disp(command);
+  try
+    eval(command);
+  catch
+    err = lasterror;
+    disp(['Error compiling ' forceCompileSingleFile]);
+    disp(err.message);
+    disp(err.identifier);
+  end
+elseif ~digio
   for nDir = 1:numel(mexdir)
     % get the files in the mexdir
     cd(mexdir{nDir});
@@ -322,4 +353,5 @@ dotloc = findstr(filename,delimiter);
 if ~isempty(dotloc)
   retval = filename(1:dotloc(length(dotloc))-1);
 end
+
 
