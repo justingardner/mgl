@@ -140,7 +140,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 ///////////////////////////////
 //   function declarations   //
 ///////////////////////////////
-#ifdef MACOS106
+#ifdef __MAC_10_6
 int getBitDepth(CGDisplayModeRef displayMode);
 void printDisplayModes(CGDirectDisplayID whichDisplay);
 boolean_t setBestMode(CGDirectDisplayID whichDisplay,int screenWidth,int screenHeight,int frameRate,int bitDepth);
@@ -194,7 +194,7 @@ void getResolution(int *displayNumber, int *screenWidth, int *screenHeight, int 
   // get the display
   whichDisplay = displays[*displayNumber-1];
 
-#ifdef MACOS106
+#ifdef __MAC_10_6
   // get the display settings
   CGDisplayModeRef displayMode;
   displayMode = CGDisplayCopyDisplayMode(whichDisplay);
@@ -271,7 +271,7 @@ void setResolution(int *displayNumber, int *screenWidth, int *screenHeight, int 
 
   // Switch the display mode
   boolean_t success=false;
-#ifdef MACOS106
+#ifdef __MAC_10_6
   success = setBestMode(whichDisplay,*screenWidth,*screenHeight,*frameRate,*bitDepth);
 #else
   CGDisplaySwitchToMode(whichDisplay,CGDisplayBestModeForParametersAndRefreshRate(whichDisplay,*bitDepth,*screenWidth,*screenHeight,*frameRate,&success));
@@ -287,7 +287,7 @@ void setResolution(int *displayNumber, int *screenWidth, int *screenHeight, int 
 
   int requestedFrameRate = *frameRate;
 
-#ifdef MACOS106
+#ifdef __MAC_10_6
   // get bit and frame rate
   CGDisplayModeRef displayMode;
   displayMode = CGDisplayCopyDisplayMode(whichDisplay);
@@ -337,7 +337,7 @@ void getNumDisplaysAndDefault(int *numDisplays, int *defaultDisplayNum)
   [pool release];
 }
 
-#ifdef MACOS106
+#ifdef __MAC_10_6
 /////////////////////
 //   getBitDepth   //
 /////////////////////
