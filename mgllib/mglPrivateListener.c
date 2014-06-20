@@ -77,7 +77,7 @@ void mglPrivateListenerOnExit(void);
 ////////////////
 static CFMachPortRef gEventTap;
 static pthread_mutex_t mut;
-static eventTapInstalled = FALSE;
+static int eventTapInstalled = FALSE;
 static NSAutoreleasePool *gListenerPool;
 static NSMutableArray *gKeyboardEventQueue;
 static NSMutableArray *gMouseEventQueue;

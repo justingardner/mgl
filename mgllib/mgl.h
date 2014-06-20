@@ -95,6 +95,10 @@
 #import <Appkit/Appkit.h>
 #import <QTKit/QTKit.h>
 
+// used for time function
+#include <mach/mach.h>
+#include <mach/mach_time.h>
+
 #endif // __APPLE__
 
 #ifdef __linux__

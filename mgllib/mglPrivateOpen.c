@@ -182,7 +182,7 @@ unsigned long cocoaOpen(double *displayNumber, int *screenWidth, int *screenHeig
 
   // Open window
   NSWindow *myWindow = initWindow(displayNumber,screenWidth,screenHeight);
-  if (myWindow == NULL) { [pool drain]; return; }
+  if (myWindow == NULL) { [pool drain]; return (unsigned long)NULL; }
 
   // Attach openGLView
   NSOpenGLView *myOpenGLView = addOpenGLContext(myWindow,displayNumber,screenWidth,screenHeight);
@@ -560,7 +560,7 @@ unsigned long cglOpen(double *displayNumber, int *screenWidth, int *screenHeight
   displayErrorNum = CGGetActiveDisplayList(kMaxDisplays,displays,&numDisplays);
   if (displayErrorNum) {
     mexPrintf("(mglPrivateOpen) Cannot get displays (%d)\n", displayErrorNum);
-    return;
+    return (unsigned long)NULL;
   }
   if (verbose)
     mexPrintf("(mglPrivateOpen) Found %i displays\n",numDisplays);
@@ -575,7 +575,7 @@ unsigned long cglOpen(double *displayNumber, int *screenWidth, int *screenHeight
   }
   else if (*displayNumber > numDisplays) {
     mexPrintf("(mglPrivateOpen): Display %i out of range (0:%i)\n",*displayNumber,numDisplays);
-    return;
+    return (unsigned long)NULL;
   }
   else
     whichDisplay = displays[(int)*displayNumber-1];
@@ -640,7 +640,7 @@ unsigned long cglOpen(double *displayNumber, int *screenWidth, int *screenHeight
   errorNum = CGLChoosePixelFormat(attribs, &pixelFormatObj, &numPixelFormats);
   if (errorNum) {
     mexPrintf("(mglPrivateOpen) UHOH: CGLChoosePixelFormat returned %i (%s)\n",errorNum,CGLErrorString(errorNum));
-    return;
+    return (unsigned long)NULL;
   }
 
   // Set up the full screen context
@@ -648,7 +648,7 @@ unsigned long cglOpen(double *displayNumber, int *screenWidth, int *screenHeight
   errorNum = CGLCreateContext(pixelFormatObj, NULL, &contextObj ) ;
   if (errorNum) {
     mexPrintf("(mglPrivateOpen) UHOH: CGLCreateContext returned %i (%s)\n",errorNum,CGLErrorString(errorNum));
-    return;
+    return (unsigned long)NULL;
   }
 
   // clear the pixel format
