@@ -206,6 +206,73 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 //-----------------------------------------------------------------------------------///
 // ******************************* mac specific code  ******************************* //
 //-----------------------------------------------------------------------------------///
+// FIX, FIX, FIX this is just testing code for getting rid of all that ATSUI crap
+// Does not yet work yet as of 6/21/2014 so commenting out
+#ifdef FIX_FIX_FIX_IS_BROKEN//__MAC_10_8
+unsigned char *renderText(const mxArray *inputString, char*fontName, int fontSize, double *fontColor, double fontRotation, Boolean fontBold, Boolean fontItalic, Boolean fontUnderline, Boolean fontStrikethrough, int *pixelsWide, int *pixelsHigh, Rect *textImageRect)
+{
+  // get text string
+  int buflen = mxGetN(inputString)*mxGetM(inputString)+1;
+  char *cInputString= (char*)malloc(buflen);
+  if (cInputString == NULL) {
+    mexPrintf("(mglText) Could not allocate buffer for string array of length %i\n",buflen);
+    return(NULL);
+  }
+  // get the string
+  mxGetString(inputString, cInputString, buflen);
+
+  // get status of global variable verbose
+  int verbose = (int)mglGetGlobalDouble("verbose");
+
+  // Convert to an NSString
+  NSString *string = [NSString stringWithCString:cInputString encoding:NSASCIIStringEncoding];
+  
+  mexPrintf("String is: %s\n",(char *)[string UTF8String]);
+
+  // Set font attributes
+  NSDictionary *attributes =
+    @{ NSFontAttributeName : [NSFont fontWithName:@"Helvetica" size:40.0],
+       NSForegroundColorAttributeName : NSColor.blackColor};
+
+  // write font into image
+  NSImage *image = [[NSImage alloc] initWithSize:[string sizeWithAttributes:attributes]];
+  [image lockFocus];
+  [string drawAtPoint:NSZeroPoint withAttributes:attributes];
+  [image unlockFocus];
+  NSSize size = [string sizeWithAttributes:attributes];
+
+  textImageRect->top = 0;
+  textImageRect->left = 0;
+  textImageRect->right = (int)size.width;
+  textImageRect->bottom = (int)size.height;
+  *pixelsWide = (int)size.width;
+  *pixelsHigh = (int)size.height;
+  mexPrintf("%i %i\n",(int)textImageRect->right,(int)textImageRect->bottom);
+
+  // convert to bitmap
+  NSData* tiffData = [image TIFFRepresentation];
+  NSBitmapImageRep* bitMapRep = [NSBitmapImageRep imageRepWithData:tiffData];
+  unsigned char *data = [bitMapRep bitmapData];
+  // trying to print it out - what is wrong with the buffer - does 
+  // not seem to be allocated properly - since code crashes here
+  int i,j;
+  for(i = 0;i<*pixelsWide;i++) {
+    for(j = 0;i<*pixelsHigh;j++)
+      if (data[i+(j-1)*(*pixelsWide)])
+	printf("1");
+      else
+	printf("0");
+    printf("\n");
+  }
+
+  *pixelsWide = 0;
+  *pixelsHigh = 0;
+  return NULL;
+
+
+  return [bitMapRep bitmapData];
+}
+#else // __MAC_10_6
 unsigned char *renderText(const mxArray *inputString, char*fontName, int fontSize, double *fontColor, double fontRotation, Boolean fontBold, Boolean fontItalic, Boolean fontUnderline, Boolean fontStrikethrough, int *pixelsWide, int *pixelsHigh, Rect *textImageRect)
 {
   // get text string
@@ -493,6 +560,7 @@ unsigned char *renderText(const mxArray *inputString, char*fontName, int fontSiz
   // return buffer of rendered text
   return(bitmapData);
 }
+#endif // __MAC_10_6
 #endif //__APPLE__
 //-----------------------------------------------------------------------------------///
 // ****************************** linux specific code  ****************************** //
