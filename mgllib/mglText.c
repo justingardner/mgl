@@ -206,9 +206,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 //-----------------------------------------------------------------------------------///
 // ******************************* mac specific code  ******************************* //
 //-----------------------------------------------------------------------------------///
-// FIX, FIX, FIX this is just testing code for getting rid of all that ATSUI crap
-// Does not yet work yet as of 6/21/2014 so commenting out
-#ifdef FIX_FIX_FIX_IS_BROKEN//__MAC_10_8
+#ifdef dontcompilethis //__MAC_10_8
 unsigned char *renderText(const mxArray *inputString, char*fontName, int fontSize, double *fontColor, double fontRotation, Boolean fontBold, Boolean fontItalic, Boolean fontUnderline, Boolean fontStrikethrough, int *pixelsWide, int *pixelsHigh, Rect *textImageRect)
 {
   // get text string
@@ -228,18 +226,81 @@ unsigned char *renderText(const mxArray *inputString, char*fontName, int fontSiz
   NSString *string = [NSString stringWithCString:cInputString encoding:NSASCIIStringEncoding];
   
   mexPrintf("String is: %s\n",(char *)[string UTF8String]);
+  char fullFontName[2048];
+  sprintf(fullFontName,"%s%s%s",fontName,(fontBold)?" bold":"",(fontItalic)?" italic":"");
+  mexPrintf("%s : %s\n",fontName,fullFontName);
+
+  // Check this site: http://stackoverflow.com/questions/12821144/how-to-draw-text-in-opengl-on-mac-os-with-retina-display
 
   // Set font attributes
   NSDictionary *attributes =
-    @{ NSFontAttributeName : [NSFont fontWithName:@"Helvetica" size:40.0],
-       NSForegroundColorAttributeName : NSColor.blackColor};
+    @{ NSFontAttributeName : [NSFont fontWithName:[NSString stringWithUTF8String:fullFontName] size:fontSize],
+       NSForegroundColorAttributeName : [NSColor colorWithDeviceRed:fontColor[0] green:fontColor[1] blue:fontColor[2] alpha:fontColor[3]],
+       NSUnderlineStyleAttributeName : @((fontUnderline)?NSUnderlineStyleSingle:NSUnderlineStyleNone),
+       NSStrikethroughStyleAttributeName : @((fontStrikethrough)?NSUnderlineStyleSingle:NSUnderlineStyleNone),
+       NSBackgroundColorAttributeName : NSColor.blackColor};
 
+  NSSize textSize = [string sizeWithAttributes:attributes];
+  unsigned char *imageData = (unsigned char *)malloc(textSize.width*textSize.height*4);
+  unsigned char *imageDataHuh = (unsigned char *)malloc(textSize.width*textSize.height*4);
+  int i,j,k = 0;;
+  int width = (int)textSize.width,height = (int)textSize.height;
+  for(i = 0;i<width;i++) {
+    for(j = 0;j<height;j++) {
+            imageData[k++] = 255;
+            imageData[k++] = 255;
+            imageData[k++] = 255;
+            imageData[k++] = 255;
+    }
+  }
+  NSBitmapImageRep *rep = [[NSBitmapImageRep alloc]
+			   initWithBitmapDataPlanes: &imageData
+			   pixelsWide: textSize.width
+			   pixelsHigh: textSize.height
+			   bitsPerSample: 8
+			   samplesPerPixel: 4
+			   hasAlpha: YES
+			   isPlanar: NO
+			   colorSpaceName: NSCalibratedRGBColorSpace
+			   bytesPerRow: textSize.width * 4
+			   bitsPerPixel: 32];
+  NSGraphicsContext *ctx = [NSGraphicsContext graphicsContextWithBitmapImageRep: rep];
+  [NSGraphicsContext saveGraphicsState];
+  [NSGraphicsContext setCurrentContext: ctx];
+  [string drawAtPoint:NSZeroPoint withAttributes:attributes];
+  [ctx flushGraphics];
+  [NSGraphicsContext restoreGraphicsState];
+
+  NSUInteger pixelData[4];
+  int bitPlane;
+  mexPrintf("%i x %i\n",width,height);
+  k = 0;
+  for (bitPlane = 0;bitPlane < 4;bitPlane++) {
+    mexPrintf("bitPlane:%i\n",bitPlane);
+    for(i = 0;i<width;i++) {
+      for(j = 0;j<height;j++) {
+	[rep getPixel:pixelData atX:i y:j];
+	mexPrintf("%i",(int)round((double)pixelData[bitPlane]/32.0));
+	imageDataHuh[i+(j-1)*width+bitPlane] = (unsigned char)(pixelData[bitPlane]);
+      }
+      mexPrintf("\n");
+    }
+    mexPrintf("\n\n");
+  }
+  *pixelsWide = width;
+  *pixelsHigh = height;
+  //  unsigned char *data = [bitMapRep bitmapData];
+  return (unsigned char *)[rep bitmapData];
+  return imageDataHuh;
+
+#if 0
+    
   // write font into image
   NSImage *image = [[NSImage alloc] initWithSize:[string sizeWithAttributes:attributes]];
   [image lockFocus];
   [string drawAtPoint:NSZeroPoint withAttributes:attributes];
   [image unlockFocus];
-  NSSize size = [string sizeWithAttributes:attributes];
+  NSSize size = [image size];
 
   textImageRect->top = 0;
   textImageRect->left = 0;
@@ -247,30 +308,48 @@ unsigned char *renderText(const mxArray *inputString, char*fontName, int fontSiz
   textImageRect->bottom = (int)size.height;
   *pixelsWide = (int)size.width;
   *pixelsHigh = (int)size.height;
-  mexPrintf("%i %i\n",(int)textImageRect->right,(int)textImageRect->bottom);
+  mexPrintf("%i %i\n",*pixelsWide,*pixelsHigh);
 
   // convert to bitmap
   NSData* tiffData = [image TIFFRepresentation];
   NSBitmapImageRep* bitMapRep = [NSBitmapImageRep imageRepWithData:tiffData];
   unsigned char *data = [bitMapRep bitmapData];
-  // trying to print it out - what is wrong with the buffer - does 
-  // not seem to be allocated properly - since code crashes here
+  NSUInteger pixelData[16];
+
+  mexPrintf("bytesPerRow:%i bitsPerPixel%i\n",[bitMapRep bytesPerRow],[bitMapRep bitsPerPixel]);
+  //  NSImageRep *rep = [[image representations] objectAtIndex:0];
+  //  mexPrintf("%i x %i\n",[rep pixelsWide],[rep pixelsHigh]) 
+#endif
+
+#if 0
   int i,j;
-  for(i = 0;i<*pixelsWide;i++) {
-    for(j = 0;i<*pixelsHigh;j++)
-      if (data[i+(j-1)*(*pixelsWide)])
+  for(i = 1;i<=(*pixelsWide);i++) {
+    for(j = 1;j<=(*pixelsHigh);j++) {
+      [bitMapRep getPixel:pixelData atX:i y:j];
+    }
+  }
+#endif
+  
+#if 0
+  int i,j;
+  for(i = 0;i<(*pixelsWide);i++) {
+    for(j = 0;j<(*pixelsHigh);j++) {
+      //      if (data[i+(j-1)*(*pixelsWide)])
+      if (pixelData[0])
 	printf("1");
       else
 	printf("0");
+    }
     printf("\n");
   }
-
   *pixelsWide = 0;
   *pixelsHigh = 0;
+
   return NULL;
+#endif
 
 
-  return [bitMapRep bitmapData];
+  //  return [bitMapRep bitmapData];
 }
 #else // __MAC_10_6
 unsigned char *renderText(const mxArray *inputString, char*fontName, int fontSize, double *fontColor, double fontRotation, Boolean fontBold, Boolean fontItalic, Boolean fontUnderline, Boolean fontStrikethrough, int *pixelsWide, int *pixelsHigh, Rect *textImageRect)
