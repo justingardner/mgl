@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+    <meta charset='utf-8'>
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <meta name="description" content="MGL : Mgl is a suite of mex/m files for displaying visual psychophysics stimuli and writing experimental programs in Matlab. Runs on Mac OS X (G4/5 and Intel 32 and Intel 64 bit OS Versions 10.5-10.7) Version 2.0.">
+
+    <link rel="stylesheet" type="text/css" media="screen" href="stylesheets/stylesheet.css">
+
+    <title>MGL</title>
+  </head>
+
+  <body>
+
+    <!-- HEADER -->
+    <div id="header_wrap" class="outer">
+        <header class="inner">
+          <a id="forkme_banner" href="https://github.com/justingardner/mgl">View on GitHub</a>
+
+          <h1 id="project_title">MGL</h1>
+          <h2 id="project_tagline">Mgl is a suite of mex/m files for displaying visual psychophysics stimuli and writing experimental programs in Matlab. Runs on Mac OS X (G4/5 and Intel 32 and Intel 64 bit OS Versions 10.5-10.7) Version 2.0.</h2>
+
+            <section id="downloads">
+              <a class="zip_download_link" href="https://github.com/justingardner/mgl/zipball/master">Download this project as a .zip file</a>
+              <a class="tar_download_link" href="https://github.com/justingardner/mgl/tarball/master">Download this project as a tar.gz file</a>
+            </section>
+        </header>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div id="main_content_wrap" class="outer">
+      <section id="main_content" class="inner">
+        <p><img src="http://gru.stanford.edu/lib/exe/fetch.php/mgl/mgllogo.png" alt="MGL"></p>
+
+<p>Full documentation is at <a href="http://justingardner.net/mgl">http://justingardner.net/mgl</a></p>
+
+<h1>
+<a name="a-quick-overview" class="anchor" href="#a-quick-overview"><span class="octicon octicon-link"></span></a>A quick overview</h1>
+
+<p>mgl is a set of matlab functions for displaying full screen visual stimuli from matlab. It is based on OpenGL functions, but abstracts these into more simple functions that can be used to code various kinds of visual stimuli. It can be used on Mac OS X systems (a Windows beta exits which can open/close screen and display but is not ready for serious use and an older but usable version (1.5) exists for Linux. Neither windows nor linux versions are recommended for anyone who is not comfortable programming in C and building out existing functionality into a fully compatible version).</p>
+
+<ul>
+<li>mgl contains a set of higher-level routines for helping you write stimulus programs which takes care of parameter randomization, timing of trials, synching with MRI scanners, collection of eye data etc.</li>
+<li>mgl is integrated with mrTools so that you can easily extract trial timing to do analyses such as deconvolution on fMRI data collected with experiments written in mgl.</li>
+<li>Stimuli can be displayed full screen or in a window (helpful for debugging on a system that only has one display).</li>
+<li>With a single command that specifies the distance to and size of a monitor, the coordinate system can be specified in degrees of visual angle, thus obviating the need to explicitly convert from the natural coordinate frame of psychophysics experiments into pixels.</li>
+<li>It can interface with the Eyelink eye tracker.</li>
+<li>You can read and write digital signals with National Instruments digital I/O boards (see here).</li>
+<li>You can set the gamma table for example to linearize the output of your monitor.</li>
+<li>You can calibrate monitors automatically through serial connection to a PhotoResearch PR650, Minolta or Topcon photometer (see here).</li>
+<li>You can display images, draw text, draw lines, dots, quads and other simple shapes.</li>
+<li>You can get accurate keyboard and mouse event information.</li>
+<li>You can play sounds.</li>
+<li>You can play quicktime movies.</li>
+<li>You can control multiple screens for example to control stereo displays.</li>
+<li>mgl is 64-bit compliant.</li>
+<li>mgl works with the latest versions of Mac OS X (10.6-10.8) and with the latest versions of Matlab (7.4-8.1) as of 6/19/2013. In general, we stay reasonably up to date with releases of Mac OS and Matlab. If we encounter any compatibility issues, that information will generally be posted here. If you are using an older version of Mac OS or Matlab and are having trouble getting MGL to run, you may need to recompile.</li>
+<li>The best way to see whether it will be useful to you is to try out the mglTest programs and also the sample experiment testExperiment. A basic “hello world” program can be written in four lines:</li>
+</ul>
+
+<div class="highlight highlight-matlab"><pre>  <span class="c">% Open the screen, 0 specifies to draw in a window. </span>
+  <span class="c">% 1 would be full screen in the main display</span>
+  <span class="c">% 2 would be full screen in a secondary display, etc... </span>
+  <span class="o">&gt;&gt;</span> <span class="n">mglOpen</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
+
+  <span class="c">% Select the coordinate frame for drawing</span>
+  <span class="c">% (e.g. for a monitor 57 cm away, which has width and height of 16 and 12 cm). </span>
+  <span class="o">&gt;&gt;</span> <span class="n">mglVisualAngleCoordinates</span><span class="p">(</span><span class="mi">57</span><span class="p">,[</span><span class="mi">16</span> <span class="mi">12</span><span class="p">]);</span>
+
+  <span class="c">% Draw the text in the center (i.e. at 0,0)</span>
+  <span class="o">&gt;&gt;</span> <span class="n">mglTextDraw</span><span class="p">(</span><span class="s">'Hello World!'</span><span class="p">,[</span><span class="mi">0</span> <span class="mi">0</span><span class="p">]);</span>
+
+  <span class="c">% The above is drawn on the back-buffer of the double-buffered display</span>
+  <span class="c">% To make it show up you flush the display.</span>
+  <span class="c">% This function will wait till the end of the screen refresh</span>
+  <span class="o">&gt;&gt;</span> <span class="n">mglFlush</span><span class="p">;</span>
+  <span class="c">% When finished, with displaying the stimuli, you simply close the screen:</span>
+
+<span class="o">&gt;&gt;</span> <span class="n">mglClose</span><span class="p">;</span>
+</pre></div>
+      </section>
+    </div>
+
+    <!-- FOOTER  -->
+    <div id="footer_wrap" class="outer">
+      <footer class="inner">
+        <p class="copyright">MGL maintained by <a href="https://github.com/justingardner">justingardner</a></p>
+        <p>Published with <a href="http://pages.github.com">GitHub Pages</a></p>
+      </footer>
+    </div>
+
+    
+
+  </body>
+</html>
