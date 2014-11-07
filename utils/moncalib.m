@@ -42,7 +42,7 @@
 % 
 %             To test the serial port connection to your device, run like:
 %
-%             moncalib(-1);
+%             moncalib('commTest=1');
 %
 %             This works by using the serial port interface
 %             to the PR650 and the comm library from the
@@ -610,7 +610,12 @@ elseif strcmp(str(1:2),'ER')
    thisMessage = errorMsg{find(strcmp(errorNum,str(3:4)))};
    data=nan;
 else
-  thisMessage = sprintf('(Unknwon error) %s',str);
+  % check to see if we have high bits set - this is some problam with 
+  % the pluggable serial adaptor
+  if any(bitand(double(str),128)')
+    disp(sprintf('(moncalib) It appears that the high bit (8) is set in the message comming back from the serial device. This should never be the case since we are doing 7 bit communication. This is probably a driver error whcih we have noticed on the Plugable driver. We were never able to get that USB/Serial adaptor to work with Minolta, so consider purchasing a Keyspan USA-19HS USB/Serial device instead.'));
+  end
+  thisMessage = sprintf('(moncalib) Unknown error: %s',str);
   data = nan;
 end
 
@@ -930,10 +935,14 @@ function portNum = initSerialPortUsingSerial(baudRate,parity,dataLen,stopBits,po
 
 portNum = 0;
 disp(sprintf('(moncalib) This works for Topcon - but may bnot be working for Minolta. See code comments'));
-% This should be working for Topcon with a Plugable USB/Serial adaptor. It does not seem to work for Minolta.
-% For minolta, whatever I do, I.e. send MES with CR/LF it returns 2 weird characters followed by 00 followed by
-% another weird character. Not sure what is getting mangled there (CR/LF not right?) Anyway, it works
-% now for Topcon so the serial port itself must be working correctly
+% This should be working for Topcon with a Plugable USB/Serial adaptor. 
+%
+% It does not seem to work for Minolta. And this seems to be something about setting the 7 bit mode, I think.
+% For minolta, whatever I do, I.e. send MES with CR/LF it returns characters that look like they are ER
+% except they have the top bit set (so they are 128 too big). This should be impossible when doing 7 bit communication
+% mode, so must be some bug in the driver. Minolta does seem to work with the Keyspan USA-19HS adaptor
+%
+% Anyway, it works now for Topcon so the serial port itself must be working correctly
 %
 % Some notes. The functions that read/write charcter strings with the default Terminators liek
 % fgets, fgetl do not seem to work. They just hang. The Terminator setting below is basically
@@ -945,7 +954,7 @@ disp(sprintf('(moncalib) This works for Topcon - but may bnot be working for Min
 
 % display all serial devices
 serialDev = dir('/dev/cu.*');
-%serialDev = dir('/dev/*serial*');
+
 nSerialDev = length(serialDev);
 for i = 1:nSerialDev
   disp(sprintf('%i: %s', i,serialDev(i).name));
@@ -995,6 +1004,7 @@ if portNum.BytesAvailable == 0
 else
   disp(sprintf('(moncalib:readSerialPortUsingComm) Reading %i bytes',portNum.BytesAvailable));
   str = char(fread(portNum,portNum.BytesAvailable,'uint8'));
+  str = str(:)';
   disp(sprintf('(moncalib:readSerialPortUsingComm) Received %s',str));
 end
 
@@ -2151,7 +2161,7 @@ for i = 1:nargs
 end
 
 % default serial port function
-serialPortFun = 'comm';
+serialPortFun = 'serial';
 commTest = 0;
 % gSerialPortFun = 'serial'; 
 % Note that the serial port function still seems busted. It crashes on fclose on my system and while
@@ -2170,7 +2180,7 @@ if oldStyleArgs
   if nargs < 6,initWaitTime = 0; else initWaitTime = vars{6};end
 else
   if exist('getArgs') == 2
-    getArgs(vars,{'numRepeats=4','stepsize=1/32','initWaitTime=0','screenNumber=[]','spectrum=0','gamma=1','exponent=0','tableTest=1','bitTest=0','reset=0','gammaEachChannel=0','verbose=1','bitTestBits=10','bitTestNumRepeats=4','bitTestN=12','bitTestBase=0.5','serialPortFun=comm','commTest=0'});
+    getArgs(vars,{'numRepeats=4','stepsize=1/32','initWaitTime=0','screenNumber=[]','spectrum=0','gamma=1','exponent=0','tableTest=1','bitTest=0','reset=0','gammaEachChannel=0','verbose=1','bitTestBits=10','bitTestNumRepeats=4','bitTestN=12','bitTestBase=0.5','serialPortFun',serialPortFun,'commTest=0'});
   else
     disp(sprintf('(moncalib) To parse string arguments you need getArgs from the mrTools distribution. \nSee here: http://gru.brain.riken.jp/doku.php/mgl/gettingStarted#initial_setup'));
     todo = [];
