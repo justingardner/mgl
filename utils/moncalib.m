@@ -7,7 +7,7 @@
 %             moncalib(calib);
 %
 %             Options that you can use:
-%             calib = moncalib('numRepeats=4','stepsize=1/32',...
+%             calib = moncalib('numRepeats=4','stepsize=1/256',...
 %               numRepeats = number of repeats of each measurement to make when measuring luminance
 %               stepsize = step size to measure luminance values in. Use 1/256 to check every value in an 8 bit display
 %               initWaitTime = number of seconds to wait at beginning for prep time
@@ -33,7 +33,7 @@
 %
 %             Old calling style:
 %               calib = moncalib(screenNumber,stepsize,numRepeats,testTable,bitTest,initWaitTime)
-%               stepsize is how finely you want to measure luminance changes (value < 1.0) (default is 1/32)
+%               stepsize is how finely you want to measure luminance changes (value < 1.0) (default is 1/256)
 %               numRepeats is the number of repeats you want to make of the measurements (default is 4)
 %         by: justin gardner & jonas larsson
 %       date: 10/02/06
@@ -2173,14 +2173,14 @@ commTest = 0;
 % parse old style arguments
 if oldStyleArgs    
   if nargs < 1,screenNumber = [];else screenNumber = vars{1};end
-  if nargs < 2,stepsize = 1/32;else stepsize = vars{2};end
+  if nargs < 2,stepsize = 1/256;else stepsize = vars{2};end
   if nargs < 3,numRepeats = 4;else numRepeats = vars{3};end
   if nargs < 4,testTable = 1;else testTable = vars{4};end
   if nargs < 5,bitTest = 0; else bitTest = vars{5};end
   if nargs < 6,initWaitTime = 0; else initWaitTime = vars{6};end
 else
   if exist('getArgs') == 2
-    getArgs(vars,{'numRepeats=4','stepsize=1/32','initWaitTime=0','screenNumber=[]','spectrum=0','gamma=1','exponent=0','tableTest=1','bitTest=0','reset=0','gammaEachChannel=0','verbose=1','bitTestBits=10','bitTestNumRepeats=4','bitTestN=12','bitTestBase=0.5','serialPortFun',serialPortFun,'commTest=0'});
+    getArgs(vars,{'numRepeats=4','stepsize=1/256','initWaitTime=0','screenNumber=[]','spectrum=0','gamma=1','exponent=0','tableTest=1','bitTest=0','reset=0','gammaEachChannel=0','verbose=1','bitTestBits=10','bitTestNumRepeats=4','bitTestN=12','bitTestBase=0.5','serialPortFun',serialPortFun,'commTest=0'});
   else
     disp(sprintf('(moncalib) To parse string arguments you need getArgs from the mrTools distribution. \nSee here: http://gru.brain.riken.jp/doku.php/mgl/gettingStarted#initial_setup'));
     todo = [];
