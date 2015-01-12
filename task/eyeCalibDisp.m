@@ -16,7 +16,7 @@ if nargin < 1
 end
 
 % nothing to do with no eye tracker
-if strcmp(lower(myscreen.eyeTrackerType),'none')
+if ~isfield(myscreen,'eyeTrackerType') || strcmp(lower(myscreen.eyeTrackerType),'none')
   disp(sprintf('(eyeCalibDisp) Eye tracker type set to none. You can change this in mglEditScreenParams'));
   return
 end
