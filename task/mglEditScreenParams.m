@@ -266,7 +266,11 @@ movieMode = mglGetParam('movieMode');
 mglSetParam('movieMode',0);
 
 % now call initScreen with these parameters
+% setting SID to test
+sid = mglGetSID;
+mglSetSID('test');
 msc = initScreen(msc);
+mglSetSID(sid);
 
 % reset movie mode
 mglSetParam('movieMode',movieMode);
