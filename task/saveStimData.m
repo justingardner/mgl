@@ -1,6 +1,6 @@
 % savestimdata.m
 %
-%        $Id$
+%        $Id: saveStimData.m 891 2011-01-14 07:47:12Z justin $
 %      usage: savestimdata.m(myscreen,task,<forceSave>)
 %         by: justin gardner
 %       date: 12/22/04
@@ -65,7 +65,7 @@ else
     % if we have exceeded the number of volumes expected for 
     % a run (set in initscreen), then save automatically,
     % otherwise ask whether to save
-    if (myscreen.volnum > myscreen.saveData)
+    if isequal(myscreen.saveData,1) || (myscreen.volnum > myscreen.saveData)
       response = 'y';
     else
       response = '';
