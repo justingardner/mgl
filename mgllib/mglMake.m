@@ -18,9 +18,19 @@
 %
 %             To build digital I/O code (which requires the NI NIDAQ MX-base library), set
 %             rebuild to 'digio'
+%             e.g.
+%             mglMake('digio');
+%
+%             to force recompile of digio code:
+%             mglMake(1,'digio');
 %
 %             To build eyelink code (which requires the eyelink developers kit), set
 %             rebuild to 'eyelink'
+%             e.g.
+%             mglMake('eyelink');
+%
+%             To force recompile of eyelink code do:
+%             mglMake(1,'eyelink');
 %                  
 %             You can pass arbitrary command line options to the mex
 %             compilation after the first argument. (If the first argument is
@@ -128,21 +138,22 @@ if ismac
     sysinfo = regexp(result, 'OS X 10.(?<ver>\d?)', 'names');
     ver = 10+str2double(sysinfo.ver)/10;
   end
-  if ver >= 10.6 % >= SnowLepard
-    % now check where the SDKs live. If they are in /Developer
-    if (isempty(forceVer) && isdir('/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.8.sdk')) || (forceVer == 10.8)
-      if rebuild > 1
-	optf = '-f ./mexopts.10.8.xcode.4.5.all.warnings.sh';
-      else
-	optf = '-f ./mexopts.10.8.xcode.4.5.sh';
-      end
-    elseif (isempty(forceVer) && isdir('/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.7.sdk')) || (forceVer == 10.7)
-      optf = '-f ./mexopts.10.7.xcode.4.3.sh';
-    elseif (isempty(forceVer) && isdir('/Developer/SDKs/MacOSX10.7.sdk'))
-      optf = '-f ./mexopts.10.7.sh';
-    elseif (isempty(forceVer) && isdir('/Developer/SDKs/MacOSX10.6.sdk')) || (forceVer == 10.6)
-      optf = '-f ./mexopts.sh';
-    else
+
+  % get what sdk versions we have
+  [sdkVersion sdkPaths] = getSDKVersion;
+  if isempty(sdkVersion)
+    disp(sprintf('(mglMake) !!! Could not find MacOSX sdk. Have you installed XCode? !!!'));
+    return
+  end
+  
+  % get the most current sdk version, if we are not forcing versions
+  if isempty(forceVer)
+    [sdkVersion i] =  max(sdkVersion);
+    sdkPath = sdkPaths{i};
+  else
+    % check if we have the proper sdk
+    whichVersion = find(sdkVersion == forceVer);
+    if isempty(whichVersion)
       if isempty(forceVer)
 	disp(sprintf('(mglMake) !!! Could not find MacOSX sdk. Have you installed XCode? !!!'));
       else
@@ -150,8 +161,27 @@ if ismac
       end
       return
     end
-  else
+    % set sdkversion and path to only have the forced one
+    sdkVersion = sdkVersion(whichVersion);
+    sdkPaths = sdkPaths{whichVesion};
+  end
+      
+  % use different options depending on version
+  if sdkVersion == 10.9
+    % note this idiotic seting of char16_t is some
+    % lame crap due to mathwork screwing up
+    optf = '-Dchar16_t=uint16_T';
+  elseif sdkVersion == 10.8
+    optf = '-f ./mexopts.10.8.xcode.4.5.all.warnings.sh';
+  elseif sdkVersion == 10.7
+    optf = '-f ./mexopts.10.7.xcode.4.3.sh';
+  elseif sdkVersion == 10.6
+    optf = '-f ./mexopts.10.6.sh';
+  elseif sdkVersion == 10.5
     optf = '-f ./mexopts.10.5.sh';
+  else
+    disp(sprintf('(mglMake) No specific mex options found for sdk version %0.1f, using generic options',sdkVersion));
+    optf = '';
   end
 elseif ispc
   % We don't use a special options file.  The required libraries are set in
@@ -286,6 +316,11 @@ excludeList = {'mglStandaloneDigIO.c','mglDigIOSendCommand.c'};
 if strcmp(mexext,'mexmaci64')
   excludeList = {excludeList{:} 'readDigPort.c','writeDigPort.c'};
   disp(sprintf('(mglMake) Making standalone functions for digio'));
+  % force rebuild if called for
+  if rebuild
+    system('rm -f mglStandaloneDigIO');
+    system('rm -f mglDigIOSendCommand');
+  end
   system('make');
 end
 
@@ -297,9 +332,9 @@ if (mislocked('mglPrivateDigIO'))
 end
   
 % check for mexopts file
-[dummy mexoptsFilename] = strtok(optf,' ');
+[dummy mexoptsFilename] = strtok(optf,'-f ');
 mexoptsFilename = strtrim(mexoptsFilename);
-if ~isfile(mexoptsFilename)
+if ~isempty(mexoptsFilename) && ~isfile(mexoptsFilename)
   disp(sprintf('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!'));
   disp(sprintf('(mglMake) Cannot find mexopts file for your setup: %s in the digin directory: %s',mexoptsFilename,pwd));
   disp(sprintf('          Consider converting one from mgl/mgllib and moving into digin'));
@@ -355,3 +390,32 @@ if ~isempty(dotloc)
 end
 
 
+%%%%%%%%%%%%%%%%%%%%
+%    sdkVersion    %
+%%%%%%%%%%%%%%%%%%%%
+function [sdkVersion sdkPath] = getSDKVersion
+
+sdkVersion = [];
+sdkPath = {};
+
+% check directory
+pathNames = {'/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs','/Developer/SDKs'};
+
+for iPathName = 1:length(pathNames);
+  if isdir(pathNames{iPathName})
+    % check the directory
+    d = dir(fullfile(pathNames{iPathName},'MacOSX10.*.sdk'));
+
+    % pull out the version numbers of available sdks from the directory names
+    for i = 1:length(d)
+      sdkName = d(i).name;
+      sdkloc = findstr('sdk',sdkName);
+      if ~isempty(sdkloc)
+	% pull out the number
+	sdkVersion(end+1) = str2num(sdkName(7:(sdkloc-2)));
+	% save the directory
+	sdkPath{end+1} = fullfile(pathNames{iPathName},sdkName);
+      end
+    end
+  end
+end

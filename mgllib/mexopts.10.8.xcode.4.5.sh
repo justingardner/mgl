@@ -220,9 +220,9 @@ echo "Error: Did not imbed 'options.sh' code"; exit 1 #imbed options.sh glnxi64 
             # CkeyLanguage: C
             # CkeyVersion:
             CC='gcc'
-#            CC='g++-4.0'
-            SDKROOT='/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.8.sdk'
-            MACOSX_DEPLOYMENT_TARGET='10.8'
+            CC='g++'
+            SDKROOT='/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.9.sdk'
+            MACOSX_DEPLOYMENT_TARGET='10.9'
             ARCHS='x86_64'
             CFLAGS="-x objective-c -fno-common -no-cpp-precomp -arch $ARCHS -isysroot $SDKROOT -mmacosx-version-min=$MACOSX_DEPLOYMENT_TARGET -Wno-deprecated-declarations -Wno-deprecated -Wno-implicit-function-declaration"
             CFLAGS="$CFLAGS  -fexceptions"
