@@ -79,7 +79,7 @@ params = mrParamsDialog(paramsInfo, sprintf('Choose computer/display (you are no
 if isempty(params),return,end
 
 % add this display if asked for
-if isequal(params.addDisplay,'add')
+if isequal(params.addDisplay,'add') || (params.computerNum > length(screenParams))
   screenParams{end+1} = mglDefaultScreenParams;
 end
 
