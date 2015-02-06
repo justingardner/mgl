@@ -122,18 +122,41 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       if (~eventTapInstalled) {
 	// first check if the accessibility API is enabled, cause otherwise we are F*&%ed.
 	if (!AXAPIEnabled() & !gavewarning) {
-	  mexPrintf("(mglPrivateListener) **WARNING** To get keyboard events, you must have the Accessibility API enabled. From System Preferences open Universal Access and make sure that \"Enable access for assistive devices\" is checked **WARNING **\n");
-	  int ret = NSRunAlertPanel (@"To get keyboard events, you must have the Accessibility API enabled.  Would you like to launch System Preferences so that you can turn on \"Enable access for assistive devices\".", @"", @"OK",@"", @"Cancel");
-	  switch (ret) {
-          case NSAlertDefaultReturn:
-	    [[NSWorkspace sharedWorkspace] openFile:@"/System/Library/PreferencePanes/UniversalAccessPref.prefPane"];
-	    // busy wait until accessibility is activated
-	    while (!AXAPIEnabled());
-	    break;
-          default:
-	    pthread_mutex_unlock(&mut);
-	    return;
-	    break;
+	  // could check operating system - and show old way, but not sure if there
+	  // is an easy way to do that in a way that is not os dependent so "if (0)"
+	  // the old way of allowing Enable access for assistave devices
+	  if (0) {
+	    mexPrintf("(mglPrivateListener) **WARNING** To get keyboard events, you must have the Accessibility API enabled. From System Preferences open Universal Access and make sure that \"Enable access for assistive devices\" is checked **WARNING **\n");
+	    int ret = NSRunAlertPanel (@"To get keyboard events, you must have the Accessibility API enabled.  Would you like to launch System Preferences so that you can turn on \"Enable access for assistive devices\".", @"", @"OK",@"", @"Cancel");
+	    switch (ret) {
+	      case NSAlertDefaultReturn:
+		[[NSWorkspace sharedWorkspace] openFile:@"/System/Library/PreferencePanes/UniversalAccessPref.prefPane"];
+		// busy wait until accessibility is activated
+		while (!AXAPIEnabled());
+		break;
+	      default:
+		pthread_mutex_unlock(&mut);
+		return;
+		break;
+	    }
+	  }
+	  ///////////////////////////////
+	  // This is the 10.9 and on way of enabling keyoard events
+	  ///////////////////////////////
+	  else {
+	    mexPrintf("(mglPrivateListener) **WARNING** To get keyboard events, you must allow Terminal to 'control your computer' by going to System Preferences/Privacy/Accessibility and adding Terminal to the list of apps that are allowed to control your computer\n");
+	    int ret = NSRunAlertPanel (@"To get keyboard events, you must give Terminal the ability to 'control your computer' in System Preferences/Privacy/Accessibility (this allows it to capture keyboard events from the OS using the Accessibility API. It used to be called 'Enable Access for Assistive Devices').  Would you like to launch System Preferences so that you can add Terminal to the list of apps that can control your application in the Security & Privacy pane, under the privace tab clicked on Accessibility? See http://gru.stanford.edu/doku.php/mgl/beta#keyboard_events for more info.", @"", @"OK",@"", @"Cancel");
+	    switch (ret) {
+	      case NSAlertDefaultReturn:
+		[[NSWorkspace sharedWorkspace] openFile:@"/System/Library/PreferencePanes/Security.prefPane"];
+		// busy wait until accessibility is activated
+		while (!AXAPIEnabled());
+		break;
+	      default:
+		pthread_mutex_unlock(&mut);
+		return;
+		break;
+	    }
 	  }
 	}
 	// init the event queue
