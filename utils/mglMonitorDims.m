@@ -49,6 +49,14 @@ for d = diameter
     mglFillOval(0,0,[d+0.5 d],c);
   end
 end
+% add polar angle lines
+for ang = 0:15:360
+    rang = deg2rad(ang);
+    x = cos(rang)*diameter;
+    y = sin(rang)*diameter;
+    mglLines2(0,0,x,y,1,[.5 .5 .5]);
+end
+
 % draw labels
 yPos = 1;
 for r = redDiameters
