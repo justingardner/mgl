@@ -23,8 +23,8 @@ if exist('myscreen','var') && (isstr(myscreen) || (isnumeric(myscreen) && isscal
   myscreen.displayName = displayname;
 end
 
-% check the system for any issues
-if ~mglSystemCheck
+% check the system for any issues with keyboard/mouse
+if ~mglSystemCheck(2)
   myscreen = [];
   return
 end
