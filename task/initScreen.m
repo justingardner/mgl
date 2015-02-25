@@ -23,6 +23,9 @@ if exist('myscreen','var') && (isstr(myscreen) || (isnumeric(myscreen) && isscal
   myscreen.displayName = displayname;
 end
 
+% check the system for any issues
+mglSystemCheck
+
 % set version number
 myscreen.ver = 2.0;
 
@@ -339,8 +342,34 @@ myscreen.matlab.minorVersion = str2num(strtok(matlabVersion,'.'));
 myscreen.useDigIO = 0;
 if isfield(myscreen,'digin') 
   if ~isempty(myscreen.digin) && isfield(myscreen.digin,'use') && isequal(myscreen.digin.use,1)
-    % we are using digio
+    % set like we are using digio
     myscreen.useDigIO = myscreen.digin.use;
+    % validate portNum and give message. If we fail the validation set useDigIO back to false
+    if isempty(myscreen.digin.portNum) || ~isnumeric(myscreen.digin.portNum) || ~isequal(length(myscreen.digin.portNum),1) || ~any(myscreen.digin.portNum==[0:9])
+      disp(sprintf('(initScreen) !!! portNum for digital input should be set to a number like 0, 1 or 2 to specify which port on the NI device you want to read for digital input. Not checking digIO !!!'));
+      myscreen.useDigIO = false;
+    end
+    % validate digital acquisition line
+    if ~isempty(myscreen.digin.acqLine)
+      if ~isnumeric(myscreen.digin.acqLine) || ~isequal(length(myscreen.digin.acqLine),1) || ~any(myscreen.digin.acqLine==[0:7])
+	disp(sprintf('(initScreen) !!! No valid acqLine has been set for digital magnet acquisition pulses (should be a number between 0-7 which specifies which line to read to specify magnet acquisitions (TRs) !!!'));
+	myscreen.digin.acqLine = -1;
+      end
+    else
+      myscreen.digin.acqLine = -1;
+    end
+    % validate digital acquisition type
+    if ~isequal(myscreen.digin.acqLine,-1) && (isempty(myscreen.digin.acqType) || ~isnumeric(myscreen.digin.acqType) || ~all(ismember(myscreen.digin.acqType,[0 1])))
+	disp(sprintf('(initScreen) !!! No valid acqType has been set for digital acquisition. acqType specifies when a trigger is considered to signal an acquisition - if set to 1 that means to count when digital in has gone high, if set to 0 means to count when digital in has gone low. If set to [0 1] specifies both of these count as events !!!'));
+    end
+    % check response lines
+    if ~all(ismember(myscreen.digin.responseLine,0:9))
+      disp(sprintf('(initScreen) !!! The responseLines for digio should be set to numbers from 0 to 7 which specify which lines of digital input correspond to subject button presses !!!'));
+    end
+    % check response types
+    if ~isempty(myscreen.digin.responseLine) && (isempty(myscreen.digin.responseType) || ~isnumeric(myscreen.digin.responseType) || ~all(ismember(myscreen.digin.responseType,[0 1])))
+	disp(sprintf('(initScreen) !!! No valid responseType has been set for digital acquisition. responseType specifies when a response button digital pulse is considered to signal a subject response - if set to 1 that means to count when digital in has gone high, if set to 0 means to count when digital in has gone low. If set to [0 1] specifies both of these count as events !!!'));
+    end
     % try to open the port
     digioRetval = mglDigIO('init',myscreen.digin.portNum);
     if isempty(digioRetval)
