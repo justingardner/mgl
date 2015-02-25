@@ -24,7 +24,9 @@ if exist('myscreen','var') && (isstr(myscreen) || (isnumeric(myscreen) && isscal
 end
 
 % check the system for any issues
-mglSystemCheck
+if ~mglSystemCheck
+  return
+end
 
 % set version number
 myscreen.ver = 2.0;

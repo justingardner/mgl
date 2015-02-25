@@ -10,6 +10,8 @@
 %
 function retval = mglSystemCheck()
 
+retval = true;
+
 % check arguments
 if ~any(nargin == [0])
   help mglSystemCheck
@@ -33,8 +35,9 @@ if ~mglPrivateSystemCheck(1)
     else
       disp(sprintf('(mglSystemCheck) !!! Check the wiki page for more info: http://gru.stanford.edu/doku.php/mgl/beta#keyboard_events !!!'));
     end
-
-    mglSystemCheckKeyboardMouseMessage = true;
+    % set this to true if you don't want it to show message box again
+    mglSystemCheckKeyboardMouseMessage = false;
+    retval = false;
   end
 end
 
