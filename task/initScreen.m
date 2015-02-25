@@ -25,6 +25,7 @@ end
 
 % check the system for any issues
 if ~mglSystemCheck
+  myscreen = [];
   return
 end
 
