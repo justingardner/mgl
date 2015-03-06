@@ -6,13 +6,18 @@
 %       date: 03/06/15
 %    purpose: 
 %
-function retval = mglTestSetGamma()
+function retval = mglTestSetGamma(dispNum)
 
 % check arguments
-if ~any(nargin == [0])
+if ~any(nargin == [0 1])
   help mglTestSetGamma
   return
 end
+
+if nargin < 1
+  dispNum = [];
+end
+
 
 % make a funky table
 for i = 1:16:256
@@ -38,7 +43,7 @@ for i = 1:16:256
 end
 
 
-mglOpen;
+mglOpen(dispNum);
 mglSetGammaTable(table);
 
 minX = -1;maxX = 1;
@@ -56,4 +61,13 @@ for centerX = minY:sizeX:maxX
 end
 mglFlush
 
-keyboard
+% check gamma table
+t = mglGetGammaTable;
+for i = 1:256
+  setTable(i,1) = t.redTable(i);
+  setTable(i,2) = t.greenTable(i);
+  setTable(i,3) = t.blueTable(i);
+end
+disp(sprintf('(mglTestSetGamma) mglGetGammaTable == what we set? %i',isequal(setTable,table)));
+mglWaitSecs(5);
+mglClose;
