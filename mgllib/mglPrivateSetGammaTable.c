@@ -1,10 +1,11 @@
 #ifdef documentation
 =========================================================================
 
-     program: mglSetGammaTable.c
+     program: mglPrivateSetGammaTable.c
           by: justin gardner. Bug fixes and X support by Jonas Larsson
         date: 05/27/06
    copyright: (c) 2006 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
+     purpose: set the gamma table
 
 $Id$
 =========================================================================
@@ -60,13 +61,16 @@ void setGammaTableWithFormula(int displayNumber, int verbose, double redMin, dou
 // This method is the more used one, sets the table with table values.
 void setGammaTableWithTable(int displayNumber, int verbose, int gammaTableSize, int numTableEntries, GAMMAVALUE *redTable,GAMMAVALUE *greenTable,GAMMAVALUE *blueTable);
 // this function returns how big the gamma table is
-int getGammaTableSize();
+int getGammaTableSize(int displayNumber);
 
 //////////////
 //   main   //
 //////////////
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
+  // default to return false
+  plhs[0] = mxCreateDoubleMatrix(1,1,mxREAL);
+  *(double*)mxGetPr(plhs[0]) = 0;
 
   // get globals
   int verbose = (int)mglGetGlobalDouble("verbose");
@@ -75,7 +79,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   if (existDisplayNumber)
     displayNumber = (int)mglGetGlobalDouble("displayNumber");
   else {
-    mexPrintf("(mglSetGammaTable) No display is open\n");
+    mexPrintf("(mglPrivateSetGammaTable) No display is open\n");
     return;
   }
 
@@ -88,11 +92,19 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   int isColumnOrdered;
 
   // get the size of the gamma table
-  gammaTableSize = getGammaTableSize();
-
+  gammaTableSize = getGammaTableSize(displayNumber);
+  
+  // with no inputs just returns size of gamma table
+  // for use with the m file that will check the input
+  // table against the size and interpolate if necessary
+  if (nrhs == 0) {
+    plhs[0] = mxCreateDoubleMatrix(1,1,mxREAL);
+    *(double*)mxGetPr(plhs[0]) = (double)gammaTableSize;
+    return;
+  }
 
   if (verbose)
-    mexPrintf("(mglSetGammaTable) Setting gamma table for display %i\n",displayNumber);
+    mexPrintf("(mglPrivateSetGammaTable) Setting gamma table for display %i\n",displayNumber);
 
   GAMMAVALUE *redTable=(GAMMAVALUE *)malloc(GAMMAVALUESIZE*gammaTableSize);
   GAMMAVALUE *greenTable=(GAMMAVALUE *)malloc(GAMMAVALUESIZE*gammaTableSize);
@@ -121,20 +133,20 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   else if (nrhs == 1) {
     if (mxIsStruct(prhs[0])) {
       // Get values from struct
-      if (verbose) mexPrintf("(mglSetGammaTable) Using input structure\n");
+      if (verbose) mexPrintf("(mglPrivateSetGammaTable) Using input structure\n");
       mxArray *redInputArray, *greenInputArray, *blueInputArray;
       redInputArray = mxGetField(prhs[0],0,"redTable");
       greenInputArray = mxGetField(prhs[0],0,"greenTable");
       blueInputArray = mxGetField(prhs[0],0,"blueTable");
       // now check to see if everything is ok.
       if ((redInputArray == NULL) || (greenInputArray == NULL) || (blueInputArray == NULL)) {
-        mexPrintf("(mglSetGammaTable) Table structure must have redTable, greenTable and blueTable\n");
+        mexPrintf("(mglPrivateSetGammaTable) Table structure must have redTable, greenTable and blueTable\n");
         return;
       }
       numTableEntries = mxGetN(redInputArray);
       // and check that they are the right length
       if ((mxGetN(greenInputArray)!=numTableEntries) || (mxGetN(blueInputArray)!=numTableEntries)) {
-        mexPrintf("(mglSetGammaTable) Tables in structure must all have have the same %i elements\n",numTableEntries);
+        mexPrintf("(mglPrivateSetGammaTable) Tables in structure must all have have the same %i elements\n",numTableEntries);
         return;
       }
       // now get the ponters
@@ -164,7 +176,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       }
         
       if (verbose)
-        mexPrintf("(mglSetGammaTable) %ix%i\n",numTableEntries,tableEntrySize);
+        mexPrintf("(mglPrivateSetGammaTable) %ix%i\n",numTableEntries,tableEntrySize);
       inputTable = (double *)mxGetPr(prhs[0]);
       // if the table size is 9 then this means that we are setting
       // by formula
@@ -178,10 +190,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       // looks like it is not a formula, see what kind of table it is
       else {
         if (tableEntrySize == 1) {
-          if (verbose) mexPrintf("(mglSetGammaTable) Using same table for RGB\n");
-          if (verbose) mexPrintf("(mglSetGammaTable) numTableEntries = %i\n",numTableEntries);
+          if (verbose) mexPrintf("(mglPrivateSetGammaTable) Using same table for RGB\n");
+          if (verbose) mexPrintf("(mglPrivateSetGammaTable) numTableEntries = %i\n",numTableEntries);
           if (numTableEntries != gammaTableSize) {
-            mexPrintf("(mglSetGammaTable) Table size (n=%i) differs from system table size %i\n",numTableEntries,gammaTableSize);
+            mexPrintf("(mglPrivateSetGammaTable) System is reporting a gamma table with %i etnries and you set one with %i entries. Not setting gamma table\n",gammaTableSize,numTableEntries);
             return;
           }
           // and set the tables from the input table
@@ -192,10 +204,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
           }
         }
         else if (tableEntrySize == 3) {          
-          if (verbose) mexPrintf("(mglSetGammaTable) Using different tables for RGB\n");
-          if (verbose) mexPrintf("(mglSetGammaTable) numTableEntries = %i\n",numTableEntries);
+          if (verbose) mexPrintf("(mglPrivateSetGammaTable) Using different tables for RGB\n");
+          if (verbose) mexPrintf("(mglPrivateSetGammaTable) numTableEntries = %i\n",numTableEntries);
           if (numTableEntries != gammaTableSize) {
-            mexPrintf("(mglSetGammaTable) Table size (n=%i) differs from system table size %i\n",numTableEntries,gammaTableSize);
+            mexPrintf("(mglPrivateSetGammaTable) System is reporting a gamma table with %i etnries and you set one with %i entries. Not setting gamma table\n",gammaTableSize,numTableEntries);
             return;
           }
           
@@ -217,7 +229,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
           }
         }
         else {
-          mexPrintf("(mglSetGammaTable) Gamma table should be %ix1 or %ix3 (%ix%i)\n",\
+          mexPrintf("(mglPrivateSetGammaTable) Gamma table should be %ix1 or %ix3 (%ix%i)\n",\
             gammaTableSize,gammaTableSize,mxGetM(prhs[0]),mxGetN(prhs[0]));
           return;
         }
@@ -225,17 +237,17 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     } // if (mxIsStruct(prhs[0]))
   } // if (nrhs == 1)
   else if (nrhs == 3) {
-    if (verbose) mexPrintf("(mglSetGammaTable) Using different tables for RGB\n");
+    if (verbose) mexPrintf("(mglPrivateSetGammaTable) Using different tables for RGB\n");
     // get size of table
     numTableEntries = mxGetN(prhs[0]);
     if ((numTableEntries != mxGetN(prhs[1])) || (numTableEntries != mxGetN(prhs[2]))) {
-      mexPrintf("(mglSetGammaTable) All three tables should be of same length\n");
+      mexPrintf("(mglPrivateSetGammaTable) All three tables should be of same length\n");
       return;
     }
     // display some info
-    if (verbose) mexPrintf("(mglSetGammaTable) numTableEntries = %i\n",numTableEntries);
+    if (verbose) mexPrintf("(mglPrivateSetGammaTable) numTableEntries = %i\n",numTableEntries);
     if (numTableEntries != gammaTableSize) {
-      mexPrintf("(mglSetGammaTable) Table size (n=%i) differs from system table size %i\n",numTableEntries,gammaTableSize);
+      mexPrintf("(mglPrivateSetGammaTable) System is reporting a gamma table with %i etnries and you set one with %i entries. Not setting gamma table\n",gammaTableSize,numTableEntries);
       return;
     }
     // get table pointer
@@ -252,11 +264,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   
   // display information about formula if we are using one
   if (verbose && useFormula) 
-    mexPrintf("(mglSetGammaTable) Using function %0.2f %0.2f %0.2f %0.2f %0.2f %0.2f %0.2f %0.2f %0.2f\n",redMin,redMax,redGamma,greenMin,greenMax,greenGamma,blueMin,blueMax,blueGamma);
+    mexPrintf("(mglPrivateSetGammaTable) Using function %0.2f %0.2f %0.2f %0.2f %0.2f %0.2f %0.2f %0.2f %0.2f\n",redMin,redMax,redGamma,greenMin,greenMax,greenGamma,blueMin,blueMax,blueGamma);
 
   // check to see if we have an open display
   if (displayNumber < 0) {
-    mexPrintf("(mglSetGammaTable) No display is open\n");
+    mexPrintf("(mglPrivateSetGammaTable) No display is open\n");
     return;
   }
   
@@ -270,6 +282,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   free(redTable);
   free(greenTable);
   free(blueTable);
+  
+  // retun true
+  *(double*)mxGetPr(plhs[0]) = 1;
 }
 
 
@@ -290,12 +305,12 @@ void setGammaTableWithFormula(int displayNumber, int verbose, double redMin, dou
   // check number of displays
   displayErrorNum = CGGetActiveDisplayList(kMaxDisplays,displays,&numDisplays);
   if (displayErrorNum) {
-    mexPrintf("(mglSetGammaTable) Cannot get displays (%d)\n", displayErrorNum);
+    mexPrintf("(mglPrivateSetGammaTable) Cannot get displays (%d)\n", displayErrorNum);
     return;
   }
   // get the correct display, making sure that it is in the list
   else if (displayNumber > numDisplays) {
-    mexPrintf("(mglSetGammaTable): Display %i out of range (0:%i)\n",displayNumber,numDisplays);
+    mexPrintf("(mglPrivateSetGammaTable): Display %i out of range (0:%i)\n",displayNumber,numDisplays);
     return;
   }
   else if (displayNumber == 0)
@@ -305,11 +320,11 @@ void setGammaTableWithFormula(int displayNumber, int verbose, double redMin, dou
     
 
   // now, we have found the display, set gamma table by formula
-  if (verbose) mexPrintf("(mglSetGammaTable) Using formula\n");
+  if (verbose) mexPrintf("(mglPrivateSetGammaTable) Using formula\n");
   displayErrorNum = CGSetDisplayTransferByFormula(whichDisplay,redMin,redMax,redGamma,greenMin,greenMax,greenGamma,blueMin,blueMax,blueGamma);
 
   if (displayErrorNum) {
-    mexPrintf("(mglSetGammaTable) Error setting gamma table (%s num=%i)\n",CGLErrorString(displayErrorNum),displayErrorNum);
+    mexPrintf("(mglPrivateSetGammaTable) Error setting gamma table (%s num=%i)\n",CGLErrorString(displayErrorNum),displayErrorNum);
   }
 }
 ////////////////////////////////
@@ -325,12 +340,12 @@ void setGammaTableWithTable(int displayNumber, int verbose, int gammaTableSize, 
   // check number of displays
   displayErrorNum = CGGetActiveDisplayList(kMaxDisplays,displays,&numDisplays);
   if (displayErrorNum) {
-    mexPrintf("(mglSetGammaTable) Cannot get displays (%d)\n", displayErrorNum);
+    mexPrintf("(mglPrivateSetGammaTable) Cannot get displays (%d)\n", displayErrorNum);
     return;
   }
   // get the correct display, making sure that it is in the list
   else if (displayNumber > numDisplays) {
-    mexPrintf("(mglSetGammaTable): Display %i out of range (0:%i)\n",displayNumber,numDisplays);
+    mexPrintf("(mglPrivateSetGammaTable): Display %i out of range (0:%i)\n",displayNumber,numDisplays);
     return;
   }
   else if (displayNumber == 0)
@@ -338,19 +353,40 @@ void setGammaTableWithTable(int displayNumber, int verbose, int gammaTableSize, 
   else
     whichDisplay = displays[displayNumber-1];
     
-  if (verbose) mexPrintf("(mglSetGammaTable) Using table\n");
+  if (verbose) mexPrintf("(mglPrivateSetGammaTable) Using table\n");
   displayErrorNum = CGSetDisplayTransferByTable(whichDisplay,numTableEntries,redTable,greenTable,blueTable);
 
   if (displayErrorNum) {
-    mexPrintf("(mglSetGammaTable) Error setting gamma table (%s num=%i)\n",CGLErrorString(displayErrorNum),displayErrorNum);
+    mexPrintf("(mglPrivateSetGammaTable) Error setting gamma table (%s num=%i)\n",CGLErrorString(displayErrorNum),displayErrorNum);
   }
 }
 ///////////////////////////
 //   getGammaTableSize   //
 ///////////////////////////
-int getGammaTableSize()
+int getGammaTableSize(int displayNumber)
 {
-  return(256);
+  CGDisplayErr displayErrorNum;
+  CGDirectDisplayID displays[kMaxDisplays];
+  CGDirectDisplayID whichDisplay;
+  CGDisplayCount numDisplays;
+
+  // check number of displays
+  displayErrorNum = CGGetActiveDisplayList(kMaxDisplays,displays,&numDisplays);
+  if (displayErrorNum) {
+    mexPrintf("(mglPrivateSetGammaTable) Cannot get displays (%d)\n", displayErrorNum);
+    return(0);
+  }
+  // get the correct display, making sure that it is in the list
+  else if (displayNumber > numDisplays) {
+    mexPrintf("(mglPrivateSetGammaTable): Display %i out of range (0:%i)\n",displayNumber,numDisplays);
+    return(0);
+  }
+  else if (displayNumber == 0)
+    whichDisplay = kCGDirectMainDisplay;
+  else
+    whichDisplay = displays[displayNumber-1];
+    
+  return(CGDisplayGammaTableCapacity(whichDisplay));
 }
 #endif//__APPLE__
 //-----------------------------------------------------------------------------------///
@@ -367,13 +403,13 @@ void setGammaTableWithFormula(int displayNumber, int verbose, double redMin, dou
   Display * dpy=(Display *)dpyptr;
   int screen =XDefaultScreen(dpy);
 
-  if (verbose) mexPrintf("(mglSetGammaTable) Using formula\n");
+  if (verbose) mexPrintf("(mglPrivateSetGammaTable) Using formula\n");
   XF86VidModeGamma gamma;
   gamma.red=redGamma;
   gamma.green=greenGamma;
   gamma.blue=blueGamma;
   if (!XF86VidModeSetGamma(dpy,screen,&gamma)) {
-    mexPrintf("(mglSetGammaTable) Error setting gamma table.\n");
+    mexPrintf("(mglPrivateSetGammaTable) Error setting gamma table.\n");
   }
   // seems necessary to call this function to update settings
   XFlush(dpy);
@@ -387,16 +423,16 @@ void setGammaTableWithTable(int displayNumber, int verbose, int gammaTableSize, 
   if (dpyptr<=0) return;
   Display * dpy=(Display *)dpyptr;
   int screen =XDefaultScreen(dpy);
-  if (verbose) mexPrintf("(mglSetGammaTable) Using table\n");
+  if (verbose) mexPrintf("(mglPrivateSetGammaTable) Using table\n");
   if (!XF86VidModeSetGammaRamp(dpy,screen,gammaTableSize,redTable,greenTable,blueTable)) {
-    mexPrintf("(mglSetGammaTable) Error setting gamma table.\n");
+    mexPrintf("(mglPrivateSetGammaTable) Error setting gamma table.\n");
   }
 }
 
 ///////////////////////////
 //   getGammaTableSize   //
 ///////////////////////////
-int getGammaTableSize()
+int getGammaTableSize(int displayNumber)
 {    
   int gammaTableSize;
   // On Linux/X, we can query the hardware for gamma table to be safe
@@ -435,7 +471,7 @@ void setGammaTableWithTable(int displayNumber, int verbose, int gammaTableSize, 
   }
   
   if (SetDeviceGammaRamp(hDC, ramp) == FALSE) {
-    mexPrintf("(mglSetGammaTable) Failed to set gamma table.\n");
+    mexPrintf("(mglPrivateSetGammaTable) Failed to set gamma table.\n");
   }
 }
 
@@ -444,7 +480,7 @@ void setGammaTableWithFormula(int displayNumber, int verbose, double redMin, dou
   mexPrintf("(mglSetGammaRamp) Setting gamma with a formula is not supported at this time.\n");
 }
 
-int getGammaTableSize()
+int getGammaTableSize(int displayNumber)
 {
   return 256;
 }
