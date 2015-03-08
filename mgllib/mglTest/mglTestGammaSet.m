@@ -116,7 +116,7 @@ for centerX = minY:sizeX:maxX
   end
 end
 mglFlush
-disp(sprintf('(mglTestGammaSet) If this last screen shows 4 vertical color stripes, then you have an 8 bit display. If it shows multiple horizontal stripes of red, green, blue and white then you have 10 bit (not yet supported in mac os as of mavericks 10.10.3)'));
+disp(sprintf('(mglTestGammaSet) If the last screen shows a red screen you have an 8 bit table. If this last screen shows 4 vertical color stripes, then you have an 8 bit display. If it shows multiple horizontal stripes of red, green, blue and white then you have 10 bit (not yet supported in mac os as of mavericks 10.10.3)'));
 mglWaitSecs(5);
 
 mglClose;
