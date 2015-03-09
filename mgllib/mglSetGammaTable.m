@@ -49,7 +49,7 @@ retval = false;
 % **note** that we should really do this for all
 % kinds of inputs to this function, but don't think
 % anyone uses any other form
-if (nargin == 1) && isnumeric(varargin{1}) && (size(varargin{1},2) == 3)
+if (nargin == 1) && isnumeric(varargin{1})
   % first get gamma table size
   tableSize = mglPrivateSetGammaTable;
   if isempty(tableSize),return,end
@@ -60,7 +60,14 @@ if (nargin == 1) && isnumeric(varargin{1}) && (size(varargin{1},2) == 3)
     multiple = tableSize/inputSize;
     % try to interpolate here
     for iDim = 1:size(varargin{1},2)
-      interpTable(1:tableSize,iDim) = interp1(1:multiple:tableSize,varargin{1}(:,iDim),(1:tableSize)-multiple/2,'nearest','extrap');
+      if multiple > 1
+	% input table smaller than hardware table
+	interpTable(1:tableSize,iDim) = interp1(1:multiple:tableSize,varargin{1}(:,iDim),(1:tableSize)-multiple/2,'nearest','extrap');
+      else
+	% input table bigger than hardware table
+	interpTable(1:tableSize,iDim) = interp1(1:inputSize,varargin{1}(:,iDim),(1:(1/multiple):inputSize),'nearest','extrap');
+%	interpTable(1:tableSize,iDim) = interp1(multiple:multiple:tableSize,varargin{1}(:,iDim),(1:tableSize)-multiple/2,'linear','extrap');
+      end
     end
     % clamp values to between 0 and 1
     interpTable(interpTable<0) = 0;
