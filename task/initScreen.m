@@ -129,11 +129,28 @@ for pnum = 1:length(screenParams)
     if (foundComputer == 0) && (isempty(screenParams{pnum}.displayName) || ~isfield(myscreen,'displayName'))
       foundComputer = pnum;
       % check for matching displayname
-    elseif isfield(myscreen,'displayName') && isstr(myscreen.displayName) && strcmp(myscreen.displayName,screenParams{pnum}.displayName)
+    elseif isfield(myscreen,'displayName') && isstr(myscreen.displayName) && strcmp(lower(myscreen.displayName),lower(screenParams{pnum}.displayName))
       foundComputer = pnum;
       % check for matching display number
     elseif isfield(myscreen,'displayName') && isnumeric(myscreen.displayName) && isequal(myscreen.displayName,screenParams{pnum}.screenNumber)
       foundComputer = pnum;
+    end
+  end
+end
+
+% if not found, maybe it is because computerName is not set correctly
+% so go through again looking for any match of displayName even if
+% the computerName is not a match
+if ~foundComputer && isfield(myscreen,'displayName')
+  for pnum = 1:length(screenParams)
+    % match for display name
+    if strcmp(lower(myscreen.displayName),lower(screenParams{pnum}.displayName))
+      % choose it then.
+      if ~foundComputer
+	foundComputer = pnum;
+	keyboard
+	disp(sprintf('(initScreen) !!! Matching displayName: %s but computerName %s does not mach this computer name: %s !!!',screenParams{pnum}.displayName,screenParams{pnum}.computerName,myscreen.computerShortname));
+      end
     end
   end
 end

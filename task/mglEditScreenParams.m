@@ -202,11 +202,37 @@ paramsInfo{end+1} = {'diginResponseType',num2str(thisScreenParams.digin.response
 paramsInfo{end+1} = {'simulateVerticalBlank',thisScreenParams.simulateVerticalBlank,'type=checkbox','Click this if you want to simulate a vertical blank waiting period. Normally mglFlush waits till the vertical blank and so you will only refresh once every video frame. But with some video cards, notably ATI Radeon HD 5xxx series, this is broken. So by clicking this you can use the mglFlushAndWait rather than the mglFlush function which will just use mglWaitSecs to wait the appropriate amount of time after an mglFlush'};
 paramsInfo{end+1} = {'testSettings',0,'type=pushbutton','buttonString=Test screen params','callback',@testSettings,'passParams=1','Click to test the monitor settings'};
 
+% get info about subjectID
+mustSetSID = mglGetParam('mustSetSID');
+if isempty('mustSetSID'),mustSetSID=false;end
+sidDatabaseFilename = mglGetParam('sidDatabaseFilename');
+if isempty(sidDatabaseFilename),sidDatabaseFilename='';end
+sidRaceEthnicity = mglGetParam('sidRaceEthnicity');
+if isempty(sidRaceEthnicity),sidRaceEthnicity=false;end
+sidValidIntervalInHours = mglGetParam('sidValidIntervalInHours')
+if isempty(sidValidIntervalInHours),sidValidIntervalInHours=1;end
+
+% set subject ID info
+paramsInfo{end+1} = {'mustSetSID',mustSetSID,'type=checkbox','This will set it so that you **have** to set a subject ID before running the experiment. This will keep a log of the subjectID in the stim file. See mglSetSID.'};
+paramsInfo{end+1} = {'sidDatabaseFilename',sidDatabaseFilename,'contingent=mustSetSID','This sets where the sid database is stored'};
+paramsInfo{end+1} = {'sidRaceEthnicity',sidRaceEthnicity,'type=checkbox','contingent=mustSetSID','Sets whether to collect race/ethnicity information from subjects for NIH reporting'};
+paramsInfo{end+1} = {'sidValidIntervalInHours',sidValidIntervalInHours,'contingent=mustSetSID','Sets how long the subjectID that you set is valid for in hours. i.e. if you set it for 1 then it will keep valid any subjetID for 1 hour after that the subject ID will revert to not being set. This is so that when you set it on the experimental computer that when someone comes to use the computer a few hours later they have to reset the subject id'};
+
+% get info about task log
+writeTaskLog = mglGetParam('writeTaskLog');
+if isempty(writeTaskLog),writeTaskLog = false;end
+logpath = mglGetParam('logpath');
+if isempty(logpath),logpath = '~/data/log';end
+paramsInfo{end+1} = {'writeTaskLog',writeTaskLog,'type=checkbox','Set to write a task log. This will save a log of each experiment run in the location specified by logpath. The log can be viewed using mglTaskLog'};
+paramsInfo{end+1} = {'logpath',logpath,'contingent=writeTaskLog','Location of task log for mglTaskLog'}
+
 % display parameter choosing dialog
 if ~isequal(thisScreenParams.computerName,'DELETE')
   params = mrParamsDialog(paramsInfo,'Set screen parameters');
   if isempty(params),return,end
   screenParams{computerNum} = params2screenParams(params);
+  % set the mglSetSID and mglTaskLog settings
+  setSIDSettingsFromParams(params);
   setDisplayDir(params.displayDir);
 end
 
@@ -588,6 +614,27 @@ screenParams.eyeTrackerType = params.eyeTrackerType;
 
 % simulate vertical blank
 screenParams.simulateVerticalBlank = params.simulateVerticalBlank;
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%    setSIDSettingsFromParams    %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function setSIDSettingsFromParams(params)
+
+% set the sid paramteres
+if isfield(params,'mustSetSID')
+  mglSetParam('mustSetSID',params.mustSetSID,2);
+  if params.mustSetSID
+    mglSetParam('sidDatabaseFilename',params.sidDatabaseFilename,2);
+    mglSetParam('sidRaceEthnicity',params.sidRaceEthnicity,2);
+    mglSetParam('sidValidIntervalInHours',params.sidValidIntervalInHours,2);
+  end
+end
+if isfield(params,'writeTaskLog')
+  mglSetParam('writeTaskLog',params.writeTaskLog,2);
+  if params.writeTaskLog
+    mglSetParam('logpath',params.logpath,2);
+  end
+end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%   calibTypeCallback   %%
