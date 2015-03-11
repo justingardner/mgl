@@ -10,3 +10,12 @@
 %
 %mglOpen
 %gammaTable = mglGetGammaTable
+function t = mglGetGammaTable
+
+t = mglPrivateGetGammaTable;
+
+% if we have an 8 bit display running and a 10 bit table, then 
+% just return the 8 bit values that are being used
+if length(t.redTable)>256 && (mglGetparam('bitDepth') == 32)
+  keyboard
+end
