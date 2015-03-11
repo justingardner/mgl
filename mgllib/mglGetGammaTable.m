@@ -20,13 +20,15 @@
 %
 %mglOpen
 %gammaTable = mglGetGammaTable
-function t = mglGetGammaTable
+function t = mglGetGammaTable(fullTable)
 
 t = mglPrivateGetGammaTable;
 
+if nargin < 1,fullTable = false;end
+
 % if we have an 8 bit display running and a 10 bit table, then 
 % just return the 8 bit values that are being used
-if length(t.redTable)>256 && (mglGetParam('bitDepth') == 32)
+if ~fullTable && length(t.redTable)>256 && (mglGetParam('bitDepth') == 32)
   % what the table size is and what size we want to rever to
   tableSize = length(t.redTable);
   outputSize = 256;

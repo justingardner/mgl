@@ -85,14 +85,6 @@ mglFlush
 
 disp(sprintf('(mglTestGammaSet) The second screen shows numeric values for table entries associated with each color value (this labels may look a little funny because of anti-aliasing artifacts, but this is to be expected)'));
 
-% check gamma table
-t = mglGetGammaTable;
-for i = 1:256
-  setTable(i,1) = t.redTable(i);
-  setTable(i,2) = t.greenTable(i);
-  setTable(i,3) = t.blueTable(i);
-end
-disp(sprintf('(mglTestSetGamma) mglGetGammaTable == what we set? %i',isequal(setTable,table)));
 mglWaitSecs(5);
 
 % now make a table that should show a red screen if 8 bit (actually
@@ -110,12 +102,18 @@ end
 
 % set the gamma table
 mglSetGammaTable(table);
-setTable = mglGetGammaTable;
+setTable = mglGetGammaTable(true);
 setTable = [setTable.redTable ;setTable.greenTable ;setTable.blueTable]';
-if isequal(table,setTable)
-  disp(sprintf('(mglTestGammaSet) mglGetGammaTable returns what was set correctly'));
+if size(setTable,1) == 256
+  disp(sprintf('(mglTestGammaSet) Hardware gamma table is only 8 bit'));
 else
-  disp(sprintf('(mglTestGammaSet) !!! mglGetGammaTable retuns a **difference** from what was actually set !!!!'));
+  disp(sprintf('(mglTestGammaSet) Hardware gamma table is %i bit',log2(length(setTable.redTable))));
+  % check table
+  if isequal(table,setTable)
+    disp(sprintf('(mglTestGammaSet) mglGetGammaTable returns what was set correctly'));
+  else
+    disp(sprintf('(mglTestGammaSet) !!! mglGetGammaTable retuns a **difference** from what was actually set !!!!'));
+  end
 end  
 
 % now draw the boxes
