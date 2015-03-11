@@ -85,54 +85,80 @@ for stimulusNum = 1:length(myscreen.stimulusNames)
 end
 eval(getStimuliCommand);
 
+% even if the save is aborted - put something in the trash so that there is a record
 if (strcmp(lower(response),'n'))
   % user aborts, decrement save number
   gNumSaves = gNumSaves - 1;
-  return;
+  % get aborted stimfile directory
+  abortedStimfilesDir = mglGetParam('abortedStimfilesDir');
+  if isempty(abortedStimfilesDir)
+    abortedStimfilesDir = mglReplaceTilde('~/.Trash/mglAbortedStimfiles');
+  end
+  % make sure the directory exists
+  if ~isdir(abortedStimfilesDir)
+    mkdir(abortedStimfilesDir);
+  end
+  % make a unique filename
+  uniqueFilename = false;
+  abortNumber = 1;
+  [filepath filename] = fileparts(filename);
+  while ~uniqueFilename
+    abortedFilename = sprintf('%s_aborted%04i',filename,abortNumber);
+    abortNumber = abortNumber + 1;
+    if ~isfile(sprintf('%s.mat',(fullfile(abortedStimfilesDir,abortedFilename)))) uniqueFilename = true; end
+  end
+  % make filename and tell user what is going on
+  filename = fullfile(abortedStimfilesDir,abortedFilename);
+  mydisp(sprintf('Putting stimfile into trash: %s...',filename));
 else
   % we're going to save the data
   if (strcmp(response,'y'))
     % user accepts, save data
     mydisp(sprintf('Saving %s...',filename));
-    myscreen.stimfile = filename;
-    if (str2num(first(version)) < 7)
-      eval(sprintf('save %s myscreen task %s',filename,stimuliNames));
-    else
-      eval(sprintf('save %s myscreen task %s -V6',filename,stimuliNames));
-    end    
-    mydisp(sprintf('done.\n'));
   elseif (~isempty(str2num(response)) && (sigfig(str2num(response)) == 0))
     % user has input a new number for sequence
     gNumSaves = str2num(response);
     % get filename
     filename = sprintf('%s_stim%02i',thedate,gNumSaves);
     filename = fullfile(myscreen.datadir,filename);
-    % and save it
+    % display name
     mydisp(sprintf('Saving %s...',filename));
-    myscreen.stimfile = filename;
-    if (str2num(first(version)) < 7)
-      eval(sprintf('save %s myscreen task %s',filename,stimuliNames));
-    else
-      eval(sprintf('save %s myscreen task %s -V6',filename,stimuliNames));
-    end
-    mydisp(sprintf('done.\n'));
   else
     gNumSaves = gNumSaves - 1;
     % user has input a filename
-    mydisp(sprintf('Saving %s...',response));
+    filename = response;
+    mydisp(sprintf('Saving %s...',filename));
     myscreen.stimfile = filename;
-    if (str2num(first(version)) < 7)
-      eval(sprintf('save %s myscreen task %s',response,stimuliNames));
-    else
-      eval(sprintf('save %s myscreen task %s -V6',response,stimuliNames));
-    end
-    mydisp(sprintf('done.\n'));
   end
-  % always save eyedata if were saving data
-  if myscreen.eyetracker.init && isfield(myscreen.eyetracker.callback,'saveEyeData')
-    if myscreen.eyetracker.savedata
-      [task, myscreen] = feval(myscreen.eyetracker.callback.saveEyeData,task,myscreen);
-    end
+end
+
+% add mat extension
+if (length(filename) < 4) || ~strcmp(filename(end-3:end),'.mat')
+  filename = sprintf('%s.mat',filename);
+end
+
+% save the stimfile
+myscreen.stimfile = filename;
+if (str2num(first(version)) < 7)
+  commandStr = sprintf('save %s myscreen task %s',filename,stimuliNames);
+else
+  commandStr = sprintf('save %s myscreen task %s -V6',filename,stimuliNames);
+end    
+try
+  eval(commandStr);
+  mydisp(sprintf('done.\n'));
+catch
+  % check for file existance
+  if ~strcmp(lower(response),'n') && ~isfile(filename)
+    disp(sprintf('(saveStimData) !!! !!! Stimfile did not save to %s. There is no record of what was run in this experiment. You may not have the correct permissions to save the directory. !!! !!! !!! !!!.\n(saveStmiData) !!! Type dbcont to continue, but you may want to try to save the stimfile somewhere by using the command (but, change the filename):\n\n %s',filename,commandStr));
+    keyboard
+  end
+end
+
+% always save eyedata if were saving data
+if myscreen.eyetracker.init && isfield(myscreen.eyetracker.callback,'saveEyeData')
+  if myscreen.eyetracker.savedata
+    [task, myscreen] = feval(myscreen.eyetracker.callback.saveEyeData,task,myscreen);
   end
 end
 

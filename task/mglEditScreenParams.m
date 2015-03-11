@@ -72,7 +72,6 @@ paramsInfo{end+1} = {'computerName',hostnameList,'type=string','group=computerNu
 paramsInfo{end+1} = {'displayName',displayNames,'type=string','group=computerNum','editable=0'};
 paramsInfo{end+1} = {'addDisplay',0,'type=pushButton','buttonString=Add Display','callback',@addDisplay,'passParams=1','Add a new display to the list'};
 paramsInfo{end+1} = {'deleteDisplay',0,'type=pushButton','buttonString=Delete Display','callback',@deleteDisplay,'passParams=1','Delete this display from the screenParams'};
-paramsInfo{end+1} = {'revertDisplay','','type=pushButton','buttonString=Revert Display','callback',@revertDisplay,'passParams=1','Revert parameters to default parameters for this screen'};
 
 % bring up dialog box
 params = mrParamsDialog(paramsInfo, sprintf('Choose computer/display (you are now on: %s)',hostname));
@@ -84,16 +83,10 @@ if isequal(params.addDisplay,'add') || (params.computerNum > length(screenParams
 end
 
 % delete computers list
-if isequal(params.deleteDisplay,'delete')
+if params.deleteDisplay
   for i = 1:length(params.computerName)
     screenParams{i}.computerName = params.computerName{i};
   end
-end
-
-% revert displays
-revertDisplay = str2num(params.revertDisplay);
-for i = 1:length(revertDisplay)
-  screenParams{revertDisplay(i)} = mglDefaultScreenParams(screenParams{revertDisplay(i)});
 end
 
 % get parameters for chosen computer
@@ -672,18 +665,15 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%
 function retval = deleteDisplay(params)
 
-retval = 'delete';
-params.computerName{params.computerNum} = 'DELETE';
-params.displayName{params.computerNum} = 'DELETE';
-mrParamsSet(params);
-
-%%%%%%%%%%%%%%%%%%%%%%%
-%%   revertDisplay   %%
-%%%%%%%%%%%%%%%%%%%%%%%
-function retval = revertDisplay(params)
-
-retval = sprintf('%s %i',params.revertDisplay,params.computerNum);
-
+retval = true;
+% make sure the user wants to do this
+if strcmp('Yes',questdlg(sprintf('Are you sure you want to delete the display %s:%s?',params.computerName{params.computerNum},params.displayName{params.computerNum}),'Delete Display','Yes','No','No'))
+  params.computerName{params.computerNum} = 'DELETE';
+  params.displayName{params.computerNum} = 'DELETE';
+  params.deleteDisplay = true;
+  mrParamsSet(params);
+  mrParamsClose(true);
+end
 
 %%%%%%%%%%%%%%%%%%%%%%%%
 %%   params2Str2num   %%
