@@ -112,7 +112,16 @@ else
   if isequal(table,setTable)
     disp(sprintf('(mglTestGammaSet) mglGetGammaTable returns what was set correctly'));
   else
-    disp(sprintf('(mglTestGammaSet) !!! mglGetGammaTable retuns a **difference** from what was actually set !!!!'));
+    badValues = [];
+    for i = 1:size(table,1)
+      if ~isequal(table(i,:),setTable(i,:))
+	badValues(end+1) = i;
+      end
+    end
+    disp(sprintf('(mglTestGammaSet) !!! mglGetGammaTable retuns a **difference** from what was actually set. Values are different at table locations [%i:%i] !!!!',min(badValues),max(badValues)));
+    if isequal(setTable(min(badValues):end,:),table((min(badValues):end)-1,:))
+      disp(sprintf('(mglTestGammaSet) !!! The table returned by the os seems to be offset by 1 color at value %i from what we tried to set !!!',badValues(1)));
+    end
   end
 end  
 
