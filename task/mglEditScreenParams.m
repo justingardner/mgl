@@ -202,7 +202,7 @@ sidDatabaseFilename = mglGetParam('sidDatabaseFilename');
 if isempty(sidDatabaseFilename),sidDatabaseFilename='';end
 sidRaceEthnicity = mglGetParam('sidRaceEthnicity');
 if isempty(sidRaceEthnicity),sidRaceEthnicity=false;end
-sidValidIntervalInHours = mglGetParam('sidValidIntervalInHours')
+sidValidIntervalInHours = mglGetParam('sidValidIntervalInHours');
 if isempty(sidValidIntervalInHours),sidValidIntervalInHours=1;end
 
 % set subject ID info
@@ -217,7 +217,7 @@ if isempty(writeTaskLog),writeTaskLog = false;end
 logpath = mglGetParam('logpath');
 if isempty(logpath),logpath = '~/data/log';end
 paramsInfo{end+1} = {'writeTaskLog',writeTaskLog,'type=checkbox','Set to write a task log. This will save a log of each experiment run in the location specified by logpath. The log can be viewed using mglTaskLog'};
-paramsInfo{end+1} = {'logpath',logpath,'contingent=writeTaskLog','Location of task log for mglTaskLog'}
+paramsInfo{end+1} = {'logpath',logpath,'contingent=writeTaskLog','Location of task log for mglTaskLog'};
 
 % display parameter choosing dialog
 if ~isequal(thisScreenParams.computerName,'DELETE')
