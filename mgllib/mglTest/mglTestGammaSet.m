@@ -107,7 +107,7 @@ setTable = [setTable.redTable ;setTable.greenTable ;setTable.blueTable]';
 if size(setTable,1) == 256
   disp(sprintf('(mglTestGammaSet) Hardware gamma table is only 8 bit'));
 else
-  disp(sprintf('(mglTestGammaSet) Hardware gamma table is %i bit',log2(length(setTable.redTable))));
+  disp(sprintf('(mglTestGammaSet) Hardware gamma table is %i bit',log2(size(setTable,1))));
   % check table
   if isequal(table,setTable)
     disp(sprintf('(mglTestGammaSet) mglGetGammaTable returns what was set correctly'));
