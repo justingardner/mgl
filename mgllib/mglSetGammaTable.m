@@ -40,6 +40,17 @@
 %
 %             Note that the gamma table will be restored to
 %             the original after mglClose;
+%
+%             Also, if you set 256 values and the table is actually 10 bit
+%             (1024 values) it will interpolate values so that everything
+%             will work as expected on an 8 bit display. (that is, it will
+%             put the same color value in for every four values in the 10
+%             bit table, such that if you specify a color like 0/256 or 1/256
+%             you will get the 1st or 2nd value in the 256 color table
+%             that you created. (This is because apple's interpolation scheme
+%             when you do this ends up interpolating between values in your
+%             table which gives weird results if you are setting the color
+%             table with reserved values like red or green right next to gray.
 function retval = mglSetGammaTable(varargin)
 
 retval = false;

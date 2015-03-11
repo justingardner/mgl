@@ -45,6 +45,13 @@ end
 % open window, set table
 mglOpen(dispNum);
 mglSetGammaTable(table);
+setTable = mglGetGammaTable;
+setTable = [setTable.redTable ;setTable.greenTable ;setTable.blueTable]';
+if isequal(table,setTable)
+  disp(sprintf('(mglTestGammaSet) mglGetGammaTable returns what was set correctly'));
+else
+  disp(sprintf('(mglTestGammaSet) !!! mglGetGammaTable retuns a **difference** from what was actually set !!!!'));
+end  
 
 % get size of screen (so that we can draw little boxes of different colors)
 minX = -1;maxX = 1;
@@ -103,6 +110,13 @@ end
 
 % set the gamma table
 mglSetGammaTable(table);
+setTable = mglGetGammaTable;
+setTable = [setTable.redTable ;setTable.greenTable ;setTable.blueTable]';
+if isequal(table,setTable)
+  disp(sprintf('(mglTestGammaSet) mglGetGammaTable returns what was set correctly'));
+else
+  disp(sprintf('(mglTestGammaSet) !!! mglGetGammaTable retuns a **difference** from what was actually set !!!!'));
+end  
 
 % now draw the boxes
 mglClearScreen(0);
