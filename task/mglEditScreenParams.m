@@ -209,7 +209,7 @@ if isempty(sidValidIntervalInHours),sidValidIntervalInHours=1;end
 paramsInfo{end+1} = {'mustSetSID',mustSetSID,'type=checkbox','This will set it so that you **have** to set a subject ID before running the experiment. This will keep a log of the subjectID in the stim file. See mglSetSID.'};
 paramsInfo{end+1} = {'sidDatabaseFilename',sidDatabaseFilename,'contingent=mustSetSID','This sets where the sid database is stored'};
 paramsInfo{end+1} = {'sidRaceEthnicity',sidRaceEthnicity,'type=checkbox','contingent=mustSetSID','Sets whether to collect race/ethnicity information from subjects for NIH reporting'};
-paramsInfo{end+1} = {'sidValidIntervalInHours',sidValidIntervalInHours,'contingent=mustSetSID','Sets how long the subjectID that you set is valid for in hours. i.e. if you set it for 1 then it will keep valid any subjetID for 1 hour after that the subject ID will revert to not being set. This is so that when you set it on the experimental computer that when someone comes to use the computer a few hours later they have to reset the subject id'};
+paramsInfo{end+1} = {'sidValidIntervalInHours',sidValidIntervalInHours,'incdec=[-0.5 0.5]','minmax=[0 inf]','contingent=mustSetSID','Sets how long the subjectID that you set is valid for in hours. i.e. if you set it for 1 then it will keep valid any subjetID for 1 hour after that the subject ID will revert to not being set. This is so that when you set it on the experimental computer that when someone comes to use the computer a few hours later they have to reset the subject id'};
 
 % get info about task log
 writeTaskLog = mglGetParam('writeTaskLog');
