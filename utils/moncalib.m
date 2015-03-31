@@ -440,6 +440,7 @@ end
 switch photometerNum
  case {1}
   disp(sprintf('(photometerSpectrumMeasure) Spectrum measurement not yet implemented for PR650'));
+  [wavelength radiance] = photometerSpectrumMeasurePR650(portNum);
  case {2,3}
   disp(sprintf('(photometerSpectrumMeasure) Spectrum measurement not available for Minolta'));
  case {4}
@@ -532,6 +533,7 @@ errorMsg = {'Measurement okay','No EOS signal at start of measurement',...
 i = length(quality);
 thisMessageNum = find(quality(i)==errorNum);
 if isempty(thisMessageNum)
+  thisMessageNum = -1;
   thisMessage = '';
 else
   thisMessage = errorMsg{thisMessageNum(1)};
@@ -745,6 +747,76 @@ if length(values) >= 11
 else
   disp(sprintf('(moncalib:photometerMeasureTopcon) Uhoh, not enough data values read'));
 end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%   photometerSpectrumMeasurePR650   %%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function [wavelength radiance] = photometerSpectrumMeasurePR650(portNum)
+
+global verbose;
+wavelength = [];
+radiance = [];
+
+% retrieve any info that is pending from the photometer
+response = readLineSerialPort(portNum);
+while ~isempty(response)
+  response = readLineSerialPort(portNum);
+end
+
+% now take a measurement and read
+writeSerialPort(portNum,sprintf('M0\n'));
+writeSerialPort(portNum,sprintf('D5\n'));
+
+% hard coded stuff about what the measurement that is returned is
+startWavelength = 380;
+wavelengthIncrement = 1;
+numWavelengths = 101;
+
+% read the masurement
+len = 256; % not sure what the length of what is going to be returned is
+str = '';readstr = 'start';
+while ~isempty(readstr) || (length(str)<len)
+  readstr = readSerialPort(portNum,256);
+  str = [str readstr];
+  mglWaitSecs(0.1);
+end
+
+keyboard
+% find the part where the measurement starts at 380 
+wavelength = startWavelength:wavelengthIncrement:startWavelength+(wavelengthIncrement*(numWavelengths-1));
+start = findstr(str,sprintf('%04i.',startWavelength));
+for iWavelength = 1:numWavelengths
+    %fprintf('k: %d, bi: %d, ed: %d\n', k, start+6+17*(k-1), start+6+9+17*(k-1));
+    % read the spd (borrowed from DBR code in psychtoolbox)
+    radiance(iWavelength) = str2num(str(start+6+17*(k-1):start+6+9+17*(k-1)));
+end
+
+% read the string
+[quality] = strread(str,'%d','delimiter',',');
+
+errorNum = [0 1 3 4 5 6 7 8 10 12 13 14 16 17 18 19 20 21 29 30];
+errorMsg = {'Measurement okay','No EOS signal at start of measurement',...
+	    'No start signal','No EOS signal to start integration time',...
+	    'DMA failure','No EOS signal after Changed to SYNC mode',...
+	    'Unable to sync to light source','Sync lost during measurement',...
+	    'Weak light signal','Unspecified hardware malfunction',...
+	    'Software error','No sample in L*u*v* or L*a*b* calculation',...
+	    'Adaptive integration taking too much time finding correct integration time indicating possible variable light source.',...
+	    'Main battery is low','Low light level','Light level too high (overload)',...
+	    'No sync signal','RAM error','Corrupted data','Noisy signal'};
+
+% check the quality
+i = length(quality);
+thisMessageNum = find(quality(i)==errorNum);
+if isempty(thisMessageNum)
+  thisMessageNum = -1;
+  thisMessage = '';
+else
+  thisMessage = errorMsg{thisMessageNum(1)};
+end
+global verbose
+if ((verbose>1) || thisMessageNum),disp(sprintf('%s Luminance=%f cd/m^-2 (1931 CIE x)=%f (1931 CIE y)=%f',thisMessage,Y(i),x(i),y(i)));end
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%   photometerSpectrumMeasure   %%
@@ -999,13 +1071,13 @@ function str = readSerialPortUsingSerial(portNum, numbytes)
 % reads however many bytes are available, rather than the numbytes (but not sure
 % this might be what was expected).
 if portNum.BytesAvailable == 0
-  disp(sprintf('(moncalib:readSerialPortUsingComm) 0 bytes available'));
+  %disp(sprintf('(moncalib:readSerialPortUsingComm) 0 bytes available'));
   str = '';
 else
-  disp(sprintf('(moncalib:readSerialPortUsingComm) Reading %i bytes',portNum.BytesAvailable));
+%  disp(sprintf('(moncalib:readSerialPortUsingComm) Reading %i bytes',portNum.BytesAvailable));
   str = char(fread(portNum,portNum.BytesAvailable,'uint8'));
   str = str(:)';
-  disp(sprintf('(moncalib:readSerialPortUsingComm) Received %s',str));
+%  disp(sprintf('(moncalib:readSerialPortUsingComm) Received %s',str));
 end
 
 
