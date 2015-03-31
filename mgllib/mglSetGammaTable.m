@@ -65,18 +65,24 @@ if (nargin == 1) && isnumeric(varargin{1})
   tableSize = mglPrivateSetGammaTable;
   if isempty(tableSize),return,end
   % check table size
-  inputSize = size(varargin{1},1);
+  inputTable = varargin{1};
+  inputSize = size(inputTable,1);
+  % check orientation of matrix
+  if inputSize == 1
+    inputTable = inputTable';
+    inputSize = size(inputTable,1);
+  end
   if inputSize ~= tableSize
     disp(sprintf('(mglSetGammaTable) Size of input table (%i) does not match hardwware gamma table size (%i). Interpolating using nearest neighbors - this should make the gamma table act as expected for an %i bit display',inputSize,tableSize,log2(inputSize)));
     multiple = tableSize/inputSize;
     % try to interpolate here
-    for iDim = 1:size(varargin{1},2)
+    for iDim = 1:size(inputTable,2)
       if multiple > 1
 	% input table smaller than hardware table
-	interpTable(1:tableSize,iDim) = interp1(1:multiple:tableSize,varargin{1}(:,iDim),(1:tableSize)-multiple/2,'nearest','extrap');
+	interpTable(1:tableSize,iDim) = interp1(1:multiple:tableSize,inputTable(:,iDim),(1:tableSize)-multiple/2,'nearest','extrap');
       else
 	% input table bigger than hardware table
-	interpTable(1:tableSize,iDim) = interp1(1:inputSize,varargin{1}(:,iDim),(1:(1/multiple):inputSize),'nearest','extrap');
+	interpTable(1:tableSize,iDim) = interp1(1:inputSize,inputTable(:,iDim),(1:(1/multiple):inputSize),'nearest','extrap');
 %	interpTable(1:tableSize,iDim) = interp1(multiple:multiple:tableSize,varargin{1}(:,iDim),(1:tableSize)-multiple/2,'linear','extrap');
       end
     end

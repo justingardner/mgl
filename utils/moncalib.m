@@ -532,6 +532,7 @@ errorMsg = {'Measurement okay','No EOS signal at start of measurement',...
 i = length(quality);
 thisMessageNum = find(quality(i)==errorNum);
 if isempty(thisMessageNum)
+  thisMessageNum = -1;
   thisMessage = '';
 else
   thisMessage = errorMsg{thisMessageNum(1)};
@@ -745,6 +746,47 @@ if length(values) >= 11
 else
   disp(sprintf('(moncalib:photometerMeasureTopcon) Uhoh, not enough data values read'));
 end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%   photometerSpectrumMeasurePR650   %%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function [wavelength radiance] = photometerSpectrumMeasurePR650(portNum)
+
+global verbose;
+wavelength = [];
+radiance = [];
+
+% retrieve any info that is pending from the photometer
+response = readLineSerialPort(portNum);
+while ~isempty(response)
+  response = readLineSerialPort(portNum);
+end
+
+% now take a measurement and read
+writeSerialPort(portNum,sprintf('M0\n'));
+writeSerialPort(portNum,sprintf('D5\n'));
+
+% read the masurement
+% The length doesn't really have to be exact here - guesing this number
+% but if comm is very slow, it might time out before getting this many
+len = 1700;
+str = '';readstr = 'start';
+while ~isempty(readstr) || (length(str)<len)
+  readstr = readSerialPort(portNum,256);
+  str = [str readstr];
+  mglWaitSecs(0.1);
+end
+
+% this is a bit of a hack to find the point in the string
+% where measurements start. (measurements are wavelength
+% followed by measurement - comma separaterd). There is some
+% preamble that presumably carries the error codes and other
+% info, but don't have the manual to know what those are
+startWavelength = 380;
+start = findstr(str,sprintf('%04i.',startWavelength));
+
+% parse string
+[wavelength radiance] = strread(str(22:end),'%f%f','delimiter',',');
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%   photometerSpectrumMeasure   %%
@@ -1002,13 +1044,13 @@ function str = readSerialPortUsingSerial(portNum, numbytes)
 % reads however many bytes are available, rather than the numbytes (but not sure
 % this might be what was expected).
 if portNum.BytesAvailable == 0
-  disp(sprintf('(moncalib:readSerialPortUsingComm) 0 bytes available'));
+  %disp(sprintf('(moncalib:readSerialPortUsingComm) 0 bytes available'));
   str = '';
 else
-  disp(sprintf('(moncalib:readSerialPortUsingComm) Reading %i bytes',portNum.BytesAvailable));
+%  disp(sprintf('(moncalib:readSerialPortUsingComm) Reading %i bytes',portNum.BytesAvailable));
   str = char(fread(portNum,portNum.BytesAvailable,'uint8'));
   str = str(:)';
-  disp(sprintf('(moncalib:readSerialPortUsingComm) Received %s',str));
+%  disp(sprintf('(moncalib:readSerialPortUsingComm) Received %s',str));
 end
 
 
