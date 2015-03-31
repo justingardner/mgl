@@ -439,7 +439,7 @@ end
 % otherwise choose the right photometer
 switch photometerNum
  case {1}
-  disp(sprintf('(photometerSpectrumMeasure) Spectrum measurement not yet implemented for PR650'));
+  [wavelength radiance] = photometerSpectrumMeasurePR650(portNum);
  case {2,3}
   disp(sprintf('(photometerSpectrumMeasure) Spectrum measurement not available for Minolta'));
  case {4}
@@ -934,7 +934,6 @@ end
 function portNum = initSerialPortUsingSerial(baudRate,parity,dataLen,stopBits,portNum)
 
 portNum = 0;
-disp(sprintf('(moncalib) This works for Topcon - but may bnot be working for Minolta. See code comments'));
 % This should be working for Topcon with a Plugable USB/Serial adaptor. 
 %
 % It does not seem to work for Minolta. And this seems to be something about setting the 7 bit mode, I think.
@@ -963,16 +962,20 @@ serialDevNum = getnum('Choose a serial device (0 to quit)',0:length(serialDev));
 if serialDevNum == 0,return,end
 
 % try to open the device
-s = serial(fullfile('/dev',serialDev(serialDevNum).name));
+try
+  s = serial(fullfile('/dev',serialDev(serialDevNum).name));
 
-set(s,'BaudRate',baudRate);
-set(s,'Parity',parity);
-set(s,'StopBits',stopBits);
-set(s,'DataBits',dataLen);
-set(s,'Terminator','CR/LF');
-set(s,'InputBufferSize',2048);
-fopen(s);
-portNum = s;
+  set(s,'BaudRate',baudRate);
+  set(s,'Parity',parity);
+  set(s,'StopBits',stopBits);
+  set(s,'DataBits',dataLen);
+  set(s,'Terminator','CR/LF');
+  set(s,'InputBufferSize',2048);
+  fopen(s);
+  portNum = s;
+catch
+  disp(sprintf('(moncalib:initSeriaPortUsingSerial) Failed to open serial port. Sometimes restarting matlab helps. Or plugging in and unplugging in serial device. Or making sure that you have the serial device driver installed.'));
+end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % close the serial port
