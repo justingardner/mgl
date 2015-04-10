@@ -152,6 +152,10 @@ end
 % eye tracker types
 eyeTrackerTypes = {'None','Eyelink','Calibrate','ASL'};
 
+% ignore initial vols setting
+ignoreInitialVols = mglGetParam('ignoreInitialVols');
+if isempty(ignoreInitialVols) ignoreInitialVols = 0;end
+
 %set up the paramsInfo
 paramsInfo = {};
 paramsInfo{end+1} = {'computerName',thisScreenParams.computerName,'The name of the computer for these screen parameters'};
@@ -197,7 +201,7 @@ paramsInfo{end+1} = {'testSettings',0,'type=pushbutton','buttonString=Test scree
 
 % get info about subjectID
 mustSetSID = mglGetParam('mustSetSID');
-if isempty('mustSetSID'),mustSetSID=false;end
+if isempty(mustSetSID),mustSetSID=false;end
 sidDatabaseFilename = mglGetParam('sidDatabaseFilename');
 if isempty(sidDatabaseFilename),sidDatabaseFilename='';end
 sidRaceEthnicity = mglGetParam('sidRaceEthnicity');
@@ -218,6 +222,7 @@ logpath = mglGetParam('logpath');
 if isempty(logpath),logpath = '~/data/log';end
 paramsInfo{end+1} = {'writeTaskLog',writeTaskLog,'type=checkbox','Set to write a task log. This will save a log of each experiment run in the location specified by logpath. The log can be viewed using mglTaskLog'};
 paramsInfo{end+1} = {'logpath',logpath,'contingent=writeTaskLog','Location of task log for mglTaskLog'};
+paramsInfo{end+1} = {'ignoreInitialVols',ignoreInitialVols,'minmax=[0 inf]','incdec=[-1 1]','Set this if you need to ignore some initial volume acquisition pulses from the magnet. The number that you set is the number that will get ignored'};
 
 % display parameter choosing dialog
 if ~isequal(thisScreenParams.computerName,'DELETE')
@@ -227,6 +232,8 @@ if ~isequal(thisScreenParams.computerName,'DELETE')
   % set the mglSetSID and mglTaskLog settings
   setSIDSettingsFromParams(params);
   setDisplayDir(params.displayDir);
+  % set the ignoreInitialVols setting
+  mglSetParam('ignoreInitialVols',params.ignoreInitialVols,1);
 end
 
 % delete screen params
