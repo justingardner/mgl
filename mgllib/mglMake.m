@@ -190,6 +190,7 @@ elseif ispc
   optf = '-largeArrayDims COMPFLAGS="$COMPFLAGS /TP"';
 end
 
+disp(sprintf('(mglMake) Using %s options for mex',optf));
 % close all open displays
 mglSwitchDisplay(-1);
 
