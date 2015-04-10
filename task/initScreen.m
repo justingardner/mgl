@@ -278,6 +278,12 @@ end
 
 myscreen.pwd = pwd;
 
+% setting to ignore initial vols
+myscreen.ignoreInitialVols = mglGetParam('ignoreInitialVols');
+if isempty(myscreen.ignoreInitialVols) myscreen.ignoreInitialVols = 0;end
+disp(sprintf('(initScreen) ignoreInitialVols = %i',myscreen.ignoreInitialVols));
+myscreen.ignoredInitialVols = myscreen.ignoreInitialVols;
+
 %%%%%%%%%%%%%%%%%
 % print display settings
 %%%%%%%%%%%%%%%%%
@@ -714,14 +720,16 @@ myscreen.traceNames{3} = 'responseTime';
 myscreen.traceNames{4} = 'taskPhase';
 % fifth is for fix task
 myscreen.traceNames{5} = 'fixationTask';
+% sixth is for volumes that are ignored
+myscreen.traceNames{6} = 'ignoredVolumes';
 %% addTraces now provides a safe way to add traces
 %% stimtrace is now a legacy variable which could be
 %% deprecated in a future version. numTraces specifies
 %% the number of traces and traceName the name
-myscreen.numTraces = 5;
+myscreen.numTraces = 7;
 %% legacy if you use stimtace without addTraces, you will
 %% get a free trace
-myscreen.stimtrace = 6;
+myscreen.stimtrace = 7;
 
 % save the beginning of time
 myscreen.starttime = datestr(clock);

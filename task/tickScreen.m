@@ -61,8 +61,16 @@ end
 
 % record volume
 if (keytick)
-  myscreen = writeTrace(1,1,myscreen,1,volTime);
-  myscreen.volnum = myscreen.volnum+1;
+  if myscreen.ignoreInitialVols
+    % if we are to ignore them, ignore and decrement counter
+    myscreen.ignoreInitialVols = myscreen.ignoreInitialVols - 1;
+    % write to ignored volume trace
+    myscreen = writeTrace(1,6,myscreen,1,volTime);
+  else
+    % record the volume
+    myscreen = writeTrace(1,1,myscreen,1,volTime);
+    myscreen.volnum = myscreen.volnum+1;
+  end
   %  disp(sprintf('myscreen.volnum = %i',myscreen.volnum));
 end
 
