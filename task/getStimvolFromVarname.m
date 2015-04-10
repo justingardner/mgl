@@ -449,6 +449,16 @@ else
   end
 end
 
+% remove any 0 stimvols (this happens if a trial occurs
+% before the experiment started)
+for i = 1:length(stimvolOut)
+  if any(stimvolOut{i} == 0)
+    disp(sprintf('(getStimvolFromVarname) !!! Removing %i trials that occurred before scanning !!!',sum(stimvolOut{i}==0)));
+    trialNumOut{i} = trialNumOut{i}(stimvolOut{i} ~= 0);
+    stimvolOut{i} = stimvolOut{i}(stimvolOut{i} ~= 0);
+  end
+end
+
 % remove any nan stimvols (this happens if a trial occurs
 % after the end of the experiment)
 for i = 1:length(stimvolOut)
