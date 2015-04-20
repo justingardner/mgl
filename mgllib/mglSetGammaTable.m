@@ -73,7 +73,7 @@ if (nargin == 1) && isnumeric(varargin{1})
     inputSize = size(inputTable,1);
   end
   if inputSize ~= tableSize
-    disp(sprintf('(mglSetGammaTable) Size of input table (%i) does not match hardwware gamma table size (%i). Interpolating using nearest neighbors - this should make the gamma table act as expected for an %i bit display',inputSize,tableSize,log2(inputSize)));
+    oneTimeWarning('mglSetGammaTable',sprintf('(mglSetGammaTable) Size of input table (%i) does not match hardwware gamma table size (%i). Interpolating using nearest neighbors - this should make the gamma table act as expected for an %i bit display',inputSize,tableSize,log2(inputSize)));
     multiple = tableSize/inputSize;
     % try to interpolate here
     for iDim = 1:size(inputTable,2)
@@ -96,3 +96,66 @@ end
 
 % just call mglPrivateSetGammaTable which actually does everything
 retval = mglPrivateSetGammaTable(varargin{:});
+
+% function modified from mrTools version to not use mrTools functions
+
+% oneTimeWarning.m
+%
+%        $Id$
+%      usage: h = oneTimeWarning(warningName,warningText,<justPrint>)
+%         by: justin gardner
+%       date: 02/26/08
+%    purpose: Brought over from Shani's viewGet function. This
+%             will only warn once about something, you give it
+%             a warningName and a warningText e.g.:
+%
+%             oneTimeWarning('someWarning','Something has happened');
+%
+%             The first time this happens it prints out the
+%             warning, after that it won't do anything.
+%
+%             If the warning is actually just a message, and
+%             not a warning (i.e. you just want it printed
+%             as is to the matlab buffer), set the justPrint
+%             argument to 1.
+%
+%             oneTimeWarning('someWarning',0);
+%
+%             If you want to make this modal, then do the following
+%             h = oneTimeWarning('someWarning','I am warning you');
+%             if ~isempty(h),uiwait(h);end
+%
+function h = oneTimeWarning(fieldCheck,warnText)
+
+h = [];
+% check arguments
+if ~any(nargin == [2])
+  help oneTimeWarning
+  return
+end
+
+
+% get the warning variable
+global gMLRWarning
+
+% make sure the field check name is a valid field name
+fieldCheck = fixBadChars(fieldCheck);
+
+% reset warning, if called with a number
+if ~isstr(warnText)
+  gMLRWarning.(fieldCheck) = [];
+  return
+end
+
+% if the warning field is not set then...
+if ~isfield(gMLRWarning,fieldCheck) | isempty(gMLRWarning.(fieldCheck))
+  % set the field to 1 so that it won't print out the next time
+  gMLRWarning.(fieldCheck) = 1;
+  % and print out a warning
+  disp(warnText);
+end
+
+
+
+
+
