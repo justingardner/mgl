@@ -25,7 +25,8 @@ taskNum=[];
 phaseNum=[];
 force=[];
 allval=[];
-getArgs(varargin,{'taskNum=1','phaseNum=1','force=0','allval=[]'});
+backup = [];
+getArgs(varargin,{'taskNum=1','phaseNum=1','force=0','allval=[]','backup=1'});
 
 stimfile = setext(stimfile,'mat');
 if ~isfile(stimfile)
@@ -75,17 +76,19 @@ if length(varval) ~= nTrials
   end
 end
 
-% now make sure there is an original backup
-originalBackup = sprintf('%s_original.mat',stripext(stimfile));
-if isfile(originalBackup)
-  originalBackup = sprintf('%s_backup_%s.mat',stripext(stimfile),datestr(now,'ddmmyyyy_HHMMSS'));
-  disp(sprintf('(addComputerBackup) Original backup already exists, saving as %s',originalBackup));
-end
-if isfile(originalBackup)
-  disp(sprintf('(addComputerBackup) %s already exists',originalBackup));
-else
-  % save
-  eval(sprintf('save %s -struct s',originalBackup));
+if backup
+    % now make sure there is an original backup
+    originalBackup = sprintf('%s_original.mat',stripext(stimfile));
+    if isfile(originalBackup)
+      originalBackup = sprintf('%s_backup_%s.mat',stripext(stimfile),datestr(now,'ddmmyyyy_HHMMSS'));
+      disp(sprintf('(addComputerBackup) Original backup already exists, saving as %s',originalBackup));
+    end
+    if isfile(originalBackup)
+      disp(sprintf('(addComputerBackup) %s already exists',originalBackup));
+    else
+      % save
+      eval(sprintf('save %s -struct s',originalBackup));
+    end
 end
 
 % set the new variable
