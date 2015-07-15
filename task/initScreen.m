@@ -487,6 +487,12 @@ else
   myscreen.screenHeight = mglGetParam('screenHeight');
 end
 
+% check to make sure we opened up correctly
+if isequal(mglGetParam('displayNumber'),-1)
+  disp(sprintf('(initScreen) Unable to open screen'));
+  keyboard
+end
+
 % use visual angle coordinates
 % if monitor size is set, then this is a value
 % in inches along the diagonal of the screen
