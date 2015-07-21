@@ -294,6 +294,7 @@ while any(isnan(searchSpace))
     % wait a bit to make sure it has changed
     mglWaitSecs(0.1);
     % measure the luminace
+    breakOut = 0;
     for repeatNum = 1:numRepeats
         gotMeasurement = 0;badMeasurements = 0;
         while ~gotMeasurement
@@ -304,14 +305,18 @@ while any(isnan(searchSpace))
                 % if it is and, we have already tried three times, then give up
                 badMeasurements = badMeasurements+1;
                 if (badMeasurements >= 3)
-                    disp(sprintf('UHOH: Failed to get measurement 3 times, setting to 0'));
+                    disp(sprintf('UHOH: Failed to get measurement 3 times, setting to 0 and skipping repeats'));
                     thisMeasuredLuminance(repeatNum) = 0;
                     gotMeasurement = 1;
+                    breakOut = 1;
                 end
                 % otherwise we whave the measurement, so keep going
             else
                 gotMeasurement = 1;
             end
+        end
+        if breakOut
+            break
         end
     end
     % now take median over all repeats of measurement
