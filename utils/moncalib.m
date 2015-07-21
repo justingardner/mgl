@@ -68,7 +68,7 @@
 %             been finished (like if you forced a quit in the middle)
 %             The function saves the calibration file after each step
 %
-%             If you set testTable to 1 (default is 1) it will also run
+%             If you set tableTest to 1 (default is 1) it will also run
 %             a test to see if you have actually succeeded in linearizing the table
 % 
 %             If you set bitTest to 1 (default 0) it will run a test to see
@@ -85,6 +85,11 @@ function calib = moncalib(varargin)
 % parse arguments
 [calib todo] = parseArgs(nargin,varargin);
 if isempty(calib),return,end
+
+global verbose
+if isempty(verbose)
+    verbose = 1;
+end
 
 % test photometer
 if todo.photometerTest
@@ -236,18 +241,30 @@ while any(isnan(searchSpace))
         if justSkipped
             % we just skipped, if we were successful we should reverse by
             % one until we fail to get a measurement
-            if measureLuminance(lastIdx) > 0
+            if measuredLuminance(lastIdx) > 0
                 curIdx = max(lastIdx-1,1);
                 if curIdx==1
                     justSkipped = 0;
                     skipAhead = 2;
                 end
-            else
+            elseif measuredLuminance(lastIdx+1) > 0
                 % we found the flip point, set everything below us to 0
                 searchSpace(1:lastIdx) = 0;
+                measuredLuminance(1:lastIdx) = 0;
+                measuredLuminanceSte(1:lastIdx) = 0;
+                measuredX(1:lastIdx) = 0;
+                measuredXSte(1:lastIdx) = 0;
+                measuredY(1:lastIdx) = 0;
+                measuredYSte(1:lastIdx) = 0;
                 curIdx = find(isnan(searchSpace),1);
                 justSkipped = 0;
                 skipAhead = 2;
+            else
+                % we didn't get a measurement, so let's skip ahead
+                curIdx = min(lastIdx+skipAhead,length(searchSpace));
+                skipAhead = skipAhead * 2;
+                justSkipped = 1;
+                sprintf('Skipping');
             end
         else
             if measuredLuminance(lastIdx) > 0
@@ -258,6 +275,7 @@ while any(isnan(searchSpace))
                 curIdx = min(lastIdx+skipAhead,length(searchSpace));
                 skipAhead = skipAhead * 2;
                 justSkipped = 1;
+                sprintf('Skipping');
             end
         end
     end
@@ -267,10 +285,10 @@ while any(isnan(searchSpace))
     
     % set the gamma table so that we display this luminance value
     if setGamma
-        if (verbose>1),disp(sprintf('Setting gamma table output to %f',val));end
+        if (verbose>0),disp(sprintf('Setting gamma table output to %f',val));end
         mglSetGammaTable(val*ones(256,1));
     else
-        if (verbose>1),disp(sprintf('Setting screen output to %f',val));end
+        if (verbose>0),disp(sprintf('Setting screen output to %f',val));end
         mglClearScreen(val);mglFlush;
     end
     % wait a bit to make sure it has changed
@@ -303,7 +321,7 @@ while any(isnan(searchSpace))
     measuredXSte(curIdx) = std(thisMeasuredX(1:numRepeats))/sqrt(numRepeats);
     measuredY(curIdx) = median(thisMeasuredY(1:numRepeats));
     measuredYSte(curIdx) = std(thisMeasuredY(1:numRepeats))/sqrt(numRepeats);
-    if (verbose>1),disp(sprintf('Luminance = %0.4f',measuredLuminance(curIdx)));end
+    if (verbose>0),disp(sprintf('Luminance = %0.4f',measuredLuminance(curIdx)));end
     if verbose == 1,disppercent((find(val==outputValues)-1)/length(outputValues));end
     
     searchSpace(curIdx) = 1;
@@ -344,10 +362,10 @@ for i = 1:length(outputValues)
   val = outputValues{i};
   % set the gamma table so that we display this luminance value
   if setGamma
-    if (verbose>1),disp(sprintf('(moncalib:measureOutputColor) Setting gamma table output to %s',num2str(val)));end
+    if (verbose>0),disp(sprintf('(moncalib:measureOutputColor) Setting gamma table output to %s',num2str(val)));end
     mglSetGammaTable(repmat(val(:),1,256)');
   else
-    if (verbose>1),disp(sprintf('(moncalib:measureOutputColor) Setting screen output to %s',num2str(val)));end
+    if (verbose>0),disp(sprintf('(moncalib:measureOutputColor) Setting screen output to %s',num2str(val)));end
     mglClearScreen(val);mglFlush;
   end
   % wait a bit to make sure it has changed
@@ -380,7 +398,7 @@ for i = 1:length(outputValues)
   measuredXSte(end+1) = std(thisMeasuredX(1:numRepeats))/sqrt(numRepeats);
   measuredY(end+1) = median(thisMeasuredY(1:numRepeats));
   measuredYSte(end+1) = std(thisMeasuredY(1:numRepeats))/sqrt(numRepeats);
-  if (verbose>1),disp(sprintf('(moncalib:measureOutputColor) Luminance = %0.4f',measuredLuminance(end)));end
+  if (verbose>0),disp(sprintf('(moncalib:measureOutputColor) Luminance = %0.4f',measuredLuminance(end)));end
   if verbose == 1,disppercent(i/length(outputValues));end
 end
 if (verbose == 1),disppercent(inf);end
@@ -587,7 +605,7 @@ else
   thisMessage = errorMsg{thisMessageNum(1)};
 end
 global verbose
-if ((verbose>1) || thisMessageNum),disp(sprintf('%s Luminance=%f cd/m^-2 (1931 CIE x)=%f (1931 CIE y)=%f',thisMessage,Y(i),x(i),y(i)));end
+if ((verbose>0) || thisMessageNum),disp(sprintf('%s Luminance=%f cd/m^-2 (1931 CIE x)=%f (1931 CIE y)=%f',thisMessage,Y(i),x(i),y(i)));end
 
 if quality(i) ~= 0
   luminance = nan;
@@ -786,7 +804,7 @@ while keepReading
 end
 
 if length(values) >= 11
-  if verbose>1
+  if verbose>0
     disp(sprintf('(moncalib) Measuring field: %i Integral time: %i ms Radiance: %f Wm-^2sr^-1\nLuminance: %f cd/m^2\nX: %f Y: %f Z: %f x: %f y: %f u: %f v: %f',values(1),values(2),values(3),values(4),values(5),values(6),values(7),values(8),values(9),values(10),values(11)));
   end
   luminance = values(4);
@@ -864,7 +882,7 @@ if ~strcmp(response(1:2),'OK')
     return
   end
 else
-  if verbose>1
+  if verbose>0
     disp(sprintf('(moncalib:photometerSpectrumMeasureTopcon) Received response: %s',response));
   end
 end
@@ -905,7 +923,7 @@ while keepReading
 end
 
 if length(values) >= 11
-  if verbose>1
+  if verbose>0
     disp(sprintf('(moncalib) Measuring field: %i Integral time: %i ms Radiance: %f Wm-^2sr^-1\nLuminance: %f cd/m^2\nX: %f Y: %f Z: %f x: %f y: %f u: %f v: %f',values(1),values(2),values(3),values(4),values(5),values(6),values(7),values(8),values(9),values(10),values(11)));
   end
 end
@@ -913,7 +931,7 @@ end
 if ~isempty(valuepairs)
   wavelength = valuepairs(1,:);
   radiance = valuepairs(2,:);
-  if verbose>1
+  if verbose>0
     disp(sprintf('(moncalib:photometerSpectrumMeasureTopcon) Measured spectrum from wavelength %0.1f:%0.1f',min(wavelength),max(wavelength)));
   end
 end
@@ -927,7 +945,7 @@ end
 if ~strcmp(response(1:2),'OK')
   disp(sprintf('(moncalib:photometerSpectrumMeasureTopcon) Got %s, rather than OK from TOPCON when trying to set data output mode to D1 (no spectral radiance data)',response(1:max(1,end-2))));
 else
-  if verbose>1
+  if verbose>0
     disp(sprintf('(moncalib:photometerSpectrumMeasureTopcon) Received response: %s',response));
   end
 end
