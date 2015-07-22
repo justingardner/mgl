@@ -316,6 +316,9 @@ while any(isnan(searchSpace))
             end
         end
         if breakOut
+            thisMeasuredLuminance(1:numRepeats) = 0;
+            thisMeasuredX(1:numRepeats) = 0;
+            thisMeasuredY(1:numRepeats) = 0;
             break
         end
     end
