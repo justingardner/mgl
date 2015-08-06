@@ -62,7 +62,7 @@
 function myscreen = mglRetinotopy(varargin)
 
 % evaluate the arguments
-eval(evalargs(varargin,0,0,{'wedges','rings','bars','barsTask','barAngle','elementAngle','direction','dutyCycle','stepsPerCycle','stimulusPeriod','numCycles','doEyeCalib','initialHalfCycle','volumesPerCycle','displayName','easyFixTask','dispText','barWidth','barSweepExtent','elementSize','barStepsMatchElementSize','synchToVolEachCycle','blanks','fixedRandom','yOffset','xOffset','imageWidth','imageHeight'}));
+eval(evalargs(varargin,0,0,{'wedges','rings','bars','barsTask','barsTaskEasy','barsTaskDefault','barAngle','elementAngle','direction','dutyCycle','stepsPerCycle','stimulusPeriod','numCycles','doEyeCalib','initialHalfCycle','volumesPerCycle','displayName','easyFixTask','dispText','barWidth','barSweepExtent','elementSize','barStepsMatchElementSize','synchToVolEachCycle','blanks','fixedRandom','yOffset','xOffset','imageWidth','imageHeight'}));
 
 global stimulus;
 
@@ -100,6 +100,24 @@ if ieNotDefined('xOffset'),xOffset = 0;end
 if ieNotDefined('yOffset'),yOffset = 0;end
 if ieNotDefined('imageWidth'),imageWidth = [];end
 if ieNotDefined('imageHeight'),imageHeight = [];end
+% settings for dots
+if ieNotDefined('dotsDensity'),dotsDensity = 25;end
+if ieNotDefined('dotsSpeed'),dotsSpeed = 3;end
+if ieNotDefined('dotsSpace'),dotsSpace = 0.5;end % space between three patches
+if ieNotDefined('dotsSize'),dotsSize = 4;end
+% parameters for barsTask
+if ieNotDefined('startCoherence'),startCoherence = 0.5;end
+if ieNotDefined('stepCoherence'),stepCoherence = 0.05;end
+if ieNotDefined('minCoherence'),minCoherence = 0.025;end
+if ieNotDefined('maxCoherence'),maxCoherence = 0.975;end
+if ieNotDefined('minStepCoherence'),minStepCoherence = 0.005;end
+if ieNotDefined('fixFeedback'),fixFeedback = true;end % give task feedback on fixation cross
+% make the bar task easy for training
+if exist('barsTaskEasy')
+  startCoherence = 1;
+  minCoherence = 1;
+  maxCoherence = 1;
+end
 
 % initalize the screen
 myscreen.allowpause = 1;
@@ -113,6 +131,15 @@ else
 end
 % init the stimulus
 myscreen = initStimulus('stimulus',myscreen);
+
+% some settings for barsTask (needs to go after screen is initialized
+if exist('barsTaskDefault') || exist('barsTask')
+  barAngle = 0:45:359;
+  stepsPerCycle = 12;
+  minExtent = floor(min(stimulus.imageWidth,stimulus.imageHeight));
+  barSweepExtent = min(minExtent,stepsPerCycle*barWidth);
+  elementSize = 1;
+end
 
 % set the first task to be the fixation staircase task
 global fixStimulus;
@@ -142,6 +169,12 @@ if stimulusType ~= 4
 else
   % no fixation task, so set the stimulus task to be 1
   stimulusTaskNum = 1;
+  % draw the fixation cross
+  mglGluDisk(fixStimulus.pos(1),fixStimulus.pos(2),fixStimulus.diskSize*[1 1],myscreen.background,60);
+  mglFixationCross(fixStimulus.fixWidth,fixStimulus.fixLineWidth,stimulus.fixColor,fixStimulus.pos);
+  mglFlush;
+  mglGluDisk(fixStimulus.pos(1),fixStimulus.pos(2),fixStimulus.diskSize*[1 1],myscreen.background,60);
+  mglFixationCross(fixStimulus.fixWidth,fixStimulus.fixLineWidth,stimulus.fixColor,fixStimulus.pos);
 end
 
 % set the number and length of the stimulus cycles
@@ -227,6 +260,18 @@ stimulus.barSweepExtent = barSweepExtent;
 % or 'parallel' to be the angle orthogonal/parallel
 % to the bar motion
 stimulus.elementAngle = elementAngle;
+% some parameters for dots in barsTask
+stimulus.dotsDensity = dotsDensity;
+stimulus.dotsSpeed = dotsSpeed;
+stimulus.dotsSpace = dotsSpace;
+stimulus.dotsSize = dotsSize;
+% set parameters of staircase in barsTask
+stimulus.barsTask.startCoherence = startCoherence;
+stimulus.barsTask.stepCoherence = stepCoherence;
+stimulus.barsTask.minCoherence = minCoherence;
+stimulus.barsTask.maxCoherence = maxCoherence;
+stimulus.barsTask.minStepCoherence = minStepCoherence;
+stimulus.fixFeedback = fixFeedback;
 % init the stimulus
 stimulus = initRetinotopyStimulus(stimulus,myscreen);
 stimulus.cycleTime = mglGetSecs;
@@ -360,15 +405,30 @@ myscreen = endTask(myscreen,task);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function [task myscreen] = responseCallback(task, myscreen)
 
+if mglGetSecs(task.thistrial.segstart) < 0.4
+  disp(sprintf('(mglRetinotopy) Ignoring early response'));
+  return
+end
+
 global stimulus
 if task.thistrial.whichLoc(task.thistrial.thisseg) == task.thistrial.whichButton
   % correct
   task.thistrial.correct(task.thistrial.thisseg) = true;
-  stimulus.fixColor = [0 1 0];
+  % give feedback on fixation cross
+  if stimulus.fixFeedback,stimulus.fixColor = [0 1 0];end
+  % update staircase
+  stimulus.stair = upDownStaircase(stimulus.stair,1);
+  % display progress
+  disp(sprintf('(mglRetinotopy) barsTask: %0.2f correct',stimulus.stair.threshold));
 else
   % incorrect
   task.thistrial.correct(task.thistrial.thisseg) = false;
-  stimulus.fixColor = [1 0 0];
+  % give feedback on fixation cross
+  if stimulus.fixFeedback,stimulus.fixColor = [1 0 0];end
+  % update staircase
+  stimulus.stair = upDownStaircase(stimulus.stair,0);
+  % display progress
+  disp(sprintf('(mglRetinotopy) barsTask: %0.2f incorrect',stimulus.stair.threshold));
 end
     
 
@@ -378,6 +438,43 @@ end
 function [task myscreen] = startSegmentCallback(task, myscreen)
 
 global stimulus;
+
+% set direction in barsTask
+if stimulus.stimulusType == 4
+  % set the randomization
+  if task.thistrial.thisseg == 1
+    task.thistrial.whichLoc = round(rand(1,length(task.seglen)))+1;
+  end
+  % set which one is different from the middle
+  middleDir = round(rand)*180+90;
+  stimulus.dots.middle = setDotsDir(stimulus.dots.middle,middleDir);
+  if task.thistrial.whichLoc(task.thistrial.thisseg)==1
+    % depends also on which direction we are going in, cause things will flip
+    if (task.thistrial.barAngle < 45) || (task.thistrial.barAngle >= 225)
+      stimulus.dots.upper = setDotsDir(stimulus.dots.upper,middleDir);
+      stimulus.dots.lower = setDotsDir(stimulus.dots.lower,middleDir+180);
+    else
+      stimulus.dots.upper = setDotsDir(stimulus.dots.upper,middleDir+180);
+      stimulus.dots.lower = setDotsDir(stimulus.dots.lower,middleDir);
+    end
+  else
+    if (task.thistrial.barAngle < 45) || (task.thistrial.barAngle >= 225)
+      stimulus.dots.upper = setDotsDir(stimulus.dots.upper,middleDir+180);
+      stimulus.dots.lower = setDotsDir(stimulus.dots.lower,middleDir);
+    else
+      stimulus.dots.upper = setDotsDir(stimulus.dots.upper,middleDir);
+      stimulus.dots.lower = setDotsDir(stimulus.dots.lower,middleDir+180);
+    end
+  end
+  % set the coherence
+  stimulus.dots.upper.coherence = stimulus.stair.threshold;
+  stimulus.dots.lower.coherence = stimulus.stair.threshold;
+  % set fixation to white
+  stimulus.fixColor = [1 1 1];
+  % default to nan for correct
+  task.thistrial.correct(task.thistrial.thisseg) = nan;
+end
+
 
 % debugging
 if task.thistrial.thisseg == 1
@@ -466,28 +563,6 @@ if stimulus.initialHalfCycle && (task.trialnum == 1) && (task.thistrial.thisseg 
   return
 end
 
-% set direction in barsTask
-if stimulus.stimulusType == 4
-  % set the randomization
-  if task.thistrial.thisseg == 1
-    task.thistrial.whichLoc = round(rand(1,length(task.seglen)))+1;
-  end
-  % set which one is different from the middle
-  middleDir = round(rand)*180+90;
-  stimulus.dots.middle = setDotsDir(stimulus.dots.middle,middleDir);
-  if task.thistrial.whichLoc(task.thistrial.thisseg)==1
-    stimulus.dots.upper = setDotsDir(stimulus.dots.upper,middleDir);
-    stimulus.dots.lower = setDotsDir(stimulus.dots.lower,middleDir+180);
-  else
-    stimulus.dots.upper = setDotsDir(stimulus.dots.upper,middleDir+180);
-    stimulus.dots.lower = setDotsDir(stimulus.dots.lower,middleDir);
-  end
-  % set fixation to white
-  stimulus.fixColor = [1 1 1];
-  % default to nan for correct
-  task.thistrial.correct(task.thistrial.thisseg) = nan;
-end
-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % function that gets called to draw the stimulus each frame
@@ -495,7 +570,20 @@ end
 function [task myscreen] = updateScreenCallback(task, myscreen)
 
 global stimulus
-if stimulus.blank,mglClearScreen;return,end
+if stimulus.blank
+  % clear screen
+  mglClearScreen;
+  % draw fixation cross for bars task
+  if stimulus.stimulusType == 4
+    % draw the fixation cross
+    global fixStimulus;
+    mglGluDisk(fixStimulus.pos(1),fixStimulus.pos(2),fixStimulus.diskSize*[1 1],myscreen.background,60);
+    mglFixationCross(fixStimulus.fixWidth,fixStimulus.fixLineWidth,stimulus.fixColor,fixStimulus.pos);
+  end
+  % done
+  return
+end
+% draw retinotopy stimulus
 stimulus = updateRetinotopyStimulus(stimulus,myscreen);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -536,14 +624,11 @@ stimulus.ringRadiusMax = stimulus.minRadius:(maxRadius-stimulus.minRadius)/(stim
 stimulus.barHeight = stimulus.imageWidth*1.5;
 stimulus.barMaskWidth = stimulus.imageWidth*1.5;
 
-
+% dots stimulus
+if stimulus.stimulusType == 4
   % parameters of dots
-  stimulus.dotsDensity = 25;
-  stimulus.dotsSpeed = 2;
-  stimulus.dotsSize = 4;
   stimulus.dotsDir = pi/2;
-  stimulus.dotsInitialCoherence = 0.8;
-  stimulus.dotsSpace = 0.5;
+  stimulus.dotsInitialCoherence = 1;
 
   % make dots for each of the three segments
   height = (stimulus.imageHeight-stimulus.dotsSpace*4)/3;
@@ -551,6 +636,11 @@ stimulus.barMaskWidth = stimulus.imageWidth*1.5;
   stimulus.dots.middle = initDots(myscreen,0,0,stimulus.barWidth,height,stimulus.dotsDir,stimulus.dotsSpeed,stimulus.dotsSize,stimulus.dotsDensity,stimulus.dotsInitialCoherence);
   stimulus.dots.lower = initDots(myscreen,0,-height-stimulus.dotsSpace,stimulus.barWidth,height,stimulus.dotsDir,stimulus.dotsSpeed,stimulus.dotsSize,stimulus.dotsDensity,stimulus.dotsInitialCoherence);
 
+  % initialize  staircase
+  stimulus.stair = upDownStaircase(1,2,stimulus.barsTask.startCoherence,[stimulus.barsTask.stepCoherence stimulus.barsTask.minStepCoherence stimulus.barsTask.stepCoherence],'pest');
+  stimulus.stair.minThreshold = stimulus.barsTask.minCoherence;
+  stimulus.stair.maxThreshold = stimulus.barsTask.maxCoherence;
+end
 
   % we only need to recompute the mglQuad points of the elements if something has
   % changed in the stimulus. This is for the radial element pattern
