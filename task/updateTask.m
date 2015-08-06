@@ -257,7 +257,7 @@ if (segover)
 	% we set the stored calculated variable was set to (in the user
 	% program) in task.thistrial
 	if ~isempty(task{tnum}.thistrial.(task{tnum}.randVars.calculated_names_{nVar}))
-	  if isscalar(task{tnum}.thistrial.(task{tnum}.randVars.calculated_names_{nVar}))
+	  if ~iscell(task{tnum}.randVars.(task{tnum}.randVars.calculated_names_{nVar})) && isscalar(task{tnum}.thistrial.(task{tnum}.randVars.calculated_names_{nVar}))
 	    % scalar calculated var gets an array
 	    eval(sprintf('task{tnum}.randVars.%s(task{tnum}.trialnum) = task{tnum}.thistrial.%s;',task{tnum}.randVars.calculated_names_{nVar},task{tnum}.randVars.calculated_names_{nVar}));
 	  else
