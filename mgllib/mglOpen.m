@@ -142,6 +142,7 @@ if ~openDisplay
       mglSetParam('originalResolution',mglResolution(whichScreen));
       % set the display resolution
       displayResolution = mglResolution(whichScreen,screenWidth,screenHeight,frameRate,bitDepth);
+      if isempty(displayResolution),return,end
       whichScreen = displayResolution.displayNumber;
       frameRate = displayResolution.frameRate;
       bitDepth = displayResolution.bitDepth;

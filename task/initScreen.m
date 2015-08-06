@@ -472,6 +472,11 @@ end
 
 % init the mgl screen
 if ~isempty(myscreen.screenNumber)
+  if isempty(mglResolution(myscreen.screenNumber))
+    disp(sprintf('(initScreen) !!! Screen %i does not exist !!!',myscreen.screenNumber));
+    myscreen = [];
+    return
+  end
   % setting with specified screenNumber
   mglOpen(myscreen.screenNumber, myscreen.screenWidth, myscreen.screenHeight, myscreen.framesPerSecond);
   % move the screen if it is a windowed context, and displayPos has been set.

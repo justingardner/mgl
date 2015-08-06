@@ -60,6 +60,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     displayNumber = defaultDisplayNum;
   else if (displayNumber > numDisplays) {
     mexPrintf("(mglResolution) Display %i out of range (1:%i)\n",displayNumber,numDisplays);
+    plhs[0] = mxCreateDoubleMatrix(0,0,mxREAL);
     return;
   }
 
