@@ -57,8 +57,8 @@ end
 % check if whichScreen < 0, then we set it so that it either
 % opens a secondary display, or if none is available opens
 % up a windowed context
+displayResolution = mglResolution;
 if ~isempty(whichScreen) && (whichScreen < 0)
-  displayResolution = mglResolution;
   if displayResolution.numDisplays > 1
     whichScreen = displayResolution.displayNumber;
   else
@@ -138,6 +138,11 @@ if ~openDisplay
   else % open, trying to set resolution
     % for full screen resolution
     if isempty(whichScreen) || (whichScreen>=1) 
+      % check to make sure that the whichScreen is within bounds
+      if (whichScreen > displayResolution.numDisplays)
+	disp(sprintf('(mglOpen) Display number %i is out of range [0:%i]',whichScreen,displayResolution.numDisplays));
+	return
+      end
       % get the current resolution, so we can return to it on close
       mglSetParam('originalResolution',mglResolution(whichScreen));
       % set the display resolution
