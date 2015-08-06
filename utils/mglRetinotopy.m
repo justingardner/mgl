@@ -136,7 +136,7 @@ myscreen = initStimulus('stimulus',myscreen);
 if exist('barsTaskDefault') || exist('barsTask')
   barAngle = 0:45:359;
   stepsPerCycle = 12;
-  minExtent = floor(min(stimulus.imageWidth,stimulus.imageHeight));
+  minExtent = floor(min(myscreen.imageWidth,myscreen.imageHeight));
   barSweepExtent = min(minExtent,stepsPerCycle*barWidth);
   elementSize = 1;
 end
@@ -169,6 +169,7 @@ if stimulusType ~= 4
 else
   % no fixation task, so set the stimulus task to be 1
   stimulusTaskNum = 1;
+  stimulus.fixColor = [1 1 1];
   % draw the fixation cross
   mglGluDisk(fixStimulus.pos(1),fixStimulus.pos(2),fixStimulus.diskSize*[1 1],myscreen.background,60);
   mglFixationCross(fixStimulus.fixWidth,fixStimulus.fixLineWidth,stimulus.fixColor,fixStimulus.pos);
