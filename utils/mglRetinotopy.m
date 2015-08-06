@@ -419,7 +419,7 @@ if task.thistrial.whichLoc(task.thistrial.thisseg) == task.thistrial.whichButton
   % update staircase
   stimulus.stair = upDownStaircase(stimulus.stair,1);
   % display progress
-  disp(sprintf('(mglRetinotopy) barsTask: %0.2f correct',stimulus.stair.threshold));
+  disp(sprintf('(mglRetinotopy) barsTask: %0.4f correct',stimulus.stair.threshold));
 else
   % incorrect
   task.thistrial.correct(task.thistrial.thisseg) = false;
@@ -428,7 +428,7 @@ else
   % update staircase
   stimulus.stair = upDownStaircase(stimulus.stair,0);
   % display progress
-  disp(sprintf('(mglRetinotopy) barsTask: %0.2f incorrect',stimulus.stair.threshold));
+  disp(sprintf('(mglRetinotopy) barsTask: %0.4f incorrect',stimulus.stair.threshold));
 end
     
 
@@ -636,7 +636,15 @@ if stimulus.stimulusType == 4
   stimulus.dots.middle = initDots(myscreen,0,0,stimulus.barWidth,height,stimulus.dotsDir,stimulus.dotsSpeed,stimulus.dotsSize,stimulus.dotsDensity,stimulus.dotsInitialCoherence);
   stimulus.dots.lower = initDots(myscreen,0,-height-stimulus.dotsSpace,stimulus.barWidth,height,stimulus.dotsDir,stimulus.dotsSpeed,stimulus.dotsSize,stimulus.dotsDensity,stimulus.dotsInitialCoherence);
 
-  % initialize  staircase
+  % see if there was a previous staircase
+  s = getLastStimfile(myscreen);
+  if ~isempty(s)
+    if isfield(s,'stimulus') && isfield(s.stimulus,'stair')
+      stimulus.barsTask.startCoherence = s.stimulus.stair.threshold;
+      disp(sprintf('(mglRetinotopy) Setting barTask starting thershold based on last stimfile to: %f',stimulus.barsTask.startCoherence));
+    end
+  end
+% initialize  staircase
   stimulus.stair = upDownStaircase(1,2,stimulus.barsTask.startCoherence,[stimulus.barsTask.stepCoherence stimulus.barsTask.minStepCoherence stimulus.barsTask.stepCoherence],'pest');
   stimulus.stair.minThreshold = stimulus.barsTask.minCoherence;
   stimulus.stair.maxThreshold = stimulus.barsTask.maxCoherence;
