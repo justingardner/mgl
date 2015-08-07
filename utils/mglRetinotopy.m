@@ -136,6 +136,7 @@ myscreen = initStimulus('stimulus',myscreen);
 if exist('barsTaskDefault') || exist('barsTask')
   barAngle = 0:45:359;
   stepsPerCycle = 12;
+  blanks = 4;
   minExtent = floor(min(myscreen.imageWidth,myscreen.imageHeight));
   barSweepExtent = min(minExtent,stepsPerCycle*barWidth);
   elementSize = 1;
@@ -336,7 +337,22 @@ if stimulus.blanks
   if any(stimulus.stimulusType == [3 4])
     % for bars, simply add some -1 barAngles
     barAngleSeq = [-1 barAngle repmat(-1,1,stimulus.blanks)];
-    barAngleSeq(2:end) = barAngleSeq(randperm(length(barAngleSeq)-1)+1);
+    % first make sure that random number generator is reset here (so that bars and barsTask)
+    % generate the same sequence (I think that because bars uses the fix task the rand generator
+    % goes through a few more pulls in there and so needs to be reset
+    if stimulus.fixedRandom
+      rand(myscreen.randstate.type,myscreen.randstate.state);
+    end
+    findGoodSequence = false;
+    while ~findGoodSequence
+      % look for a random sequence
+      barAngleSeq(2:end) = barAngleSeq(randperm(length(barAngleSeq)-1)+1);
+      % make sure the first and last one is not blank and there are no consecutive blanks
+      if (barAngleSeq(2) ~= -1) && (barAngleSeq(end) ~= -1) && ~any(diff(find(barAngleSeq(2:end)==-1))==1)
+	findGoodSequence = true;
+      end
+    end
+    disp(sprintf('(mglRetinotopy) barAngleSeq: %s',num2str(barAngleSeq,'%i ')));
     task{stimulusTaskNum}{1}.parameter.barAngle = barAngleSeq;
     task{stimulusTaskNum}{1}.numTrials = length(barAngleSeq);
   else
@@ -488,6 +504,7 @@ if task.thistrial.thisseg == 1
     disp(sprintf('%i: %f last cycle length',task.trialnum,mglGetSecs(stimulus.cycleTime)));
     stimulus.cycleTime = mglGetSecs;
 end
+
 % check for blank stimulus type with bars
 if any(stimulus.stimulusType == [3 4])
   if task.thistrial.barAngle == -1
