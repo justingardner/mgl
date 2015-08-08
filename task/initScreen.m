@@ -148,7 +148,6 @@ if ~foundComputer && isfield(myscreen,'displayName')
       % choose it then.
       if ~foundComputer
 	foundComputer = pnum;
-	keyboard
 	disp(sprintf('(initScreen) !!! Matching displayName: %s but computerName %s does not mach this computer name: %s !!!',screenParams{pnum}.displayName,screenParams{pnum}.computerName,myscreen.computerShortname));
       end
     end
