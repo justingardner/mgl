@@ -142,8 +142,8 @@ if exist('barsTaskDefault') || exist('barsTask')
   elementSize = 1;
 end
 
-blanks = 0;
-barAngle = 45;
+%blanks = 0;
+%barAngle = 45;
 % set the first task to be the fixation staircase task
 global fixStimulus;
 if ~easyFixTask
@@ -458,66 +458,17 @@ function [task myscreen] = startSegmentCallback(task, myscreen)
 
 global stimulus;
 
-% set direction in barsTask
-if stimulus.stimulusType == 4
-  % set the randomization of location where the bars are the same
-  if task.thistrial.thisseg == 1
-    task.thistrial.whichLoc = round(rand(1,length(task.seglen)))+1;
-    % and set the length of the bars
-    if any(task.thistrial.barAngle == [90 270])
-      stimulus.dots = setDotsOffsetAndLen(stimulus.dots,0,myscreen.imageWidth);
-    else
-      % reset to original length
-      stimulus.dots = setDotsOffsetAndLen(stimulus.dots);
-    end
-  end
-  % for oblique angles, try to make the right length (this
-  % needs to be done for each step so as to maximize the bar
-  % length across the screen
-  if any(task.thistrial.barAngle == [45 135 225 315])
-%    stimulus.dots = setDotsOffsetAndLen(stimulus.dots,0,myscreen.imageWidth);
-  end
-  % set which one is different from the middle
-  middleDir = round(rand)*180+90;
-  stimulus.dots.middle = setDotsDir(stimulus.dots.middle,middleDir);
-  if task.thistrial.whichLoc(task.thistrial.thisseg)==1
-    % depends also on which direction we are going in, cause things will flip
-    if (task.thistrial.barAngle < 45) || (task.thistrial.barAngle >= 225)
-      stimulus.dots.upper = setDotsDir(stimulus.dots.upper,middleDir);
-      stimulus.dots.lower = setDotsDir(stimulus.dots.lower,middleDir+180);
-    else
-      stimulus.dots.upper = setDotsDir(stimulus.dots.upper,middleDir+180);
-      stimulus.dots.lower = setDotsDir(stimulus.dots.lower,middleDir);
-    end
-  else
-    if (task.thistrial.barAngle < 45) || (task.thistrial.barAngle >= 225)
-      stimulus.dots.upper = setDotsDir(stimulus.dots.upper,middleDir+180);
-      stimulus.dots.lower = setDotsDir(stimulus.dots.lower,middleDir);
-    else
-      stimulus.dots.upper = setDotsDir(stimulus.dots.upper,middleDir);
-      stimulus.dots.lower = setDotsDir(stimulus.dots.lower,middleDir+180);
-    end
-  end
-  % set the coherence
-  stimulus.dots.upper.coherence = stimulus.stair.threshold;
-  stimulus.dots.lower.coherence = stimulus.stair.threshold;
-  % set fixation to white
-  stimulus.fixColor = [1 1 1];
-  % default to nan for correct
-  task.thistrial.correct(task.thistrial.thisseg) = nan;
-end
-
-
 % debugging
 if task.thistrial.thisseg == 1
   if any(stimulus.stimulusType == [3 4])
     disp(sprintf('%i: barAngle: %i',task.trialnum,task.thistrial.barAngle));
   end
-end
-
-if task.thistrial.thisseg == 1
+  
+  % show the amount of time the last cycle took
+  if task.trialnum > 1
     disp(sprintf('%i: %f last cycle length',task.trialnum,mglGetSecs(stimulus.cycleTime)));
     stimulus.cycleTime = mglGetSecs;
+  end
 end
 
 % check for blank stimulus type with bars
@@ -570,7 +521,6 @@ if stimulus.stimulusType == 1
 else
   stimulus.currentMask = 1+mod(stimulus.currentMask-1,stimulus.ringN);
 end
-%disp(sprintf('%i:%i',task.trialnum,stimulus.currentMask));
 
 % check to see if this is a blank interval
 stimulus.blank = 0;
@@ -594,6 +544,62 @@ if stimulus.initialHalfCycle && (task.trialnum == 1) && (task.thistrial.thisseg 
   disp(sprintf('(mglRetinotopy) Jumping after first half cycle'));
   task = jumpSegment(task,inf);
   return
+end
+
+
+% set direction in barsTask
+if stimulus.stimulusType == 4
+  % set the randomization of location where the bars are the same
+  if task.thistrial.thisseg == 1
+    task.thistrial.whichLoc = round(rand(1,length(task.seglen)))+1;
+    % and set the length of the bars
+    if any(task.thistrial.barAngle == [90 270])
+      stimulus.dots = setDotsOffsetAndLen(stimulus.dots,0,myscreen.imageWidth);
+    else
+      % reset to original length
+      stimulus.dots = setDotsOffsetAndLen(stimulus.dots);
+    end
+  end
+  % for oblique angles, try to make the right length (this
+  % needs to be done for each step so as to maximize the bar
+  % length across the screen
+  if ~any(task.thistrial.barAngle == [0 90 180 270])
+    % get center of bar
+    xOffset = stimulus.xOffset+stimulus.barCenter(stimulus.currentMask,1);
+    yOffset = stimulus.yOffset+stimulus.barCenter(stimulus.currentMask,2);
+    barCenter = stimulus.maskBarRotMatrix*[xOffset;yOffset];
+%    keyboard
+%    barCenter
+%    stimulus.dots = setDotsOffsetAndLen(stimulus.dots,0,myscreen.imageWidth);
+  end
+  % set which one is different from the middle
+  middleDir = round(rand)*180+90;
+  stimulus.dots.middle = setDotsDir(stimulus.dots.middle,middleDir);
+  if task.thistrial.whichLoc(task.thistrial.thisseg)==1
+    % depends also on which direction we are going in, cause things will flip
+    if (task.thistrial.barAngle < 45) || (task.thistrial.barAngle >= 225)
+      stimulus.dots.upper = setDotsDir(stimulus.dots.upper,middleDir);
+      stimulus.dots.lower = setDotsDir(stimulus.dots.lower,middleDir+180);
+    else
+      stimulus.dots.upper = setDotsDir(stimulus.dots.upper,middleDir+180);
+      stimulus.dots.lower = setDotsDir(stimulus.dots.lower,middleDir);
+    end
+  else
+    if (task.thistrial.barAngle < 45) || (task.thistrial.barAngle >= 225)
+      stimulus.dots.upper = setDotsDir(stimulus.dots.upper,middleDir+180);
+      stimulus.dots.lower = setDotsDir(stimulus.dots.lower,middleDir);
+    else
+      stimulus.dots.upper = setDotsDir(stimulus.dots.upper,middleDir);
+      stimulus.dots.lower = setDotsDir(stimulus.dots.lower,middleDir+180);
+    end
+  end
+  % set the coherence
+  stimulus.dots.upper.coherence = stimulus.stair.threshold;
+  stimulus.dots.lower.coherence = stimulus.stair.threshold;
+  % set fixation to white
+  stimulus.fixColor = [1 1 1];
+  % default to nan for correct
+  task.thistrial.correct(task.thistrial.thisseg) = nan;
 end
 
 
@@ -1035,9 +1041,9 @@ if any(stimulus.stimulusType == [3 4])
     % draw the dots
     xOffset = stimulus.xOffset+stimulus.barCenter(stimulus.currentMask,1);
     yOffset = stimulus.yOffset+stimulus.barCenter(stimulus.currentMask,2);
-    drawDots(stimulus.dots.middle,stimulus.elementRotMatrix,xOffset,yOffset);
-    drawDots(stimulus.dots.upper,stimulus.elementRotMatrix,xOffset,yOffset);
-    drawDots(stimulus.dots.lower,stimulus.elementRotMatrix,xOffset,yOffset);
+    drawDots(stimulus.dots.middle,stimulus.maskBarRotMatrix,xOffset,yOffset);
+    drawDots(stimulus.dots.upper,stimulus.maskBarRotMatrix,xOffset,yOffset);
+    drawDots(stimulus.dots.lower,stimulus.maskBarRotMatrix,xOffset,yOffset);
     % update the dots
     stimulus.dots.upper = updateDots(stimulus.dots.upper);
     stimulus.dots.middle = updateDots(stimulus.dots.middle);
