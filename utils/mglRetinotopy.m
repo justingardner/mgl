@@ -142,8 +142,6 @@ if exist('barsTaskDefault') || exist('barsTask')
   elementSize = 1;
 end
 
-%blanks = 0;
-%barAngle = 45;
 % set the first task to be the fixation staircase task
 global fixStimulus;
 if ~easyFixTask
@@ -568,9 +566,57 @@ if stimulus.stimulusType == 4
     xOffset = stimulus.xOffset+stimulus.barCenter(stimulus.currentMask,1);
     yOffset = stimulus.yOffset+stimulus.barCenter(stimulus.currentMask,2);
     barCenter = stimulus.maskBarRotMatrix*[xOffset;yOffset];
-%    keyboard
-%    barCenter
-%    stimulus.dots = setDotsOffsetAndLen(stimulus.dots,0,myscreen.imageWidth);
+    barAngle = task.thistrial.barAngle;
+    % get slope of bar
+    slope = sin(pi*barAngle/180)/cos(pi*barAngle/180);
+    % using slope, compute where the bar goes off the edges of the screen
+    yRight = slope*(myscreen.imageWidth/2 - barCenter(1)) + barCenter(2);
+    yLeft = slope*(-myscreen.imageWidth/2 - barCenter(1)) + barCenter(2);
+    xTop = (1/slope)*(myscreen.imageHeight/2 - barCenter(2)) + barCenter(1);
+    xBottom = (1/slope)*(-myscreen.imageHeight/2 - barCenter(2)) + barCenter(1);
+    if (barAngle < 90) || ((barAngle > 180) && (barAngle < 270))
+      % set which way the offset will calculate
+      offsetDir = 1;
+      % get edges of bar
+      if (yRight > myscreen.imageHeight/2)
+	topBoundary = [xTop myscreen.imageHeight/2];
+      else
+	topBoundary = [myscreen.imageWidth/2 yRight];
+      end
+      if (yLeft < -myscreen.imageHeight/2)
+	bottomBoundary = [xBottom -myscreen.imageHeight/2];
+      else
+	bottomBoundary = [-myscreen.imageWidth/2 yLeft];
+      end
+    else
+      % set which way the offset will calculate
+      offsetDir = -1;
+      % get edges of bar
+      if (yLeft > myscreen.imageHeight/2)
+	topBoundary = [xTop myscreen.imageHeight/2];
+      else
+	topBoundary = [-myscreen.imageWidth/2 yLeft];
+      end
+      if (yRight < -myscreen.imageHeight/2)
+	bottomBoundary = [xBottom -myscreen.imageHeight/2];
+      else
+	bottomBoundary = [myscreen.imageWidth/2 yRight];
+      end
+    end
+    % find the length that we want to set to
+    len = sqrt(sum((bottomBoundary-topBoundary).^2));
+    % find how much to shift the center
+    halfWay = bottomBoundary+(topBoundary-bottomBoundary)/2;
+    offset = sqrt(sum((halfWay-barCenter').^2));
+    %find which way to go with the offset
+    offset = offsetDir * offset * sign(sum((halfWay-barCenter').*[cos(pi*task.thistrial.barAngle/180) sin(pi*task.thistrial.barAngle/180)]));
+    % update dots to shift offset and len
+    stimulus.dots = setDotsOffsetAndLen(stimulus.dots,offset,len);
+    %mglPoints2(topBoundary(1),topBoundary(2),10,[0 1 0]);
+    %mglPoints2(bottomBoundary(1),bottomBoundary(2),10,[0 1 0]);
+    %mglPoints2(halfWay(1),halfWay(2),10,[0 1 0]);
+    %mglPoints2(barCenter(1),barCenter(2),10,[0 0 1]);
+    %mglFlush;
   end
   % set which one is different from the middle
   middleDir = round(rand)*180+90;
@@ -1135,9 +1181,9 @@ else
   % set to passed in value, but first split length into 3 and remove
   % spaces for spacers between stimulus
   eachLen = (len-4*dots.space)/3;
-  dots.upper = setDotsOffsetAndLen(dots.upper,dots.space+eachLen,eachLen);
-  dots.middle = setDotsOffsetAndLen(dots.middle,0,eachLen);
-  dots.lower = setDotsOffsetAndLen(dots.lower,-dots.space-eachLen,eachLen);
+  dots.upper = setDotsOffsetAndLen(dots.upper,dots.space+eachLen+offset,eachLen);
+  dots.middle = setDotsOffsetAndLen(dots.middle,offset,eachLen);
+  dots.lower = setDotsOffsetAndLen(dots.lower,-dots.space-eachLen+offset,eachLen);
 end
 
 
