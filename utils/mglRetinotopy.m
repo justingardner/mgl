@@ -142,6 +142,8 @@ if exist('barsTaskDefault') || exist('barsTask')
   elementSize = 1;
 end
 
+blanks = 0;
+barAngle = 45;
 % set the first task to be the fixation staircase task
 global fixStimulus;
 if ~easyFixTask
@@ -263,10 +265,10 @@ stimulus.barSweepExtent = barSweepExtent;
 % to the bar motion
 stimulus.elementAngle = elementAngle;
 % some parameters for dots in barsTask
-stimulus.dotsDensity = dotsDensity;
-stimulus.dotsSpeed = dotsSpeed;
-stimulus.dotsSpace = dotsSpace;
-stimulus.dotsSize = dotsSize;
+stimulus.dots.density = dotsDensity;
+stimulus.dots.speed = dotsSpeed;
+stimulus.dots.space = dotsSpace;
+stimulus.dots.size = dotsSize;
 % set parameters of staircase in barsTask
 stimulus.barsTask.startCoherence = startCoherence;
 stimulus.barsTask.stepCoherence = stepCoherence;
@@ -458,9 +460,22 @@ global stimulus;
 
 % set direction in barsTask
 if stimulus.stimulusType == 4
-  % set the randomization
+  % set the randomization of location where the bars are the same
   if task.thistrial.thisseg == 1
     task.thistrial.whichLoc = round(rand(1,length(task.seglen)))+1;
+    % and set the length of the bars
+    if any(task.thistrial.barAngle == [90 270])
+      stimulus.dots = setDotsOffsetAndLen(stimulus.dots,0,myscreen.imageWidth);
+    else
+      % reset to original length
+      stimulus.dots = setDotsOffsetAndLen(stimulus.dots);
+    end
+  end
+  % for oblique angles, try to make the right length (this
+  % needs to be done for each step so as to maximize the bar
+  % length across the screen
+  if any(task.thistrial.barAngle == [45 135 225 315])
+%    stimulus.dots = setDotsOffsetAndLen(stimulus.dots,0,myscreen.imageWidth);
   end
   % set which one is different from the middle
   middleDir = round(rand)*180+90;
@@ -645,14 +660,14 @@ stimulus.barMaskWidth = stimulus.imageWidth*1.5;
 % dots stimulus
 if stimulus.stimulusType == 4
   % parameters of dots
-  stimulus.dotsDir = pi/2;
-  stimulus.dotsInitialCoherence = 1;
+  stimulus.dots.dir = pi/2;
+  stimulus.dots.initialCoherence = 1;
 
   % make dots for each of the three segments
-  height = (stimulus.imageHeight-stimulus.dotsSpace*4)/3;
-  stimulus.dots.upper = initDots(myscreen,0,height+stimulus.dotsSpace,stimulus.barWidth,height,stimulus.dotsDir,stimulus.dotsSpeed,stimulus.dotsSize,stimulus.dotsDensity,stimulus.dotsInitialCoherence);
-  stimulus.dots.middle = initDots(myscreen,0,0,stimulus.barWidth,height,stimulus.dotsDir,stimulus.dotsSpeed,stimulus.dotsSize,stimulus.dotsDensity,stimulus.dotsInitialCoherence);
-  stimulus.dots.lower = initDots(myscreen,0,-height-stimulus.dotsSpace,stimulus.barWidth,height,stimulus.dotsDir,stimulus.dotsSpeed,stimulus.dotsSize,stimulus.dotsDensity,stimulus.dotsInitialCoherence);
+  stimulus.dots.length = (stimulus.imageHeight-stimulus.dots.space*4)/3;
+  stimulus.dots.upper = initDots(myscreen,0,stimulus.dots.length+stimulus.dots.space,stimulus.barWidth,stimulus.dots.length,stimulus.dots.dir,stimulus.dots.speed,stimulus.dots.size,stimulus.dots.density,stimulus.dots.initialCoherence);
+  stimulus.dots.middle = initDots(myscreen,0,0,stimulus.barWidth,stimulus.dots.length,stimulus.dots.dir,stimulus.dots.speed,stimulus.dots.size,stimulus.dots.density,stimulus.dots.initialCoherence);
+  stimulus.dots.lower = initDots(myscreen,0,-stimulus.dots.length-stimulus.dots.space,stimulus.barWidth,stimulus.dots.length,stimulus.dots.dir,stimulus.dots.speed,stimulus.dots.size,stimulus.dots.density,stimulus.dots.initialCoherence);
 
   % see if there was a previous staircase
   s = getLastStimfile(myscreen);
@@ -1073,6 +1088,54 @@ coords = rotMatrix * [dots.x+xOffset+dots.xOffset;dots.y+yOffset+dots.yOffset];
 mglPoints2(coords(1,dots.color==0),coords(2,dots.color==0),dots.dotsize,0);
 mglPoints2(coords(1,dots.color==1),coords(2,dots.color==1),dots.dotsize,1);
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%    setDotsOffsetAndLen   %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function dots = setDotsOffsetAndLen(dots,offset,len)
+
+% this is a single dots structure, so set it and return
+if ~isfield(dots,'upper')
+  % set new length
+  dots.length = len;
+  
+  % set number of dots
+  dots.n = round(dots.density*(dots.length * dots.width));
+
+  % set dots x and y
+  dots.x = dots.width*(rand(1,dots.n))-dots.width/2;
+  dots.y = dots.length*(rand(1,dots.n))-dots.length/2;
+  % randomly assign a black or white color
+  dots.color = round(rand(dots.n,1));
+
+  % set xmin/max and ymin/max
+  dots.xmin = -dots.width/2;
+  dots.xmax = dots.width/2;
+  dots.ymin = -dots.length/2;
+  dots.ymax = dots.length/2;
+  
+  % set new yOffset
+  dots.yOffset = offset;
+  % return
+  return
+end
+
+% this is the first call that passes in the full structure
+if nargin == 1
+  % reset to default values
+  dots.upper = setDotsOffsetAndLen(dots.upper,dots.space+dots.length,dots.length);
+  dots.middle = setDotsOffsetAndLen(dots.middle,0,dots.length);
+  dots.lower = setDotsOffsetAndLen(dots.lower,-dots.space-dots.length,dots.length);
+else
+  % set to passed in value, but first split length into 3 and remove
+  % spaces for spacers between stimulus
+  eachLen = (len-4*dots.space)/3;
+  dots.upper = setDotsOffsetAndLen(dots.upper,dots.space+eachLen,eachLen);
+  dots.middle = setDotsOffsetAndLen(dots.middle,0,eachLen);
+  dots.lower = setDotsOffsetAndLen(dots.lower,-dots.space-eachLen,eachLen);
+end
+
+
+
 %%%%%%%%%%%%%%%%%%
 %    initDots    %
 %%%%%%%%%%%%%%%%%%
@@ -1080,7 +1143,7 @@ function dots = initDots(myscreen,x,y,dotsWidth,dotsHeight,dotsDir,dotsSpeed,dot
 
 % parameters set
 dots.width = dotsWidth;
-dots.height = dotsHeight;
+dots.length = dotsHeight;
 dots.dir = pi*dotsDir/180;
 dots.density = dotsDensity;
 dots.speed = dotsSpeed;
@@ -1090,9 +1153,9 @@ dots.xOffset = x;
 dots.yOffset = y;
 
 % set up dots stimulus
-dots.n = round(dots.density*(dots.height * dots.width));
+dots.n = round(dots.density*(dots.length * dots.width));
 dots.x = dots.width*(rand(1,dots.n))-dots.width/2;
-dots.y = dots.height*(rand(1,dots.n))-dots.height/2;
+dots.y = dots.length*(rand(1,dots.n))-dots.length/2;
 
 % randomly assign a black or white color
 dots.color = round(rand(dots.n,1));
@@ -1130,8 +1193,8 @@ dots.y(~dots.coherent) = dots.y(~dots.coherent)+sin(thisdir)*dots.stepSize;
 dots.x(dots.x < dots.xmin) = dots.x(dots.x < dots.xmin)+dots.width;
 dots.x(dots.x > dots.xmax) = dots.x(dots.x > dots.xmax)-dots.width;
 
-dots.y(dots.y < dots.ymin) = dots.y(dots.y < dots.ymin)+dots.height;
-dots.y(dots.y > dots.ymax) = dots.y(dots.y > dots.ymax)-dots.height;
+dots.y(dots.y < dots.ymin) = dots.y(dots.y < dots.ymin)+dots.length;
+dots.y(dots.y > dots.ymax) = dots.y(dots.y > dots.ymax)-dots.length;
 
 
 % evalargs.m
