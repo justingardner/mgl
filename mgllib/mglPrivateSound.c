@@ -45,18 +45,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 void playSound(unsigned char* xxxsound, int xxxsampleRate, int playTime, int deviceNumber)
 {
 #if 0
-  NSString *filenameString = [[NSString alloc] initWithUTF8String:"/System/Library/Sounds/Purr.aiff"];
-  NSSound *mySound;
-  mySound = [[NSSound alloc] initWithContentsOfFile:filenameString byReference:NO];
-  if ([mySound play] == NO) {
-    mexPrintf("No\n");
-  }
-  else {
-    mexPrintf("Yes\n");
-  }
-#endif
-
-#if 0
 UInt32 sz;
 AudioHardwareGetPropertyInfo(kAudioHardwarePropertyDevices,&sz,NULL);
 AudioDeviceID *audioDevices=(AudioDeviceID *)malloc(sz);
@@ -191,12 +179,6 @@ for(i=0;i<deviceCount;++i)
 
   }
 
-  // DEBUG code. Write to file
-  FILE *f;
-  f=fopen("/Users/justin/Desktop/test.aif","w");
-  fwrite(aiff,1,totalSize,f);
-  fclose(f);
-  
   // start autorelease pool
   NSAutoreleasePool* pool = [[NSAutoreleasePool alloc] init];
 
@@ -211,12 +193,8 @@ for(i=0;i<deviceCount;++i)
 
   // debug print out
   mexPrintf("Device: %s\n",[[sound playbackDeviceIdentifier] UTF8String]);
-  if ([sound play] == NO) {
-    mexPrintf("Sound NOT playing\n");
-  }
-  else {
-    mexPrintf("Sound is playing\n");
-  }
+  if ([sound play] == NO)
+    mexPrintf("(mglPrivateSound) !!! Sound did not play correctly !!!\n");
 
   // release free memory
   [sound release];
