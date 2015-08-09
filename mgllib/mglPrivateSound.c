@@ -44,68 +44,50 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 ////////////////////////
 void playSound(unsigned char* xxxsound, int xxxsampleRate, int playTime, int deviceNumber)
 {
-#if 0
+
 UInt32 sz;
 AudioHardwareGetPropertyInfo(kAudioHardwarePropertyDevices,&sz,NULL);
 AudioDeviceID *audioDevices=(AudioDeviceID *)malloc(sz);
 AudioHardwareGetProperty(kAudioHardwarePropertyDevices,&sz,audioDevices);
 UInt32 deviceCount = (sz / sizeof(AudioDeviceID));
+ NSString *sOut1,*sOut2;
 
 UInt32 i;
+// get buffer list
+ UInt32 outputChannelCount;
 for(i=0;i<deviceCount;++i)
 {
-    NSString *s;
-
     // get buffer list
-    UInt32 outputChannelCount=0;
-    {
-        AudioDeviceGetPropertyInfo(
-            audioDevices[i],0,false,
-            kAudioDevicePropertyStreamConfiguration,
-            &sz,NULL
-            );
-        AudioBufferList *bufferList=(AudioBufferList *)malloc(sz);
-        AudioDeviceGetProperty(
-            audioDevices[i],0,false,
-            kAudioDevicePropertyStreamConfiguration,
-            &sz,&bufferList
-            );
+    outputChannelCount=0;
 
-        UInt32 j;
-        for(j=0;j<bufferList->mNumberBuffers;++j)
-            outputChannelCount += bufferList->mBuffers[j].mNumberChannels;
+    AudioDeviceGetPropertyInfo(audioDevices[i],0,false,kAudioDevicePropertyStreamConfiguration,&sz,NULL);
+    AudioBufferList *bufferList=(AudioBufferList *)malloc(sz);
+    AudioDeviceGetProperty(audioDevices[i],0,false,kAudioDevicePropertyStreamConfiguration,&sz,bufferList);
 
-        free(bufferList);
-    }
+    UInt32 j;
+    for(j=0;j<bufferList->mNumberBuffers;++j)
+      outputChannelCount += bufferList->mBuffers[j].mNumberChannels;
+    
+    free(bufferList);
 
     // skip devices without any output channels
-    if(outputChannelCount==0)
-        continue;
+    if(outputChannelCount==0) continue;
 
-    // output some device info
-    {
-        sz=sizeof(CFStringRef);
+    NSString *s;
+    sz=sizeof(CFStringRef);
 
-        AudioDeviceGetProperty(
-            audioDevices[i],0,false,
-            kAudioDevicePropertyDeviceUID,
-            &sz,&s
-            );
-        NSLog(@"DeviceUID: [%@]",s);
-        [s release];
-
-        AudioDeviceGetProperty(
-            audioDevices[i],0,false,
-            kAudioObjectPropertyName,
-            &sz,&s
-            );
-        NSLog(@"    Name: [%@]",s);
-        [s release];
-
-        NSLog(@"    OutputChannels: %d",outputChannelCount);
-    }
+    AudioDeviceGetProperty(audioDevices[i],0,false,kAudioObjectPropertyName,&sz,&s);
+    mexPrintf("%s: ",[s cString]);
+    [s release];
+    AudioDeviceGetProperty(audioDevices[i],0,false,kAudioDevicePropertyDeviceUID,&sz,&s);
+    mexPrintf("(%s) ",[s cString]);
+    // keep these around to be able to set them later
+    if (i==2) sOut2 = s;
+    if (i==1) sOut1 = s;
+    [s release];
+    mexPrintf("nChannels: %i\n",outputChannelCount);
 }
-#endif
+
   // Header for AIFF file
   struct aiffFile {
     /* FORM chunk */
@@ -134,13 +116,11 @@ for(i=0;i<deviceCount;++i)
   const unsigned int sampleRate = 48000;
   const unsigned int channels = 1;
   const unsigned int bytesPerFrame = channels * sizeof(unsigned int);
-  const unsigned int seconds = 4;
+  const unsigned int seconds = 1;
         
   const unsigned int dataSize = seconds * sampleRate * channels * bytesPerFrame;
   const unsigned int totalSize = dataSize + sizeof(struct aiffFile);
         
-  unsigned int i;
-
   // allocate memory for aiff file
   struct aiffFile* aiff = malloc(totalSize);
 
@@ -173,7 +153,7 @@ for(i=0;i<deviceCount;++i)
   aiff->blockSize = CFSwapInt32(0);
         
   // set up sound
-  double frequency = 500;        
+  double frequency = 300;        
   for (i=0; i < seconds * sampleRate * channels; i++) {
     aiff->soundData[i] =  CFSwapInt32((unsigned int) (INT_MAX * sin((double)i * M_PI * 2. * (frequency / (double)sampleRate) )));
 
@@ -191,6 +171,8 @@ for(i=0;i<deviceCount;++i)
   // data is no longer needed. 
   [data release];
 
+  // set output device
+  [sound setPlaybackDeviceIdentifier:sOut1];
   // debug print out
   mexPrintf("Device: %s\n",[[sound playbackDeviceIdentifier] UTF8String]);
   if ([sound play] == NO)
