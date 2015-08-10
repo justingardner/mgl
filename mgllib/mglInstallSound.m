@@ -40,6 +40,11 @@ end
 
 % install sound array
 if isnumeric(soundName)
+  % scale from -1:1 to intmax (clipping for values out of range
+  soundName(soundName > 1)  = 1;
+  soundName(soundName < -1)  = -1;
+  soundName = soundName*double(intmax);
+  % install the sound (convert to int32 with swapbytes)
   soundNum = mglPrivateInstallSound(swapbytes(int32(soundName)));
   % set a name for the sound
   soundNames = mglGetParam('soundNames');
