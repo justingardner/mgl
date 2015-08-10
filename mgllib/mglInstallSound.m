@@ -7,6 +7,10 @@
 %  copyright: (c) 2007 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
 %    purpose: Installs an aiff file for playing with mglPlaySOund
 %             Call with no arguments to deinstall all sounds
+% 
+%             Can also be used to install a sound that you create from
+%             a matrix
+%
 %      usage: Installing a sound
 %
 %soundNum = mglInstallSound('/System/Library/Sounds/Submarine.aiff');
@@ -15,6 +19,7 @@
 %              or to install a whole directory of sounds
 %
 %              mglInstallSound(soundDirName);
+%              mglInstallSound('/System/Library/Sounds');
 %
 function soundNum = mglInstallSound(soundName)
 
@@ -33,8 +38,15 @@ if nargin == 0
   return
 end
 
+% install sound array
+if isnumeric(soundName)
+  soundNum = mglPrivateInstallSound(swapbytes(int32(soundName)));
+  % set a name for the sound
+  soundNames = mglGetParam('soundNames');
+  soundNames{soundNum} = '_userdefined_';
+  mglSetParam('soundNames',soundNames);
 % install a whole directory of sounds
-if isdir(soundName)
+elseif isdir(soundName)
   % make sure the directory name is fully qualified (to do this cd to the directory and get its path). This
   % prevents sending in things like ~ to the c function
   currentPath = pwd;

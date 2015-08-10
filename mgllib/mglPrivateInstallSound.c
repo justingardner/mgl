@@ -26,6 +26,15 @@ $Id: mglInstallSound.c 379 2008-12-31 03:56:53Z justin $
 // an unsigned long identifier. For Mac cocoa this means
 // to set up an NSSound object and return a pointer.
 unsigned long installSound(char *filename);
+// Similar to above, except takes a buffer with sound samples
+// sound samples are organized as an array of sound samples
+// in rows (1 row for each channel). Number of samples in columns
+// the sample rate and other parameters are set by calling
+// mglSetSound. Data should be an int array which contains the
+// samples in order of samples, interleaved by channel e.g.:
+// for data with 2 channels, 3 samples
+// d = [s1c1 s1c2 s2c1 s2c2 s3c1 s3c2];
+unsigned long installSoundFromData(int *d,unsigned int nChannels,unsigned int nSamples);
 // remove sound, takes the identifier returned from
 // the above function and clears the object from memory.
 // So, it can no longer be played.
@@ -60,11 +69,23 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     }
     plhs[0] = mxCreateDoubleMatrix(0,0,mxREAL);
   } 
-  // with a single argument, set sound to the file that is passed in
+  // with a single argument
   else {
-    char soundFilePath[2048];
-    mxGetString(prhs[0],soundFilePath,2048);
-    soundID = installSound(soundFilePath);
+    if (mxIsChar(prhs[0])) {
+      // set sound to the file that is passed in if it is a string
+      char soundFilePath[2048];
+      mxGetString(prhs[0],soundFilePath,2048);
+      soundID = installSound(soundFilePath);
+    }
+    else {
+      // array, means to install from data
+      // First get dimensions. Number of rows corresponds to channels
+      // Number of columns to number of samples
+      unsigned int nChannels = mxGetM(prhs[0]);
+      unsigned int nSamples = mxGetN(prhs[0]);
+      // install the sound
+      soundID = installSoundFromData((int *)mxGetPr(prhs[0]),nChannels,nSamples);
+    }
   }
 
   // Now save the soundID in global structure. This takes the ID (or pointer)
@@ -135,6 +156,98 @@ unsigned long installSound(char *filename)
   return((unsigned long)mySound);
 }
 
+///////////////////////////////////
+//   cocoaInstallSoundFromData   //
+///////////////////////////////////
+unsigned long installSoundFromData(int *d, unsigned int nChannels, unsigned int nSamples)
+{
+  // index variable
+  int i;
+
+  // Header for AIFF file
+  struct aiffFile {
+    /* FORM chunk */
+    unsigned int formID;
+    int formChunkSize;
+    unsigned int formType;
+                
+    /* COMM chunk */
+    unsigned int commID;
+    int commChunkSize;
+    short numChannels;
+    unsigned int numSampleFrames;
+    short sampleSize;
+    extended80 sampleRate;
+                
+    /* SSND chunk */
+    unsigned int ssndID;
+    int ssndChunkSize;
+    unsigned int offset;
+    unsigned int blockSize;
+    int soundData[];
+  } __attribute__ ((__packed__));
+        
+
+  // some constants 
+  const unsigned int sampleRate = 8192;
+  const unsigned int bytesPerFrame = nChannels * sizeof(unsigned int);
+  const unsigned int dataSize = nSamples * bytesPerFrame;
+  const unsigned int totalSize = dataSize + sizeof(struct aiffFile);
+        
+  // allocate memory for aiff file
+  struct aiffFile* aiff = malloc(totalSize);
+
+  // check proper allocation of aiff
+  if (! aiff) {
+    mexPrintf("(mglPrivateSound) Could not allocate %lu bytes for sound\n", totalSize);
+    return(0);
+  }
+
+  // set up header. Note that we have to endian swap since the format
+  // is specified in f*$*ing little endian
+  aiff->formID = CFSwapInt32('FORM');
+  aiff->formChunkSize = CFSwapInt32(totalSize - offsetof(struct aiffFile, formType));
+  aiff->formType = CFSwapInt32('AIFF');
+  
+  // comm chunk has info about the sound samples
+  aiff->commID = CFSwapInt32('COMM');
+  aiff->commChunkSize = CFSwapInt32(18);
+  aiff->numChannels = CFSwapInt16(nChannels);
+  aiff->numSampleFrames = CFSwapInt32(nSamples);
+  aiff->sampleSize = CFSwapInt16(32);
+        
+  // set bizarre extended 80 type (10 bytes?)
+  double sampleRateDouble = (double)sampleRate;
+  dtox80(&sampleRateDouble, &aiff->sampleRate);
+                
+  // Sound chunk will actually contain data
+  aiff->ssndID = CFSwapInt32('SSND');
+  aiff->ssndChunkSize = CFSwapInt32(dataSize + 8);
+  aiff->offset = CFSwapInt32(0);
+  aiff->blockSize = CFSwapInt32(0);
+        
+  // copy sound
+  memcpy(aiff->soundData,d,dataSize);
+
+  // start autorelease pool
+  NSAutoreleasePool* pool = [[NSAutoreleasePool alloc] init];
+
+  // set up a data structure with pointer to data
+  NSData* data = [[NSData alloc] initWithBytesNoCopy:aiff length:totalSize];
+  
+  // and sound structure
+  NSSound* sound = [[NSSound alloc] initWithData:data];
+
+  // data is no longer needed. 
+  [data release];
+  
+  // drain the pool
+  [pool drain];
+
+  //return pointer
+  return((unsigned long)sound);
+}
+
 //////////////////////////
 //   cocoaRemoveSound   //
 //////////////////////////
@@ -177,6 +290,15 @@ unsigned long installSound(char *filename)
   return(0);
 }
 
+//////////////////////////////
+//   installSoundFromData   //
+//////////////////////////////
+unsigned long installSoundFromData(int *data)
+{
+  mexPrintf("(mglPrivateInstallSound:installSoundFromData) Not implemented\n");
+  return(0);
+}
+
 ///////////////////////////
 //   carbonRemoveSound   //
 ///////////////////////////
@@ -196,6 +318,13 @@ unsigned long installSound(char *filename)
   mexPrintf("(mglInstallSound) Not implemented on linux\n");
   return 0;
 }
+
+unsigned long installSoundFromData(int *data)
+{
+  mexPrintf("(mglInstallSound) Not implemented on linux\n");
+  return 0;
+}
+
 void removeSound(unsigned long soundID)
 {
   mexPrintf("(mglInstallSound) Not implemented on linux\n");
@@ -210,6 +339,11 @@ void removeSound(unsigned long soundID)
 unsigned long installSound(char *filename)
 {
   mexPrintf("(mglInstallSound) Not implemented on Windows\n");
+  return 0;
+}
+unsigned long installSoundFromData(int *data)
+{
+  mexPrintf("(mglInstallSound) Not implemented on linux\n");
   return 0;
 }
 void removeSound(unsigned long soundID)
