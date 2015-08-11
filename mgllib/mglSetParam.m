@@ -41,7 +41,11 @@ if (nargin >= 3) && (isequal(makePersistent,1) || isequal(makePersistent,2))
   eval(sprintf('save %s persistentParams',persistentParamsFilename));
   % if persistent then make sure that we give write permission to everyone
   if isequal(makePersistent,2)
-    fileattrib(persistentParamsFilename,'+w');
+    try 
+      fileattrib(persistentParamsFilename,'+w');
+    catch
+      disp(sprintf('(mglSetParam) Unable to set permissions ond %s',persistentParamsFilename));
+    end
   end
 end
 
