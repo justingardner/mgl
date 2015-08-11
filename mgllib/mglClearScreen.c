@@ -78,8 +78,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         }
       }
   }
-
-  // now clear to the set color
-  glClear(mask);
+  // Check to see if we are set to use a mask after clearing. This
+  const mxArray *mglGlobalClearWithMask = mexGetVariablePtr("global", "mglGlobalClearWithMask");
+  if (mglGlobalClearWithMask == NULL)
+    // now clear to the set color
+    glClear(mask);
 }
 
