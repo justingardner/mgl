@@ -198,7 +198,12 @@ paramsInfo{end+1} = {'diginResponseLine',num2str(thisScreenParams.digin.response
 paramsInfo{end+1} = {'diginResponseType',num2str(thisScreenParams.digin.responseType),'type=string','This is how to interpert the digial signals for the responses. If you want to trigger when the signal goes low then set this to 0. If you want trigger when the signal goes high, set this to 1. If you want to trigger when the signal changes state (i.e. either low or high), set to [0 1]','contingent=diginUse'};
 paramsInfo{end+1} = {'simulateVerticalBlank',thisScreenParams.simulateVerticalBlank,'type=checkbox','Click this if you want to simulate a vertical blank waiting period. Normally mglFlush waits till the vertical blank and so you will only refresh once every video frame. But with some video cards, notably ATI Radeon HD 5xxx series, this is broken. So by clicking this you can use the mglFlushAndWait rather than the mglFlush function which will just use mglWaitSecs to wait the appropriate amount of time after an mglFlush'};
 paramsInfo{end+1} = {'testSettings',0,'type=pushbutton','buttonString=Test screen params','callback',@testSettings,'passParams=1','Click to test the monitor settings'};
-
+paramsInfo{end+1} = {'useScreenMask',thisScreenParams.useScreenMask,'type=checkbox','Turn on or off using a screen mask. A screen mask is s a stencil used to block out portions of the display. This is typically used because you are projecting on to a screen (like in an MRI system) in which the screen is not quite rectangular, and you dont want to project stray light outside the screen. So you create a function (set as screenMaskFunction) which puts white where you want to display and black where you do not. Then initScreen will make this a stencil, and mglClearScreen will set the stencil to be active forcing all drawing to not draw into the area where you want to stencil out'};
+paramsInfo{end+1} = {'screenMaskFunction',thisScreenParams.screenMaskFunction,'Function that draws a screen mask - white where you want to draw, black elsewhere. This function should take one input value, myscreen, and not return anything - see help under useScreenMask for more info','contingent=useScreenMask'};
+paramsInfo{end+1} = {'screenMaskStencilNum',thisScreenParams.screenMaskStencilNum,'type=numeric','minmax',[1 inf],'incdec',[-1 1],'contingent=useScreenMask','Sets which stencil to use for the screen mask - see useScreenMask for more info'};
+if ~isfield(thisScreenParams,'screenMaskStencilNum')
+  thisScreenParams.screenMaskFunction = 7;
+end
 % get info about subjectID
 mustSetSID = mglGetParam('mustSetSID');
 if isempty(mustSetSID),mustSetSID=false;end
@@ -615,6 +620,23 @@ screenParams.eyeTrackerType = params.eyeTrackerType;
 % simulate vertical blank
 screenParams.simulateVerticalBlank = params.simulateVerticalBlank;
 
+% screenMask
+screenParams.useScreenMask = params.useScreenMask;
+if params.useScreenMask
+  screenParams.screenMaskFunction = params.screenMaskFunction;
+  screenParams.screenMaskStencilNum = params.screenMaskStencilNum;
+else
+  % default back to orignal
+  for i = 1:length(params.paramInfo)
+    if strcmp(params.paramInfo{i}{1},'screenMaskFunction')
+      screenParams.screenMaskFunction = params.paramInfo{i}{2};
+    end
+    if strcmp(params.paramInfo{i}{1},'screenMaskStencilNum')
+      screenParams.screenMaskStencilNum = params.paramInfo{i}{2};
+    end
+  end
+end
+  
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %    setSIDSettingsFromParams    %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
