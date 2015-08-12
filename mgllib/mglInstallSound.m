@@ -5,7 +5,7 @@
 %         by: justin gardner
 %       date: 02/08/07
 %  copyright: (c) 2007 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
-%    purpose: Installs an aiff file for playing with mglPlaySOund
+%    purpose: Installs an aiff file or data arrayfor playing with mglPlaySOund
 %             Call with no arguments to deinstall all sounds
 % 
 %             Can also be used to install a sound that you create from
@@ -20,6 +20,24 @@
 %
 %              mglInstallSound(soundDirName);
 %              mglInstallSound('/System/Library/Sounds');
+%
+%              To create a data array to play. Note that samplesPerSecond
+%              defaults to 8192:
+%
+%              t = 0:2*pi/8191:2*pi;
+%              amplitude = 0.2;
+%              waveform = amplitude * sin(440*t);
+%              s = mglInstallSound(waveform);
+%              mglPlaySound(s);
+%
+%              To make a waveform in stereo (add more rows for more speaker outputs)
+% 
+%              t = 0:2*pi/8191:2*pi;
+%              amplitude = 0.2;
+%              waveform(1,:) = amplitude * sin(440*t);
+%              waveform(2,:) = amplitude * sin(t*5*440/4);
+%              s = mglInstallSound(waveform);
+%              mglPlaySound(s);
 %
 function soundNum = mglInstallSound(soundName)
 

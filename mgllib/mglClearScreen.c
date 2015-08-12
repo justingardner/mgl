@@ -82,11 +82,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   // stencil out a portion of the screen to black and only
   // allow drawing on the stenciled portion - something useful
   // for when you are projecting on to an irregularly shaped screen
-  double clearWithStencil = mglGetGlobalDouble("clearWithStencil");
-  if (clearWithStencil==0)
+  const mxArray *mglGlobalClearWithMask = mexGetVariablePtr("global", "mglGlobalClearWithMask");
+  if (mglGlobalClearWithMask == NULL)
     // now clear to the set color
     glClear(mask);
   else {
+    // get stencil number
+    double *clearWithMask = mxGetPr(mglGlobalClearWithMask);
     // get the clear color
     GLfloat clearColor[4];
     glGetFloatv(GL_COLOR_CLEAR_VALUE,clearColor);
@@ -98,15 +100,14 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     // set clear color back
     glClearColor(clearColor[0],clearColor[1],clearColor[2],clearColor[3]);
     // set stencil
-    int stencilBits = (int)mglGetGlobalDouble("stencilBits");
-    int stencilAllMask = (1<<stencilBits)-1;
-    int stencilNumber = (1<<((int)(clearWithStencil)-1));
-    glStencilFunc(GL_EQUAL,stencilAllMask,stencilNumber);
+    //    int stencilBits = (int)mglGetGlobalDouble("stencilBits");
+    //    int stencilAllMask = (1<<stencilBits)-1;
+    //    int stencilNumber = (1<<((int)(clearWithMask[0])-1));
+    //    glStencilFunc(GL_EQUAL,stencilAllMask,stencilNumber);
     // set color    
     glColor3f(clearColor[0],clearColor[1],clearColor[2]);
     // draw rectangle
-    glRectd(-deviceWidth,-deviceHeight,deviceWidth,deviceHeight);
-    mexPrintf("%fx%f [%f %f %f %f]\n",deviceWidth,deviceHeight,clearColor[0],clearColor[1],clearColor[2],clearColor[3]);
+    glRectd(-deviceWidth/2,-deviceHeight/2,deviceWidth/2,deviceHeight/2);
   }
 }
 
