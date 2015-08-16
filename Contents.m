@@ -69,8 +69,9 @@
 %  mglWaitSecs               : Wait for a time in seconds
 %
 %Sound functions
-%  mglInstallSound           : Install an .aiff file for playing with mglPlaySound
+%  mglInstallSound           : Install an .aiff file or matlab array for playing with mglPlaySound
 %  mglPlaySound              : Play a system sound
+%  mglDeleteSound            : Delete a previously created sound
 %
 %Movies
 %  mglMovie                  : Function to play quicktime movies (mac 64bit only)
