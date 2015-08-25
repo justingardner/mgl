@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Tutorial: Starting with jglTask</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Tutorial: Starting with jglTask</h1>
+
+    <section>
+
+<header>
+    
+
+    <h2>Starting with jglTask</h2>
+</header>
+
+<article>
+    
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Getting started with jglTask</title>
+<link href="styles/prettify.css" type="text/css" rel="stylesheet" />
+<script type="text/javascript" src="scripts/prettify.js"></script>
+</head>
+<body>
+
+	<div>
+		<p>
+			Before we get started with how to start you experiment it is
+			important to highlight a major difference between the way that mgl
+			and jgl opperate. This is in the use of phases. While mgl has phases,
+			they are rarely used, with jgl you will find yourself using phases
+			quite a bit. A phase is used every time a different webpage needs to
+			be displayed, with the exception of an instruction phase which can
+			have multiple pages, more on that later. Since many phases will not
+			actually contain a stimulus it is important to know how to control
+			the flow between them. This will be explained <a
+				href="tutorial-Working with surveys.html">here</a>.
+		</p>
+	</div>
+
+	<div>
+		<p>The first thing all experiments need is a global myscreen
+			variable. This is done by calling initScreen, and saving its return
+			value as window.myscreen. Once the myscreen variable is setup the
+			task array can be initialized.</p>
+
+		<pre class="prettyprint"> 
+window.myscreen = initScreen(); 
+		</pre>
+	</div>
+	<div>
+		<p>After myscreen is initialized, the task array has to be
+			initialized. It is important, as with myscreen, that the task array
+			be called "task" The following is how to initialize the 2-D array.</p>
+
+		<pre class="prettyprint">
+window.task = [];
+task[0] = [];
+task[0][0] = ...
+		</pre>
+	</div>
+	<div>
+		<p>Once the task array is setup, each phase of each task has to be
+			initialized. Note, tasks are a collection of phases as in mgl,
+			therefore the first dimension of the task array are the tasks, the
+			second dimension is a collection of phases within that task. Note, If
+			the experiment contains multiple tasks, task[1] much be initialized
+			using task[1] = []; There are three main different types of phases,
+			survey phases, stimulus phases, and instruction phases. stimulus
+			phases are initialized in the same way as they are in mgl with one
+			main exception, the require a html field, and a usingScreen field.
+			Here is how they are to be initialized:</p>
+
+		<pre class="prettyprint">
+task[0][0] = {};
+task[0][0].seglen = [10, 2];
+task[0][0].html = "canvas.html";
+task[0][0].usingScreen = 1;
+task[0][0] = initTask(task[0][0], startSegmentCallback, updateScreenCallback);
+		</pre>
+	</div>
+	<div>
+		<p>Survey phases are setup a bit differently, the only thing that
+			is specified for a survey phase is the html page, and that much come
+			after the call to initSurvey(); Below is an example:</p>
+
+		<pre class="prettyprint">
+task[0][1] = initSurvey();
+task[0][1].html = "survey.html";
+		</pre>
+	</div>
+	<div>
+		<p>Instruction phases are again, slightly different from survey
+			phases. Instruction phases require a call to initInstructions to set
+			them up. Additionally, initInstructions takes a list of html
+			instruction pages as a parameter. This means that before the setup of
+			the phase the creation of this list is required. Here is how it is
+			done:</p>
+
+		<pre class="prettyprint">
+var instruction-pages = ["instruct-1.html", "instruct-2.html", "instruct-ready.html"];
+task[0][2] = initInstructions(instruction-pages);
+		</pre>
+	</div>
+	<div>
+		<p>After the phases are initialized all of the stimuli must be
+			initialized using initStimulus. First off, all stimuli must be global
+			variable, i.e. fields of the window object. This is done in the same
+			ways as with myscreen and task. Additionally, if you want the
+			stimulus object to be saved at the end of the experiment it is
+			crucial that initStimulus be called where the parameter is the string
+			version of the variable name. If this is unclear, hopefully this
+			example will straighten things out. In the code that follows, two
+			stimuli are initialized, one called stimulus and the other called
+			face.</p>
+
+		<pre class="prettyprint">
+window.stimulus = {};
+initStimulus('stimulus');
+window.face = {};
+initStimulus('face');
+		</pre>
+	</div>
+	<div>
+		<p>As the last thing before the experiment is started, initTurk()
+			must be called. This function sets up some basic functionality for
+			the turk. It saves the Id of the user, preloads the pages, and sets
+			up the psiTurk object. The experiment will not function without this
+			function call!!</p>
+		<pre class="prettyprint"> 
+initTurk(); 
+		</pre>
+	</div>
+	<div>
+		<p>Once the turk has been initialized all that is left is to start
+			the experiement. Here is where there is a big difference between jgl
+			and mgl. Here, there is no display loop. JavaScript is not allowed to
+			control the browser in the way that mgl is allowed to control the
+			computer and therefore a while loop than ran the entire duration of
+			the experiment was impossible. Instead, all that is needed is a call
+			to startPhase for each task that is being run. That means, if there
+			are two tasks startPhase must be called twice, once for each task.
+			Here is an example, since we have only setup one task in this
+			experiment, all that is needed is the following:</p>
+		<pre class="prettyprint">
+startPhase(task[0]); 
+		</pre>
+	</div>
+
+
+</body>
+</html>
+</article>
+
+</section>
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Index</a></h2><h3>Modules</h3><ul><li><a href="module-jgllib.html">jgllib</a></li><li><a href="module-jglTask.html">jglTask</a></li><li><a href="module-stdlib.html">stdlib</a></li></ul><h3>Classes</h3><ul><li><a href="module-jgllib-Canvas.html">Canvas</a></li><li><a href="module-jgllib-Mouse.html">Mouse</a></li><li><a href="module-jglTask.Phase.html">Phase</a></li><li><a href="Set.html">Set</a></li></ul><h3>Tutorials</h3><ul><li><a href="tutorial-Extracting Data.html">Extracting Data</a></li><li><a href="tutorial-Learning Your Way Around a psiTurk Project.html">Learning Your Way Around a psiTurk Project</a></li><li><a href="tutorial-Running a psiTurk Experiment.html">Running a psiTurk Experiment</a></li><li><a href="tutorial-Starting with jglTask.html">Starting with jglTask</a></li><li><a href="tutorial-Working with psiTurk.html">Working with psiTurk</a></li><li><a href="tutorial-Working with surveys.html">Working with surveys</a></li></ul>
+</nav>
+
+<br clear="both">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.3.0-dev</a> on Fri Aug 15 2014 13:15:00 GMT-0400 (EDT)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>
