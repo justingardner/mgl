@@ -96,26 +96,7 @@ for i = 1:length(screenParams)
     end
   end
   % validate fields
-  %% Souldn't this be in the mglValidateScreenParams?
-  thisFieldNames = fieldnames(screenParams{i});
-  for j = 1:length(thisFieldNames)
-    % match the field in the screenParamsList (do case insensitive)
-    whichField = find(strcmp(lower(thisFieldNames{j}),lower(screenParamsList)));
-    % if no match, report an error, but continue on
-    if isempty(whichField)
-      disp(sprintf('(initScreen) UHOH! Unrecogonized field %s in screenParams{%i}',thisFieldNames{j},i));
-    else
-      % now remove it from screenParams and then add it back -- this is simply
-      % to insure that the capitilization is correct
-      fieldVal = screenParams{i}.(thisFieldNames{j});
-      screenParams{i} = rmfield(screenParams{i},thisFieldNames{j});
-      screenParams{i}.(screenParamsList{whichField}) = fieldVal;
-    end
-    % check for displayName
-    if ~isfield(screenParams{i},'displayName')
-      screenParams{i}.displayName = '';
-    end
-  end
+  screenParams = mglValidateScreenParams(screenParams);
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -658,6 +639,37 @@ if isfield(myscreen,'background')
   end
 else
   myscreen.background = myscreen.black;
+end
+
+% set up stencil mask if called for
+if myscreen.useScreenMask
+  % check for valid function
+  if exist(myscreen.screenMaskFunction) == 2
+    % check stencil bits
+    if myscreen.screenMaskStencilNum <= mglGetParam('stencilBits')
+      % clear screen
+      mglClearScreen(0);
+      % start stencil drawing
+      mglStencilCreateBegin(myscreen.screenMaskStencilNum);
+      % call the function to draw the stencil
+      feval(myscreen.screenMaskFunction,myscreen);
+      % and end stencil creation
+      mglStencilCreateEnd(myscreen.screenMaskStencilNum);
+      mglClearScreen(0);
+      % This is an unusual global that is used to tell mglClearScreen
+      % to use a mask when clearing the screen. Its a separate global
+      % for speed because mglClearScreen is usually within frame updates.
+      % Here we set it to the stencil number
+      global mglGlobalClearWithMask;
+      mglGlobalClearWithMask = myscreen.screenMaskStencilNum;
+      % set the stencil
+      mglStencilSelect(myscreen.screenMaskStencilNum);
+    else
+      disp(sprintf('(initScreen) !!! screenMaskStencilNum should be a number between 1 and %i, but is set to %i !!!',mglGetParam('stencilBits'),myscreen.screenMaskStencilNum));
+    end
+  else
+    disp(sprintf('(initScreen) !!! Could not mask screen. Screen mask function: %s does not exist. !!!',myscreen.screenMaskFunction));
+  end
 end
 
 % set background color  - mgl

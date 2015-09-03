@@ -117,6 +117,8 @@ if exist('barsTaskEasy')
   startCoherence = 1;
   minCoherence = 1;
   maxCoherence = 1;
+else
+  barsTaskEasy = false;
 end
 
 % initalize the screen
@@ -274,6 +276,7 @@ stimulus.barsTask.minCoherence = minCoherence;
 stimulus.barsTask.maxCoherence = maxCoherence;
 stimulus.barsTask.minStepCoherence = minStepCoherence;
 stimulus.fixFeedback = fixFeedback;
+stimulus.barsTaskEasy = barsTaskEasy;
 % init the stimulus
 stimulus = initRetinotopyStimulus(stimulus,myscreen);
 stimulus.cycleTime = mglGetSecs;
@@ -725,11 +728,19 @@ if stimulus.stimulusType == 4
   s = getLastStimfile(myscreen);
   if ~isempty(s)
     if isfield(s,'stimulus') && isfield(s.stimulus,'stair')
-      stimulus.barsTask.startCoherence = s.stimulus.stair.threshold;
-      disp(sprintf('(mglRetinotopy) Setting barTask starting thershold based on last stimfile to: %f',stimulus.barsTask.startCoherence));
+      % check if we are doing barsTaskEasy
+      if ~stimulus.barsTaskEasy
+	% and that the old stimfile was not doing barsTaskEasy
+	if (~isfield(s.stimulus,'barsTaskEasy') || ~s.stimulus.barsTaskEasy)
+	  % set starting thershold to staircase value
+	  stimulus.barsTask.startCoherence = s.stimulus.stair.threshold;
+	  % display what we are doing
+	  disp(sprintf('(mglRetinotopy) Setting barTask starting thershold based on last stimfile to: %f',stimulus.barsTask.startCoherence));
+	end
+      end
     end
   end
-% initialize  staircase
+  % initialize  staircase
   stimulus.stair = upDownStaircase(1,2,stimulus.barsTask.startCoherence,[stimulus.barsTask.stepCoherence stimulus.barsTask.minStepCoherence stimulus.barsTask.stepCoherence],'pest');
   stimulus.stair.minThreshold = stimulus.barsTask.minCoherence;
   stimulus.stair.maxThreshold = stimulus.barsTask.maxCoherence;

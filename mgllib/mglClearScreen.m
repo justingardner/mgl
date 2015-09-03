@@ -29,4 +29,3 @@
 % mglClearScreen([0.7 0.2 0.5]);
 % mglFlush();
 %
-
