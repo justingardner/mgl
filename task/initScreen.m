@@ -255,6 +255,9 @@ end
 if ~isfield(myscreen,'eyeTrackerType')
   myscreen.eyeTrackerType = 'None';
 end
+if ~isfield(myscreen,'useScreenMask')
+  myscreen.useScreenMask = false;
+end
 
 myscreen.pwd = pwd;
 
