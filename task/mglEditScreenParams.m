@@ -38,9 +38,8 @@ if ~any(nargin == [0])
 end
 
 % check for mrParamsDialog
-if ~exist('mrParamsDialog')
+if ~mglIsMrToolsLoaded
   disp(sprintf('(mglEditScreenParams) You must have mrTools in your path to run the GUI for this function.'));
-  disp(sprintf('(mglEditScreenParams) You can download the mrTools utilties by doing the following from a shell:\n\nsvn checkout http://cbi.nyu.edu/svn/mrTools/trunk/mrUtilities/MatlabUtilities mrToolsUtilities\n\nand then add the path in matlab:\n\naddpath(''mrToolsUtilities'')'));
   return
 end
 
@@ -57,29 +56,57 @@ hostname = mglGetHostName;
 
 % get the name of the valid computers
 hostnameList = {};displayNames = {};computerNum = 1;
+defaultDisplayName = mglGetParam('defaultDisplayName');defaultDisplay = {};
 for i = 1:length(screenParams)
   hostnameList{end+1} = screenParams{i}.computerName;
   displayNames{end+1} = screenParams{i}.displayName;
+  if isempty(displayNames{end}) displayNames{end} = ' ';,end
   if isequal(screenParams{i}.computerName,mglGetHostName)
     computerNum = i;
   end
+  % check if this is one that should be checked on as default
+  if ~isempty(defaultDisplayName) && isstr(defaultDisplayName) && isstr(screenParams{i}.displayName) && strcmp(lower(defaultDisplayName),lower(screenParams{i}.displayName))
+    defaultDisplay{i} = 1;
+  else
+    defaultDisplay{i} = 0;
+  end
 end
-
 
 % set up params for choosing which computer to edit
 paramsInfo{1} = {'computerNum',computerNum,sprintf('minmax=[1 %i]', length(hostnameList)),'incdec=[-1 1]'};
 paramsInfo{end+1} = {'computerName',hostnameList,'type=string','group=computerNum','editable=0'};
 paramsInfo{end+1} = {'displayName',displayNames,'type=string','group=computerNum','editable=0'};
+paramsInfo{end+1} = {'defaultDisplay',defaultDisplay,'type=checkbox','group=computerNum','If this is checked it means that this display is the one that will come up by default when initScreen is run with no arguments','callback',@changeDefaultDisplay};
 paramsInfo{end+1} = {'addDisplay',0,'type=pushButton','buttonString=Add Display','callback',@addDisplay,'passParams=1','Add a new display to the list'};
 paramsInfo{end+1} = {'deleteDisplay',0,'type=pushButton','buttonString=Delete Display','callback',@deleteDisplay,'passParams=1','Delete this display from the screenParams'};
 
 % bring up dialog box
-params = mrParamsDialog(paramsInfo, sprintf('Choose computer/display (you are now on: %s)',hostname));
+params = mrParamsDialog(paramsInfo,'Choose display to edit','fullWidth=1');
 if isempty(params),return,end
 
 % add this display if asked for
-if isequal(params.addDisplay,'add') || (params.computerNum > length(screenParams))
-  screenParams{end+1} = mglDefaultScreenParams;
+if isequal(params.addDisplay,true) || (params.computerNum > length(screenParams))
+  % see if user wants to use default settings or copy an existing one
+  % get display info
+  initTypeStrings = {};
+  for i = 1:length(screenParams)
+    initTypeStrings{end+1} = sprintf('Copy: %s: %s (%i %ix%i %i Hz)',screenParams{i}.computerName,screenParams{i}.displayName,screenParams{i}.screenNumber,screenParams{i}.screenWidth,screenParams{i}.screenHeight,screenParams{i}.framesPerSecond);
+  end
+  initTypeStrings = putOnTopOfList('Use default',initTypeStrings);
+  paramsInfo = {{'initParamsType',initTypeStrings,'Choose whether to use default screen params or copy screen params from an exisiting screenParams as your starting point for the new screen settings'}};
+  initTypeParams = mrParamsDialog(paramsInfo,'Choose how to init new screen');
+  % user aborted
+  if isempty(initTypeParams),return,end
+  % find which one the user selected
+  initParamsType = find(strcmp(initTypeParams.initParamsType,initTypeStrings));
+  % if user asked for default
+  if initParamsType == 1
+    screenParams{end+1} = mglDefaultScreenParams;
+  else
+    % otherwise copy
+    screenParams{end+1} = screenParams{initParamsType-1};
+    screenParams{end}.displayName = '';
+  end
 end
 
 % delete computers list
@@ -685,9 +712,22 @@ retval = 'add';
 if ~isequal(params.addDisplay,'add')
   params.computerName = {params.computerName{:},mglGetHostName};
   params.displayName = {params.displayName{:},''};
+  params.defaultDisplay(end+1) = 0;
   params.computerNum = length(params.computerName);
+  params.addDisplay = true;
   mrParamsSet(params);
 end
+mrParamsClose(true);
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%   changeDefaultDisplay  %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function retval = changeDefaultDisplay(params)
+
+retval = false;
+mrParamsClose;
+% save for all users the setting
+mglSetParam('defaultDisplayName',params.displayName{params.computerNum},2);
 
 %%%%%%%%%%%%%%%%%%%%%%%
 %%   deleteDisplay   %%
