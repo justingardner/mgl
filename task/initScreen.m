@@ -99,6 +99,22 @@ for i = 1:length(screenParams)
   screenParams = mglValidateScreenParams(screenParams);
 end
 
+% if there is no displayName then see if we should use a default
+if ~isfield(myscreen,'displayName')
+  % if defaultDisplayName is set
+  defaultDisplayName = mglGetParam('defaultDisplayName');
+  if ~isempty(defaultDisplayName)
+    % then check through screen params to see
+    % if there is one with that display name
+    for i = 1:length(screenParams)
+      if isequal(screenParams{i}.displayName,defaultDisplayName)
+	% if there is, then set myscreen to use that name
+	myscreen.displayName = defaultDisplayName;
+      end
+    end
+  end
+end
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % find matching database parameters
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%
