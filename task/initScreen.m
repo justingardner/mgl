@@ -155,12 +155,12 @@ end
 % so go through again looking for any match even if the displayName is
 % not a match
 if ~foundComputer
+  % also, get defaultDisplayName
+  defaultDisplayName = mglGetParam('defaultDisplayName');
   for pnum = 1:length(screenParams)
-    if ~isempty(findstr(myscreen.computerShortname,screenParams{pnum}.computerName))
-      % choose a matching computer name and if possible one with an empty displayName
-      if ~foundComputer || isempty(screenParams{pnum}.displayName) 
-	foundComputer = pnum;
-      end
+    % choose a matching computer name and if possible one with a matching defaultDisplayName
+    if ~foundComputer || isequal(screenParams{pnum}.displayName,defaultDisplayName)
+      foundComputer = pnum;
     end
   end
 end
