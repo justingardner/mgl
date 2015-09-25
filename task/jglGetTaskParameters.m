@@ -11,13 +11,7 @@
 %             started at time 0.76 seconds and your frame period (TR) was 1.5 seconds, then 
 %             you would see a volume number of 2 rather than 1.
 %
-function [experiment stimfile] = getTaskParameters(myscreen,task)
-
-if isfield(myscreen,'uniqueId')
-    % this is a JGL file
-    [experiment stimfile] = jglGetTaskParameters(myscreen,task);
-    return
-end
+function [experiment stimfile] = jglGetTaskParameters(myscreen,task)
 
 % check arguments
 experiment = [];stimfile=[];

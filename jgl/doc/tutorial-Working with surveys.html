@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Tutorial: Working with surveys</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Tutorial: Working with surveys</h1>
+
+    <section>
+
+<header>
+    
+
+    <h2>Working with surveys</h2>
+</header>
+
+<article>
+    <!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Working with Surveys</title>
+<link href="styles/prettify.css" type="text/css" rel="stylesheet" />
+<script type="text/javascript" src="scripts/prettify.js"></script>
+</head>
+<body>
+	<div>
+		<p>
+			Surveys are something that were not in mgl at all and therefore I felt the need
+			to discuss how they work at length. Surveys, unlike normal stimulus phases do not
+			have a fixed length, that being said they actually do run with the same trial-segment
+			structure of any other phase. The difference is that surveys have an infinite number
+			of blocks and trials and therefore will run indefinitely until stopped artificially. 
+		</p>
+		<p>
+			Another major difference between surveys and stimulus phases are the integration with
+			and html page that needs to be customized. This will require the knowledge of both
+			html and how JavaScript / jQuery interact with html elements to make custom survey pages.
+			In the gorilla example there are four different survey pages that all work very similarly,
+			and here I will discuss what is done in them. I will assume you know basic html, however,
+			will not assume the knowledge of jQuery or manipulation of html elements with JavaScript. 
+		</p>
+		
+	</div>
+	
+	<div>
+		<p>
+			There are three important JavaScript based parts to a survey page. Requiring the competition of
+			fields, the saving of data, and the advancing of the phase. All three of these things conveniently
+			need to happen when the done button is pressed. For this tutorial we will use survey.html as our example. 
+			Below is all of the JavaScript in survey.html, I will go through it piece by piece and explain it. 
+		</p>
+		<pre class="prettyprint linenums">
+$("#but_done").click(function() {
+	var full = true;
+	$("#screenSize, #ratio").each(function() {
+		if (! $(this).val()) {
+			full = false;
+			$(this).css("background-color", "red");
+		}
+	});
+	if (full) {
+		var height = screen.height;
+		var angle;
+		if ($("#ratio").val() == "wide") {
+			angle = 0.512393762;
+		} else if($("#ratio").val() == "standard") {
+			angle = 0.6435;
+		}
+
+		var inHeight = $("#screenSize").val() * Math.sin(angle);
+		myscreen.ppi = height / inHeight;
+
+		jglData.demographics = {};
+		if ($("age").val()) {
+			jglData.demographics.age = $("#age").val();
+		} else {
+			jglData.demographics.age = -1;
+		}
+		if ($("#gender").val()) {
+			jglData.demographics.gender = $("#gender").val();
+		} else {
+			jglData.demographics.gender = "";
+		}
+
+		nextPhase();
+	}
+});
+
+$(":input").not("#but_done").click(function() {
+	$(this).css("background-color", "white");
+});
+		
+		</pre>
+		
+		<p>
+			First I will talk about binding a click event. line 1, says when the element
+			with id="but_done" gets clicks run this function. In this case, the function
+			that is run goes all the way to line 35. The first thing that happens is this block
+			of code:
+		</p>
+		
+		<pre class="prettyprint linenums">
+	var full = true;
+	$("#screenSize, #ratio").each(function() {
+		if (! $(this).val()) {
+			full = false;
+			$(this).css("background-color", "red");
+		}
+	});
+		</pre>
+		
+		<p>
+			This block of code runs this anonymous function for both the element with id="screenSize" and
+			id="ratio". It checks to see if they are empty, if they are it sets full to false and turns their
+			background color to red to signify there incompletion.  
+		</p>
+		
+		<p>
+			The next block of code is in charge of saving the information as well as advancing the phase. Here it is:
+		</p>
+		
+		<pre class="prettyprint linenums">
+	if (full) {
+		var height = screen.height;
+		var angle;
+		if ($("#ratio").val() == "wide") {
+			angle = 0.512393762;
+		} else if($("#ratio").val() == "standard") {
+			angle = 0.6435;
+		}
+
+		var inHeight = $("#screenSize").val() * Math.sin(angle);
+		myscreen.ppi = height / inHeight;
+
+		jglData.demographics = {};
+		if ($("age").val()) {
+			jglData.demographics.age = $("#age").val();
+		} else {
+			jglData.demographics.age = -1;
+		}
+		if ($("#gender").val()) {
+			jglData.demographics.gender = $("#gender").val();
+		} else {
+			jglData.demographics.gender = "";
+		}
+
+		nextPhase();
+	}
+		</pre>
+		
+		<p>
+			This is only run if full, aka if both screenSize and ratio were filled when but_done was pressed. 
+			Here several different things happen, myscreen.ppi gets set to the appropriate value, and the demographic data gets saved
+			in the jglData object. Then after all of that, the phase is advanced. Lets take a look at the first part, the setting of
+			myscreen.ppi. Here the ratio is used to determine the angle between the diagonal and the side which can then be used in conjunction
+			with the length of the diagonal in inches and the length of the side in pixels to determine the ppi of the screen. The results
+			of this calculation is then saved in myscreen.ppi and used by jgl when calling jglOpen. It is esential that myscreen.ppi is set
+			before jglOpen is called. 
+		</p>
+		
+		<p>
+			After myscreen.ppi is set, the demographics data is stored. Here is where some changes may be desired. It is possible to assume that
+			different demographic data will be desired and all that is needed is additional input fields to be included in the html, as well as 
+			additional JavaScript to save the data before advancing. Here, since demographic data is not required the value of the field must be
+			checked for null values, if they are null a placeholder is placed instead. 
+		</p>
+		
+		<p>
+			Once all of the data is saved the phase is advanced by calling nextPhase. It is important to realize that nextPhase advances all tasks
+			in the experiment. Tasks in the experiments must be phase locked since each phase has a different html page and it is impossible to show
+			different ones at the same time. 
+		</p>
+	</div>
+</body>
+</html>
+</article>
+
+</section>
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Index</a></h2><h3>Modules</h3><ul><li><a href="module-jgllib.html">jgllib</a></li><li><a href="module-jglTask.html">jglTask</a></li><li><a href="module-stdlib.html">stdlib</a></li></ul><h3>Classes</h3><ul><li><a href="module-jgllib-Canvas.html">Canvas</a></li><li><a href="module-jgllib-Mouse.html">Mouse</a></li><li><a href="module-jglTask.Phase.html">Phase</a></li><li><a href="Set.html">Set</a></li></ul><h3>Tutorials</h3><ul><li><a href="tutorial-Extracting Data.html">Extracting Data</a></li><li><a href="tutorial-Learning Your Way Around a psiTurk Project.html">Learning Your Way Around a psiTurk Project</a></li><li><a href="tutorial-Running a psiTurk Experiment.html">Running a psiTurk Experiment</a></li><li><a href="tutorial-Starting with jglTask.html">Starting with jglTask</a></li><li><a href="tutorial-Working with psiTurk.html">Working with psiTurk</a></li><li><a href="tutorial-Working with surveys.html">Working with surveys</a></li></ul>
+</nav>
+
+<br clear="both">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.3.0-dev</a> on Fri Aug 15 2014 13:15:00 GMT-0400 (EDT)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

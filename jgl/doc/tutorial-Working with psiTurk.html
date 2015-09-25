@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Tutorial: Working with psiTurk</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Tutorial: Working with psiTurk</h1>
+
+    <section>
+
+<header>
+    
+
+    <h2>Working with psiTurk</h2>
+</header>
+
+<article>
+    <!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Working with psiTurk</title>
+<link href="styles/prettify.css" type="text/css" rel="stylesheet" />
+<script type="text/javascript" src="scripts/prettify.js"></script>
+</head>
+<body>
+
+	<div style="text-align: center;">
+	<br>
+		<h2>
+			This tutorial will teach you how to use psiTurk as well as how to integrate your experiment.
+		</h2>
+		<br>
+	</div>
+	
+	<div>
+		<p>
+			psiTurk has been installed on the visionmini. To install it elsewhere I refer you to 
+			<a href="http://psiturk.readthedocs.org/en/latest/install.html"> psiTurk's installation guide</a>. 
+			I do however have a couple of comments and suggestion with this process. First off, make sure to get
+			Enthough, its talked about in the installation guide, it is needed. Next off, do that first, then install
+			pip using the get_pip.py instructions they provide. Next, use sudo to install psiTurk. And finally, I found
+			that to integrate psiTurk with a MySQL database I needed one last thing, the following command:
+			<pre class="prettyprint">
+sudo ln -s /usr/local/mysql/libmysqlclient.18.dylib /usr/lib/libmysqlclient.18.dylib
+			</pre>
+			This setup my environment correctly, though it was a painful process so hopefully it works smoothly for you. 
+		</p>
+	</div>
+	
+	<div>
+		<p>
+			Once psiturk is installed their <a href="http://psiturk.org/quick_start/">quick start guide </a>is quite helpful.
+			One thing that is important, if this is to be a simple debugging psiturk install, the AWS credentials mentioned in
+			the guide are not necessary. As for the psiturk API credentials I beleive the are required, they can be recovered either
+			by copying the ones on the visionmini, or by logging onto a psiturk.org account. 
+		</p>
+	</div>
+	
+	<div>
+		<p>
+			Here is how to setup a turk experiment: like in the quick start guide, use psiturk-setup-example to get all of the basic
+			files necessary for a turk experiment. Then there will be some changes that are needed. consent.html, exp.html, and ad.html
+			all need to be copied over from the gorilla example. <br>NOTE: ad.html may need some changes since it lists the amount of time
+			the experiment will take, as well as how much it pays out. additional, exp.html will need to be changed to include the correct
+			name of your jgl experiment file, not alttrialexperiment.js.<br>Once that is all setup and your jgl experiment file is included
+			in static/js then all that is needed are all of the referenced html files. These will be explained in the next section. 
+		</p>
+	</div>
+	<br>
+	<div>
+		<p>
+			The html pages that get displayed during the experiment are different than most html pages, they only contain the inside of a 
+			body tag. This is because psiTurk injects them into the body tag of exp.html when showPages is called. There is one special html
+			page in the gorilla example, canvas.html. This page is required for all stimuli phases. This is due to the specially named div within
+			it so that jglOpen can correctly inject canvas elements. Every other html page to be used during the experiment can be customized,
+			 though I would recommend using survey.html as a demographic survey because remember, screen data is <b>REQUIRED!</b>. 
+		</p>
+	</div>
+
+</body>
+</html>
+</article>
+
+</section>
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Index</a></h2><h3>Modules</h3><ul><li><a href="module-jgllib.html">jgllib</a></li><li><a href="module-jglTask.html">jglTask</a></li><li><a href="module-stdlib.html">stdlib</a></li></ul><h3>Classes</h3><ul><li><a href="module-jgllib-Canvas.html">Canvas</a></li><li><a href="module-jgllib-Mouse.html">Mouse</a></li><li><a href="module-jglTask.Phase.html">Phase</a></li><li><a href="Set.html">Set</a></li></ul><h3>Tutorials</h3><ul><li><a href="tutorial-Extracting Data.html">Extracting Data</a></li><li><a href="tutorial-Learning Your Way Around a psiTurk Project.html">Learning Your Way Around a psiTurk Project</a></li><li><a href="tutorial-Running a psiTurk Experiment.html">Running a psiTurk Experiment</a></li><li><a href="tutorial-Starting with jglTask.html">Starting with jglTask</a></li><li><a href="tutorial-Working with psiTurk.html">Working with psiTurk</a></li><li><a href="tutorial-Working with surveys.html">Working with surveys</a></li></ul>
+</nav>
+
+<br clear="both">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.3.0-dev</a> on Fri Aug 15 2014 13:15:00 GMT-0400 (EDT)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

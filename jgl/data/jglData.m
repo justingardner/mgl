@@ -1,0 +1,1 @@
+%% Script to run the bash file, make mat files
