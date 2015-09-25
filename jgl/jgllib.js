@@ -100,7 +100,7 @@ function Canvas() {
 	this.usingVisualAnglesStencil = false; // Is the stencil using visualAngles?
 	this.backgroundColor = "#ffffff";
 	this.lastFlushTime = 0;
-	this.frameRate = 60;
+	this.frameRate = 30;
 	this.isOpen = false;
 }
 
@@ -269,6 +269,7 @@ function jglFlushAndWait() {
 	
 	jglFlush();
 	
+	console.log('should not get here');
 	jglWaitSecs(frameTime - jglGetSecs(lastFlushTime));
 	
 	canvas.lastFlushTime =  jglGetSecs();
@@ -289,6 +290,7 @@ function jglNoFlushWait() {
 	
 	var frameTime = 1 / frameRate;
 	
+	console.log('should not get here');
 	jglWaitSecs(frameTime - jglGetSecs(lastFlushTime));
 	
 	canvas.lastFlushTime = jglGetSecs();
@@ -331,20 +333,21 @@ function privateClearContext(context) {
  * as a number on the grayscale, 0-255 or an array of three numbers [r,g,b].
  */
 function jglClearScreen(background) {
-	if (arguments.length != 0) {
-		var r, g, b;
-		if ($.isArray(background)) {
-			r = numToHex(background[0]);
-			g = numToHex(background[1]);
-			b = numToHex(background[2]);
-		} else {
-			r = numToHex(background);
-			g = numToHex(background);
-			b = numToHex(background);
-		}
-		canvas.backgroundColor = "#" + r + g + b;
+	// if (arguments.length != 0) {
+	// 	var r, g, b;
+	// 	if ($.isArray(background)) {
+	// 		r = numToHex(background[0]);
+	// 		g = numToHex(background[1]);
+	// 		b = numToHex(background[2]);
+	// 	} else {
+	// 		r = numToHex(background);
+	// 		g = numToHex(background);
+	// 		b = numToHex(background);
+	// 	}
+	// 	canvas.backgroundColor = "#" + r + g + b;
 
-	}
+	// }
+	canvas.backgroundColor = con2hex(background);
 	privateClearContext(canvas.context);
 }
 
@@ -369,7 +372,7 @@ function numToHex(number) {
  * Function for drawing 2D points.
  * @param {Array} x array of x coordinates
  * @param {Array} y array of y coordinates
- * @param {Number} size Size of point in pixels(diameter)
+ * @param {Number} size Size of point in degrees (diameter)
  * @param {String} color Color of points in #hex format
  */
 function jglPoints2(x, y, size, color) {
@@ -411,17 +414,30 @@ function jglLines2(x0, y0, x1, y1, size, color) {
 	}
 }
 
-//function jglFillOval(x, y, size, color) {
-//	if (x.length != y.length || size.length != 2) {
-//		//Error
-//		throw "Fill Oval: Lengths dont match";
-//	}
-//	var radius = Math.min(size[0], size[1]);
-//	canvas.backCtx.save();
-//	canvas.backCtx.transform(0, size[0], size[1],0,0,0);
-//	jglPoints2(x, y, radius, color);
-//	canvas.backCtx.restore();
-//}
+function jglFillOval(x, y, size, color) {
+	if (x.length != y.length || size.length != 2) {
+		//Error
+		throw "Fill Oval: Lengths dont match";
+	}
+	var radius = Math.min(size[0], size[1]);
+	canvas.backCtx.save();
+	canvas.backCtx.transform(0, size[0], size[1],0,0,0);
+	jglPoints2(x, y, radius, color);
+	canvas.backCtx.restore();
+}
+
+function jglFillArc(x, y, size, color, sAng, wAng) {
+	if (x.length != y.length) {
+		//Error
+		throw "Fill Oval: Lengths dont match";
+	}
+	canvas.backCtx.fillStyle=color;
+	canvas.backCtx.beginPath();
+	canvas.backCtx.moveTo(0,0);
+	canvas.backCtx.arc(x,y,size,sAng,wAng);
+	canvas.backCtx.fill();
+	canvas.backCtx.closePath();
+}
 
 /**
  * Makes Filled Rectangles
@@ -792,6 +808,14 @@ function jglMakeArray(low, step, high) {
 	return [low];
 }
 
+function repmat(array,reps) {
+	out = [];
+	for (i=0;i<reps;i++) {
+		out = out.concat(array);
+	}
+	return(out);
+}
+
 /**
  * Function for generating jgl textures.
  * This function does different things depending on
@@ -1008,6 +1032,3 @@ function jglGetParam(str) {
 function jglSetParam(param, val) {
 	eval("canvas." + param + " = " + val);
 }
-
-
-
