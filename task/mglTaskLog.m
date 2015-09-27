@@ -23,6 +23,13 @@
 %             Then this function will be called in endTask to save a log
 %             entry for every user of the computer.
 %
+%             If an SID is set with mglSetSID, this will keep also
+%             a subject specific tasklog which will keep every
+%             task the subject has been run on. You can view
+%             that log by doing:
+% 
+%             mglTaskLog('s001');
+%
 function mglTaskLog(var,verbose)
 
 % check arguments
@@ -34,18 +41,16 @@ end
 % display the log with 0 arguments
 if nargin == 0
   mglDispLog;
-elseif (nargin >= 1) && isnumeric(var)
+elseif (nargin >= 1) && (isnumeric(var) || isstr(var))
+  if nargin == 1,verbose = false;end
+  wiki = false;
+  if isstr(var) && strcmp(var,'wiki'),wiki = true;end
   % display log
-  if nargin == 1
-    mglDispLog(var,false);
-  else
-    mglDispLog(var,verbose);
-  end
+  mglDispLog(var,verbose,wiki);
 % if struct then write the log
 elseif isstruct(var)
   mglWriteLog(var);
 end
-
 
 %%%%%%%%%%%%%%%%%%%%%
 %    mglWriteLog    %
@@ -59,9 +64,6 @@ else
   stimfile = [];
 end
 if isempty(stimfile),stimfile = 'NA';end
-username = getusername;
-datenow = datestr(now,'mm/dd/yyyy');
-timenow = datestr(now);
 if isfield(myscreen,'endtime') && isfield(myscreen,'starttime')
   stimlen = dispTimeDiff(datenum(myscreen.endtime),datenum(myscreen.starttime));
 else
@@ -73,14 +75,46 @@ else
   sid = 'NA';
 end
 if isempty(sid),sid = 'NA';end
-thisdatevec = datevec(now);
-year = thisdatevec(1);
-month = thisdatevec(2);
 
 % get directory where log is saved
 logpath = mglGetParam('logpath');
 if isempty(logpath),logpath = '~/data/log';end
 logpath = mlrReplaceTilde(logpath);
+
+% set logname to mgllog + year
+thisdatevec = datevec(now);
+year = thisdatevec(1);
+month = thisdatevec(2);
+logfilename = fullfile(logpath,sprintf('mgllog%i.csv',year));
+
+% get the calling function name.
+st = dbstack;
+taskName = st(end).file;
+
+% write the log
+writeTaskLog(logpath,logfilename,'sid',sid,'stimfile',stimfile,'stimlen',stimlen,'task',taskName);
+
+% now see if we also should keep a sid speicific log
+% first make sure sid is still set
+sid = mglGetSID;
+if ~isempty(sid)
+  % put the sid specific database into the sid directory
+  sidpath = fileparts(mlrReplaceTilde(mglGetParam('sidDatabaseFilename')));
+  if ~isempty(sidpath)
+    % write the log
+    writeTaskLog(sidpath,sprintf('%s.csv',sid),'task',taskName,'computer',myscreen.computer,'stimfile',stimfile);
+  end
+end
+
+%%%%%%%%%%%%%%%%%%%%%%
+%    writeTaskLog    %
+%%%%%%%%%%%%%%%%%%%%%%
+function writeTaskLog(logpath,logfilename,varargin);
+
+% get username / date and time
+username = getusername;
+datenow = datestr(now,'mm/dd/yyyy');
+timenow = datestr(now);
 
 % check for directory
 logdir = getLastDir(logpath);
@@ -106,8 +140,7 @@ end
 % ok, we have a logpath
 logpath = fullfile(logpath,logdir);
 
-% check for existence of a file for this year
-logfilename = fullfile(logpath,sprintf('mgllog%i.csv',year));
+% ok check for logifle
 if isfile(logfilename)
   % load the log
   log = myreadtable(logfilename);
@@ -124,23 +157,34 @@ else
 end
 
 % add a new entry into table
-tableCols = {'date','username','time','sid','stimfile','stimlen'};
+tableCols = {'date','username','time'};
 log.date{nRows+1} = datenow;
 log.username{nRows+1} = username;
 log.time{nRows+1} = timenow;
-log.sid{nRows+1} = sid;
-log.stimfile{nRows+1} = stimfile;
-log.stimlen{nRows+1} = stimlen;
+
+% set string to display at end
+dispstr = sprintf('(mglWriteLog) Wrote log entry to %s: %s %s %s',logfilename,datenow,username,timenow);
+% set the table cols and log values for all optional
+% fields that are passed through varargin. 
+for iField = 1:2:length(varargin)
+  % set the table column
+  tableCols{end+1} = varargin{iField};
+  % and the actual value
+  log.(varargin{iField}){nRows+1} = varargin{iField+1};
+  % set display string
+  dispstr = sprintf('%s %s=%s',dispstr,varargin{iField},varargin{iField+1});
+end
 
 % write table back
 mywritetable(log,logfilename);
 try
   fileattrib(logfilename,'+w');
-  disp(sprintf('(mglWriteLog) Wrote log entry: %s %s %s %s %s %s',datenow,username,timenow,sid,stimfile,stimlen));
 catch
   disp(sprintf('(mglTaskLog) Could not set writeable attrib on file: %s',logfilename));
 end
 
+% display the entry that was made
+disp(dispstr);
 
 %%%%%%%%%%%%%%%%%%%%%
 %    getusername    %
@@ -231,7 +275,9 @@ end
 %%%%%%%%%%%%%%%%%%%%
 %    mglDispLog    %
 %%%%%%%%%%%%%%%%%%%%
-function mglDispLog(year,verbose)
+function logListing = mglDispLog(year,verbose,wiki)
+
+logListing = '';
 
 if ~mglIsMrToolsLoaded
   disp(sprintf('(mgltaskLog) Could not display log because mrTools is not loaded'));
@@ -247,9 +293,58 @@ if nargin<2
   verbose = false;
 end
 
-% get directory where log is saved
-logpath = mglGetParam('logpath');
-if isempty(logpath),logpath = '~/data/log';end
+% if year is a string, then it means to look up subject
+if isstr(year) && ~isequal(year,'wiki')
+  sid = year;
+  % get logpath as where the sid database lives
+  logpath = fileparts(mlrReplaceTilde(mglGetParam('sidDatabaseFilename')));
+  % set logfilename to sid
+  logfilename = fullfile(logpath,sprintf('%s.csv',sid));
+elseif isequal(year,'wiki')
+  % get directory where log is saved
+  logpath = mglGetParam('logpath');
+  if isempty(logpath),logpath = '~/data/log';end
+  % serach for logs
+  logdir = dir(logpath);
+  for iDir = 1:length(logdir)
+    if ~isempty(regexp(logdir(iDir).name,'mgllog\d\d\d\d.csv'))
+      % extract year
+      year = str2num(logdir(iDir).name(7:11));
+      % set heading in wiki to year
+      logListing = [logListing sprintf('===== %i =====\n',year)];
+      % and get entries for that year
+      logListing = [logListing mglDispLog(year,verbose,wiki)];
+    end
+  end
+  % write the log listing to a local file
+  localWiki = fullfile(logpath,'wiki.txt');
+  fWiki = fopen(localWiki,'w+');
+  if (fWiki == -1),disp(sprintf('(mglTaskLog) Could not open file %s',localWiki));return,end
+  fprintf(fWiki,logListing);
+  fclose(fWiki);
+  % get the server name
+  wikiServer = mglGetParam('mglTaskLogWikiServer');
+  if isempty(wikiServer)
+    disp(sprintf('(mglTaskLog) To save a wiki entry you must set the name of ther wiki server\ne.g. mglSetParam(''mglTaskLogWikiServer'',''gru@gru.stanford.edu'',2);'));
+    return
+  end
+  % get the directory name
+  wikiDir = mglGetParam('mglTaskLogWikiDir');
+  if isempty(wikiDir)
+    disp(sprintf('(mglTaskLog) To save a wiki entry you must set the name of the directory on the wiki server %s where the wiki page file will go\ne.g. mglSetParam(''mglTaskLogWikiDir'',''mglTaskLogWiki'',2);',wikiServer));
+    return
+  end
+  % now copy wiki file to location on server
+  commandStr = sprintf('scp %s %s:%s',localWiki,'gru@gru.stanford.edu',fullfile('mglTaskLogWiki',sprintf('%s.txt',strtok(mglGetHostName,'.'))));
+  disp(commandStr);system(commandStr);
+  return
+else
+  % get directory where log is saved
+  logpath = mglGetParam('logpath');
+  if isempty(logpath),logpath = '~/data/log';end
+  % get log file name
+  logfilename = fullfile(logpath,setext(sprintf('mgllog%i',year),'csv',0));
+end
 
 % make sure directory exists
 if ~isdir(logpath)
@@ -257,8 +352,7 @@ if ~isdir(logpath)
   return
 end
 
-% check for existence of a file for this year
-logfilename = fullfile(logpath,setext(sprintf('mgllog%i',year),'csv',0));
+% check for existence of the logfile
 if isfile(logfilename)
   % load the log
   log = myreadtable(logfilename);
@@ -274,40 +368,145 @@ if verbose
 end
 
 % init variables
-thisdate = [];thisusername = [];thissid = [];thisstimfile= {};thismonth = [];
+logEntry = [];
+thisMonth = [];lastMonth = [];
 numRows = length(log.date);
 
 % cycle through each row
 for iRow = 1:numRows
+  if isfield(log,'sid'),sid = log.sid{iRow};end
   % check to see if this row has the same date/username/sid as last row
-  if ~isequal(thisdate,log.date{iRow}) || ~isequal(thisusername,log.username{iRow}) || ~isequal(thissid,log.sid{iRow})
+  if isempty(logEntry) || ~isequal(logEntry.date,log.date{iRow}) || ~isequal(logEntry.username,log.username{iRow}) || ~isequal(logEntry.sid,sid)
     % get this month
-    thisdatevec = datevec(log.date{iRow});
-    lastmonth = thismonth;
-    thismonth = thisdatevec(2);
+    logDatevec = datevec(log.date{iRow});
+    lastMonth = thisMonth;
+    thisMonth = logDatevec(2);
     % if this is the first month, then display it
-    if isempty(thismonth) 
-      dispHeader(sprintf('%i/%i',thismonth,year));
+    if ~isempty(thisMonth) && ~isequal(thisMonth,lastMonth) 
+      if wiki
+	% for wiki, put an entry for each month
+	logListing = [logListing sprintf('==== %i/%i ====\n',thisMonth,logDatevec(1))];
+	% and start table
+	logListing = [logListing sprintf('^ Date ^ SID ^ task ^\n')];
+      else
+	dispHeader(sprintf('%i/%i',thisMonth,logDatevec(1)));
+      end
     end
-    % display line
-    if ~isempty(thisdate)
-      disp(sprintf('%s %s (sid: %s, n=%i)',thisdate,thisusername,thissid,length(thisstimfile)));
-    end
-    % if this is the first month, then display it
-    if ~isempty(thismonth) && ~isequal(thismonth,lastmonth) 
-      dispHeader(sprintf('%i/%i',thismonth,year));
+    if ~isempty(logEntry)
+      % since this is a new row, display last line of log
+      logListing = [logListing dispLogLine(logEntry,wiki)];
     end
     % get the new entry
-    thisdate = log.date{iRow};
-    thisusername = log.username{iRow};
-    thissid = log.sid{iRow};
-    thisstimfile = {log.stimfile{iRow}};
+    logEntry.date = log.date{iRow};
+    logEntry.username = log.username{iRow};
+    logEntry.sid = sid;
+    logEntry.stimfile = {log.stimfile{iRow}};
+    % get task field if it exists
+    if isfield(log,'task')
+      if ~isempty(log.task{iRow})
+	logEntry.task = {log.task{iRow}};
+      else
+	logEntry.task = {getTaskName(log.stimfile{iRow})};
+      end
+    end
+    % get computer field if it exists
+    if isfield(log,'computer')
+      logEntry.computer = log.computer{iRow};
+    end
   else
     % add the current stimfile
-    thisstimfile{end+1} = log.stimfile{iRow};
+    logEntry.stimfile{end+1} = log.stimfile{iRow};
+    % add task
+    if isfield(log,'task')
+      if ~isempty(log.task{iRow})
+	logEntry.task{end+1} = log.task{iRow};
+      else
+	logEntry.task{end+1} = getTaskName(log.stimfile{iRow});
+      end
+    end
   end
 end
-disp(sprintf('%s %s (sid: %s, n=%i)',thisdate,thisusername,thissid,length(thisstimfile)));
+
+% display a line of the log
+logListing = [logListing dispLogLine(logEntry,wiki)];
+
+%%%%%%%%%%%%%%%%%%%%%
+%    getTaskName    %
+%%%%%%%%%%%%%%%%%%%%%
+function taskName = getTaskName(stimfileName)
+
+taskName = [];
+% try to load stimfile
+if isfile(stimfileName)
+  s = load(stimfileName);
+  % if there is a task variable
+  % then go look for the last in 
+  % the cell array of cell arrays for
+  % taskFilename and put that into the task field
+  if isfield(s,'task')
+    if iscell(s.task)
+      if iscell(s.task{end})
+	if isfield(s.task{end}{end},'taskFilename')
+	  taskName = s.task{end}{end}.taskFilename;
+	end
+      else
+	if isfield(s.task{end},'taskFilename')
+	  taskName = s.task{end}.taskFilename;
+	end
+      end
+    end
+  end
+end
+
+%%%%%%%%%%%%%%%%%%%%%
+%    dispLogLine    %
+%%%%%%%%%%%%%%%%%%%%%
+function dispstr = dispLogLine(logEntry,wiki)
+
+% fix up task fields - this may not have been set
+% so if it was not then go look up in stimfile
+% to figure out what task was
+if ~isfield(logEntry,'task'),logEntry.task = {};end
+
+% add the name of all unique tasks here
+[taskNames ia ic] = unique(logEntry.task);
+taskstr = '';
+for iTask = 1:length(taskNames)
+  taskstr = sprintf('%s%s (n=%i) ',taskstr,taskNames{iTask},sum(ic==iTask));
+end
+
+% for wiki entries only
+if wiki
+  dispstr = sprintf('| %s | %s | %s |\n',logEntry.date,logEntry.sid,taskstr);
+  return
+end
+
+% start to create display string
+dispstr = sprintf('%s',logEntry.date);
+
+% display username/computer
+if isfield(logEntry,'username')
+  if isfield(logEntry,'computer')
+    dispstr = sprintf('%s %s@%s',dispstr,logEntry.username,logEntry.computer);
+  else
+    dispstr = sprintf('%s %s',dispstr,logEntry.username);
+  end
+end
+
+% display number of stimfiles
+dispstr = sprintf('%s n=%i',dispstr,length(logEntry.stimfile));
+
+% display sidID
+dispstr = sprintf('%s %s',dispstr,logEntry.sid);
+
+% add task string
+dispstr = sprintf('%s: %s',dispstr,taskstr);
+
+% display the string
+disp(dispstr);
+
+% add on new line
+dispstr = sprintf('%s\n',dispstr);
 
 %%%%%%%%%%%%%%%%%%%%
 %    getLastDir    %
@@ -406,7 +605,7 @@ end
 fprintf(f,'\n');
 
 % write out each row
-for iRow = 1:length(t.sid)
+for iRow = 1:length(t.(fields{1}))
   for iField = 1:length(fields)
     if (iField==1)
       fprintf(f,'%s',t.(fields{iField}){iRow});
