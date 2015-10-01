@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: task/saveData.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: task/saveData.js</h1>
+
+    
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/**
+ * Function for generating an XML object from a javascript object.
+ * Requires that the root tag be places around the return value.
+ * This is the xml tagname scheme:
+ * All objects are surrounded by an object tag, every field of an
+ * object has its own tagname. Arrays are surrounded by array tag
+ * names. Array tags have an attribute type, with either cell or mat
+ * as the value. mat means its a numeric array and can be a matrix in matlab.
+ * cell means the array contains non-numeric elements. Every value is enclosed in
+ * a val tag. val tags also have a type attribute, with a value num or str. num means
+ * it isNumeric, str means its not.
+ * @param {Any} object the object to XMLify
+ * @param {String} xml should always be left undefined
+ * @returns {String} The XML version of the given object, object 
+ * field names are tags, array tag starts an array, val tag for value of a given item.
+ * @memberof module:jglTask
+ */
+function genXML(object, xml) {
+	if (xml === undefined) {
+		xml = "";
+	}
+	if ($.type(object) == "object") {
+		var fieldNames = fields(object);
+		xml += "&lt;object>";
+		for (var i =0; i&lt;fieldNames.length;i++) {
+			if (fieldNames[i] != "callback" &amp;&amp; fieldNames[i] != "psiTurk") {
+				xml += "&lt;" + fieldNames[i] + ">";
+				xml += genXML(object[fieldNames[i]]);
+				xml += "&lt;/" + fieldNames[i] + ">";
+			}
+		}
+		xml += "&lt;/object>";
+	} else if ($.isArray(object)) {
+		if (isNumeric(object)) {
+			xml += '&lt;array type=&amp;quot;mat&amp;quot;>'; // &amp;quot; is an escaped " in xml
+		} else {
+			xml += '&lt;array type=&amp;quot;cell&amp;quot;>';
+		}
+		for (var i = 0;i&lt;object.length;i++) {
+			xml += genXML(object[i]);
+		}
+		xml += "&lt;/array>";
+	} else {
+		if (isNumeric(object)) {
+			xml += '&lt;val type=&amp;quot;num&amp;quot;>' + object + '&lt;/val>';
+		} else {
+			xml += '&lt;val type=&amp;quot;str&amp;quot;>' + object + '&lt;/val>';
+		}
+	}
+	return xml;
+}
+
+/**
+ * Function to save all of the data to the database.
+ * This function creates a large object xml string containing
+ * the jglData object, the task array, the myscreen object, and
+ * all stimulus objects that have been registered with initStimulus.
+ * The xml is then saved in the database using psiTurk with the key
+ * experimentXML.
+ * @memberof module:jglTask
+ */
+function saveAllData() {
+	/*
+	 * xml will represent an xml object with jglData, task, myscreen, and all
+	 * the stimuli as fields. The generateMat function in matlab can then use
+	 * the xml to make a mat file
+	 */
+	
+	var xml = "&lt;object>";
+	
+	xml += "&lt;jglData>";
+	xml += genXML(jglData);
+	xml += "&lt;/jglData>";
+	
+	xml += "&lt;task>";
+	xml += genXML(task);
+	xml += "&lt;/task>";
+	
+	xml += "&lt;myscreen>";
+	xml += genXML(myscreen);
+	xml += "&lt;/myscreen>";
+	
+	// Get all stimuli registered using initStimulus.
+	for (var i=0;i&lt;myscreen.stimulusNames.length;i++) {
+		xml += "&lt;" + myscreen.stimulusNames[i] + ">";
+		xml += eval("genXML(" + myscreen.stimulusNames[i] + ");");
+		xml += "&lt;/" + myscreen.stimulusNames[i] + ">";
+	}
+	
+	xml += "&lt;/object>";
+	
+	// Save data.
+	myscreen.psiTurk.recordUnstructuredData("experimentXML", xml);
+	myscreen.psiTurk.saveData({
+		success: function() {
+			myscreen.psiTurk.completeHIT();
+		},
+		error: function() {alert("error!!!");}
+	});
+	
+}</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Index</a></h2><h3>Modules</h3><ul><li><a href="module-jgllib.html">jgllib</a></li><li><a href="module-jglTask.html">jglTask</a></li><li><a href="module-stdlib.html">stdlib</a></li></ul><h3>Classes</h3><ul><li><a href="module-jgllib-Canvas.html">Canvas</a></li><li><a href="module-jgllib-Mouse.html">Mouse</a></li><li><a href="module-jglTask.Phase.html">Phase</a></li><li><a href="Set.html">Set</a></li></ul><h3>Tutorials</h3><ul><li><a href="tutorial-Extracting Data.html">Extracting Data</a></li><li><a href="tutorial-Learning Your Way Around a psiTurk Project.html">Learning Your Way Around a psiTurk Project</a></li><li><a href="tutorial-Running a psiTurk Experiment.html">Running a psiTurk Experiment</a></li><li><a href="tutorial-Starting with jglTask.html">Starting with jglTask</a></li><li><a href="tutorial-Working with psiTurk.html">Working with psiTurk</a></li><li><a href="tutorial-Working with surveys.html">Working with surveys</a></li></ul>
+</nav>
+
+<br clear="both">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.3.0-dev</a> on Fri Aug 15 2014 13:15:00 GMT-0400 (EDT)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

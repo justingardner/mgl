@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Tutorial: Running a psiTurk Experiment</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Tutorial: Running a psiTurk Experiment</h1>
+
+    <section>
+
+<header>
+    
+
+    <h2>Running a psiTurk Experiment</h2>
+</header>
+
+<article>
+    <!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Running a psiTurk Experiment</title>
+<link href="styles/prettify.css" type="text/css" rel="stylesheet" />
+<script type="text/javascript" src="scripts/prettify.js"></script>
+</head>
+<body>
+
+	<div>
+		<p>
+			There are three different ways that psiTurk experiments can be viewed/run.
+			On AMT, in debug mode, and on a web browser as a normal website detached from 
+			AMT. This tutorial will teach you how to start up the psiTurk server and then
+			run your experiment in these three different ways. 
+		</p>
+	</div>
+	
+	<div>
+		<p>
+			First off lets talk about booting the server. This is done from the psiTurk
+			command line. To access the command line navigate to your project folder and
+			type the command <span class="prettyprint">psiturk</span>. This will open the 
+			command line for psiturk. Once there, use the command <span class="prettyprint">
+			server on</span> to turn on the server, make sure that the host address in config.txt
+			is set to 0.0.0.0. <b>NOTE:</b> the command <span class="prettyprint">
+			server off</span> turns off the server and the command <span class="prettyprint">exit</span>
+			brings you back to the normal UNIX command line. 
+		</p>
+	</div>
+	
+	<div>
+		<p>
+			Once the server is on you now can view the experiment for debugging purposes. This is
+			done by typing the command <span class="prettyprint">debug</span> this will launch your
+			default browser and bring you to the experiment ad page. This is one way to view the experiment
+			it is used for debugging and is very useful but will also come in handy for using the website
+			without the help of AMT. 
+		</p>
+	</div>
+	
+	<div>
+		<p>
+			Now that you know how to view the experiment lets talk about how to run it. There are two ways to
+			run the experiment the first is the usual way using AMT, and the second is as a standalone website.
+			Lets talk first about using AMT and then I will go into using the experiment as a standalone website. 
+			To run the experiment on AMT you need to first switch the server mode to live, this is done with the
+			<span class="prettyprint">live</span> command. <b>NOTE:</b> this should only be done after first testing
+			the experiment in sandbox mode, the process for creating the hit is the same for sandbox mode, but should
+			be done before going live. Once you are live you type the command <span class="prettyprint">hit create</span>
+			and then fill in the information, number of participants, reward, and time. <b>NOTE:</b> I was told to not
+			run more than 100 people with one hit at one time. So run in blocks of 100. Once you finish inputing the values
+			for hit create you are done. Make sure to <b>pay</b> the turkers after running the experiment. Simply putting
+			in the reward value doesnt give them any money. 
+		</p>
+	</div>
+	
+	<div>
+		<p>
+			The second way to run an experiment is as a standalone website. This is a bit tricky and there is probably a
+			better way to do it then what I am about to explain. Once the server is on the website can be accessed from anywhere
+			assuming the host computer is globally accessible. The only issue with just directly accessing the website is that 
+			psiTurk requires several fields in the URL that are given to it by AMT. This can be faked in two ways. The first is to
+			use the debug command, this will generate a URL and if done a lot many personalized URLs can be created. The second
+			way could be to have a site that randomly generates these params and then redirects to the website with those params. 
+		</p>
+	</div>
+</body>
+</html>
+</article>
+
+</section>
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Index</a></h2><h3>Modules</h3><ul><li><a href="module-jgllib.html">jgllib</a></li><li><a href="module-jglTask.html">jglTask</a></li><li><a href="module-stdlib.html">stdlib</a></li></ul><h3>Classes</h3><ul><li><a href="module-jgllib-Canvas.html">Canvas</a></li><li><a href="module-jgllib-Mouse.html">Mouse</a></li><li><a href="module-jglTask.Phase.html">Phase</a></li><li><a href="Set.html">Set</a></li></ul><h3>Tutorials</h3><ul><li><a href="tutorial-Extracting Data.html">Extracting Data</a></li><li><a href="tutorial-Learning Your Way Around a psiTurk Project.html">Learning Your Way Around a psiTurk Project</a></li><li><a href="tutorial-Running a psiTurk Experiment.html">Running a psiTurk Experiment</a></li><li><a href="tutorial-Starting with jglTask.html">Starting with jglTask</a></li><li><a href="tutorial-Working with psiTurk.html">Working with psiTurk</a></li><li><a href="tutorial-Working with surveys.html">Working with surveys</a></li></ul>
+</nav>
+
+<br clear="both">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.3.0-dev</a> on Fri Aug 15 2014 13:15:00 GMT-0400 (EDT)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>
