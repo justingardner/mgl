@@ -30,6 +30,8 @@
 %                               for using the Matlab serial port object - but note that this still has bugs (see code
 %                               comments below in parseArgs function...
 %               commTest = Set to 1 if you just want to test communication with the photometer
+%               fastSearch = Set to 1 if you want to perform an accelerated
+%                           calibration. Default is 0
 %
 %             Old calling style:
 %               calib = moncalib(screenNumber,stepsize,numRepeats,testTable,bitTest,initWaitTime)
@@ -219,121 +221,173 @@ if ~exist('setGamma','var'),setGamma=1;end
 % clear and flush screen
 mglClearScreen(0);mglFlush;
 
-measuredLuminanceSte = NaN(1,length(outputValues));measuredLuminance = NaN(1,length(outputValues));
-measuredXSte = NaN(1,length(outputValues));measuredX = NaN(1,length(outputValues));
-measuredYSte = NaN(1,length(outputValues));measuredY = NaN(1,length(outputValues));
-if verbose == 1,disppercent(-inf,'(moncalib) Measuring luminance');end
-
-% initialize search space algorithm, for tracking
-searchSpace = NaN(1,length(outputValues));
-
-lastIdx = NaN; curIdx = NaN; skipAhead = 4; justSkipped = 0;
-% continue scanning the search space until all values are set to something
-while any(isnan(searchSpace))
-    if isnan(lastIdx) % only ont he first run
-        curIdx = find(isnan(searchSpace),1);
-    else
-        % all subsequent runs: algorithm below:
-        % we want to get all measurements that we can get, but skip quickly
-        % above the measurements that we fail at, so we need to identify
-        % the 'flip point' at which we start getting luminance measurements
-        
-        if justSkipped
-            % we just skipped, if we were successful we should reverse by
-            % one until we fail to get a measurement
-            if measuredLuminance(lastIdx) > 0
-                curIdx = max(lastIdx-1,1);
-                if curIdx==1
-                    justSkipped = 0;
-                    skipAhead = 2;
-                end
-            elseif measuredLuminance(lastIdx+1) > 0
-                % we found the flip point, set everything below us to 0
-                searchSpace(1:lastIdx) = 0;
-                measuredLuminance(1:lastIdx) = 0;
-                measuredLuminanceSte(1:lastIdx) = 0;
-                measuredX(1:lastIdx) = 0;
-                measuredXSte(1:lastIdx) = 0;
-                measuredY(1:lastIdx) = 0;
-                measuredYSte(1:lastIdx) = 0;
-                curIdx = find(isnan(searchSpace),1);
-                justSkipped = 0;
-                skipAhead = 2;
-            else
-                % we didn't get a measurement, so let's skip ahead
-                curIdx = min(lastIdx+skipAhead,length(searchSpace));
-                skipAhead = skipAhead * 2;
-                justSkipped = 1;
-                sprintf('Skipping');
-            end
-        else
-            if measuredLuminance(lastIdx) > 0
-                % we did get a measurement, so just keep going
-                curIdx = find(isnan(searchSpace),1);
-            else
-                % we didn't get a measurement, so let's skip ahead
-                curIdx = min(lastIdx+skipAhead,length(searchSpace));
-                skipAhead = skipAhead * 2;
-                justSkipped = 1;
-                sprintf('Skipping');
-            end
-        end
-    end
-
-    % set the current value
-    val = outputValues(curIdx);
+if ~fastSearch
+    % Run the old search algorithm
     
-    % set the gamma table so that we display this luminance value
-    if setGamma
-        if (verbose>0),disp(sprintf('Setting gamma table output to %f',val));end
+    measuredLuminanceSte = [];measuredLuminance = [];
+    measuredXSte = [];measuredX = [];
+    measuredYSte = [];measuredY = [];
+    if verbose == 1,disppercent(-inf,'(moncalib) Measuring luminance');end
+    for val = outputValues
+      % set the gamma table so that we display this luminance value
+      if setGamma
+        if (verbose>1),disp(sprintf('Setting gamma table output to %f',val));end
         mglSetGammaTable(val*ones(256,1));
-    else
-        if (verbose>0),disp(sprintf('Setting screen output to %f',val));end
+      else
+        if (verbose>1),disp(sprintf('Setting screen output to %f',val));end
         mglClearScreen(val);mglFlush;
-    end
-    % wait a bit to make sure it has changed
-    mglWaitSecs(0.1);
-    % measure the luminace
-    breakOut = 0;
-    for repeatNum = 1:numRepeats
+      end
+      % wait a bit to make sure it has changed
+      mglWaitSecs(0.1);
+      % measure the luminace
+      for repeatNum = 1:numRepeats
         gotMeasurement = 0;badMeasurements = 0;
         while ~gotMeasurement
-            % get the measurement from the photometer
-            [thisMeasuredLuminance(repeatNum) thisMeasuredX(repeatNum) thisMeasuredY(repeatNum)] = photometerMeasure(portNum,photometerNum);
-            % check to see if it is a bad measurement
-            if isnan(thisMeasuredLuminance(repeatNum))
-                % if it is and, we have already tried three times, then give up
-                badMeasurements = badMeasurements+1;
-                if (badMeasurements >= 3)
-                    disp(sprintf('UHOH: Failed to get measurement 3 times, setting to 0 and skipping repeats'));
-                    thisMeasuredLuminance(repeatNum) = 0;
-                    gotMeasurement = 1;
-                    breakOut = 1;
+          % get the measurement from the photometer 
+          [thisMeasuredLuminance(repeatNum) thisMeasuredX(repeatNum) thisMeasuredY(repeatNum)] = photometerMeasure(portNum,photometerNum);
+          % check to see if it is a bad measurement
+          if isnan(thisMeasuredLuminance(repeatNum))
+        % if it is and, we have already tried three times, then give up
+        badMeasurements = badMeasurements+1;
+        if (badMeasurements > 3)
+          disp(sprintf('UHOH: Failed to get measurement 3 times, settint to 0'));
+          thisMeasuredLuminance(repeatNum) = 0;
+          gotMeasurement = 1;
+        end
+        % otherwise we whave the measurement, so keep going
+          else
+        gotMeasurement = 1;
+          end
+        end
+      end
+      % now take median over all repeats of measurement
+      measuredLuminance(end+1) = median(thisMeasuredLuminance(1:numRepeats));
+      measuredLuminanceSte(end+1) = std(thisMeasuredLuminance(1:numRepeats))/sqrt(numRepeats);
+      measuredX(end+1) = median(thisMeasuredX(1:numRepeats));
+      measuredXSte(end+1) = std(thisMeasuredX(1:numRepeats))/sqrt(numRepeats);
+      measuredY(end+1) = median(thisMeasuredY(1:numRepeats));
+      measuredYSte(end+1) = std(thisMeasuredY(1:numRepeats))/sqrt(numRepeats);
+      if (verbose>1),disp(sprintf('Luminance = %0.4f',measuredLuminance(end)));end
+      if verbose == 1,disppercent((find(val==outputValues)-1)/length(outputValues));end
+    end
+else
+    % Run the fast search algorithm
+    measuredLuminanceSte = NaN(1,length(outputValues));measuredLuminance = NaN(1,length(outputValues));
+    measuredXSte = NaN(1,length(outputValues));measuredX = NaN(1,length(outputValues));
+    measuredYSte = NaN(1,length(outputValues));measuredY = NaN(1,length(outputValues));
+    if verbose == 1,disppercent(-inf,'(moncalib) Measuring luminance');end
+
+    % initialize search space algorithm, for tracking
+    searchSpace = NaN(1,length(outputValues));
+
+    lastIdx = NaN; curIdx = NaN; skipAhead = 4; justSkipped = 0;
+    % continue scanning the search space until all values are set to something
+    while any(isnan(searchSpace))
+        if isnan(lastIdx) % only ont he first run
+            curIdx = find(isnan(searchSpace),1);
+        else
+            % all subsequent runs: algorithm below:
+            % we want to get all measurements that we can get, but skip quickly
+            % above the measurements that we fail at, so we need to identify
+            % the 'flip point' at which we start getting luminance measurements
+
+            if justSkipped
+                % we just skipped, if we were successful we should reverse by
+                % one until we fail to get a measurement
+                if measuredLuminance(lastIdx) > 0
+                    curIdx = max(lastIdx-1,1);
+                    if curIdx==1
+                        justSkipped = 0;
+                        skipAhead = 2;
+                    end
+                elseif measuredLuminance(lastIdx+1) > 0
+                    % we found the flip point, set everything below us to 0
+                    searchSpace(1:lastIdx) = 0;
+                    measuredLuminance(1:lastIdx) = 0;
+                    measuredLuminanceSte(1:lastIdx) = 0;
+                    measuredX(1:lastIdx) = 0;
+                    measuredXSte(1:lastIdx) = 0;
+                    measuredY(1:lastIdx) = 0;
+                    measuredYSte(1:lastIdx) = 0;
+                    curIdx = find(isnan(searchSpace),1);
+                    justSkipped = 0;
+                    skipAhead = 2;
+                else
+                    % we didn't get a measurement, so let's skip ahead
+                    curIdx = min(lastIdx+skipAhead,length(searchSpace));
+                    skipAhead = skipAhead * 2;
+                    justSkipped = 1;
+                    sprintf('Skipping');
                 end
-                % otherwise we whave the measurement, so keep going
             else
-                gotMeasurement = 1;
+                if measuredLuminance(lastIdx) > 0
+                    % we did get a measurement, so just keep going
+                    curIdx = find(isnan(searchSpace),1);
+                else
+                    % we didn't get a measurement, so let's skip ahead
+                    curIdx = min(lastIdx+skipAhead,length(searchSpace));
+                    skipAhead = skipAhead * 2;
+                    justSkipped = 1;
+                    sprintf('Skipping');
+                end
             end
         end
-        if breakOut
-            thisMeasuredLuminance(1:numRepeats) = 0;
-            thisMeasuredX(1:numRepeats) = 0;
-            thisMeasuredY(1:numRepeats) = 0;
-            break
+
+        % set the current value
+        val = outputValues(curIdx);
+
+        % set the gamma table so that we display this luminance value
+        if setGamma
+            if (verbose>0),disp(sprintf('Setting gamma table output to %f',val));end
+            mglSetGammaTable(val*ones(256,1));
+        else
+            if (verbose>0),disp(sprintf('Setting screen output to %f',val));end
+            mglClearScreen(val);mglFlush;
         end
+        % wait a bit to make sure it has changed
+        mglWaitSecs(0.1);
+        % measure the luminace
+        breakOut = 0;
+        for repeatNum = 1:numRepeats
+            gotMeasurement = 0;badMeasurements = 0;
+            while ~gotMeasurement
+                % get the measurement from the photometer
+                [thisMeasuredLuminance(repeatNum) thisMeasuredX(repeatNum) thisMeasuredY(repeatNum)] = photometerMeasure(portNum,photometerNum);
+                % check to see if it is a bad measurement
+                if isnan(thisMeasuredLuminance(repeatNum))
+                    % if it is and, we have already tried three times, then give up
+                    badMeasurements = badMeasurements+1;
+                    if (badMeasurements >= 3)
+                        disp(sprintf('UHOH: Failed to get measurement 3 times, setting to 0 and skipping repeats'));
+                        thisMeasuredLuminance(repeatNum) = 0;
+                        gotMeasurement = 1;
+                        breakOut = 1;
+                    end
+                    % otherwise we whave the measurement, so keep going
+                else
+                    gotMeasurement = 1;
+                end
+            end
+            if breakOut
+                thisMeasuredLuminance(1:numRepeats) = 0;
+                thisMeasuredX(1:numRepeats) = 0;
+                thisMeasuredY(1:numRepeats) = 0;
+                break
+            end
+        end
+        % now take median over all repeats of measurement
+        measuredLuminance(curIdx) = median(thisMeasuredLuminance(1:numRepeats));
+        measuredLuminanceSte(curIdx) = std(thisMeasuredLuminance(1:numRepeats))/sqrt(numRepeats);
+        measuredX(curIdx) = median(thisMeasuredX(1:numRepeats));
+        measuredXSte(curIdx) = std(thisMeasuredX(1:numRepeats))/sqrt(numRepeats);
+        measuredY(curIdx) = median(thisMeasuredY(1:numRepeats));
+        measuredYSte(curIdx) = std(thisMeasuredY(1:numRepeats))/sqrt(numRepeats);
+        if (verbose>0),disp(sprintf('Luminance = %0.4f',measuredLuminance(curIdx)));end
+        if verbose == 1,disppercent((find(val==outputValues)-1)/length(outputValues));end
+
+        searchSpace(curIdx) = 1;
+        lastIdx = curIdx;
     end
-    % now take median over all repeats of measurement
-    measuredLuminance(curIdx) = median(thisMeasuredLuminance(1:numRepeats));
-    measuredLuminanceSte(curIdx) = std(thisMeasuredLuminance(1:numRepeats))/sqrt(numRepeats);
-    measuredX(curIdx) = median(thisMeasuredX(1:numRepeats));
-    measuredXSte(curIdx) = std(thisMeasuredX(1:numRepeats))/sqrt(numRepeats);
-    measuredY(curIdx) = median(thisMeasuredY(1:numRepeats));
-    measuredYSte(curIdx) = std(thisMeasuredY(1:numRepeats))/sqrt(numRepeats);
-    if (verbose>0),disp(sprintf('Luminance = %0.4f',measuredLuminance(curIdx)));end
-    if verbose == 1,disppercent((find(val==outputValues)-1)/length(outputValues));end
-    
-    searchSpace(curIdx) = 1;
-    lastIdx = curIdx;
 end
 if (verbose == 1),disppercent(inf);end
 
@@ -2246,6 +2300,7 @@ tableTest = 1;
 bitTest = 0;
 reset = 0;
 justDisplay = 0;
+fastSearch = 0;
 
 bitTestBits = 10;
 bitTestN = 12;
@@ -2300,7 +2355,7 @@ if oldStyleArgs
   if nargs < 6,initWaitTime = 0; else initWaitTime = vars{6};end
 else
   if exist('getArgs') == 2
-    getArgs(vars,{'numRepeats=4','stepsize=1/256','initWaitTime=0','screenNumber=[]','spectrum=0','gamma=1','exponent=0','tableTest=1','bitTest=0','reset=0','gammaEachChannel=0','verbose=1','bitTestBits=10','bitTestNumRepeats=4','bitTestN=12','bitTestBase=0.5','serialPortFun',serialPortFun,'commTest=0'});
+    getArgs(vars,{'numRepeats=4','stepsize=1/256','initWaitTime=0','screenNumber=[]','spectrum=0','gamma=1','exponent=0','tableTest=1','bitTest=0','reset=0','gammaEachChannel=0','verbose=1','bitTestBits=10','bitTestNumRepeats=4','bitTestN=12','bitTestBase=0.5','serialPortFun',serialPortFun,'commTest=0','fastSearch=0'});
   else
     disp(sprintf('(moncalib) To parse string arguments you need getArgs from the mrTools distribution. \nSee here: http://gru.brain.riken.jp/doku.php/mgl/gettingStarted#initial_setup'));
     todo = [];
@@ -2440,6 +2495,8 @@ if ~isfield(calib,'bittest'),
   calib.bittest.n = bitTestN;
   calib.bittest.numRepeats = bitTestNumRepeats;
 end
+
+calib.fastSearch = fastSearch;
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%
