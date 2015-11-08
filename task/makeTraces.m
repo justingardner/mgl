@@ -54,6 +54,7 @@ if (isfield(myscreen,'events'))
       % and add to the ticknum from that last good event to get the ticknum
       % that should have been put in this event
       ticknum = lastGoodTicknum + round((myscreen.events.time(i) - myscreen.events.time(lastGoodEvent))*myscreen.framesPerSecond);
+      disp(sprintf('(makeTraces) Fixing bad ticknum for event %i: %i',i,ticknum));
     end
     % put the data into the trace
     % if it is a force, then only set the current one
