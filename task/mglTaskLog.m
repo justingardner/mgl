@@ -292,6 +292,9 @@ end
 if nargin<2
   verbose = false;
 end
+if nargin<3
+  wiki = false;
+end
 
 % if year is a string, then it means to look up subject
 if isstr(year) && ~isequal(year,'wiki')
@@ -467,6 +470,14 @@ function dispstr = dispLogLine(logEntry,wiki)
 % so if it was not then go look up in stimfile
 % to figure out what task was
 if ~isfield(logEntry,'task'),logEntry.task = {};end
+
+% make sure empty tasks are strings so that unique does not fail
+if iscell(logEntry.task)
+  for i = 1:length(logEntry.task)
+    if isempty(logEntry.task{i}),logEntry.task{i} = '';
+    end
+  end
+end
 
 % add the name of all unique tasks here
 [taskNames ia ic] = unique(logEntry.task);
