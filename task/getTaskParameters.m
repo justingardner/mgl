@@ -13,12 +13,6 @@
 %
 function [experiment stimfile] = getTaskParameters(myscreen,task)
 
-if isfield(myscreen,'uniqueId')
-    % this is a JGL file
-    [experiment stimfile] = jglGetTaskParameters(myscreen,task);
-    return
-end
-
 % check arguments
 experiment = [];stimfile=[];
 if ~any(nargin == [1 2])
