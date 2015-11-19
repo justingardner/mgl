@@ -1,0 +1,76 @@
+<div id="container-questionnaire">
+    <h1>Task Complete</h1>
+
+    <hr>
+
+    <p>You are finished!  Thank you for your contributions to science. You will be eligible for full payment once you answer the following questions.</p>
+
+    <div class="instructions well">
+
+        <form id="postquiz" action="debrief" method="post">
+
+ <!-- beginning of a question -->
+            <div class="row question">
+                <div class="col-md-8">
+								  How many crossings did you count?
+								</div>
+                <div class="col-md-4">
+                    <input id="crossings" name="difficulty" type="numbers"></input>
+                </div>
+            </div>
+            <!-- end of a question -->
+ <!-- beginning of a question -->
+            <div class="row question">
+                <div class="col-md-8">
+								  Did you observe anything you were not expecting to observe?
+									If so, what?
+								</div>
+                <div class="col-md-4">
+                	<textarea id="observation" style="width: 400px; height: 100px;"></textarea>
+								</div>
+            </div>
+            <!-- end of a question -->
+				</form>
+		</div>
+
+		<hr>
+
+    <div class="instructionsnav">
+        <div class="row">
+            <div class="col-xs-2">
+            </div>
+            <div class="col-xs-7">
+            </div>
+            <div class="col-xs-3">
+                <button type="button" id="next" value="next" class="btn btn-primary btn-lg continue" onclick="postSurvey();">
+                    Continue <span class="glyphicon glyphicon-arrow-right"></span>
+                </button>
+            </div>
+        </div>
+    </div>
+    <script>
+    function postSurvey() {
+      jglData.postSurvey = {};
+			var full = true;
+      $(":input").not("#next").each(function() {
+				if (! $(this).val()) {
+					$(this).css("background-color", "red");
+					full = false;
+				  return;
+				}
+			});
+			if (full) {
+				jglData.postSurvey.crossings = $("#crossings").val();
+				jglData.postSurvey.observation = $("#observation").val().replace(/\n/g, ' ');
+			  nextPhase();
+			} else {
+				window.scrollTo(0,0);
+			}
+		}
+
+		$(":input").not("#next").click(function() {
+			$(this).css("background-color", "white");
+		});
+		</script>
+
+</div>

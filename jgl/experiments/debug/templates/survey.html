@@ -1,0 +1,108 @@
+<div id="container-questionnaire">
+	<div class="instructions well">
+		<h1>Below is a quick demographic survey which is optional</h1>
+		
+		<form id="postquiz">
+		<div class="row question">
+		  <div class="col-md-8">
+				What is your gender?
+			</div>
+			<div class="col-md-4">
+				<select id="gender">
+		  		<option value="">-Select one-</option>
+					<option value="male">Male</option>
+					<option value="female">Female</option>
+				</select>
+			</div>
+		</div>
+
+		<div class="row question">
+    	<div class="col-md-8">
+				What is your Age?
+			</div>
+			<div class="col-md-4">
+				<input pattern="[0-9.]+" type="number" id="age"></input>
+    	</div>
+		</div>
+
+		<h1>Please answer the questions about your display below</h1>
+
+		<div class="row question">
+			<div class="col-md-8">
+				What is your screen size in inches?
+			</div>
+			<div class="col-md-4">
+				<input pattern="[0-9.]+" type="number" id="screenSize"></input>
+			</div>
+		</div>
+
+		<div class="row question">
+			<div class="col-md-8">
+				What is your screen ratio (widescreen is 16:9)?
+			</div>
+			<div class="col-md-4">
+				<select id="ratio">
+		  		<option value="">-Select One-</option>
+					<option value="wide">16:9</option>
+					<option value="standard">4:3</option>
+				</select>
+			</div>
+		</div>
+		</form>
+
+    <p></p>
+		<div class="instructionsnav">
+			<div class="row">
+				<div class="col-xs-3">
+  				<button id="but_done" class="btn btn-primary btn-lg continue">Done</button>
+				</div>
+			</div>
+		</div>
+
+	</div>
+
+</div>
+
+<script>
+//  $(document).ready(function () {
+	  $("#but_done").click(function() {
+		  var full = true;
+			$("#screenSize, #ratio").each(function() {
+        if (! $(this).val()) {
+					full = false;
+					$(this).css("background-color", "red");
+				}
+			});
+			if (full) {
+				var height = screen.height;
+				var angle;
+				if ($("#ratio").val() == "wide") {
+          				angle = 0.512393762;
+				} else if($("#ratio").val() == "standard") {
+					angle = 0.6435;
+				}
+				
+				var inHeight = $("#screenSize").val() * Math.sin(angle);
+				myscreen.ppi = height / inHeight;
+				
+				jglData.demographics = {};
+				if ($("#age").val()) {
+					jglData.demographics.age = $("#age").val();
+				} else {
+					jglData.demographics.age = -1;
+				}
+				if ($("#gender").val()) {
+					jglData.demographics.gender = $("#gender").val();
+				} else {
+					jglData.demographics.gender = "";
+				}
+				
+				nextPhase();
+			}
+	  	});
+
+		$(":input").not("#but_done").click(function() {
+			$(this).css("background-color", "white");
+		});
+//	});
+</script>

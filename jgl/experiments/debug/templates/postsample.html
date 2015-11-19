@@ -1,0 +1,57 @@
+<div class="postSample" id="container-questionnaire">
+    <h1>Example Complete</h1>
+
+    <hr>
+
+    <div class="instructions well">
+
+        <form id="postquiz" action="debrief" method="post">
+
+
+            <!-- beginning of a question -->
+            <div class="row question">
+                <div class="col-md-8">
+								  How many crossings did you count?
+								</div>
+                <div class="col-md-4">
+                    <input id="crossings" name="difficulty" type="numbers"></input>
+                </div>
+            </div>
+            <!-- end of a question -->
+        </form>
+    </div>
+
+    <hr>
+
+    <div class="instructionsnav">
+        <div class="row">
+            <div class="col-xs-2">
+            </div>
+            <div class="col-xs-7">
+            </div>
+            <div class="col-xs-3">
+                <button type="button" id="next" value="next" class="btn btn-primary btn-lg continue" onclick="endPostSample();">
+                    Continue <span class="glyphicon glyphicon-arrow-right"></span>
+                </button>
+            </div>
+        </div>
+    </div>
+    <script>
+    function endPostSample() {
+			if (!$("#crossings").val()) {
+        $("#crossings").css("background-color", "red");
+				return;
+			}
+      jglData.postSample = {};
+      $(":input").not("#next").each(function() {
+        eval("jglData.postSample." + $(this).attr("id") + " = " + $(this).val());  
+			});
+			nextPhase();
+		}
+
+		$("#crossings").click(function() {
+			$(this).css("background-color", "white");
+		});
+		</script>
+
+</div>

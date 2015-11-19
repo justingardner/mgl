@@ -1,0 +1,96 @@
+<div id="container-questionnaire">
+	<div class="instructions well">
+
+		<h1>Monitor Calibration</h1>
+<br>
+
+		<div class="row">
+			<canvas id="calcanvas" width="700px" height="300px"></canvas>
+		</div>
+
+		<br>
+		<form>
+		<div class="row question">
+			<div class="col-md-8">
+				Squint your eyes (really! squint hard!), remove your glasses, and lean as far back form the screen as possible (this is important!). Adjust the slider until the patch fades into the background. A value near 2.2 will work for most monitors.
+			</div>
+			<div class="col-md-4">
+				<input type="range" name="r" id="gamma" min="1.5" max="3" default="2.2" step="0.01" oninput="update(this.value);out.value=this.value;">
+				<output name="out" for="r">2.2</output>
+			</div>
+		</div>
+		</form>
+
+    <p></p>
+		<div class="instructionsnav">
+			<div class="row">
+				<div class="col-xs-3">
+  				<button id="but_done" class="btn btn-primary btn-lg continue">Done</button>
+				</div>
+			</div>
+		</div>
+
+	</div>
+
+</div>
+
+<script>
+	// Start by setting up the canvas
+	myscreen.pow = 2.2;
+	var conLow = 0.45; conHigh = 0.55; conBack = 0.5;
+	
+	var calcanvas = document.getElementById('calcanvas');
+	var calctx = calcanvas.getContext("2d");
+	var width = 400, height = 175;
+
+	function update(value) {
+		// cLow = Math.pow(conLow,1/value);
+		// cBack = Math.pow(conBack,1/value);
+		// cHigh = Math.pow(conHigh,1/value);
+		myscreen.pow = parseFloat($("#gamma").val());
+		drawGrid(calcanvas.width/2-width/2,calcanvas.height/2-height/2,width,height,calctx,conLow,conHigh,conBack);
+	}
+
+	function drawGrid(x,y,width,height,ctx,cLow,cHigh,cBack) {
+		calctx.fillStyle = con2hex(cBack);
+		calctx.fillRect(0,0,calcanvas.width,calcanvas.height);
+		// draw low first
+		calctx.strokeStyle = con2hex(cLow);
+		for (i=0;i<width;i+=2) {
+			calctx.beginPath();
+			calctx.moveTo(x+i,y);
+			calctx.lineTo(x+i,y+height);
+			calctx.stroke();
+		}
+		calctx.strokeStyle = con2hex(cHigh);
+		for (i=1;i<width;i+=2) {
+			calctx.beginPath();
+			calctx.moveTo(x+i,y);
+			calctx.lineTo(x+i,y+height);
+			calctx.stroke();
+		}
+	}
+
+	$(document).ready(function () {update(2.2);});
+
+//  $(document).ready(function () {
+	  $("#but_done").click(function() {
+		  var full = true;
+			$("#gamma").each(function() {
+        if (! $(this).val()) {
+					full = false;
+					$(this).css("background-color", "red");
+				}
+			});
+			if (full) {
+				myscreen.pow = $("#gamma").val();
+				
+				nextPhase();
+			}
+	  	});
+
+		$(":input").not("#but_done").click(function() {
+			$(this).css("background-color", "white");
+		});
+//	});
+</script>
