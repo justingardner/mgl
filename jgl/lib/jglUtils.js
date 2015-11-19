@@ -24,8 +24,6 @@
  */
  function jglMakeGrating(width, height, sf, angle, phase, pixPerDeg) {
 
-// TODO. Fix jglMakeArray to return proper 
-
 // Get sf in number of cycles per pixel
 sfPerPix = sf / pixPerDeg; 
 // Convert angle to radians
@@ -33,7 +31,7 @@ angleInRad = ((angle+0)*Math.PI)/180;
 // Phase to radians
 phaseInRad = (phase*Math.PI)*180;
 
-// Get x and y coordinates for the grating in 2D
+// Get x and y coordinates for 2D grating
 xStep = 2*Math.PI/width; 
 yStep = 2*Math.PI/height; 
 x = jglMakeArray(-Math.PI, xStep, Math.PI+1);  // to nudge jglMakeArray to include +PI
@@ -61,34 +59,7 @@ for (ixX = 0; ixX < x.length; ixX++) {
 }
 return(grating); 
 
-/**
-// From Justin's Matlab code
-  % 2D grating
-  % calculate orientation
-  angle = pi*angle/180;
-  a=cos(angle)*sf*2*pi;
-  b=sin(angle)*sf*2*pi;
-
-  % get a grid of x and y coordinates that has 
-  % the correct number of pixels
-  x = -width/2:width/(widthPixels-1):width/2;
-  y = -height/2:height/(heightPixels-1):height/2;
-  [xMesh,yMesh] = meshgrid(x,y);
-
-  % compute grating
-  m = cos(a*xMesh+b*yMesh+phase);
-  */
 }
-
-
-
-// From Matlab
-/**
-function [m xMesh yMesh] = mglMakeGaussian(width,height,sdx,sdy,xCenter,yCenter,xDeg2pix,yDeg2pix) {
-
-}
-*/
-
 
 /**
  * Function to linearize the luminance output relative to input contrast 
