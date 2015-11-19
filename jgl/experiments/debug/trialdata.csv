@@ -1,0 +1,4 @@
+A2Y4CBQY4Z5YAA:3G5W44VEU8029YDPHM3SIIDF3FSKGC,0,1438891212336,"{""phase"": ""INSTRUCTIONS"", ""templates"": [""instructions/instruct-1.html"", ""instructions/instruct-2.html"", ""instructions/instruct-ready.html""], ""action"": ""Begin""}"
+A2Y4CBQY4Z5YAA:3G5W44VEU8029YDPHM3SIIDF3FSKGC,1,1438891213415,"{""phase"": ""INSTRUCTIONS"", ""indexOf"": 0, ""viewTime"": 1075, ""action"": ""NextPage"", ""template"": ""instructions/instruct-1.html""}"
+A2Y4CBQY4Z5YAA:3G5W44VEU8029YDPHM3SIIDF3FSKGC,2,1438891214478,"{""phase"": ""INSTRUCTIONS"", ""indexOf"": 1, ""viewTime"": 1061, ""action"": ""NextPage"", ""template"": ""instructions/instruct-2.html""}"
+A2Y4CBQY4Z5YAA:3G5W44VEU8029YDPHM3SIIDF3FSKGC,3,1438891215175,"{""phase"": ""INSTRUCTIONS"", ""indexOf"": 2, ""viewTime"": 694, ""action"": ""FinishInstructions"", ""template"": ""instructions/instruct-ready.html""}"

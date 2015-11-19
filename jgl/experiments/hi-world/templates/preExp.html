@@ -1,0 +1,35 @@
+<div id="container-questionnaire">
+	<div class="instructions well">
+		<h1>End of Practice</h1>
+
+		<p>Congratulations you completed the practice successfully. You will be paid an additional $1.25 bonus upon completing the experiment. Press continue to begin the experiment.</p>
+
+        <div class="row">
+
+            <div class="alert alert-warning">
+                <b>Warning</b>: The experiment has two parts, each part takes four minutes. Do not quit or close this window! You won't be able to restart.
+            </div>
+
+            <div class="alert alert-danger">
+                <b>Warning</b>: The task is not difficult and, based on the practice, we know you can complete it. If you choose to press randomly or to not press you <b>will not receive the bonus</b>.
+            </div>
+        </div>
+		
+		<div class="instructionsnav">
+			<div class="row">
+				<div class="col-xs-3">
+  				<button id="but_done" class="btn btn-primary btn-lg continue">Continue</button>
+				</div>
+			</div>
+		</div>
+
+	</div>
+
+</div>
+
+<script>
+			$("#but_done").click(function() {	
+				nextPhase();
+	  	});
+
+</script>

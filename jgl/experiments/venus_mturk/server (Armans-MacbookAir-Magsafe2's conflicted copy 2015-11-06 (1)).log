@@ -1,0 +1,256 @@
+2015-11-03 23:08:56,610 /Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/psiturk/psiturk_js/psiturk.js
+[2015-11-03 23:08:56 -0800] [7540] [ERROR] Exception in worker process:
+Traceback (most recent call last):
+  File "/Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/gunicorn/arbiter.py", line 507, in spawn_worker
+    worker.init_process()
+  File "/Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/gunicorn/workers/base.py", line 118, in init_process
+    self.wsgi = self.app.wsgi()
+  File "/Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/gunicorn/app/base.py", line 67, in wsgi
+    self.callable = self.load()
+  File "/Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/psiturk/experiment_server.py", line 49, in load
+    return util.import_app("psiturk.experiment:app")
+  File "/Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/gunicorn/util.py", line 355, in import_app
+    __import__(module)
+  File "/Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/psiturk/experiment.py", line 85, in <module>
+    init_db()
+  File "/Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/psiturk/db.py", line 23, in init_db
+    Base.metadata.create_all(bind=engine)
+  File "/Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/sqlalchemy/sql/schema.py", line 3622, in create_all
+    tables=tables)
+  File "/Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/sqlalchemy/engine/base.py", line 1854, in _run_visitor
+    conn._run_visitor(visitorcallable, element, **kwargs)
+  File "/Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/sqlalchemy/engine/base.py", line 1481, in _run_visitor
+    **kwargs).traverse_single(element)
+  File "/Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/sqlalchemy/sql/visitors.py", line 121, in traverse_single
+    return meth(obj, **kw)
+  File "/Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/sqlalchemy/sql/ddl.py", line 730, in visit_metadata
+    _is_metadata_operation=True)
+  File "/Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/sqlalchemy/sql/visitors.py", line 121, in traverse_single
+    return meth(obj, **kw)
+  File "/Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/sqlalchemy/sql/ddl.py", line 764, in visit_table
+    include_foreign_key_constraints=include_foreign_key_constraints
+  File "/Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/sqlalchemy/engine/base.py", line 914, in execute
+    return meth(self, multiparams, params)
+  File "/Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/sqlalchemy/sql/ddl.py", line 68, in _execute_on_connection
+    return connection._execute_ddl(self, multiparams, params)
+  File "/Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/sqlalchemy/engine/base.py", line 968, in _execute_ddl
+    compiled
+  File "/Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/sqlalchemy/engine/base.py", line 1146, in _execute_context
+    context)
+  File "/Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/sqlalchemy/engine/base.py", line 1341, in _handle_dbapi_exception
+    exc_info
+  File "/Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/sqlalchemy/util/compat.py", line 199, in raise_from_cause
+    reraise(type(exception), exception, tb=exc_tb)
+  File "/Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/sqlalchemy/engine/base.py", line 1139, in _execute_context
+    context)
+  File "/Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/sqlalchemy/engine/default.py", line 450, in do_execute
+    cursor.execute(statement, parameters)
+OperationalError: (sqlite3.OperationalError) table venus_mturk already exists [SQL: u'\nCREATE TABLE venus_mturk (\n\tuniqueid VARCHAR(128) NOT NULL, \n\tassignmentid VARCHAR(128) NOT NULL, \n\tworkerid VARCHAR(128) NOT NULL, \n\thitid VARCHAR(128) NOT NULL, \n\tipaddress VARCHAR(128), \n\tbrowser VARCHAR(128), \n\tplatform VARCHAR(128), \n\tlanguage VARCHAR(128), \n\tcond INTEGER, \n\tcounterbalance INTEGER, \n\tcodeversion VARCHAR(128), \n\tbeginhit DATETIME, \n\tbeginexp DATETIME, \n\tendhit DATETIME, \n\tbonus FLOAT, \n\tstatus INTEGER, \n\tdatastring TEXT(4294967295), \n\tPRIMARY KEY (uniqueid)\n)\n\n']
+Traceback (most recent call last):
+  File "/Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/gunicorn/arbiter.py", line 507, in spawn_worker
+    worker.init_process()
+  File "/Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/gunicorn/workers/base.py", line 118, in init_process
+    self.wsgi = self.app.wsgi()
+  File "/Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/gunicorn/app/base.py", line 67, in wsgi
+    self.callable = self.load()
+  File "/Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/psiturk/experiment_server.py", line 49, in load
+    return util.import_app("psiturk.experiment:app")
+  File "/Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/gunicorn/util.py", line 355, in import_app
+    __import__(module)
+  File "/Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/psiturk/experiment.py", line 85, in <module>
+    init_db()
+  File "/Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/psiturk/db.py", line 23, in init_db
+    Base.metadata.create_all(bind=engine)
+  File "/Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/sqlalchemy/sql/schema.py", line 3622, in create_all
+    tables=tables)
+  File "/Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/sqlalchemy/engine/base.py", line 1854, in _run_visitor
+    conn._run_visitor(visitorcallable, element, **kwargs)
+  File "/Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/sqlalchemy/engine/base.py", line 1481, in _run_visitor
+    **kwargs).traverse_single(element)
+  File "/Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/sqlalchemy/sql/visitors.py", line 121, in traverse_single
+    return meth(obj, **kw)
+  File "/Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/sqlalchemy/sql/ddl.py", line 730, in visit_metadata
+    _is_metadata_operation=True)
+  File "/Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/sqlalchemy/sql/visitors.py", line 121, in traverse_single
+    return meth(obj, **kw)
+  File "/Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/sqlalchemy/sql/ddl.py", line 764, in visit_table
+    include_foreign_key_constraints=include_foreign_key_constraints
+  File "/Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/sqlalchemy/engine/base.py", line 914, in execute
+    return meth(self, multiparams, params)
+  File "/Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/sqlalchemy/sql/ddl.py", line 68, in _execute_on_connection
+    return connection._execute_ddl(self, multiparams, params)
+  File "/Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/sqlalchemy/engine/base.py", line 968, in _execute_ddl
+    compiled
+  File "/Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/sqlalchemy/engine/base.py", line 1146, in _execute_context
+    context)
+  File "/Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/sqlalchemy/engine/base.py", line 1341, in _handle_dbapi_exception
+    exc_info
+  File "/Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/sqlalchemy/util/compat.py", line 199, in raise_from_cause
+    reraise(type(exception), exception, tb=exc_tb)
+  File "/Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/sqlalchemy/engine/base.py", line 1139, in _execute_context
+    context)
+  File "/Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/sqlalchemy/engine/default.py", line 450, in do_execute
+    cursor.execute(statement, parameters)
+OperationalError: (sqlite3.OperationalError) table venus_mturk already exists [SQL: u'\nCREATE TABLE venus_mturk (\n\tuniqueid VARCHAR(128) NOT NULL, \n\tassignmentid VARCHAR(128) NOT NULL, \n\tworkerid VARCHAR(128) NOT NULL, \n\thitid VARCHAR(128) NOT NULL, \n\tipaddress VARCHAR(128), \n\tbrowser VARCHAR(128), \n\tplatform VARCHAR(128), \n\tlanguage VARCHAR(128), \n\tcond INTEGER, \n\tcounterbalance INTEGER, \n\tcodeversion VARCHAR(128), \n\tbeginhit DATETIME, \n\tbeginexp DATETIME, \n\tendhit DATETIME, \n\tbonus FLOAT, \n\tstatus INTEGER, \n\tdatastring TEXT(4294967295), \n\tPRIMARY KEY (uniqueid)\n)\n\n']
+2015-11-03 23:08:56,719 /Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/psiturk/psiturk_js/psiturk.js
+2015-11-03 23:09:03,367 /Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/psiturk/psiturk_js/psiturk.js
+2015-11-03 23:09:03,438 /Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/psiturk/psiturk_js/psiturk.js
+2015-11-03 23:09:03,517 /Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/psiturk/psiturk_js/psiturk.js
+[2015-11-04 02:00:00 -0800] [7554] [CRITICAL] WORKER TIMEOUT (pid:7557)
+[2015-11-04 02:00:00 -0800] [7554] [CRITICAL] WORKER TIMEOUT (pid:7558)
+[2015-11-04 02:00:00 -0800] [7554] [CRITICAL] WORKER TIMEOUT (pid:7559)
+2015-11-04 02:00:02,142 /Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/psiturk/psiturk_js/psiturk.js
+2015-11-04 02:00:02,142 /Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/psiturk/psiturk_js/psiturk.js
+2015-11-04 02:00:02,146 /Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/psiturk/psiturk_js/psiturk.js
+[2015-11-04 03:00:46 -0800] [7554] [CRITICAL] WORKER TIMEOUT (pid:9154)
+[2015-11-04 03:00:46 -0800] [7554] [CRITICAL] WORKER TIMEOUT (pid:9156)
+[2015-11-04 03:00:46 -0800] [7554] [CRITICAL] WORKER TIMEOUT (pid:9157)
+2015-11-04 03:00:47,545 /Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/psiturk/psiturk_js/psiturk.js
+2015-11-04 03:00:47,571 /Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/psiturk/psiturk_js/psiturk.js
+2015-11-04 03:00:47,678 /Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/psiturk/psiturk_js/psiturk.js
+[2015-11-04 04:35:27 -0800] [7554] [CRITICAL] WORKER TIMEOUT (pid:9178)
+[2015-11-04 04:35:27 -0800] [7554] [CRITICAL] WORKER TIMEOUT (pid:9179)
+[2015-11-04 04:35:27 -0800] [7554] [CRITICAL] WORKER TIMEOUT (pid:9180)
+2015-11-04 04:35:28,842 /Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/psiturk/psiturk_js/psiturk.js
+2015-11-04 04:35:28,844 /Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/psiturk/psiturk_js/psiturk.js
+2015-11-04 04:35:28,870 /Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/psiturk/psiturk_js/psiturk.js
+[2015-11-04 09:06:13 -0800] [7554] [CRITICAL] WORKER TIMEOUT (pid:9288)
+[2015-11-04 09:06:13 -0800] [7554] [CRITICAL] WORKER TIMEOUT (pid:9290)
+[2015-11-04 09:06:13 -0800] [7554] [CRITICAL] WORKER TIMEOUT (pid:9291)
+2015-11-04 09:06:14,807 /Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/psiturk/psiturk_js/psiturk.js
+2015-11-04 09:06:14,820 /Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/psiturk/psiturk_js/psiturk.js
+2015-11-04 09:06:14,825 /Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/psiturk/psiturk_js/psiturk.js
+[2015-11-04 10:36:58 -0800] [7554] [CRITICAL] WORKER TIMEOUT (pid:9317)
+[2015-11-04 10:36:58 -0800] [7554] [CRITICAL] WORKER TIMEOUT (pid:9318)
+[2015-11-04 10:36:58 -0800] [7554] [CRITICAL] WORKER TIMEOUT (pid:9319)
+2015-11-04 10:37:00,133 /Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/psiturk/psiturk_js/psiturk.js
+2015-11-04 10:37:00,133 /Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/psiturk/psiturk_js/psiturk.js
+2015-11-04 10:37:00,138 /Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/psiturk/psiturk_js/psiturk.js
+[2015-11-04 11:32:30 -0800] [7554] [CRITICAL] WORKER TIMEOUT (pid:9338)
+[2015-11-04 11:32:30 -0800] [7554] [CRITICAL] WORKER TIMEOUT (pid:9339)
+[2015-11-04 11:32:30 -0800] [7554] [CRITICAL] WORKER TIMEOUT (pid:9340)
+2015-11-04 11:32:35,678 /Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/psiturk/psiturk_js/psiturk.js
+2015-11-04 11:32:35,725 /Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/psiturk/psiturk_js/psiturk.js
+2015-11-04 11:32:35,805 /Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/psiturk/psiturk_js/psiturk.js
+[2015-11-04 11:59:38 -0800] [7554] [CRITICAL] WORKER TIMEOUT (pid:9360)
+[2015-11-04 11:59:38 -0800] [7554] [CRITICAL] WORKER TIMEOUT (pid:9361)
+[2015-11-04 11:59:38 -0800] [7554] [CRITICAL] WORKER TIMEOUT (pid:9359)
+2015-11-04 11:59:42,237 /Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/psiturk/psiturk_js/psiturk.js
+2015-11-04 11:59:42,237 /Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/psiturk/psiturk_js/psiturk.js
+2015-11-04 11:59:42,264 /Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/psiturk/psiturk_js/psiturk.js
+[2015-11-04 13:05:24 -0800] [7554] [CRITICAL] WORKER TIMEOUT (pid:9665)
+[2015-11-04 13:05:24 -0800] [7554] [CRITICAL] WORKER TIMEOUT (pid:9666)
+[2015-11-04 13:05:24 -0800] [7554] [CRITICAL] WORKER TIMEOUT (pid:9668)
+2015-11-04 13:05:26,446 /Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/psiturk/psiturk_js/psiturk.js
+2015-11-04 13:05:26,446 /Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/psiturk/psiturk_js/psiturk.js
+2015-11-04 13:05:26,448 /Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/psiturk/psiturk_js/psiturk.js
+[2015-11-04 17:29:14 -0800] [7554] [CRITICAL] WORKER TIMEOUT (pid:10261)
+[2015-11-04 17:29:14 -0800] [7554] [CRITICAL] WORKER TIMEOUT (pid:10262)
+[2015-11-04 17:29:14 -0800] [7554] [CRITICAL] WORKER TIMEOUT (pid:10260)
+[2015-11-04 19:07:15 -0800] [7554] [CRITICAL] WORKER TIMEOUT (pid:12002)
+[2015-11-04 19:07:15 -0800] [7554] [CRITICAL] WORKER TIMEOUT (pid:12003)
+[2015-11-04 19:07:15 -0800] [7554] [CRITICAL] WORKER TIMEOUT (pid:12004)
+2015-11-04 19:07:22,508 /Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/psiturk/psiturk_js/psiturk.js
+2015-11-04 19:07:22,600 /Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/psiturk/psiturk_js/psiturk.js
+2015-11-04 19:07:22,602 /Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/psiturk/psiturk_js/psiturk.js
+[2015-11-04 21:46:02 -0800] [7554] [CRITICAL] WORKER TIMEOUT (pid:12011)
+[2015-11-04 21:46:02 -0800] [7554] [CRITICAL] WORKER TIMEOUT (pid:12012)
+[2015-11-04 21:46:02 -0800] [7554] [CRITICAL] WORKER TIMEOUT (pid:12013)
+[2015-11-04 21:47:29 -0800] [7554] [CRITICAL] WORKER TIMEOUT (pid:12806)
+[2015-11-04 22:01:05 -0800] [7554] [CRITICAL] WORKER TIMEOUT (pid:12807)
+[2015-11-04 22:01:06 -0800] [7554] [CRITICAL] WORKER TIMEOUT (pid:12808)
+[2015-11-04 22:01:06 -0800] [7554] [CRITICAL] WORKER TIMEOUT (pid:12809)
+2015-11-04 22:01:11,177 /Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/psiturk/psiturk_js/psiturk.js
+2015-11-04 22:01:11,204 /Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/psiturk/psiturk_js/psiturk.js
+2015-11-04 22:01:11,349 /Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/psiturk/psiturk_js/psiturk.js
+[2015-11-05 00:24:00 -0800] [7554] [CRITICAL] WORKER TIMEOUT (pid:12818)
+[2015-11-05 00:24:00 -0800] [7554] [CRITICAL] WORKER TIMEOUT (pid:12819)
+[2015-11-05 00:24:00 -0800] [7554] [CRITICAL] WORKER TIMEOUT (pid:12813)
+2015-11-05 00:24:02,192 /Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/psiturk/psiturk_js/psiturk.js
+2015-11-05 00:24:02,192 /Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/psiturk/psiturk_js/psiturk.js
+2015-11-05 00:24:02,211 /Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/psiturk/psiturk_js/psiturk.js
+[2015-11-05 01:28:58 -0800] [7554] [CRITICAL] WORKER TIMEOUT (pid:13666)
+[2015-11-05 01:28:58 -0800] [7554] [CRITICAL] WORKER TIMEOUT (pid:13667)
+[2015-11-05 01:28:58 -0800] [7554] [CRITICAL] WORKER TIMEOUT (pid:13663)
+2015-11-05 01:29:00,057 /Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/psiturk/psiturk_js/psiturk.js
+2015-11-05 01:29:00,058 /Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/psiturk/psiturk_js/psiturk.js
+2015-11-05 01:29:00,061 /Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/psiturk/psiturk_js/psiturk.js
+[2015-11-05 02:00:00 -0800] [7554] [CRITICAL] WORKER TIMEOUT (pid:13760)
+[2015-11-05 02:00:00 -0800] [7554] [CRITICAL] WORKER TIMEOUT (pid:13758)
+[2015-11-05 02:00:00 -0800] [7554] [CRITICAL] WORKER TIMEOUT (pid:13759)
+2015-11-05 02:00:01,797 /Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/psiturk/psiturk_js/psiturk.js
+2015-11-05 02:00:01,801 /Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/psiturk/psiturk_js/psiturk.js
+2015-11-05 02:00:01,810 /Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/psiturk/psiturk_js/psiturk.js
+[2015-11-05 09:15:45 -0800] [7554] [CRITICAL] WORKER TIMEOUT (pid:13792)
+[2015-11-05 09:15:45 -0800] [7554] [CRITICAL] WORKER TIMEOUT (pid:13790)
+[2015-11-05 09:15:45 -0800] [7554] [CRITICAL] WORKER TIMEOUT (pid:13791)
+2015-11-05 09:15:46,733 /Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/psiturk/psiturk_js/psiturk.js
+2015-11-05 09:15:46,740 /Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/psiturk/psiturk_js/psiturk.js
+2015-11-05 09:15:46,960 /Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/psiturk/psiturk_js/psiturk.js
+[2015-11-05 10:16:30 -0800] [7554] [CRITICAL] WORKER TIMEOUT (pid:13813)
+[2015-11-05 10:16:30 -0800] [7554] [CRITICAL] WORKER TIMEOUT (pid:13814)
+[2015-11-05 10:16:30 -0800] [7554] [CRITICAL] WORKER TIMEOUT (pid:13815)
+2015-11-05 10:16:32,874 /Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/psiturk/psiturk_js/psiturk.js
+2015-11-05 10:16:32,875 /Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/psiturk/psiturk_js/psiturk.js
+2015-11-05 10:16:32,897 /Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/psiturk/psiturk_js/psiturk.js
+[2015-11-05 10:32:40 -0800] [7554] [CRITICAL] WORKER TIMEOUT (pid:13853)
+[2015-11-05 10:32:40 -0800] [7554] [CRITICAL] WORKER TIMEOUT (pid:13854)
+[2015-11-05 10:32:40 -0800] [7554] [CRITICAL] WORKER TIMEOUT (pid:13855)
+2015-11-05 10:32:41,600 /Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/psiturk/psiturk_js/psiturk.js
+2015-11-05 10:32:41,615 /Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/psiturk/psiturk_js/psiturk.js
+2015-11-05 10:32:41,631 /Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/psiturk/psiturk_js/psiturk.js
+[2015-11-05 11:16:47 -0800] [7554] [CRITICAL] WORKER TIMEOUT (pid:13866)
+[2015-11-05 11:16:47 -0800] [7554] [CRITICAL] WORKER TIMEOUT (pid:13867)
+[2015-11-05 11:16:47 -0800] [7554] [CRITICAL] WORKER TIMEOUT (pid:13868)
+2015-11-05 11:16:48,964 /Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/psiturk/psiturk_js/psiturk.js
+2015-11-05 11:16:48,968 /Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/psiturk/psiturk_js/psiturk.js
+2015-11-05 11:16:48,972 /Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/psiturk/psiturk_js/psiturk.js
+[2015-11-05 11:39:50 -0800] [7554] [CRITICAL] WORKER TIMEOUT (pid:13872)
+[2015-11-05 11:39:50 -0800] [7554] [CRITICAL] WORKER TIMEOUT (pid:13873)
+[2015-11-05 11:39:50 -0800] [7554] [CRITICAL] WORKER TIMEOUT (pid:13874)
+2015-11-05 11:39:51,839 /Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/psiturk/psiturk_js/psiturk.js
+2015-11-05 11:39:51,839 /Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/psiturk/psiturk_js/psiturk.js
+2015-11-05 11:39:51,840 /Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/psiturk/psiturk_js/psiturk.js
+[2015-11-05 12:49:52 -0800] [7554] [CRITICAL] WORKER TIMEOUT (pid:14120)
+[2015-11-05 12:49:52 -0800] [7554] [CRITICAL] WORKER TIMEOUT (pid:14121)
+[2015-11-05 12:49:52 -0800] [7554] [CRITICAL] WORKER TIMEOUT (pid:14122)
+2015-11-05 12:49:53,501 /Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/psiturk/psiturk_js/psiturk.js
+2015-11-05 12:49:53,524 /Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/psiturk/psiturk_js/psiturk.js
+2015-11-05 12:49:53,606 /Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/psiturk/psiturk_js/psiturk.js
+[2015-11-05 13:53:22 -0800] [7554] [CRITICAL] WORKER TIMEOUT (pid:14128)
+[2015-11-05 13:53:22 -0800] [7554] [CRITICAL] WORKER TIMEOUT (pid:14129)
+2015-11-05 13:53:24,927 /Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/psiturk/psiturk_js/psiturk.js
+2015-11-05 13:53:24,928 /Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/psiturk/psiturk_js/psiturk.js
+[2015-11-05 16:39:13 -0800] [7554] [CRITICAL] WORKER TIMEOUT (pid:14136)
+[2015-11-05 16:39:13 -0800] [7554] [CRITICAL] WORKER TIMEOUT (pid:14137)
+[2015-11-05 16:39:13 -0800] [7554] [CRITICAL] WORKER TIMEOUT (pid:14127)
+2015-11-05 16:39:14,661 /Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/psiturk/psiturk_js/psiturk.js
+2015-11-05 16:39:14,661 /Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/psiturk/psiturk_js/psiturk.js
+2015-11-05 16:39:14,694 /Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/psiturk/psiturk_js/psiturk.js
+[2015-11-05 17:39:58 -0800] [7554] [CRITICAL] WORKER TIMEOUT (pid:14160)
+[2015-11-05 17:39:58 -0800] [7554] [CRITICAL] WORKER TIMEOUT (pid:14158)
+[2015-11-05 17:39:58 -0800] [7554] [CRITICAL] WORKER TIMEOUT (pid:14159)
+2015-11-05 17:39:59,657 /Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/psiturk/psiturk_js/psiturk.js
+2015-11-05 17:39:59,657 /Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/psiturk/psiturk_js/psiturk.js
+2015-11-05 17:39:59,715 /Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/psiturk/psiturk_js/psiturk.js
+2015-11-05 19:51:59,938 /Users/arman/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/psiturk/psiturk_js/psiturk.js
+2015-11-05 19:51:59,938 /Users/arman/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/psiturk/psiturk_js/psiturk.js
+2015-11-05 19:51:59,938 /Users/arman/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/psiturk/psiturk_js/psiturk.js
+2015-11-05 21:40:46,579 /Users/arman/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/psiturk/psiturk_js/psiturk.js
+2015-11-05 21:40:46,581 /Users/arman/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/psiturk/psiturk_js/psiturk.js
+2015-11-05 21:40:46,643 /Users/arman/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/psiturk/psiturk_js/psiturk.js
+2015-11-05 21:41:37,252 /Users/arman/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/psiturk/psiturk_js/psiturk.js
+2015-11-05 21:41:37,329 /Users/arman/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/psiturk/psiturk_js/psiturk.js
+2015-11-05 21:41:37,414 /Users/arman/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/psiturk/psiturk_js/psiturk.js
+2015-11-05 23:30:15,129 /Users/arman/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/psiturk/psiturk_js/psiturk.js
+2015-11-05 23:30:15,234 /Users/arman/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/psiturk/psiturk_js/psiturk.js
+2015-11-05 23:30:15,260 /Users/arman/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/psiturk/psiturk_js/psiturk.js
+2015-11-06 01:19:42,523 /Users/arman/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/psiturk/psiturk_js/psiturk.js
+2015-11-06 01:19:42,525 /Users/arman/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/psiturk/psiturk_js/psiturk.js
+2015-11-06 01:19:42,577 /Users/arman/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/psiturk/psiturk_js/psiturk.js
+2015-11-06 08:44:27,161 /Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/psiturk/psiturk_js/psiturk.js
+2015-11-06 08:44:27,182 /Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/psiturk/psiturk_js/psiturk.js
+2015-11-06 08:44:27,187 /Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/psiturk/psiturk_js/psiturk.js
+2015-11-06 11:45:01,798 /Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/psiturk/psiturk_js/psiturk.js
+2015-11-06 11:45:01,803 /Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/psiturk/psiturk_js/psiturk.js
+2015-11-06 11:45:01,868 /Users/armanabrahamyan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/psiturk/psiturk_js/psiturk.js

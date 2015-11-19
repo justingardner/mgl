@@ -1,0 +1,436 @@
+{
+	"auto_complete":
+	{
+		"selected_items":
+		[
+			[
+				"dY",
+				"display"
+			],
+			[
+				"app",
+				"appendTo"
+			],
+			[
+				"work",
+				"workerId"
+			],
+			[
+				"onLo",
+				"onLoadedAll"
+			],
+			[
+				"onL",
+				"onLoadedOne"
+			],
+			[
+				"cancel",
+				"cancelAnimationFrame"
+			],
+			[
+				"can",
+				"CancelRequestAnimationFrame"
+			]
+		]
+	},
+	"buffers":
+	[
+	],
+	"build_system": "",
+	"build_system_choices":
+	[
+	],
+	"build_varint": "",
+	"command_palette":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"console":
+	{
+		"height": 0.0,
+		"history":
+		[
+		]
+	},
+	"distraction_free":
+	{
+		"menu_visible": true,
+		"show_minimap": false,
+		"show_open_files": false,
+		"show_tabs": false,
+		"side_bar_visible": false,
+		"status_bar_visible": false
+	},
+	"expanded_folders":
+	[
+		"/Users/dan/proj/jgl/cohcon",
+		"/Users/dan/proj/jgl/cohcon/static",
+		"/Users/dan/proj/jgl/cohcon/static/css",
+		"/Users/dan/proj/jgl/cohcon/static/images",
+		"/Users/dan/proj/jgl/cohcon/static/js",
+		"/Users/dan/proj/jgl/cohcon/static/lib",
+		"/Users/dan/proj/jgl/cohcon/templates",
+		"/Users/dan/proj/jgl/cohcon/templates/instructions"
+	],
+	"file_history":
+	[
+		"/Users/dan/proj/jgl/cohcon/static/js/task.js",
+		"/Users/dan/proj/jgl/cohcon/static/lib/jgllib.js",
+		"/Users/dan/proj/jgl/cohcon/static/lib/jglTask.js",
+		"/Users/dan/proj/jgl/cohcon/templates/instructions/instruct-5.html",
+		"/Users/dan/proj/jgl/cohcon/templates/instructions/instruct-4.html",
+		"/Users/dan/proj/jgl/cohcon/templates/instructions/instruct-4-5.html",
+		"/Users/dan/proj/jgl/cohcon/templates/instructions/instruct-ready.html",
+		"/Users/dan/proj/jgl/cohcon/templates/instructions/instruct-2.html",
+		"/Users/dan/proj/jgl/cohcon/templates/instructions/instruct-3.html",
+		"/Users/dan/proj/agency/settings.json",
+		"/Users/dan/proj/jgl/cohcon/static/js/utils.js",
+		"/Users/dan/proj/jgl/cohcon/templates/surveyScreen.html",
+		"/Users/dan/proj/jgl/cohcon/templates/surveyDemo.html",
+		"/Users/dan/proj/jgl/cohcon/templates/survey.html",
+		"/Users/dan/proj/jgl/cohcon/config.txt",
+		"/Users/dan/.ssh/config",
+		"/Users/dan/.ssh/known_hosts",
+		"/Users/dan/proj/jgl/task/runExp.js",
+		"/Users/dan/proj/jgl/cohcon/static/css/style.css",
+		"/Users/dan/proj/jgl/cohcon/templates/ad.html",
+		"/Users/dan/proj/jgl/cohcon/templates/complete.html",
+		"/Users/dan/proj/jgl/cohcon/templates/thanks.html",
+		"/Users/dan/proj/jgl/cohcon/templates/postquestionnaire-2.html",
+		"/Users/dan/proj/jgl/cohcon/templates/preExp.html",
+		"/Users/dan/proj/jgl/cohcon/templates/instructions/instruct-mot.html",
+		"/Users/dan/proj/jgl/cohcon/templates/instructions/instruct-con.html",
+		"/Users/dan/proj/jgl/task/jglTask.js",
+		"/Users/dan/proj/jgl/cohcon/templates/exp.html",
+		"/Users/dan/proj/jgl/cohcon/templates/default.html",
+		"/Users/dan/proj/jgl/cohcon/templates/attend-coh.html",
+		"/Users/dan/proj/jgl/cohcon/templates/attend.html",
+		"/Users/dan/proj/jgl/cohcon/templates/consent.html",
+		"/Users/dan/proj/jgl/cohcon/templates/postsample.html",
+		"/Users/dan/Library/Application Support/Sublime Text 3/Packages/Default/Preferences.sublime-settings",
+		"/Users/dan/Library/Application Support/Screen Sharing/oban.vncloc",
+		"/Users/dan/proj/jgl/cohcon/templates/instructions/instruct-1.html",
+		"/Users/dan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/psiturk/models.py",
+		"/Users/dan/proj/agency/sandbox-results/351SEKWQS1ZUN23108F0RA2MFSWDMP.json",
+		"/Users/dan/proj/jgl/gorrilla-example/static/js/alttrialexperiment.js",
+		"/Users/dan/Desktop/psiturk_shell.py",
+		"/Users/dan/proj/jgl/gorrilla-example/static/js/task.js",
+		"/Users/dan/proj/agency/code/agency.html",
+		"/Users/dan/proj/agency/code/agency.js",
+		"/Users/dan/proj/agency/code/agency.css",
+		"/Users/dan/proj/agency/code/agencyIntro.html",
+		"/C/Users/Dan/proj/web/index.html",
+		"/C/Users/Dan/proj/web/index.css",
+		"/C/Users/Dan/proj/web/index.js",
+		"/C/Users/Dan/AppData/Roaming/Sublime Text 2/Packages/Default/Preferences.sublime-settings",
+		"/C/Users/Dan/proj/agency/code/agency.html",
+		"/C/Users/Dan/proj/agency/code/agency.css",
+		"/C/Users/Dan/proj/agency/code/agency.js",
+		"/C/Users/Dan/proj/agency/code/agencyIntro.html",
+		"/C/Users/Dan/proj/agency/code/preview.js",
+		"/C/Users/Dan/proj/repo254/production-results/3COPXFW7XBCFSBAZ419NF6MOY0TKP0.json",
+		"/C/Users/Dan/proj/repo254/production-results/3CP1TO84PT1GILOQVGU5H4VDQ0E25I.json",
+		"/C/Users/Dan/proj/repo254/production-results/3EF8EXOTT1VH0ZLF1EYLDV4DGVR1JI.json",
+		"/C/Users/Dan/proj/repo254/production-results/3EG49X351UCD25R1OOP3Z039Z03X69.json",
+		"/C/Users/Dan/proj/repo254/production-results/3EG49X351UCD25R1OOP3Z039Z4N6XA.json",
+		"/C/Users/Dan/proj/repo254/production-results/3EKVH9QMEY4BMY3JAMCOFGJ53H62DK.json",
+		"/C/Users/Dan/proj/repo254/production-results/3FQ5JJ512LOFPQYMOMWVBHHTYLVKN7.json",
+		"/C/Users/Dan/proj/repo254/production-results/3J88R45B2GYLCB963KOC50UQU9CXP6.json",
+		"/C/Users/Dan/proj/repo254/production-results/3KXIR214I4GYM2KQHBBVCCPZQ4A244.json",
+		"/C/Users/Dan/proj/repo254/production-results/3LOTDFNYA7ZUWYFMFCWLRN2FJ1HFWQ.json",
+		"/C/Users/Dan/proj/repo254/production-results/3M0NZ3JDP1Y6OWR2KN3J4F5KB9BZ5L.json",
+		"/C/Users/Dan/proj/repo254/production-results/3MX2NQ3YC9UHJ1RNJ5FY7UP9398X5H.json",
+		"/C/Users/Dan/proj/repo254/production-results/3NGI5ARFTT5DMAODWR35ARQPPUVP14.json",
+		"/C/Users/Dan/proj/repo254/production-results/3OUYGIZWR7YDFL3V08Z5WM7FK2SP04.json",
+		"/C/Users/Dan/proj/repo254/production-results/3OWEPKL089CRUBR25S7M7CC7SXDN7E.json",
+		"/C/Users/Dan/proj/repo254/production-results/3QAPZX2QN4DHNE2PYAOT09ZM9SX02P.json",
+		"/C/Users/Dan/proj/repo254/production-results/3RGU30DZTA8EWO74U0HJXNSGE6IJM4.json",
+		"/C/Users/Dan/proj/repo254/production-results/3RSDURM96AM6FPAQZ2U3U22VI8ZEY3.json",
+		"/C/Users/Dan/proj/repo254/production-results/3TMSXRD2X6036JLE8DH02LYLIR1W19.json",
+		"/C/Users/Dan/proj/repo254/production-results/3TVSS0C0E104F3XNAW1A8RHGAALWTB.json",
+		"/C/Users/Dan/proj/repo254/production-results/3VE8AYVF8MXJ6XJ4H9GFD7ZT1UH8F7.json",
+		"/C/Users/Dan/proj/repo254/production-results/3X66WABAJWI3J09TGCR14BRUMNQG3N.json",
+		"/C/Users/Dan/proj/repo254/production-results/3ZV9H2YQQD7ZGMZTVHVJQEDIG7UW38.json",
+		"/C/Users/Dan/proj/repo254/production-results/30MVJZJNHMDZP4OA5RDES1MWE3W9J8.json",
+		"/C/Users/Dan/proj/repo254/production-results/34FNN24DCM96J6HXO110Q8WI5F4Y5Q.json",
+		"/C/Users/Dan/proj/repo254/production-results/34V1S5K3GS1N1993L8JPJXHRS1X69S.json",
+		"/C/Users/Dan/proj/repo254/production-results/37WLF8U1WPQ7I5SUP5AE96V73V86KL.json",
+		"/C/Users/Dan/proj/repo254/production-results/39K0FND3AHF3VV400U464OPXOJSAMJ.json",
+		"/C/Users/Dan/proj/repo254/production-results/39L1G8WVWQR6FLJQYT6YXONOKY3316.json",
+		"/C/Users/Dan/proj/repo254/production-results/340UGXU9DY160RC7KRMORLK4MFSVUT.json",
+		"/C/Users/Dan/proj/repo254/code/preview.js",
+		"/C/Users/Dan/proj/repo254/code/cohen.html",
+		"/C/Users/Dan/proj/repo254/code/cohen.css",
+		"/C/Users/Dan/proj/repo254/code/cohen.js",
+		"/C/Users/Dan/proj/repo254/code/cohenIntro.html",
+		"/C/Users/Dan/proj/repo254/code/fullscreentest.html",
+		"/C/Users/Dan/proj/repo254/settings.json",
+		"/C/Users/Dan/proj/repo254/code/preload/preload.js",
+		"/C/Users/Dan/proj/repo254/code/preload/preload.html",
+		"/C/Users/Dan/proj/repo254/code/fingerprint/fingerprint.js",
+		"/C/Users/Dan/proj/repo254/code/fingerprint/store.js",
+		"/C/Users/Dan/proj/repo254/code/stim/Exp1B_Targets/test.html",
+		"/C/Users/Dan/proj/repo254/cohen.css",
+		"/C/Users/Dan/proj/repo254/cohen.js",
+		"/C/Users/Dan/proj/repo254/puppykitten_example.html",
+		"/C/Users/Dan/proj/repo254/cohen.html",
+		"/C/Python33/Lib/site-packages/cosub/runner.py",
+		"/C/Users/Dan/proj/repo254/auth.json"
+	],
+	"find":
+	{
+		"height": 35.0
+	},
+	"find_in_files":
+	{
+		"height": 93.0,
+		"where_history":
+		[
+			"/Users/dan/proj/jgl/cohcon/task.js",
+			"/Users/dan/proj/jgl/cohcon"
+		]
+	},
+	"find_state":
+	{
+		"case_sensitive": false,
+		"find_history":
+		[
+			"well",
+			"instructions",
+			"well",
+			"dotsL.n",
+			"dots.n",
+			"[8]",
+			">>>>>>",
+			"saveAllData",
+			"finishExp",
+			"endTask",
+			"jglClose",
+			"startPhase",
+			"center",
+			"clearInterval",
+			"window.drawInterval",
+			"jglFlush",
+			"text",
+			"fps",
+			"randPerm",
+			"jglFillRect",
+			"range",
+			"jglFillRect",
+			"jglPoints2",
+			"setTimeout",
+			"requestAnimation",
+			"setTimeout",
+			"jglFillRect",
+			"rect",
+			"circle",
+			"jglVisual",
+			"jgl",
+			"degrees",
+			"initTask",
+			"preload",
+			"array",
+			"sort",
+			"repmat",
+			"rand(",
+			"rand",
+			"canvas",
+			"insts",
+			"automoving = ",
+			"forcePath",
+			"createPAth",
+			"good try",
+			"intervalEst",
+			"intervalEst =",
+			"intervalEst",
+			".contains",
+			".includes",
+			"applyMoveRest",
+			"maxTime",
+			"applyautomove",
+			"rad",
+			"rad=",
+			"rad =",
+			".rad",
+			"applyMove",
+			"forcePath",
+			".show()",
+			"cgList",
+			"ibInterval =",
+			"ibInterval",
+			"quad",
+			"40",
+			"farGoal.target",
+			"farGoal",
+			"closeGoal.pos",
+			"automoving",
+			"ibColorList = ",
+			"ibColors = ",
+			"applyMoveRe",
+			"automoving",
+			"x0",
+			"autoMove = ",
+			"visibleAgent",
+			"vaList",
+			"setTimeout",
+			"window.requestAnimationFrame",
+			"window.request",
+			"window =",
+			"randomElement",
+			"showSlide",
+			"veloc = 0",
+			"ibInterval =",
+			"ibInterval",
+			"closE",
+			"goalX",
+			"rectSize",
+			"closeGoal.target",
+			"createPath",
+			"createPath(",
+			"createPath",
+			"started",
+			"flippedTime",
+			"cx",
+			"k_lO",
+			"k_l",
+			"myStartPos",
+			"myStart",
+			"myStartPos",
+			"ctx.",
+			"next",
+			"prerun",
+			"k_d",
+			"gravity",
+			"drawhelp",
+			"DRAWhELPER",
+			"instructions",
+			"range",
+			"drawRect",
+			"checkGoal",
+			"jitterstr",
+			"move",
+			"gra",
+			"grav",
+			"time",
+			"fri",
+			"friction",
+			"gravity",
+			"resp",
+			"drawHelper",
+			"frame",
+			"images",
+			"drawHelp",
+			"digits",
+			"centerbox",
+			"bigcenter"
+		],
+		"highlight": true,
+		"in_selection": false,
+		"preserve_case": false,
+		"regex": false,
+		"replace_history":
+		[
+			"[phases.e1]"
+		],
+		"reverse": false,
+		"show_context": true,
+		"use_buffer2": true,
+		"whole_word": false,
+		"wrap": true
+	},
+	"groups":
+	[
+		{
+			"sheets":
+			[
+			]
+		}
+	],
+	"incremental_find":
+	{
+		"height": 23.0
+	},
+	"input":
+	{
+		"height": 31.0
+	},
+	"layout":
+	{
+		"cells":
+		[
+			[
+				0,
+				0,
+				1,
+				1
+			]
+		],
+		"cols":
+		[
+			0.0,
+			1.0
+		],
+		"rows":
+		[
+			0.0,
+			1.0
+		]
+	},
+	"menu_visible": true,
+	"output.find_results":
+	{
+		"height": 0.0
+	},
+	"pinned_build_system": "",
+	"project": "cohcon.sublime-project",
+	"replace":
+	{
+		"height": 42.0
+	},
+	"save_all_on_build": true,
+	"select_file":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"select_project":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"select_symbol":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"selected_group": 0,
+	"settings":
+	{
+	},
+	"show_minimap": true,
+	"show_open_files": false,
+	"show_tabs": true,
+	"side_bar_visible": true,
+	"side_bar_width": 199.0,
+	"status_bar_visible": true,
+	"template_settings":
+	{
+	}
+}
