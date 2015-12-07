@@ -1607,10 +1607,15 @@ fprintf(f,'\n');
 % write out each row
 for iRow = 1:length(t.sid)
   for iField = 1:length(fields)
+    fieldVal = t.(fields{iField}){iRow};
+    % check if field has not been set
+    if iscell(fieldVal)
+      fieldVal = 'N/A';
+    end
     if (iField==1)
-      fprintf(f,'%s',t.(fields{iField}){iRow});
+      fprintf(f,'%s',fieldVal);
     else
-      fprintf(f,',%s',t.(fields{iField}){iRow});
+      fprintf(f,',%s',fieldVal);
     end
   end
   fprintf(f,'\n');
