@@ -26,6 +26,12 @@
 %             To clear the current SID:
 %             mglSetSID([]);
 %
+%             To list all subjects:
+%             mglSetSID('list');
+%
+%             To remove a subject
+%             mglSetSID('s999','remove');
+%
 %             The SID database is saved in file specified by:
 %             mglGetParam('sidDatabaseFilename');
 %
@@ -91,7 +97,7 @@ force = false;
 edit  = false;
 private = [];
 if (nargin > 1) && mglIsMrToolsLoaded
-  getArgs(varargin,{'force=0','edit=0','private=[]'});
+  getArgs(varargin,{'force=0','edit=0','private=[]','remove=0'});
 end
 
 % FIX, FIX, FIX
@@ -152,15 +158,15 @@ if isempty(sid)
 elseif (isnumeric(sid) && (length(sid) == 1))
   sid = num2sid(sid);
   if ~isempty(sid)
-    % either edit or set
-    if edit,editSID(sid,private); else setSID(sid,force,private);end
+    % either edit, remove or set
+    if edit,editSID(sid,private); elseif remove,removeSID(sid,private); else setSID(sid,force,private);end
   end
 elseif (isstr(sid)  && (length(sid) >= 4) && (sid(1) == 's') && ~isempty(sid(2:end)))
   % if person passed in an explicit sid, then
   % allow looking up in private as well
   if isempty(private),private = '_all_';end
   % either edit or set
-  if edit,editSID(sid,private); else setSID(sid,force,private);end
+  if edit,editSID(sid,private);  elseif remove,removeSID(sid,private); else setSID(sid,force,private);end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % check if it is an edit command
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -171,6 +177,11 @@ elseif isequal(sid,'edit')
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 elseif isequal(sid,'add')
   addSID(private);
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% list all entries
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+elseif isequal(sid,'list')
+  listSID(private);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % see if it is a subject name
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -282,6 +293,53 @@ else
   % release lock
   releaseLock;
 end
+
+%%%%%%%%%%%%%%%%%%%
+%    removeSID    %
+%%%%%%%%%%%%%%%%%%%
+function removeSID(sid,private)
+
+% check for mrTools
+if ~mglIsMrToolsLoaded,return,end
+
+% get the lock
+if ~getLock return, end
+
+% load existing database
+sidDatabase = loadSIDDatabase;
+if isempty(sidDatabase),releaseLock;return;,end
+
+% if private is set, then make sure sid has the correct postfix
+if ~isempty(private) && ~strcmp(lower(private),'_all_') && ~isempty(regexp(sid(end),'\d'))
+  postfix = getPostfix(sidDatabase,private,true);
+  sid = sprintf('%s%s',sid,postfix);
+end
+  
+% find the sid
+rownum = find(strcmp(sid,sidDatabase.sid));
+if isempty(rownum)
+  disp(sprintf('(mglSetSID:editSID) Could not find %s in database',sid));
+  return
+end
+
+% display SID and confirm
+dispSID(sidDatabase,rownum);
+if askuser('(mglSetSID) Remove above SID? This cannot be undone.')
+  % remove subject from database
+  % get column names
+  columnNames = fieldnames(sidDatabase);
+  for iCol = 1:length(columnNames)
+    sidDatabase.(columnNames{iCol}) = {sidDatabase.(columnNames{iCol}){1:rownum-1} sidDatabase.(columnNames{iCol}){rownum+1:end}};
+  end
+  % save the database back back
+  saveSIDDatabase(sidDatabase);
+  % release lock
+  releaseLock(true);
+else
+  % release lock
+  releaseLock;
+end
+
 
 %%%%%%%%%%%%%%%%
 %    setSID    %
@@ -703,6 +761,71 @@ else
   % release lock
   releaseLock;
 end
+
+%%%%%%%%%%%%%%%%
+%    listSID   %
+%%%%%%%%%%%%%%%%
+function listSID(private)
+
+global gMaxSID;
+
+% check for mrTools
+if ~mglIsMrToolsLoaded,return,end
+
+% get the lock
+if ~getLock return,end
+
+% open the SID database
+sidDatabase = loadSIDDatabase;
+
+% release lock
+releaseLock;
+
+% check for problem opening database
+if isempty(sidDatabase),return,end
+
+% get postfix
+if ~isempty(private)
+  postfix = getPostfix(sidDatabase,private);
+  if isempty(postfix)
+    disp(sprintf('(mglSetSID:addSID) No postfix for private SID: %s. Aborting',private));
+    return
+  end
+else
+  postfix = [];
+end
+
+% display all entries
+for iSID = 1:length(sidDatabase.sid)
+  dispSID(sidDatabase,iSID);
+end
+
+%%%%%%%%%%%%%%%%%
+%    dispSID    %
+%%%%%%%%%%%%%%%%%
+function dispSID(sidDatabase,iSID)
+
+% get the fields we have
+columnNames = fieldnames(sidDatabase);
+
+% initialize display string
+dispStr = '';
+for iVal = 1:length(columnNames)
+  % get the value of the field
+  fieldVal = sidDatabase.(columnNames{iVal}){iSID};
+  if ~isstr(fieldVal),fieldVal = '';end
+  % some fields are long, so give them two tabs
+  if any(strcmp(columnNames{iVal},{'firstName','lastName'}))
+    if length(fieldVal) >= 8
+      dispStr = sprintf('%s%s\t',dispStr,fieldVal);
+    else
+      dispStr = sprintf('%s%s\t\t',dispStr,fieldVal);
+    end
+  else
+    dispStr = sprintf('%s%s\t',dispStr,fieldVal);
+  end
+end
+disp(dispStr);
 
 %%%%%%%%%%%%%%%%%%%%
 %    getPostfix    %
