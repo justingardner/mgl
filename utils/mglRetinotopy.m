@@ -62,7 +62,7 @@
 function myscreen = mglRetinotopy(varargin)
 
 % evaluate the arguments
-eval(evalargs(varargin,0,0,{'wedges','rings','bars','barsTask','barsTaskEasy','barsTaskDefault','barAngle','elementAngle','direction','dutyCycle','stepsPerCycle','stimulusPeriod','numCycles','doEyeCalib','initialHalfCycle','volumesPerCycle','displayName','easyFixTask','dispText','barWidth','barSweepExtent','elementSize','barStepsMatchElementSize','synchToVolEachCycle','blanks','fixedRandom','yOffset','xOffset','imageWidth','imageHeight'}));
+eval(evalargs(varargin,0,0,{'wedges','rings','bars','barsTask','barsFix','barsTaskEasy','barsTaskDefault','barAngle','elementAngle','direction','dutyCycle','stepsPerCycle','stimulusPeriod','numCycles','doEyeCalib','initialHalfCycle','volumesPerCycle','displayName','easyFixTask','dispText','barWidth','barSweepExtent','elementSize','barStepsMatchElementSize','synchToVolEachCycle','blanks','fixedRandom','yOffset','xOffset','imageWidth','imageHeight'}));
 
 global stimulus;
 
@@ -74,6 +74,7 @@ if exist('wedges','var') && ~isempty(wedges),stimulusType = 1;,end
 if exist('rings','var') && ~isempty(rings),stimulusType = 2;,end
 if exist('bars','var') && ~isempty(bars),stimulusType = 3;,end
 if exist('barsTask','var') && ~isempty(barsTask),stimulusType = 4;,end
+if exist('barsFix','var') && ~isempty(barsFix),stimulusType = 5;,end
 if ~exist('barAngle','var') || isempty(barAngle),barAngle=[0:45:359];end
 if ieNotDefined('fixedRandom') stimulus.fixedRandom = 0;else stimulus.fixedRandom = fixedRandom;end
 if ieNotDefined('blanks'),blanks = false;end
@@ -135,7 +136,7 @@ end
 myscreen = initStimulus('stimulus',myscreen);
 
 % some settings for barsTask (needs to go after screen is initialized
-if exist('barsTaskDefault') || exist('barsTask')
+if exist('barsTaskDefault') || exist('barsTask') || exist('barsFix') || exist('barsFix')
   barAngle = 0:45:359;
   stepsPerCycle = 12;
   blanks = 4;
@@ -327,34 +328,49 @@ task{stimulusTaskNum}{1}.numTrials = stimulus.numCycles + stimulus.initialHalfCy
 [task{stimulusTaskNum}{1} myscreen] = addTraces(task{stimulusTaskNum}{1},myscreen,'blank');
 
 % add a field for elementAngle if we are doing bars
-if any(stimulus.stimulusType == [3 4])
+if any(stimulus.stimulusType == [3 4 5])
   task{stimulusTaskNum}{1}.randVars.calculated.elementAngle = nan;
   task{stimulusTaskNum}{1}.parameter.barAngle = barAngle;
   task{stimulusTaskNum}{1}.random = 0;
+end
+
+% if bars-FixationTask, load the latest stimfile
+if stimulus.stimulusType == 5
+      lastStim = getLastStimfile(myscreen);
+      if lastStim.stimulus.stimulusType ~= 4
+          error('(mglRetinotopy) !!! Reading from the wrong stimfile !!!')
+      end
+      e = getTaskParameters(lastStim.myscreen, lastStim.task{1}{1});
+      task{stimulusTaskNum}{1}.lastParameter = e.parameter;
+      task{stimulusTaskNum}{1}.lastRandVars = e.randVars;
 end
 
 % make a variable to control when there will be a stimulus blank
 task{stimulusTaskNum}{1}.randVars.blank = zeros(1,task{stimulusTaskNum}{1}.numTrials);
 stimulus.blanks = blanks;
 if stimulus.blanks 
-  if any(stimulus.stimulusType == [3 4])
-    % for bars, simply add some -1 barAngles
-    barAngleSeq = [-1 barAngle repmat(-1,1,stimulus.blanks)];
-    % first make sure that random number generator is reset here (so that bars and barsTask)
-    % generate the same sequence (I think that because bars uses the fix task the rand generator
-    % goes through a few more pulls in there and so needs to be reset
-    if stimulus.fixedRandom
-      rand(myscreen.randstate.type,myscreen.randstate.state);
-    end
-    findGoodSequence = false;
-    while ~findGoodSequence
-      % look for a random sequence
-      barAngleSeq(2:end) = barAngleSeq(randperm(length(barAngleSeq)-1)+1);
-      % make sure the first and last one is not blank and there are no consecutive blanks
-      if (barAngleSeq(2) ~= -1) && (barAngleSeq(end) ~= -1) && ~any(diff(find(barAngleSeq(2:end)==-1))==1)
-	findGoodSequence = true;
+  if any(stimulus.stimulusType == [3 4 5])
+      if stimulus.stimulusType ~= 5
+          % for bars, simply add some -1 barAngles
+          barAngleSeq = [-1 barAngle repmat(-1,1,stimulus.blanks)];
+          % first make sure that random number generator is reset here (so that bars and barsTask)
+          % generate the same sequence (I think that because bars uses the fix task the rand generator
+          % goes through a few more pulls in there and so needs to be reset
+          if stimulus.fixedRandom
+              rand(myscreen.randstate.type,myscreen.randstate.state);
+          end
+          findGoodSequence = false;
+          while ~findGoodSequence
+              % look for a random sequence
+              barAngleSeq(2:end) = barAngleSeq(randperm(length(barAngleSeq)-1)+1);
+             % make sure the first and last one is not blank and there are no consecutive blanks
+             if (barAngleSeq(2) ~= -1) && (barAngleSeq(end) ~= -1) && ~any(diff(find(barAngleSeq(2:end)==-1))==1)
+                 findGoodSequence = true;
+             end
+          end
+      else
+          barAngleSeq = task{stimulusTaskNum}{1}.lastParameter.barAngle;
       end
-    end
     disp(sprintf('(mglRetinotopy) barAngleSeq: %s',num2str(barAngleSeq,'%i ')));
     task{stimulusTaskNum}{1}.parameter.barAngle = barAngleSeq;
     task{stimulusTaskNum}{1}.numTrials = length(barAngleSeq);
@@ -373,6 +389,14 @@ if stimulus.blanks
   end
 end
 
+if any(stimulus.stimulusType == [4 5])
+  % we also need to keep a variable with the task condition
+  task{stimulusTaskNum}{1}.randVars.calculated.whichLoc = {nan};
+  task{stimulusTaskNum}{1}.randVars.calculated.uppercoherence = {nan};
+  task{stimulusTaskNum}{1}.randVars.calculated.lowercoherence = {nan};
+  task{stimulusTaskNum}{1}.randVars.calculated.middleDir = {nan};
+end
+
 % initialize the task if we don't need responses
 if stimulus.stimulusType ~= 4
   % init the task
@@ -381,7 +405,7 @@ else
   % for the bars task we need keyboard responses
   task{stimulusTaskNum}{1}.getresponse = ones(1,length(task{stimulusTaskNum}{1}.seglen));
   % we also need to keep a variable with the task condition and subject correct/incorrect
-  task{stimulusTaskNum}{1}.randVars.calculated.whichLoc = {nan};
+%   task{stimulusTaskNum}{1}.randVars.calculated.whichLoc = {nan};
   task{stimulusTaskNum}{1}.randVars.calculated.correct = {nan};
   % set the response callback to be called
   [task{stimulusTaskNum}{1} myscreen] = initTask(task{stimulusTaskNum}{1},myscreen,@startSegmentCallback,@updateScreenCallback,@responseCallback);
@@ -461,7 +485,7 @@ global stimulus;
 
 % debugging
 if task.thistrial.thisseg == 1
-  if any(stimulus.stimulusType == [3 4])
+  if any(stimulus.stimulusType == [3 4 5])
     disp(sprintf('%i: barAngle: %i',task.trialnum,task.thistrial.barAngle));
   end
   
@@ -473,7 +497,7 @@ if task.thistrial.thisseg == 1
 end
 
 % check for blank stimulus type with bars
-if any(stimulus.stimulusType == [3 4])
+if any(stimulus.stimulusType == [3 4 5])
   if task.thistrial.barAngle == -1
     % first half cycle show blank
     if (task.thistrial.thisseg < round(stimulus.stepsPerCycle/2)) 
@@ -489,7 +513,7 @@ if any(stimulus.stimulusType == [3 4])
 end
 
 % for bar stimulus, on the first segment, we need to set up the directions
-if any(stimulus.stimulusType == [3 4]) && (task.thistrial.thisseg == 1)
+if any(stimulus.stimulusType == [3 4 5]) && (task.thistrial.thisseg == 1)
   % get the element angle for bar stimuli
   % if element angle is a string, then
   if isstr(stimulus.elementAngle) 
@@ -549,10 +573,14 @@ end
 
 
 % set direction in barsTask
-if stimulus.stimulusType == 4
+if any(stimulus.stimulusType == [4 5])
   % set the randomization of location where the bars are the same
   if task.thistrial.thisseg == 1
-    task.thistrial.whichLoc = round(rand(1,length(task.seglen)))+1;
+      if stimulus.stimulusType == 4
+          task.thistrial.whichLoc = round(rand(1,length(task.seglen)))+1;
+      else
+          task.thistrial.whichLoc = task.lastRandVars.whichLoc{task.trialnum};
+      end
     % and set the length of the bars
     if any(task.thistrial.barAngle == [90 270])
       stimulus.dots = setDotsOffsetAndLen(stimulus.dots,0,myscreen.imageWidth);
@@ -622,7 +650,12 @@ if stimulus.stimulusType == 4
     %mglFlush;
   end
   % set which one is different from the middle
-  middleDir = round(rand)*180+90;
+  if stimulus.stimulusType == 4
+      middleDir = round(rand)*180+90;
+  else
+      middleDir = task.lastRandVars.middleDir{task.trialnum}(task.thistrial.thisseg);
+  end
+  task.thistrial.middleDir(task.thistrial.thisseg) = middleDir;
   stimulus.dots.middle = setDotsDir(stimulus.dots.middle,middleDir);
   if task.thistrial.whichLoc(task.thistrial.thisseg)==1
     % depends also on which direction we are going in, cause things will flip
@@ -643,8 +676,15 @@ if stimulus.stimulusType == 4
     end
   end
   % set the coherence
-  stimulus.dots.upper.coherence = stimulus.stair.threshold;
-  stimulus.dots.lower.coherence = stimulus.stair.threshold;
+  if stimulus.stimulusType == 4
+      stimulus.dots.upper.coherence = stimulus.stair.threshold;
+      stimulus.dots.lower.coherence = stimulus.stair.threshold;      
+  elseif stimulus.stimulusType == 5
+      stimulus.dots.upper.coherence = task.lastRandVars.uppercoherence{task.trialnum}(task.thistrial.thisseg);
+      stimulus.dots.lower.coherence = task.lastRandVars.lowercoherence{task.trialnum}(task.thistrial.thisseg);
+  end
+  task.thistrial.uppercoherence(task.thistrial.thisseg) = stimulus.dots.upper.coherence;
+  task.thistrial.lowercoherence(task.thistrial.thisseg) = stimulus.dots.lower.coherence;
   % set fixation to white
   stimulus.fixColor = [1 1 1];
   % default to nan for correct
@@ -713,7 +753,7 @@ stimulus.barHeight = stimulus.imageWidth*1.5;
 stimulus.barMaskWidth = stimulus.imageWidth*1.5;
 
 % dots stimulus
-if stimulus.stimulusType == 4
+if any(stimulus.stimulusType == [4 5])
   % parameters of dots
   stimulus.dots.dir = pi/2;
   stimulus.dots.initialCoherence = 1;
@@ -936,7 +976,7 @@ end
 stimulus.ringN = length(stimulus.ringRadiusMin);
 
 % now make masks for bars
-if any(stimulus.stimulusType == [3 4])
+if any(stimulus.stimulusType == [3 4 5])
   % get x and y of bar center (note that this is before we apply the
   % rotation to coordinates, so we are making the coordinates as if
   % we are going to make horizontally sweeping bars - we will later
@@ -1066,7 +1106,7 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function stimulus = updateRetinotopyStimulus(stimulus,myscreen)
 
-if any(stimulus.stimulusType == [3 4])
+if any(stimulus.stimulusType == [3 4 5])
 
   % if doing standard bars, then draw sliding elements
   if stimulus.stimulusType == 3
@@ -1092,7 +1132,7 @@ if any(stimulus.stimulusType == [3 4])
     % draw the bar masks
     mglPolygon(maskBarLeft(1,:)+stimulus.xOffset,maskBarLeft(2,:)+stimulus.yOffset,0.5);
     mglPolygon(maskBarRight(1,:)+stimulus.xOffset,maskBarRight(2,:)+stimulus.yOffset,0.5);
-  else
+  elseif stimulus.stimulusType == 4
     % doing dots task, so draw dots, first clear screen
     mglClearScreen;
     % draw the dots
@@ -1109,6 +1149,20 @@ if any(stimulus.stimulusType == [3 4])
     global fixStimulus;
     mglGluDisk(fixStimulus.pos(1),fixStimulus.pos(2),fixStimulus.diskSize*[1 1],myscreen.background,60);
     mglFixationCross(fixStimulus.fixWidth,fixStimulus.fixLineWidth,stimulus.fixColor,fixStimulus.pos);
+  elseif stimulus.stimulusType == 5
+       % doing dots task, so draw dots, first clear screen
+    mglClearScreen;
+    % draw the dots
+    xOffset = stimulus.xOffset+stimulus.barCenter(stimulus.currentMask,1);
+    yOffset = stimulus.yOffset+stimulus.barCenter(stimulus.currentMask,2);
+    drawDots(stimulus.dots.middle,stimulus.maskBarRotMatrix,xOffset,yOffset);
+    drawDots(stimulus.dots.upper,stimulus.maskBarRotMatrix,xOffset,yOffset);
+    drawDots(stimulus.dots.lower,stimulus.maskBarRotMatrix,xOffset,yOffset);
+    % update the dots
+    stimulus.dots.upper = updateDots(stimulus.dots.upper);
+    stimulus.dots.middle = updateDots(stimulus.dots.middle);
+    stimulus.dots.lower = updateDots(stimulus.dots.lower);
+      
   end
   
 else
