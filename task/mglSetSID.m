@@ -95,6 +95,7 @@ end
 % get arguments
 force = false;
 edit  = false;
+remove = false;
 private = [];
 if (nargin > 1) && mglIsMrToolsLoaded
   getArgs(varargin,{'force=0','edit=0','private=[]','remove=0'});
@@ -455,19 +456,19 @@ if ~isempty(rownum)
     lastName{i} = sidDatabase.lastName{rownum(i)};
     privateMatch{i} = sidDatabase.private{rownum(i)};
   end
-end
 
-% return only ones with a private match
-if isempty(private)
-  match = find(cellfun(@isempty,privateMatch));
-elseif strcmp(lower(private),'_all_')
-  match = 1:length(privateMatch);
-else
-  match = find(strcmp(private,privateMatch));
+  % return only ones with a private match
+  if isempty(private)
+    match = find(cellfun(@isempty,privateMatch));
+  elseif strcmp(lower(private),'_all_')
+    match = 1:length(privateMatch);
+  else
+    match = find(strcmp(private,privateMatch));
+  end
+  sid = {sid{match}};
+  firstName = {firstName{match}};
+  lastName = {lastName{match}};
 end
-sid = {sid{match}};
-firstName = {firstName{match}};
-lastName = {lastName{match}};
 
 %%%%%%%%%%%%%%%%%%%%%%%%%
 %    loadSIDDatabase    %
