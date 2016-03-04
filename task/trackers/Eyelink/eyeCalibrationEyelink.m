@@ -41,9 +41,24 @@ if ~myscreen.eyetracker.dummymode
   disp('===========================');
   mglFlush;
 
+  % get any shift of screen origin so that
+  % the calibration code can place targets approriately - note
+  % that we don't deal with coordinate flipping here (should we?) 
+  % Instead getTaskEyeTraces will adjust the eye position data
+  % from the file for any horizontal or vertical flipping of the
+  % screen done mglEditScreenParams
+  xOffset = 0;yOffset = 0;
+  deviceOrigin = mglGetParam('deviceOrigin');
+  if length(deviceOrigin) >= 2
+    xOffset = mglGetParam('deviceHDirection')*round(deviceOrigin(1)*mglGetParam('xDeviceToPixels'));
+    yOffset = -mglGetParam('deviceVDirection')*round(deviceOrigin(2)*mglGetParam('yDeviceToPixels'));
+  end
+  mglSetParam('eyelinkCoordinateXShift',xOffset);
+  mglSetParam('eyelinkCoordinateYShift',yOffset);
+    
   % switch to screen coordinates
   mglScreenCoordinates();
-
+  
   % run calibration routine
   mglEyelinkSetup();
   

@@ -241,8 +241,13 @@ h = stimfile.myscreen.screenHeight;
 xPix2Deg = stimfile.myscreen.imageWidth/w;
 yPix2Deg = stimfile.myscreen.imageHeight/h;
 
-e.eye.xPos = (e.eye.xPos-(w/2))*xPix2Deg;
-e.eye.yPos = ((h/2)-e.eye.yPos)*yPix2Deg;
+hDir = 1;vDir = 1;
+if isfield(stimfile.myscreen,'flipHV') && (length(stimfile.myscreen.flipHV) >=2 )
+  if stimfile.myscreen.flipHV(1) hDir = -1;end
+  if stimfile.myscreen.flipHV(2) vDir = -1;end
+end
+e.eye.xPos = hDir * ((e.eye.xPos-(w/2))*xPix2Deg);
+e.eye.yPos = vDir * (((h/2)-e.eye.yPos)*yPix2Deg);
 
 % display figure
 if dispFig
