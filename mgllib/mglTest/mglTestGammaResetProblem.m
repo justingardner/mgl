@@ -2,3 +2,8 @@
 msc = initScreen;
 mglClearScreen(0.5);
 mglFlush
+mglWaitSecs(5);
+msc = initScreen;
+mglClearScreen(0.5);
+mglFlush
+
