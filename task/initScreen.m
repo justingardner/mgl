@@ -476,8 +476,28 @@ if ~isempty(myscreen.screenNumber)
     myscreen = [];
     return
   end
+  % figure out whether we are going to change resolution
+  displays = mglDescribeDisplays;
+  waitAfterOpen = 3;
+  if (myscreen.screenNumber <= length(displays)) && (myscreen.screenNumber >= 1)
+    if isfield(displays(myscreen.screenNumber),'screenSizePixel') && isfield(displays(myscreen.screenNumber),'refreshRate')
+      % get already set pixel resolution and refresh rate
+      screenSizePixel = displays(myscreen.screenNumber).screenSizePixel;
+      refreshRate = displays(myscreen.screenNumber).refreshRate;
+      desiredSizePixel = [myscreen.screenWidth myscreen.screenHeight];
+      % now check if they are the same
+      if isequal(screenSizePixel(:),desiredSizePixel(:)) && isequal(refreshRate,myscreen.framesPerSecond)
+	disp(sprintf('(initScreen) Resolution and refersh rate do not appear to differ from current monitor settings. *Not* waiting after mglOpen. Note that if the monitor goes black for a second this means that the resolution has to be set by mac and in that case the gamma table may not get set correctly due to a race condition between mac system software setting the gamma table and initScreen setting the gamma table'));
+	waitAfterOpen = 0;
+      end
+    end
+  end
+
   % setting with specified screenNumber
   mglOpen(myscreen.screenNumber, myscreen.screenWidth, myscreen.screenHeight, myscreen.framesPerSecond);
+  % wait after the screen opens because there is a race condition if you change
+  % resolutions of the screen in which mac system resets the gamma table
+  mglWaitSecs(waitAfterOpen);
   % move the screen if it is a windowed context, and displayPos has been set.
   if myscreen.screenNumber < 1
     if length(myscreen.displayPos) == 2
