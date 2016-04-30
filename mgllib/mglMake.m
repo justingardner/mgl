@@ -41,6 +41,9 @@
 %             to have the correct SDKs installed). Note normally this will auto-detect
 %             which version to compile for:
 %             mglMake('ver=10.6');
+%          
+%             To see which version of the SDK mglMake will use to compile:
+%             mglMake ver
 %
 %             You can also force compile individual functions
 %             mglMake mglFlush
@@ -78,7 +81,7 @@ if (nargin>=1) && isstr(rebuild)
 end
 
 % interpret rebuild argument
-digio = 0;eyelink = 0;
+digio = 0;eyelink = 0;versionCheck = false;
 if ~exist('rebuild','var')
   rebuild=0;
   [s,r] = system('uname -r');
@@ -107,6 +110,9 @@ else
   elseif ischar(rebuild) && isequal(rebuild(1), '-')
     varargin = {rebuild, varargin{:}};
     rebuild=0;
+  elseif isequal(lower(rebuild),'ver')
+    rebuild=0;
+    versionCheck = true;
   else
     help mglMake
     return
@@ -140,19 +146,20 @@ if ismac
   end
 
   % get what sdk versions we have
-  [sdkVersion sdkPaths] = getSDKVersion;
-  if isempty(sdkVersion)
+  [sdkVersions sdkPaths sdkVersionsMajor sdkVersionsMinor] = getSDKVersion;
+  if isempty(sdkVersions)
     disp(sprintf('(mglMake) !!! Could not find MacOSX sdk. Have you installed XCode? !!!'));
     return
   end
   
   % get the most current sdk version, if we are not forcing versions
   if isempty(forceVer)
-    [sdkVersion i] =  max(sdkVersion);
+    [~,i] =  max(sdkVersionsMinor);
+    sdkVersion = sdkVersions(i);
     sdkPath = sdkPaths{i};
   else
     % check if we have the proper sdk
-    whichVersion = find(sdkVersion == forceVer);
+    whichVersion = find(sdkVersions == forceVer);
     if isempty(whichVersion)
       if isempty(forceVer)
 	disp(sprintf('(mglMake) !!! Could not find MacOSX sdk. Have you installed XCode? !!!'));
@@ -162,7 +169,7 @@ if ismac
       return
     end
     % set sdkversion and path to only have the forced one
-    sdkVersion = sdkVersion(whichVersion);
+    sdkVersion = sdkVersions(whichVersion);
     sdkPaths = sdkPaths{whichVesion};
   end
       
@@ -180,7 +187,7 @@ if ismac
   elseif sdkVersion == 10.5
     optf = '-f ./mexopts.10.5.sh';
   else
-    disp(sprintf('(mglMake) No specific mex options found for sdk version %0.1f, using generic options',sdkVersion));
+    disp(sprintf('(mglMake) No specific mex options found for sdk version %s, using generic options',num2str(sdkVersion)));
     optf = '';
   end
 elseif ispc
@@ -190,7 +197,32 @@ elseif ispc
   optf = '-largeArrayDims COMPFLAGS="$COMPFLAGS /TP"';
 end
 
-disp(sprintf('(mglMake) Using %s options for mex',optf));
+% just display what version is being used
+if versionCheck
+  disp(sprintf('(mglMake) Version check: OS %s',num2str(ver)));
+  disp(sprintf('SDK Versions (* indicates used version):'));
+  for iSDK = 1:length(sdkPaths)
+    if sdkVersions(iSDK) == sdkVersion
+      prefixStr = '*';
+    else
+      prefixStr = '';
+    end
+    disp(sprintf('%s%s: %s',prefixStr,num2str(sdkVersions(iSDK)),sdkPaths{iSDK}));
+  end
+  if isempty(optf)
+    disp(sprintf('Compiling with no flags',optf));
+  else
+    disp(sprintf('Compiling with: %s',optf));
+  end
+    
+  return
+end
+
+if isempty(optf)
+  disp(sprintf('(mglMake) Using standrad options for mex',optf));
+else
+  disp(sprintf('(mglMake) Using %s options for mex',optf));
+end
 % close all open displays
 mglSwitchDisplay(-1);
 
@@ -394,9 +426,11 @@ end
 %%%%%%%%%%%%%%%%%%%%
 %    sdkVersion    %
 %%%%%%%%%%%%%%%%%%%%
-function [sdkVersion sdkPath] = getSDKVersion
+function [sdkVersion sdkPath sdkVersionMajor sdkVersionMinor] = getSDKVersion
 
 sdkVersion = [];
+sdkVersionMajor = [];
+sdkVersionMinor = [];
 sdkPath = {};
 
 % check directory
@@ -414,6 +448,16 @@ for iPathName = 1:length(pathNames);
       if ~isempty(sdkloc)
 	% pull out the number
 	sdkVersion(end+1) = str2num(sdkName(7:(sdkloc-2)));
+	% pull out major/minor version
+	verStr = sdkName(7:(sdkloc-2));
+	dotLoc = strfind(verStr,'.');
+	if ~isempty(dotLoc)
+	  sdkVersionMajor(end+1) = str2num(verStr(1:dotLoc(1)-1));
+	  sdkVersionMinor(end+1) = str2num(verStr(dotLoc(1)+1:end));
+	else
+	  sdkVersionMajor(end+1) = nan;
+	  sdkVersionMinor(end+1) = nan;
+	end
 	% save the directory
 	sdkPath{end+1} = fullfile(pathNames{iPathName},sdkName);
       end
