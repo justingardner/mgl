@@ -68,12 +68,12 @@ if (nargin == 1) && isnumeric(varargin{1})
   inputTable = varargin{1};
   inputSize = size(inputTable,1);
   % check orientation of matrix
-  if inputSize == 1
+  if (inputSize == 1) || (inputSize == 3)
     inputTable = inputTable';
     inputSize = size(inputTable,1);
   end
   if inputSize ~= tableSize
-    oneTimeWarning('mglSetGammaTable',sprintf('(mglSetGammaTable) Size of input table (%i) does not match hardwware gamma table size (%i). Interpolating using nearest neighbors - this should make the gamma table act as expected for an %i bit display',inputSize,tableSize,log2(inputSize)));
+    oneTimeWarning('mglSetGammaTable',sprintf('(mglSetGammaTable) Size of input table (%i) does not match hardwware gamma table size (%i). Interpolating using nearest neighbors - this should make the gamma table act as expected for an %i bit display',inputSize,tableSize,log2(tableSize)));
     multiple = tableSize/inputSize;
     % try to interpolate here
     for iDim = 1:size(inputTable,2)
@@ -137,9 +137,6 @@ end
 
 % get the warning variable
 global gMLRWarning
-
-% make sure the field check name is a valid field name
-fieldCheck = fixBadChars(fieldCheck);
 
 % reset warning, if called with a number
 if ~isstr(warnText)

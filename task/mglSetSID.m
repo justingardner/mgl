@@ -16,12 +16,21 @@
 %             mglSetSID('justin');
 %             You will need to enter the password for the databse.
 %
-%             To edit the database:
-%             mglSetSID('edit');
+%             To add a subject
+%             mglSetSID('add');
+%            
+%             To edit a subject
+%             mglSetSID('s001','edit');
 %             You will need to enter the password for the databse.
 %
 %             To clear the current SID:
 %             mglSetSID([]);
+%
+%             To list all subjects:
+%             mglSetSID('list');
+%
+%             To remove a subject
+%             mglSetSID('s999','remove');
 %
 %             The SID database is saved in file specified by:
 %             mglGetParam('sidDatabaseFilename');
@@ -46,113 +55,297 @@
 %
 %             mglSetParam('sidRaceEthnicity',true,2)
 %     
-function retval = mglSetSID(sid)
+%             If you are not connected to the SID database (i.e. running
+%             on a laptop with no internet access), then you can set an
+%             SID without validating through the database:
+%          
+%             mglSetSID(15,'force=1');
+%
+%             IF you want to keep a "private" SID database - e.g.
+%             you are running psychophysics only and have a lot
+%             of subjects that will not get used in other experiments
+%             then you can set subjects into a private database
+%             (which is stored centrally and validated the same as
+%             the regular subjet IDs). In which case, you can
+%             set private. 
+%
+%             mglSetSID('add','private=myown');
+%             When you add, you will be asked to 
+%             set a postfix which is a letter string that gets
+%             appended to the subject id to distinguish it from
+%             other subjectIDs. For example, if postfix=x then
+%             subject ids will be of the form s001x
+%
+%             Note that when someone looks up a subjet name
+%             it will not search private SIDs unless you set
+%             private. If you want to search all without
+%             caring about which private  database they are in
+%             then set private to _all_:
+% 
+%             mglSetSID('somebody','private=_all_');
+%             mglSetSID('somebody','edit','private=_all_');
+function retval = mglSetSID(sid,varargin)
 
 % check arguments
-if ~any(nargin == [1])
+if nargin < 1
   help mglSetSID
   return
 end
 
+% get arguments
+force = false;
+edit  = false;
+remove = false;
+private = [];
+if (nargin > 1) && mglIsMrToolsLoaded
+  getArgs(varargin,{'force=0','edit=0','private=[]','remove=0'});
+end
+
+% FIX, FIX, FIX
+% set private sid
+% Check private database against all database for name/dob match
+% set for number of digits
+
+% required fields. This is a list with:
+% fieldnames, defaultValue, description string, t/f is encrypted field
+% note that unencrypted fields should not contain personal identifiers
+% ALso, that since unencrypted fields go only into a .mat file
+% and not an encrypted csv file they can be any matlab structure
+% and not just a string
+global requiredFields;
+requiredFields = {{'sid','','Unique identifier for subejct',1},...
+		  {'firstName','','First name of subject',1},...
+		  {'lastName','','last name of subject',1},...
+		  {'gender',{'F','M','Decline'},'Gender of subject',1},...
+		  {'dob','date','Date of birth for subject',1},...
+		  {'experimenter','','Name of experimenter entering this SID into database',1},...
+		  {'dateAdded',datestr(now),'Date that this entry was added to the sid database',1},...
+		  {'private',[],'Whether this sid is in a private listing - in which case this will be set to a string identifying the private database',0}...
+		 };
+
 % race and ethnic categories from NIH
 %http://grants.nih.gov/grants/guide/notice-files/NOT-OD-01-053.html
 global ethnicCategories;
-global racialCategories;
 ethnicCategories = {'Decline','Hispanic or Latino','Not Hispanic or Latino'};
+ethnicCategoriesHelp = 'Ethnicity as specified by NIH requirements. You are not required to specify any ethnicity if you do not wish to';
+global racialCategories;
 racialCategories = {'Decline','American Indian or Alaska Native','Asian','Black or African American','Native Hawaiian or Other Pacific Islander','White'};
+racialCategoriesHelp = 'Race as specified by NIH requirements. You may enter more than one. You are not required to specify any race if you do not wish to';
 
-% required fields
-global requiredFields;
-requiredFields = {'sid','firstName','lastName','gender','dob'};
+% set race/ethnicity fields if asked for
 if mglGetParam('sidRaceEthnicity')
-  requiredFields = {requiredFields{:} 'ethnicity','race'};
+  requiredFields = {requiredFields{:},...
+		    {'ethnicity',ethnicCategories,ethnicCategoriesHelp,1},...
+		    {'race',racialCategories,racialCategoriesHelp,1},...
+		    {'otherRace1',racialCategories,racialCategoriesHelp,1},...
+		    {'otherRace2',racialCategories,racialCategoriesHelp,1},...
+		    {'otherRace3',racialCategories,racialCategoriesHelp,1},...
+		    {'otherRace4',racialCategories,racialCategoriesHelp,1},...
+		   };
 end
-		    
-% if passed in one argument and it is a number
-if (nargin == 1)
-  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-  % is empty then set sid to empty
-  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-  if isempty(sid)
-    setSID([])
-  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-  % is a number, so format correctly and set
-  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-  elseif (isnumeric(sid) && (length(sid) == 1))
-    if ((sid>=1)&&(sid<=999))
-      setSID(sprintf('s%03i',round(sid)));
-    elseif (sid == -1)
-      setSID('test');
-    else
-      disp(sprintf('(mglSetSID) Numeric SID should be 1-999 for actual subejct ID or -1 for a test'));
-    end
-  elseif (isstr(sid)  && (length(sid) == 4) && (sid(1) == 's') && ~isempty(sid(2:end)))
-    % string is of form snnn 
-    setSID(sid);
-  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-  % check if it is an edit command
-  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-  elseif isequal(sid,'edit')
-    % get the lock
-    if ~getLock return, end
-    % load existing database
-    sidDatabase = loadSIDDatabase;
-    if isempty(sidDatabase),releaseLock;return;,end
-    % edit the database
-    sidDatabase = editSIDDatabase(sidDatabase);
-    % save the database
-    if ~isempty(sidDatabase)
-      saveSIDDatabase(sidDatabase);
-      % release lock
-      releaseLock(true);
-    else
-      % release lock
-      releaseLock;
-    end
-  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-  % see if it is a subject name
-  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-  elseif (isstr(sid))
-    % check if it is test
-    if strcmp(lower(sid),'test')
-      setSID('test');
-      return
-    end
-    % lookup name
-    sidstr = sid;
-    [sid firstName lastName] = lookupSID(sidstr);
-    % found it
-    if length(sid) == 1
-      % if only one, display and set
-      disp(sprintf('(mglSetSID) Found subject: %s %s (%s)',firstName{1},lastName{1},sid{1}));
-      setSID(sid{1});
-    elseif length(sid) > 1
-      % multiple matches, display them all and let subject select
-      disp(sprintf('(mglSetSID) Found multiple matches for %s',sidstr));
-      for i = 1:length(sid)
-	disp(sprintf('%i: %s %s: %s',i,firstName{i},lastName{i},sid{i}));
-      end
-      c = getnum(sprintf('(mglSetSID) Choose which subject (0 to cancel): ',0:length(sid)));
-      % set it
-      if (c > 0)
-	mglSetSID(sid{c});
-      end
-    else
-      disp(sprintf('(mglSetSID) !!! Could not find unique SID for: %s !!!\nSID not set.',sidstr));
-    end
-  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-  % not valid
-  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-  else
-    disp(sprintf('(mglSetSID) SID should either be a number [-1 or 1-999] or a valid string snnn'));
+
+% set what the maximum SID can be
+global gMaxSID;
+gMaxSID = 999;
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% is empty then set sid to empty
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+if isempty(sid)
+  setSID([],force,private)
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% is a number, so format correctly and set
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+elseif (isnumeric(sid) && (length(sid) == 1))
+  sid = num2sid(sid);
+  if ~isempty(sid)
+    % either edit, remove or set
+    if edit,editSID(sid,private); elseif remove,removeSID(sid,private); else setSID(sid,force,private);end
   end
+elseif (isstr(sid)  && (length(sid) >= 4) && (sid(1) == 's') && ~isempty(sid(2:end)))
+  % if person passed in an explicit sid, then
+  % allow looking up in private as well
+  if isempty(private),private = '_all_';end
+  % either edit or set
+  if edit,editSID(sid,private);  elseif remove,removeSID(sid,private); else setSID(sid,force,private);end
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% check if it is an edit command
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+elseif isequal(sid,'edit')
+  editSIDDatabase
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% add an entry
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+elseif isequal(sid,'add')
+  addSID(private);
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% list all entries
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+elseif isequal(sid,'list')
+  listSID(private);
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% see if it is a subject name
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+elseif (isstr(sid))
+  % lookup name
+  sid = name2sid(sid,private);
+  if ~isempty(sid)
+    % either edit or set
+    if edit,editSID(sid,private); else setSID(sid,force,private);end
+  end
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% not valid
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+else
+  disp(sprintf('(mglSetSID) SID should either be a number [-1 or 1-%i] or a valid string snnn',gMaxSID));
+end
+
+%%%%%%%%%%%%%%%%%
+%    editSID    %
+%%%%%%%%%%%%%%%%%
+function editSID(sid,private)
+
+% check for mrTools
+if ~mglIsMrToolsLoaded,return,end
+
+% get the lock
+if ~getLock return, end
+
+% load existing database
+sidDatabase = loadSIDDatabase;
+if isempty(sidDatabase),releaseLock;return;,end
+
+% if private is set, then make sure sid has the correct postfix
+if ~isempty(private) && ~strcmp(lower(private),'_all_') && ~isempty(regexp(sid(end),'\d'))
+  postfix = getPostfix(sidDatabase,private,true);
+  sid = sprintf('%s%s',sid,postfix);
+end
+  
+% find the sid
+rownum = find(strcmp(sid,sidDatabase.sid));
+if isempty(rownum)
+  disp(sprintf('(mglSetSID:editSID) Could not find %s in database',sid));
+  return
+end
+
+% get the fields we have
+columnNames = fieldnames(sidDatabase);
+global requiredFields;
+
+% make an input for each field 
+paramsInfo = {};
+for iField = 1:length(requiredFields)
+  fieldName = requiredFields{iField}{1};
+  if isfield(sidDatabase,fieldName)
+    % see if the field has set choices
+    if iscell(requiredFields{iField}{2})
+      % if so, then put current setting at top of list
+      fieldDefault = putOnTopOfList(sidDatabase.(fieldName){rownum},requiredFields{iField}{2});
+    else
+      % just put string there
+      fieldDefault = sidDatabase.(fieldName){rownum};
+    end
+  else
+    fieldDefault = requiredFields{iField}{2};
+  end
+  % get help
+  fieldHelp = requiredFields{iField}{3};
+  % cell array deafults mean to put up a set of choices
+  % like for race or gender categories. Except in the case
+  % of log which contains a cell array of usage info
+  if any(strcmp(fieldName,{'sid','private'}))
+    paramsInfo{end+1} = {fieldName,fieldDefault,fieldHelp,'editable=0'};
+  elseif iscell(fieldDefault)
+    paramsInfo{end+1} = {fieldName,fieldDefault,'type=popupmenu',fieldHelp};
+  % date needs to be checked against age limits and formatted properly
+  elseif strcmp(requiredFields{iField}{2},'date')
+    paramsInfo{end+1} = {fieldName,fieldDefault,'type=string',fieldHelp,'callback',@validateDate,'callbackArg',fieldName};
+  % experimenter gets as default the current user name
+  elseif strcmp(fieldName,'experimenter')
+    paramsInfo{end+1} = {fieldName,getusername,'type=string',fieldHelp};
+  % otherwise, everything but sid gets put up as a string
+  elseif ~strcmp(fieldName,'sid') && ~strcmp(fieldName,'log')
+    paramsInfo{end+1} = {fieldName,fieldDefault,'type=string',fieldHelp};
+  end
+end
+
+% button to display log
+paramsInfo{end+1} = {'log',0,'type=pushbutton','buttonString=Display Log','callback=mglTaskLog','callbackArg',sid,'Display a log listing everytime the subject was run'};
+
+% bring up dialog box
+params = mrParamsDialog(paramsInfo);
+
+% save the database
+if ~isempty(params)
+  % add the subject to the database
+  for iField = 1:length(requiredFields)
+    % everything except log gets value from params
+    if ~any(strcmp(requiredFields{iField}{1},{'log','sid'}))
+      sidDatabase.(requiredFields{iField}{1}){rownum} = params.(requiredFields{iField}{1});
+    end
+  end
+  % set the dateAdded
+  sidDatabase.dateAdded{end+1} = datestr(now);
+  % save it back
+  saveSIDDatabase(sidDatabase);
+  % release lock
+  releaseLock(true);
+else
+  % release lock
+  releaseLock;
+end
+
+%%%%%%%%%%%%%%%%%%%
+%    removeSID    %
+%%%%%%%%%%%%%%%%%%%
+function removeSID(sid,private)
+
+% check for mrTools
+if ~mglIsMrToolsLoaded,return,end
+
+% get the lock
+if ~getLock return, end
+
+% load existing database
+sidDatabase = loadSIDDatabase;
+if isempty(sidDatabase),releaseLock;return;,end
+
+% if private is set, then make sure sid has the correct postfix
+if ~isempty(private) && ~strcmp(lower(private),'_all_') && ~isempty(regexp(sid(end),'\d'))
+  postfix = getPostfix(sidDatabase,private,true);
+  sid = sprintf('%s%s',sid,postfix);
+end
+  
+% find the sid
+rownum = find(strcmp(sid,sidDatabase.sid));
+if isempty(rownum)
+  disp(sprintf('(mglSetSID:editSID) Could not find %s in database',sid));
+  return
+end
+
+% display SID and confirm
+dispSID(sidDatabase,rownum);
+if askuser('(mglSetSID) Remove above SID? This cannot be undone.')
+  % remove subject from database
+  % get column names
+  columnNames = fieldnames(sidDatabase);
+  for iCol = 1:length(columnNames)
+    sidDatabase.(columnNames{iCol}) = {sidDatabase.(columnNames{iCol}){1:rownum-1} sidDatabase.(columnNames{iCol}){rownum+1:end}};
+  end
+  % save the database back back
+  saveSIDDatabase(sidDatabase);
+  % release lock
+  releaseLock(true);
+else
+  % release lock
+  releaseLock;
 end
 
 
 %%%%%%%%%%%%%%%%
 %    setSID    %
 %%%%%%%%%%%%%%%%
-function setSID(sidStr)
+function setSID(sidStr,force,private)
 
 % clear sid
 if isempty(sidStr)
@@ -162,24 +355,49 @@ if isempty(sidStr)
   return;
 end
   
-disp(sprintf('(mglSetSID) Setting SID: %s',sidStr));
-
-% if this is not test, then try to validate
-if ~strcmp(lower(sidStr),'test')
-  sidDatabaseSID = setext(mglGetParam('sidDatabaseFilename'),'mat',0);
-  if ~isfile(sidDatabaseSID)
-    disp(sprintf('(mglSetSID) Could not find SID file %s, so cannot validate',sidDatabaseSID));
-  else
-    sid = load(sidDatabaseSID);
-    if isfield(sid,'sid')
-      if isempty(find(strcmp(lower(sidStr),lower(sid.sid))))
-	disp(sprintf('(mglSetSID) SID %s is not in database. Must be added with mglSetSID(''edit'') before you can set it',sidStr));
-	setSID([]);
-	return
+% if this is not test and not forced, then try to validate
+if ~force
+  % test sid is special (you can always just set it)
+  if ~strcmp(lower(sidStr),'test')
+    % otherwise, get database name
+    sidDatabaseSID = mlrReplaceTilde(setext(mglGetParam('sidDatabaseFilename'),'mat',0));
+    if ~isfile(sidDatabaseSID)
+      disp(sprintf('(mglSetSID) Could not find SID file %s, so cannot validate',sidDatabaseSID));
+    else
+      % load it
+      sid = load(sidDatabaseSID);
+      % check sid
+      if isfield(sid,'sid')
+	% see if there is a private setting
+	if isfield(sid,'private')
+	  if isempty(private) 
+	    % means to take all non-private sid (i.e. ones in
+	    % which private is set to empty
+	    sid.sid = {sid.sid{cellfun(@isempty,sid.private)}};
+	  elseif ~isequal(lower(private),'_all_')
+	    % only take sids that match the private setting
+	    sid.sid = {sid.sid{strcmp(private,sid.private)}};
+	    % add correct postfix if missing
+	    if ~isempty(regexp(sidStr(end),'\d')) && (length(sid.sid) >= 1)
+	      [sidBegin sidEnd] = regexp(sid.sid{1},'s\d+');
+	      postfix = sid.sid{1}(sidEnd+1:end);
+	      sidStr = sprintf('%s%s',sidStr,postfix);
+	    end
+	  end
+	end
+	% how look for match
+	if isempty(find(strcmp(lower(sidStr),lower(sid.sid))))
+	  disp(sprintf('(mglSetSID) SID %s is not in database. Must be added with mglSetSID(''edit'') before you can set it',sidStr));
+	  setSID([]);
+	  return
+	end
       end
     end
   end
 end
+
+% display what we are doing
+disp(sprintf('(mglSetSID) Setting SID: %s',sidStr));
 
 % set the subject id
 mglSetParam('sid',sidStr);
@@ -208,12 +426,13 @@ mglSetParam('sidValidUntil',validUntil);
 %%%%%%%%%%%%%%%%%%%
 %    lookupSID    %
 %%%%%%%%%%%%%%%%%%%
-function [sid firstName lastName] = lookupSID(sidstr)
+function [sid firstName lastName] = lookupSID(sidstr,private)
 
 % defaults
 sid = [];
 firstName = [];
 lastName = [];
+privateMatch = [];
 
 % load sid database
 sidDatabase = loadSIDDatabase;
@@ -224,7 +443,7 @@ sidstr = lower(sidstr);
 rownum = [];
 % lookup matching row
 for iRow = 1:size(sidDatabase.sid,2)
-  if ~isempty(findstr(sidstr,lower(sidDatabase.firstName{iRow}))) || ~isempty(findstr(sidstr,lower(sidDatabase.lastName{iRow})))
+  if ~isempty(strfind(lower(sidDatabase.firstName{iRow}),sidstr)) || ~isempty(strfind(lower(sidDatabase.lastName{iRow}),sidstr))
     rownum(end+1) = iRow;
   end
 end
@@ -235,7 +454,20 @@ if ~isempty(rownum)
     sid{i} = sidDatabase.sid{rownum(i)};
     firstName{i} = sidDatabase.firstName{rownum(i)};
     lastName{i} = sidDatabase.lastName{rownum(i)};
+    privateMatch{i} = sidDatabase.private{rownum(i)};
   end
+
+  % return only ones with a private match
+  if isempty(private)
+    match = find(cellfun(@isempty,privateMatch));
+  elseif strcmp(lower(private),'_all_')
+    match = 1:length(privateMatch);
+  else
+    match = find(strcmp(private,privateMatch));
+  end
+  sid = {sid{match}};
+  firstName = {firstName{match}};
+  lastName = {lastName{match}};
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%
@@ -252,7 +484,7 @@ sidDatabase = [];
 if ~mglIsMrToolsLoaded,return,end
 
 % get filename for SID database
-sidDatabaseFilename = mglGetParam('sidDatabaseFilename');
+sidDatabaseFilename = mlrReplaceTilde(mglGetParam('sidDatabaseFilename'));
 if isempty(sidDatabaseFilename)
   disp(sprintf('(mglSetSID) !!! Can not load SID Database because filename has not been set: use mglSetParam(''sidDatabaseFilename'',''filename''); !!!'));
   return
@@ -261,25 +493,34 @@ end
 % decrypt file name
 sidDatabaseDecrypt = setext(sidDatabaseFilename,'csv',0);
 
+% get list of required fields
+global requiredFields;
+
 % check if data base exists
 if ~isfile(sidDatabaseFilename)
   if askuser(sprintf('(mglSetSID) Could not find SID Database file %s, create one from scratch?',sidDatabaseFilename))
-    % create a new table
-    sidDatabase.sid = {};
-    sidDatabase.firstName = {};
-    sidDatabase.lastName = {};
-    sidDatabase.gender = {};
-    sidDatabase.dob = {};
-    sidDatabase.dateAdded = {};
-    sidDatabase.ethnicity = {};
-    sidDatabase.race = {};
-    for iRace = 3:length(racialCategories)
-      sidDatabase.(sprintf('otherRace%i',iRace-2)) = {};
+    for iField = 1:length(requiredFields)
+      % check if default is a cell
+      if iscell(reqiredFields{iField}{2})
+	% then use first element in cell
+	sidDatabase.(requiredFields{iField}{1}) = requiredFields{iField}{2}{1};
+      else
+	sidDatabase.(requiredFields{iField}{1}) = requiredFields{iField}{2};
+      end
     end
     % set column names
     columnNames = fieldnames(sidDatabase);
   end
   return
+end
+
+% load unencrypted part of database that does not contain
+% any personal identifiers
+sidDatabaseFilenameUnencrypted = mlrReplaceTilde(setext(mglGetParam('sidDatabaseFilename'),'mat',0));
+if ~isfile(sidDatabaseFilenameUnencrypted)
+  disp(sprintf('(mglSetSID) !!! Could not find unencrypted dataabase that contains info devoid of personal identifiers. Will try to load from encrypted database'));
+else
+  unencrypted = load(sidDatabaseFilenameUnencrypted);
 end
 
 % try to unencrypt file using openssl des3
@@ -301,6 +542,19 @@ if isempty(sidDatabase)
   return
 end
 
+% try to merge unencrypted and encrypted information
+% first check that sid information is the same in both files
+if isfield(unencrypted,'sid') && isfield(sidDatabase,'sid') && isequal(unencrypted.sid,sidDatabase.sid)
+  % ok, we have matching information so, merge the date
+  unencryptedFieldnames = fieldnames(unencrypted);
+  for iField = 1:length(unencryptedFieldnames)
+    % copy fields
+    sidDatabase.(unencryptedFieldnames{iField}) = unencrypted.(unencryptedFieldnames{iField});
+  end
+else
+  disp(sprintf('(mglSetSID) !!! Unencrypted database file %s does not have matching information with sidDatabase file %s, so ignoring unencrypted file !!!',sidDatabaseFilenameUnencrypted,sidDatabaseFilename));
+end
+
 % set column names
 columnNames = fieldnames(sidDatabase);
 
@@ -309,6 +563,27 @@ checkFields = {'sid','lastName','firstName'};
 if ~isempty(setxor(intersect(columnNames,checkFields),checkFields))
   disp(sprintf('(mglSetSID) Bad table format for file %s',sidDatabaseFilename));
   sidDatabase = [];
+end
+
+% add any missing fields
+if ~isempty(sidDatabase)
+  nSID = length(sidDatabase.sid);
+  % check if all the special fields exists
+  for iField = 1:length(requiredFields)
+    % if a field does not exist then set it to its default value
+    if ~isfield(sidDatabase,requiredFields{iField}{1})
+      % set to default value for all subjects
+      sidDatabase.(requiredFields{iField}{1}) = cell(1,length(sidDatabase.sid));
+      sidDatabase.(requiredFields{iField}{1})(:) = {requiredFields{iField}{2}};
+    else
+      % if it does exist, make sure that it has an entry for each sid
+      if length(sidDatabase.(requiredFields{iField}{1})) < nSID
+	for i = length(sidDatabase.(requiredFields{iField}{1}))+1:nSID
+	  sidDatabase.(requiredFields{iField}{1}){i} = requiredFields{iField}{2};
+	end
+      end
+    end
+  end
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%
@@ -320,7 +595,7 @@ function saveSIDDatabase(sidDatabase)
 if ~mglIsMrToolsLoaded,return,end
 
 % get filename for SID s
-sidDatabaseFilename = mglGetParam('sidDatabaseFilename');
+sidDatabaseFilename = mlrReplaceTilde(mglGetParam('sidDatabaseFilename'));
 if isempty(sidDatabaseFilename)
   disp(sprintf('(mglSetSID) Can not look up sid because filename has not been set: use mglSetParam(''sidDatabaseFilename'',''filename'');'));
   return
@@ -333,6 +608,34 @@ if ~isfile(sidDatabaseFilename)
   if (~askuser(sprintf('(mglSetSID) Create SID database file: %s',sidDatabaseFilename)))
     return
   end
+end
+
+% check to see if any fields need to be stripped and put
+% into unencrypted mat file instead of csv file
+global requiredFields
+unencrypted.sid = sidDatabase.sid;
+for iField = 1:length(requiredFields)
+  % check to see if the 4th argumnet, which is whether the
+  % field should be encrypted or not is set to 0
+  if requiredFields{iField}{4} == 0
+    % now copy over that unencrypted to the variable unencrypted
+    % which will get saved as an unecrypted mat file below
+    unencrypted.(requiredFields{iField}{1}) = sidDatabase.(requiredFields{iField}{1});
+    % and remove it from the sidDatabase which will get
+    % saved as an encrypted csv file
+    sidDatabase = rmfield(sidDatabase,requiredFields{iField}{1});
+  end
+  % also, build up an easy to access list of requiredField names
+  % which is used for the check below for any fields that exist
+  % that are not required
+  requiredFieldNames{iField} = requiredFields{iField}{1};
+end
+
+% if there are any extraneous fields, then remove them
+extraneousFields = setdiff(fieldnames(sidDatabase),requiredFieldNames);
+for iField = 1:length(extraneousFields)
+  disp(sprintf('(mglSetSID) Removing extraneous field %s from sid database',extraneousFields{iField}));
+  sidDatabase = rmfield(sidDatabase,extraneousFields{iField});
 end
 
 % write sids to file
@@ -363,13 +666,370 @@ end
 
 % write out SIDs
 sidDatabaseSID = setext(sidDatabaseFilename,'mat',0);
-sid = sidDatabase.sid;
-save(sidDatabaseSID,'sid');
+save(sidDatabaseSID,'-struct','unencrypted');
+
+%%%%%%%%%%%%%%%
+%    addSID   %
+%%%%%%%%%%%%%%%
+function addSID(private)
+
+global gMaxSID;
+
+% check for mrTools
+if ~mglIsMrToolsLoaded,return,end
+
+% get the lock
+if ~getLock return,end
+
+% open the SID database
+sidDatabase = loadSIDDatabase;
+if isempty(sidDatabase),return,end
+
+% get postfix
+if ~isempty(private)
+  postfix = getPostfix(sidDatabase,private);
+  if isempty(postfix)
+    disp(sprintf('(mglSetSID:addSID) No postfix for private SID: %s. Aborting',private));
+    return
+  end
+else
+  postfix = [];
+end
+
+% get the set of unused sids
+sidUsed = [];
+for iSID = 1:length(sidDatabase.sid)
+  if isequal(sidDatabase.private{iSID},private)
+    sidUsed(iSID) = sid2num(sidDatabase.sid{iSID});
+  end
+end
+
+global requiredFields;
+
+% set up the dialog
+paramsInfo = {};
+paramsInfo{end+1} = {'sid',validateNewSID(sidUsed,1),'incdec=[-1 1]','minmax',[0 gMaxSID],'Set the SID that you want to add','callback',@validateNewSID,'callbackArg',sidUsed};
+
+% make an input for each field 
+for iField = 1:length(requiredFields)
+  fieldName = requiredFields{iField}{1};
+  fieldDefault = requiredFields{iField}{2};
+  fieldHelp = requiredFields{iField}{3};
+  % cell array deafults mean to put up a set of choices
+  % like for race or gender categories. Except in the case
+  % of log which contains a cell array of usage info
+  if strcmp(fieldName,'private')
+    paramsInfo{end+1} = {fieldName,private,fieldHelp,'editable=0'};
+  elseif iscell(fieldDefault) && ~strcmp(fieldName,'log')
+    paramsInfo{end+1} = {fieldName,fieldDefault,'type=popupmenu',fieldHelp};
+  % date needs to be checked against age limits and formatted properly
+  elseif strcmp(fieldDefault,'date')
+    paramsInfo{end+1} = {fieldName,'','type=string',fieldHelp,'callback',@validateDate,'callbackArg',fieldName};
+  % experimenter gets as default the current user name
+  elseif strcmp(fieldName,'experimenter')
+    paramsInfo{end+1} = {fieldName,getusername,'type=string',fieldHelp};
+  % otherwise, everything but sid gets put up as a string
+  elseif ~strcmp(fieldName,'sid') && ~strcmp(fieldName,'log')
+    paramsInfo{end+1} = {fieldName,fieldDefault,'type=string',fieldHelp};
+  end
+end
+
+% bring up dialog box
+params = mrParamsDialog(paramsInfo);
+
+% save the database
+if ~isempty(params)
+  % add the subject to the database
+  for iField = 1:length(requiredFields)
+    % convert sid, which is a number into a sid string
+    if strcmp(requiredFields{iField}{1},'sid')
+      sidDatabase.sid{end+1} = num2sid(params.sid,postfix);
+    % everything except log gets value from params
+    elseif ~strcmp(requiredFields{iField}{1},'log')
+      sidDatabase.(requiredFields{iField}{1}){end+1} = params.(requiredFields{iField}{1});
+    % log starts out empty
+    elseif strcmp(requiredFields{iField}{1},'log')
+      sidDatabase.log = {};
+    end
+  end
+  % set the dateAdded
+  sidDatabase.dateAdded{end+1} = datestr(now);
+  % save it back
+  saveSIDDatabase(sidDatabase);
+  % release lock
+  releaseLock(true);
+else
+  % release lock
+  releaseLock;
+end
+
+%%%%%%%%%%%%%%%%
+%    listSID   %
+%%%%%%%%%%%%%%%%
+function listSID(private)
+
+global gMaxSID;
+
+% check for mrTools
+if ~mglIsMrToolsLoaded,return,end
+
+% get the lock
+if ~getLock return,end
+
+% open the SID database
+sidDatabase = loadSIDDatabase;
+
+% release lock
+releaseLock;
+
+% check for problem opening database
+if isempty(sidDatabase),return,end
+
+% get postfix
+if ~isempty(private)
+  postfix = getPostfix(sidDatabase,private);
+  if isempty(postfix)
+    disp(sprintf('(mglSetSID:addSID) No postfix for private SID: %s. Aborting',private));
+    return
+  end
+else
+  postfix = [];
+end
+
+% display all entries
+for iSID = 1:length(sidDatabase.sid)
+  dispSID(sidDatabase,iSID);
+end
+
+%%%%%%%%%%%%%%%%%
+%    dispSID    %
+%%%%%%%%%%%%%%%%%
+function dispSID(sidDatabase,iSID)
+
+% get the fields we have
+columnNames = fieldnames(sidDatabase);
+
+% initialize display string
+dispStr = '';
+for iVal = 1:length(columnNames)
+  % get the value of the field
+  fieldVal = sidDatabase.(columnNames{iVal}){iSID};
+  if ~isstr(fieldVal),fieldVal = '';end
+  % some fields are long, so give them two tabs
+  if any(strcmp(columnNames{iVal},{'firstName','lastName'}))
+    if length(fieldVal) >= 8
+      dispStr = sprintf('%s%s\t',dispStr,fieldVal);
+    else
+      dispStr = sprintf('%s%s\t\t',dispStr,fieldVal);
+    end
+  else
+    dispStr = sprintf('%s%s\t',dispStr,fieldVal);
+  end
+end
+disp(dispStr);
+
+%%%%%%%%%%%%%%%%%%%%
+%    getPostfix    %
+%%%%%%%%%%%%%%%%%%%%
+function postfix = getPostfix(sidDatabase,private,matchOnly)
+
+postfix = [];
+if isempty(private),return,end
+if nargin<3,matchOnly = false;end
+% look for this private marker in the datbase
+privateMatch = find(strcmp(lower(private),sidDatabase.private));
+
+% if there is a match, then return existing postfix
+% the postfix is the letters after the number in subject
+% ID. e.g. s0001x (postfix = x) It can be a more than one
+% letter code
+if ~isempty(privateMatch)
+  % get the postfix
+  [issid postfixPos] = regexp(sidDatabase.sid{privateMatch(1)},'s\d+');
+  if issid && (postfixPos < length(sidDatabase.sid{privateMatch(1)}))
+    % if valid, then set it.
+    postfix = sidDatabase.sid{privateMatch(1)}(postfixPos+1:end);
+  end
+  return
+end
+if matchOnly,return,end
+
+% not found, first get all the postfixes
+% so that we can validate whether one
+% is existing or not
+existingPostfix = {};
+for iSID = 1:length(sidDatabase.sid)
+  [issid postfixPos] = regexp(sidDatabase.sid{iSID},'s\d+');
+  if issid && (postfixPos < length(sidDatabase.sid{iSID}))
+    existingPostfix{end+1} = sidDatabase.sid{iSID}(postfixPos+1:end);
+  end
+end
+existingPostfix = unique(existingPostfix);
+
+% generate all possible postfixs of one letter
+possiblePostfix = {};
+for iLetter = 'a':'z'
+  possiblePostfix{end+1} = iLetter;
+end
+% only offer postfix that has not been used already
+possiblePostfix = setdiff(possiblePostfix,existingPostfix);
+
+% try to put the first letter at the top of the list
+if ismember(lower(private(1)),possiblePostfix)
+  % if the first letter of the private string
+  % is available, put it on the top of the list
+  possiblePostfix = putOnTopOfList(lower(private(1)),possiblePostfix);
+else
+  % if not, then add the first letter + every letter of the alphabet
+  for iLetter = 'a':'z'
+    possiblePostfix{end+1} = sprintf('%s%s',lower(private(1)),iLetter);
+  end
+  % only offer postfix that has not been used already
+  possiblePostfix = setdiff(possiblePostfix,existingPostfix);
+  if ismember(lower(private(1:2)),possiblePostfix)
+    possiblePostfix = putOnTopOfList(lower(private(1:2)),possiblePostfix);
+  end
+end
+
+paramsInfo{1} = {'postfix',possiblePostfix,'type=popupmenu',sprintf('Choose the subjectID postfix for the private sid database: %s. This is the character that will go after s001 to distinguish it form other subject IDs. For example, s001x',private)};
+params = mrParamsDialog(paramsInfo,sprintf('Choose postfix for %s',private));
+if ~isempty(params),postfix = params.postfix;end
+
+%%%%%%%%%%%%%%%%%%%%%%
+%    validateDate    %
+%%%%%%%%%%%%%%%%%%%%%%
+function val = validateDate(fieldName,params)
+
+% validate date
+try
+  d = datevec(datenum(params.(fieldName)));
+  val = sprintf('%i/%i/%i',d(2),d(3),d(1));
+  % check to see if the subject is under 18
+  if ~checkAgeLimit(val),val = '';end
+catch
+  disp(sprintf('(mglSetSID:validateDate) Invalid date: %s',params.(fieldName)));
+  val = '';
+end
+% set validated date back
+params.(fieldName) = val;
+mrParamsSet(params);
+
+%%%%%%%%%%%%%%%%%%%%%%%%
+%    validateNewSID    %
+%%%%%%%%%%%%%%%%%%%%%%%%
+function val = validateNewSID(sidUsed,params)
+
+global gMaxSID;
+
+% set sid to the proposed new sid
+if isstruct(params)
+  sid = params.sid;
+else
+  sid = params;
+end
+
+% make an array of all possible SIDs starting with the
+% one in params. Check if they are in sidUsed and
+% select the first one in the list that is not in used
+possibleSID = [sid:gMaxSID 1:sid];
+isAlreadyUsed = ismember(possibleSID,sidUsed);
+val = possibleSID(first(find(~isAlreadyUsed)));
+
+% reset the mrParamsDialog with the new value
+if isstruct(params)
+  params.sid = val;
+  mrParamsSet(params);
+end
+%%%%%%%%%%%%%%%%%
+%    sid2num    %
+%%%%%%%%%%%%%%%%%
+function [num postfix] = sid2num(sid)
+
+num = [];
+% we are looking for something
+% that looks like sxxxx with a possible character
+% at end, e.g. s0001a = subjectID num of 1
+for i = 2:length(sid)
+  % keep looking for digits
+  if isempty(regexp(sid(i),'\d'))
+    % found non-digit, so go back one
+    i = i - 1;
+    % and break loop
+    break
+  end
+end
+% get the number
+if i <=length(sid)
+  num = str2num(sid(2:i));
+end
+% get any postfix string
+postfix = sid(i+1:end);
+
+%%%%%%%%%%%%%%%%%
+%    num2sid    %
+%%%%%%%%%%%%%%%%%
+function sid = num2sid(sid,postfix)
+
+if nargin < 2,postfix = '';end
+
+global gMaxSID;
+if ((sid>=1)&&(sid<=gMaxSID))
+  sid = sprintf('s%03i%s',round(sid),postfix);
+elseif (sid == -1)
+  sid = 'test';
+else
+  disp(sprintf('(mglSetSID) Numeric SID should be 1-%i for actual subejct ID or -1 for a test',gMaxSID));
+  sid = [];
+end
+
+%%%%%%%%%%%%%%%%%%
+%    name2sid    %
+%%%%%%%%%%%%%%%%%%
+function sid = name2sid(sid,private)
+
+% check if it is test
+if strcmp(lower(sid),'test')
+  sid = 'test';
+  return
+end
+
+% lookup name
+sidstr = sid;
+[sid firstName lastName] = lookupSID(sidstr,private);
+% found it
+if length(sid) == 1
+  % if only one, display and set
+  disp(sprintf('(mglSetSID) Found subject: %s %s (%s)',firstName{1},lastName{1},sid{1}));
+  sid = sid{1};
+elseif length(sid) > 1
+  % multiple matches, display them all and let subject select
+  disp(sprintf('(mglSetSID) Found multiple matches for %s',sidstr));
+  for i = 1:length(sid)
+    disp(sprintf('%i: %s %s: %s',i,firstName{i},lastName{i},sid{i}));
+  end
+  c = getnum(sprintf('(mglSetSID) Choose which subject (0 to cancel): ',0:length(sid)));
+  % return that
+  if (c > 0)
+    sid = sid{c};
+  else
+    sid = [];
+  end
+else
+  disp(sprintf('(mglSetSID) !!! Could not find unique SID for: %s !!!\nSID not set.',sidstr));
+  sid = [];
+end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%
 %    editSIDDatabase    %
 %%%%%%%%%%%%%%%%%%%%%%%%%
-function sidDatabase = editSIDDatabase(sidDatabase)
+function editSIDDatabase
+
+% get the lock
+if ~getLock return, end
+
+% load existing database
+sidDatabase = loadSIDDatabase;
+if isempty(sidDatabase),releaseLock;return;,end
 
 % sort based on subject id
 [vals sortorder] = sort(sidDatabase.sid);
@@ -398,7 +1058,15 @@ end
 % add 100 empty rows for editing
 for i= 1:100
   for iCol = 1:nCols
-    sidDatabase.(columnNames{iCol}){end+1} = '';
+    % set default values for things that will not show up in edit table
+    % not that this needs to be fixed if we add more fields beyond
+    % experimenter and log - but actually hoping to deprecate this
+    % whole edit thing
+    if strcmp(columnNames{iCol},'experimenter')
+      sidDatabase.(columnNames{iCol}){end+1} = getusername;
+    else
+      sidDatabase.(columnNames{iCol}){end+1} = '';
+    end
   end
 end
 
@@ -420,6 +1088,7 @@ if mglGetParam('sidRaceEthnicity')
     columnEditable(end+1) = true;
   end
 end
+global numColumns;
 numColumns = length(columnFormat);
 
 % table width
@@ -514,6 +1183,16 @@ end
 close(f);
 pause(0.1);
 
+% save the database
+if ~isempty(sidDatabase)
+  saveSIDDatabase(sidDatabase);
+  % release lock
+  releaseLock(true);
+else
+  % release lock
+  releaseLock;
+end
+
 %%%%%%%%%%%%%%%%%%%%%
 %    validateRow    %
 %%%%%%%%%%%%%%%%%%%%%
@@ -533,12 +1212,12 @@ end
 
 % check all required fields
 for iField = 1:length(requiredFields)
-  fieldNum = find(strcmp(requiredFields{iField},columnNames));
+  fieldNum = find(strcmp(requiredFields{iField}{1},columnNames));
   % check if that field is empty
   if ~isempty(fieldNum) && (size(data,2)>=fieldNum) && isempty(data{rownum,fieldNum})
     tf = false;
     invalidFieldNum = fieldNum;
-    invalidFieldName = requiredFields{iField};
+    invalidFieldName = requiredFields{iField}{1};
     return
   end
 end
@@ -574,6 +1253,24 @@ if ~isnan(gEditingRow)
 end
 gEditingRow = currentRow;
 
+%%%%%%%%%%%%%%%%%%%%%%%
+%    checkAgeLimit    %
+%%%%%%%%%%%%%%%%%%%%%%%
+function tf = checkAgeLimit(fieldVal)
+
+tf = true;
+
+% get age limit. Default to 18
+ageLimit = mglGetParam('sidAgeLimit');
+if isempty(ageLimit),ageLimit=18;end
+
+% age - accounting for birthday happening on same as today
+age = datevec(datenum(floor(now)+1)-datenum(fieldVal));
+if age(1) < ageLimit
+  tf = false;
+  warndlg(sprintf('!!! Subject born on %s is %i years old which is less than %i years old. Using this subject in an experiment is a protocol violation !!!',fieldVal,age(1),ageLimit),'Age Violation','modal');
+end
+
 %%%%%%%%%%%%%%%%%%%%%
 %    editSIDcell    %
 %%%%%%%%%%%%%%%%%%%%%
@@ -585,15 +1282,7 @@ function editSIDcell(src, eventdata)
 % check if there is an age limit
 global columnNames;
 if strcmp(columnNames{eventdata.Indices(2)},'dob')
-  ageLimit = mglGetParam('sidAgeLimit');
-  if ~isempty(ageLimit)
-    % age - accounting for birthday happening on same as today
-    age = datevec(datenum(floor(now)+1)-datenum(fieldVal));
-    if age(1) < ageLimit
-      tf = false;
-      warndlg(sprintf('Subject was born on %s (%i years old) is less than %i years old. Using this subject in an fMRI experiment could be a protocol violation.',fieldVal,age(1),ageLimit),'Age Violation','modal');
-    end
-  end
+  tf = checkAgeLimit(fieldVal);
 end
 
 % check for duplicate SID
@@ -650,6 +1339,25 @@ else
   if ~isequal(eventdata.NewData,fieldVal)
     d = get(src,'data');
     d{eventdata.Indices(1),eventdata.Indices(2)} = fieldVal;
+    % set all other fields in row to default
+    global requiredFields;
+    global numColumns;
+    rowNum = eventdata.Indices(1);
+    for iField = 1:length(requiredFields)
+      columnNum = find(strcmp(requiredFields{iField}{1},columnNames));
+      % see if it should be filled with a default value
+      if ~isempty(columnNum) && (columnNum <= numColumns) && isempty(d{rowNum,columnNum})
+	if strcmp(requiredFields{iField}{1},'dateAdded')
+	  d{rowNum,columnNum} = datestr(now);
+	elseif strcmp(requiredFields{iField}{1},'dob')
+	  d{rowNum,columnNum} = '';
+	elseif iscell(requiredFields{iField}{2})
+	  d{rowNum,columnNum} = requiredFields{iField}{2}{1};
+	else
+	  d{rowNum,columnNum} = requiredFields{iField}{2};
+	end
+      end
+    end
     set(src,'data',d);
   end
 end
@@ -729,7 +1437,7 @@ elseif strncmp(columnNames{fieldNum},'otherRace',9)
   end
 end
 
-if isnan(fieldVal),fieldVal = '';end
+if isequal(fieldVal,nan),fieldVal = '';end
 
 %%%%%%%%%%%%%%%%%%%
 %    editSIDOK    %
@@ -811,7 +1519,7 @@ tf = false;
 if ~mglIsMrToolsLoaded,return,end
 
 % get the filename of the database lock
-sidDatabaseLockFilename = setext(mglGetParam('sidDatabaseFilename'),'lock',0);
+sidDatabaseLockFilename = mlrReplaceTilde(setext(mglGetParam('sidDatabaseFilename'),'lock',0));
 
 % see if it exists
 if isfile(sidDatabaseLockFilename)
@@ -867,7 +1575,7 @@ function releaseLock(warnOnStolenLock)
 if nargin < 1,warnOnStolenLock = false;end
 
 % get the filename of the database lock
-sidDatabaseLockFilename = setext(mglGetParam('sidDatabaseFilename'),'lock',0);
+sidDatabaseLockFilename = mlrReplaceTilde(setext(mglGetParam('sidDatabaseFilename'),'lock',0));
 
 % check if lock is there
 if ~isfile(sidDatabaseLockFilename)
@@ -1023,10 +1731,15 @@ fprintf(f,'\n');
 % write out each row
 for iRow = 1:length(t.sid)
   for iField = 1:length(fields)
+    fieldVal = t.(fields{iField}){iRow};
+    % check if field has not been set
+    if iscell(fieldVal)
+      fieldVal = 'N/A';
+    end
     if (iField==1)
-      fprintf(f,'%s',t.(fields{iField}){iRow});
+      fprintf(f,'%s',fieldVal);
     else
-      fprintf(f,',%s',t.(fields{iField}){iRow});
+      fprintf(f,',%s',fieldVal);
     end
   end
   fprintf(f,'\n');
@@ -1034,3 +1747,5 @@ end
 
 % close file
 fclose(f);
+
+

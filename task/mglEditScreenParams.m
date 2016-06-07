@@ -38,9 +38,8 @@ if ~any(nargin == [0])
 end
 
 % check for mrParamsDialog
-if ~exist('mrParamsDialog')
+if ~mglIsMrToolsLoaded
   disp(sprintf('(mglEditScreenParams) You must have mrTools in your path to run the GUI for this function.'));
-  disp(sprintf('(mglEditScreenParams) You can download the mrTools utilties by doing the following from a shell:\n\nsvn checkout http://cbi.nyu.edu/svn/mrTools/trunk/mrUtilities/MatlabUtilities mrToolsUtilities\n\nand then add the path in matlab:\n\naddpath(''mrToolsUtilities'')'));
   return
 end
 
@@ -57,29 +56,57 @@ hostname = mglGetHostName;
 
 % get the name of the valid computers
 hostnameList = {};displayNames = {};computerNum = 1;
+defaultDisplayName = mglGetParam('defaultDisplayName');defaultDisplay = {};
 for i = 1:length(screenParams)
   hostnameList{end+1} = screenParams{i}.computerName;
   displayNames{end+1} = screenParams{i}.displayName;
+  if isempty(displayNames{end}) displayNames{end} = ' ';,end
   if isequal(screenParams{i}.computerName,mglGetHostName)
     computerNum = i;
   end
+  % check if this is one that should be checked on as default
+  if ~isempty(defaultDisplayName) && isstr(defaultDisplayName) && isstr(screenParams{i}.displayName) && strcmp(lower(defaultDisplayName),lower(screenParams{i}.displayName))
+    defaultDisplay{i} = 1;
+  else
+    defaultDisplay{i} = 0;
+  end
 end
-
 
 % set up params for choosing which computer to edit
 paramsInfo{1} = {'computerNum',computerNum,sprintf('minmax=[1 %i]', length(hostnameList)),'incdec=[-1 1]'};
 paramsInfo{end+1} = {'computerName',hostnameList,'type=string','group=computerNum','editable=0'};
 paramsInfo{end+1} = {'displayName',displayNames,'type=string','group=computerNum','editable=0'};
+paramsInfo{end+1} = {'defaultDisplay',defaultDisplay,'type=checkbox','group=computerNum','If this is checked it means that this display is the one that will come up by default when initScreen is run with no arguments','callback',@changeDefaultDisplay};
 paramsInfo{end+1} = {'addDisplay',0,'type=pushButton','buttonString=Add Display','callback',@addDisplay,'passParams=1','Add a new display to the list'};
 paramsInfo{end+1} = {'deleteDisplay',0,'type=pushButton','buttonString=Delete Display','callback',@deleteDisplay,'passParams=1','Delete this display from the screenParams'};
 
 % bring up dialog box
-params = mrParamsDialog(paramsInfo, sprintf('Choose computer/display (you are now on: %s)',hostname));
+params = mrParamsDialog(paramsInfo,'Choose display to edit','fullWidth=1');
 if isempty(params),return,end
 
 % add this display if asked for
-if isequal(params.addDisplay,'add') || (params.computerNum > length(screenParams))
-  screenParams{end+1} = mglDefaultScreenParams;
+if isequal(params.addDisplay,true) || (params.computerNum > length(screenParams))
+  % see if user wants to use default settings or copy an existing one
+  % get display info
+  initTypeStrings = {};
+  for i = 1:length(screenParams)
+    initTypeStrings{end+1} = sprintf('Copy: %s: %s (%i %ix%i %i Hz)',screenParams{i}.computerName,screenParams{i}.displayName,screenParams{i}.screenNumber,screenParams{i}.screenWidth,screenParams{i}.screenHeight,screenParams{i}.framesPerSecond);
+  end
+  initTypeStrings = putOnTopOfList('Use default',initTypeStrings);
+  paramsInfo = {{'initParamsType',initTypeStrings,'Choose whether to use default screen params or copy screen params from an exisiting screenParams as your starting point for the new screen settings'}};
+  initTypeParams = mrParamsDialog(paramsInfo,'Choose how to init new screen');
+  % user aborted
+  if isempty(initTypeParams),return,end
+  % find which one the user selected
+  initParamsType = find(strcmp(initTypeParams.initParamsType,initTypeStrings));
+  % if user asked for default
+  if initParamsType == 1
+    screenParams{end+1} = mglDefaultScreenParams;
+  else
+    % otherwise copy
+    screenParams{end+1} = screenParams{initParamsType-1};
+    screenParams{end}.displayName = '';
+  end
 end
 
 % delete computers list
@@ -198,7 +225,12 @@ paramsInfo{end+1} = {'diginResponseLine',num2str(thisScreenParams.digin.response
 paramsInfo{end+1} = {'diginResponseType',num2str(thisScreenParams.digin.responseType),'type=string','This is how to interpert the digial signals for the responses. If you want to trigger when the signal goes low then set this to 0. If you want trigger when the signal goes high, set this to 1. If you want to trigger when the signal changes state (i.e. either low or high), set to [0 1]','contingent=diginUse'};
 paramsInfo{end+1} = {'simulateVerticalBlank',thisScreenParams.simulateVerticalBlank,'type=checkbox','Click this if you want to simulate a vertical blank waiting period. Normally mglFlush waits till the vertical blank and so you will only refresh once every video frame. But with some video cards, notably ATI Radeon HD 5xxx series, this is broken. So by clicking this you can use the mglFlushAndWait rather than the mglFlush function which will just use mglWaitSecs to wait the appropriate amount of time after an mglFlush'};
 paramsInfo{end+1} = {'testSettings',0,'type=pushbutton','buttonString=Test screen params','callback',@testSettings,'passParams=1','Click to test the monitor settings'};
-
+paramsInfo{end+1} = {'useScreenMask',thisScreenParams.useScreenMask,'type=checkbox','Turn on or off using a screen mask. A screen mask is s a stencil used to block out portions of the display. This is typically used because you are projecting on to a screen (like in an MRI system) in which the screen is not quite rectangular, and you dont want to project stray light outside the screen. So you create a function (set as screenMaskFunction) which puts white where you want to display and black where you do not. Then initScreen will make this a stencil, and mglClearScreen will set the stencil to be active forcing all drawing to not draw into the area where you want to stencil out'};
+paramsInfo{end+1} = {'screenMaskFunction',thisScreenParams.screenMaskFunction,'Function that draws a screen mask - white where you want to draw, black elsewhere. This function should take one input value, myscreen, and not return anything - see help under useScreenMask for more info','contingent=useScreenMask'};
+paramsInfo{end+1} = {'screenMaskStencilNum',thisScreenParams.screenMaskStencilNum,'type=numeric','minmax',[1 inf],'incdec',[-1 1],'contingent=useScreenMask','Sets which stencil to use for the screen mask - see useScreenMask for more info'};
+if ~isfield(thisScreenParams,'screenMaskStencilNum')
+  thisScreenParams.screenMaskFunction = 7;
+end
 % get info about subjectID
 mustSetSID = mglGetParam('mustSetSID');
 if isempty(mustSetSID),mustSetSID=false;end
@@ -615,6 +647,23 @@ screenParams.eyeTrackerType = params.eyeTrackerType;
 % simulate vertical blank
 screenParams.simulateVerticalBlank = params.simulateVerticalBlank;
 
+% screenMask
+screenParams.useScreenMask = params.useScreenMask;
+if params.useScreenMask
+  screenParams.screenMaskFunction = params.screenMaskFunction;
+  screenParams.screenMaskStencilNum = params.screenMaskStencilNum;
+else
+  % default back to orignal
+  for i = 1:length(params.paramInfo)
+    if strcmp(params.paramInfo{i}{1},'screenMaskFunction')
+      screenParams.screenMaskFunction = params.paramInfo{i}{2};
+    end
+    if strcmp(params.paramInfo{i}{1},'screenMaskStencilNum')
+      screenParams.screenMaskStencilNum = params.paramInfo{i}{2};
+    end
+  end
+end
+  
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %    setSIDSettingsFromParams    %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -663,9 +712,22 @@ retval = 'add';
 if ~isequal(params.addDisplay,'add')
   params.computerName = {params.computerName{:},mglGetHostName};
   params.displayName = {params.displayName{:},''};
+  params.defaultDisplay(end+1) = 0;
   params.computerNum = length(params.computerName);
+  params.addDisplay = true;
   mrParamsSet(params);
 end
+mrParamsClose(true);
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%   changeDefaultDisplay  %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function retval = changeDefaultDisplay(params)
+
+retval = false;
+mrParamsClose;
+% save for all users the setting
+mglSetParam('defaultDisplayName',params.displayName{params.computerNum},2);
 
 %%%%%%%%%%%%%%%%%%%%%%%
 %%   deleteDisplay   %%

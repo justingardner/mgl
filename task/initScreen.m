@@ -96,24 +96,21 @@ for i = 1:length(screenParams)
     end
   end
   % validate fields
-  %% Souldn't this be in the mglValidateScreenParams?
-  thisFieldNames = fieldnames(screenParams{i});
-  for j = 1:length(thisFieldNames)
-    % match the field in the screenParamsList (do case insensitive)
-    whichField = find(strcmp(lower(thisFieldNames{j}),lower(screenParamsList)));
-    % if no match, report an error, but continue on
-    if isempty(whichField)
-      disp(sprintf('(initScreen) UHOH! Unrecogonized field %s in screenParams{%i}',thisFieldNames{j},i));
-    else
-      % now remove it from screenParams and then add it back -- this is simply
-      % to insure that the capitilization is correct
-      fieldVal = screenParams{i}.(thisFieldNames{j});
-      screenParams{i} = rmfield(screenParams{i},thisFieldNames{j});
-      screenParams{i}.(screenParamsList{whichField}) = fieldVal;
-    end
-    % check for displayName
-    if ~isfield(screenParams{i},'displayName')
-      screenParams{i}.displayName = '';
+  screenParams = mglValidateScreenParams(screenParams);
+end
+
+% if there is no displayName then see if we should use a default
+if ~isfield(myscreen,'displayName')
+  % if defaultDisplayName is set
+  defaultDisplayName = mglGetParam('defaultDisplayName');
+  if ~isempty(defaultDisplayName)
+    % then check through screen params to see
+    % if there is one with that display name
+    for i = 1:length(screenParams)
+      if isequal(screenParams{i}.displayName,defaultDisplayName)
+	% if there is, then set myscreen to use that name
+	myscreen.displayName = defaultDisplayName;
+      end
     end
   end
 end
@@ -148,7 +145,6 @@ if ~foundComputer && isfield(myscreen,'displayName')
       % choose it then.
       if ~foundComputer
 	foundComputer = pnum;
-	keyboard
 	disp(sprintf('(initScreen) !!! Matching displayName: %s but computerName %s does not mach this computer name: %s !!!',screenParams{pnum}.displayName,screenParams{pnum}.computerName,myscreen.computerShortname));
       end
     end
@@ -159,12 +155,12 @@ end
 % so go through again looking for any match even if the displayName is
 % not a match
 if ~foundComputer
+  % also, get defaultDisplayName
+  defaultDisplayName = mglGetParam('defaultDisplayName');
   for pnum = 1:length(screenParams)
-    if ~isempty(findstr(myscreen.computerShortname,screenParams{pnum}.computerName))
-      % choose a matching computer name and if possible one with an empty displayName
-      if ~foundComputer || isempty(screenParams{pnum}.displayName) 
-	foundComputer = pnum;
-      end
+    % choose a matching computer name and if possible one with a matching defaultDisplayName
+    if ~foundComputer || isequal(screenParams{pnum}.displayName,defaultDisplayName)
+      foundComputer = pnum;
     end
   end
 end
@@ -274,6 +270,9 @@ if ~isfield(myscreen,'calibProportion')
 end
 if ~isfield(myscreen,'eyeTrackerType')
   myscreen.eyeTrackerType = 'None';
+end
+if ~isfield(myscreen,'useScreenMask')
+  myscreen.useScreenMask = false;
 end
 
 myscreen.pwd = pwd;
@@ -472,8 +471,33 @@ end
 
 % init the mgl screen
 if ~isempty(myscreen.screenNumber)
+  if isempty(mglResolution(myscreen.screenNumber))
+    disp(sprintf('(initScreen) !!! Screen %i does not exist !!!',myscreen.screenNumber));
+    myscreen = [];
+    return
+  end
+  % figure out whether we are going to change resolution
+  displays = mglDescribeDisplays;
+  waitAfterOpen = 3;
+  if (myscreen.screenNumber <= length(displays)) && (myscreen.screenNumber >= 1)
+    if isfield(displays(myscreen.screenNumber),'screenSizePixel') && isfield(displays(myscreen.screenNumber),'refreshRate')
+      % get already set pixel resolution and refresh rate
+      screenSizePixel = displays(myscreen.screenNumber).screenSizePixel;
+      refreshRate = displays(myscreen.screenNumber).refreshRate;
+      desiredSizePixel = [myscreen.screenWidth myscreen.screenHeight];
+      % now check if they are the same
+      if isequal(screenSizePixel(:),desiredSizePixel(:)) && isequal(refreshRate,myscreen.framesPerSecond)
+	disp(sprintf('(initScreen) Resolution and refersh rate do not appear to differ from current monitor settings. *Not* waiting after mglOpen. Note that if the monitor goes black for a second this means that the resolution has to be set by mac and in that case the gamma table may not get set correctly due to a race condition between mac system software setting the gamma table and initScreen setting the gamma table'));
+	waitAfterOpen = 0;
+      end
+    end
+  end
+
   % setting with specified screenNumber
   mglOpen(myscreen.screenNumber, myscreen.screenWidth, myscreen.screenHeight, myscreen.framesPerSecond);
+  % wait after the screen opens because there is a race condition if you change
+  % resolutions of the screen in which mac system resets the gamma table
+  mglWaitSecs(waitAfterOpen);
   % move the screen if it is a windowed context, and displayPos has been set.
   if myscreen.screenNumber < 1
     if length(myscreen.displayPos) == 2
@@ -485,6 +509,12 @@ else
   mglOpen;
   myscreen.screenWidth = mglGetParam('screenWidth');
   myscreen.screenHeight = mglGetParam('screenHeight');
+end
+
+% check to make sure we opened up correctly
+if isequal(mglGetParam('displayNumber'),-1)
+  disp(sprintf('(initScreen) Unable to open screen'));
+  keyboard
 end
 
 % use visual angle coordinates
@@ -648,6 +678,37 @@ if isfield(myscreen,'background')
   end
 else
   myscreen.background = myscreen.black;
+end
+
+% set up stencil mask if called for
+if myscreen.useScreenMask
+  % check for valid function
+  if exist(myscreen.screenMaskFunction) == 2
+    % check stencil bits
+    if myscreen.screenMaskStencilNum <= mglGetParam('stencilBits')
+      % clear screen
+      mglClearScreen(0);
+      % start stencil drawing
+      mglStencilCreateBegin(myscreen.screenMaskStencilNum);
+      % call the function to draw the stencil
+      feval(myscreen.screenMaskFunction,myscreen);
+      % and end stencil creation
+      mglStencilCreateEnd(myscreen.screenMaskStencilNum);
+      mglClearScreen(0);
+      % This is an unusual global that is used to tell mglClearScreen
+      % to use a mask when clearing the screen. Its a separate global
+      % for speed because mglClearScreen is usually within frame updates.
+      % Here we set it to the stencil number
+      global mglGlobalClearWithMask;
+      mglGlobalClearWithMask = myscreen.screenMaskStencilNum;
+      % set the stencil
+      mglStencilSelect(myscreen.screenMaskStencilNum);
+    else
+      disp(sprintf('(initScreen) !!! screenMaskStencilNum should be a number between 1 and %i, but is set to %i !!!',mglGetParam('stencilBits'),myscreen.screenMaskStencilNum));
+    end
+  else
+    disp(sprintf('(initScreen) !!! Could not mask screen. Screen mask function: %s does not exist. !!!',myscreen.screenMaskFunction));
+  end
 end
 
 % set background color  - mgl

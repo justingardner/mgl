@@ -103,6 +103,26 @@ end
 % the default number of significant figures
 numSigDigits = 7;
 
+% if phaseNum but not taskNum is set, then check to see if task
+% variable is setup as a single task with multiple phases - i.e.
+% it looks like task{1}, task{2}, task{3} and not task{1}{1}, task{1}{2}, etc.
+if (~exist('taskNum','var') || isequal(taskNum,1) || isempty(taskNum))
+  % check for multiple tasks
+  multiTask = false;
+  for iTask = 1:length(task)
+    if length(task{iTask}) > 1, multiTask = true;end
+  end
+  % if there are not, then we have a single task with multiple phases
+  if ~multiTask
+    % so we swap around the meaning of task and phase so that the code will work properly
+    taskNum = 1;
+    if ~exist('phaseNum','var')
+      phaseNum = 1:length(task);
+    end
+    disp(sprintf('(getStimvolFromVarname) Found one task with multiple phases - extracting phase: %s',num2str(phaseNum)));
+  end
+end
+
 % get default task numbers and phase numbers
 if ~exist('taskNum','var'),taskNum = 1:length(task);end
 if ~exist('segmentNum','var'),segmentNum = 1;end
@@ -291,33 +311,40 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 if (length(varname) == 1) && (length(varname{1}) == 1) && strcmp(varname{1}{1},'_all_')
   % make sure that taskNum & phaseNum are in range, and then
-  % extract volnum for every trial
-  if ((taskNum > 0) && (taskNum <= length(e)))
-    if (phaseNum > 0) && (phaseNum <= length(e{taskNum}))
-      if length(e{taskNum}(phaseNum).trials) > 0
-	if (segmentNum > 0) && (segmentNum <= length(e{taskNum}(phaseNum).trials(1).volnum))
-	  % if we passed all the checks, then get the volume number for each trial
-	  for trialNum = 1:length(e{taskNum}(phaseNum).trials)
-        if length(e{taskNum}(phaseNum).trials(trialNum).volnum) >= segmentNum
-	      stimvolOut{1}(trialNum) = e{taskNum}(phaseNum).trials(trialNum).volnum(segmentNum);
-	      trialNumOut{1}(trialNum) = trialNum;
-        end
+  % extract volnum for every trial, we cycle over all possible taskNum and phaseNum
+  % in case these are set to multiple tasks and/or phases
+  stimvolOut{1} = [];
+  trialNumOut{1} = [];
+  for iTaskNum = taskNum
+    for iPhaseNum = phaseNum
+      if ((iTaskNum > 0) && (iTaskNum <= length(e)))
+	if (iPhaseNum > 0) && (iPhaseNum <= length(e{taskNum}))
+	  if length(e{iTaskNum}(iPhaseNum).trials) > 0
+	    if (segmentNum > 0) && (segmentNum <= length(e{iTaskNum}(iPhaseNum).trials(1).volnum))
+	      % if we passed all the checks, then get the volume number for each trial
+	      for trialNum = 1:length(e{iTaskNum}(iPhaseNum).trials)
+		if length(e{iTaskNum}(iPhaseNum).trials(trialNum).volnum) >= segmentNum
+		  stimvolOut{1}(end+1) = e{iTaskNum}(iPhaseNum).trials(trialNum).volnum(segmentNum);
+		  trialNumOut{1}(end+1) = trialNum;
+		end
+	      end
+	    else
+	      disp(sprintf('(getStimvolFromVarname) SegmentNum %i out of range [1 %i]',segmentNum,length(e{taskNum}(phaseNum).trials(1).volnum)));
+	      keyboard
+	    end
+	  else
+	    disp(sprintf('(getStimvolFromVarname) No trials found'));
+	    keyboard
 	  end
 	else
-	  disp(sprintf('(getStimvolFromVarname) SegmentNum %i out of range [1 %i]',segmentNum,length(e{taskNum}(phaseNum).trials(1).volnum)));
+	  disp(sprintf('(getStimvolFromVarname) PhaseNum %i out of range [1 %i]',phaseNum,length(e{taskNum})));
 	  keyboard
 	end
       else
-	disp(sprintf('(getStimvolFromVarname) No trials found'));
+	disp(sprintf('(getStimvolFromVarname) TaskNum %i out of range [1 %i]',taskNum,length(e)));
 	keyboard
       end
-    else
-      disp(sprintf('(getStimvolFromVarname) PhaseNum %i out of range [1 %i]',phaseNum,length(e{taskNum})));
-      keyboard
     end
-  else
-    disp(sprintf('(getStimvolFromVarname) TaskNum %i out of range [1 %i]',taskNum,length(e)));
-    keyboard
   end
   
   % set the stim name

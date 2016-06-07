@@ -69,9 +69,11 @@ myscreen.eyetracker.params = eyelinkParams;
 mglEyelinkCMDPrintF(sprintf('calibration_type = %s',eyelinkParams.calibrationType));
 
 % set the size of the area for the calibration and validation
-disp(sprintf('(initEyelinkEyeTracker) Setting calibration to %s with calibration area %0.2f x %0.2f',eyelinkParams.calibrationType,eyelinkParams.calibrationAreaX,eyelinkParams.calibrationAreaY));
+disp(sprintf('(initEyelinkEyeTracker) Setting calibration to %s with calibration area %0.2f x %0.2f and corner scaling: %0.2f',eyelinkParams.calibrationType,eyelinkParams.calibrationAreaX,eyelinkParams.calibrationAreaY,eyelinkParams.cornerScaling));
 mglEyelinkCMDPrintF(sprintf('calibration_area_proportion = %f %f',eyelinkParams.calibrationAreaX,eyelinkParams.calibrationAreaY));
 mglEyelinkCMDPrintF(sprintf('validation_area_proportion = %f %f',eyelinkParams.calibrationAreaX,eyelinkParams.calibrationAreaY));
+mglEyelinkCMDPrintF(sprintf('calibration_corner_scaling = %f',eyelinkParams.cornerScaling));
+mglEyelinkCMDPrintF(sprintf('validation_corner_scaling = %f',eyelinkParams.cornerScaling));
 
 % select events to save
 %mglEyelinkCMDPrintF('file_event_filter = RIGHT,FIXATION,SACCADE,BLINK,MESSAGE,BUTTON'); 
@@ -83,7 +85,7 @@ mglEyelinkCMDPrintF('file_sample_data = %s',eyelinkParams.sampleData);
 mglEyelinkCMDPrintF(sprintf('sample_rate = %i',eyelinkParams.sampleRate));
 % set the sensitivity of the parser (1 is more sensitive than 0)
 mglEyelinkCMDPrintF(sprintf('select_parser_configuration = %i', eyelinkParams.parserSensitivity));
-
+% set the cornerScaling
 
 % Callbacks. Note that it is *required* now to set all of these eye
 % tracker callbacks. If one does not exist for some other eye

@@ -391,12 +391,17 @@ void ELCALLBACK exit_cal_display(void)
  */
 void ELCALLBACK draw_cal_target(INT16 x, INT16 y)
 {    
-  // mexPrintf("(mglPrivateEyelinkCalibrate) call to draw_cal_target(%i,%i)\n",x,y);
+  //  mexPrintf("(mglPrivateEyelinkCalibrate) call to draw_cal_target(%i,%i)\n",x,y);
   mxArray *callInput[4];
   double *inX;
   double *inY;
   double *inSize;
   double *inColor;
+
+  // Get any offset that we need to add from shiftOrigin setting
+  double shiftX, shiftY;
+  shiftX = mglGetGlobalDouble("eyelinkCoordinateXShift");
+  shiftY = mglGetGlobalDouble("eyelinkCoordinateYShift");
 
   callInput[0] = mxCreateDoubleMatrix(1,1,mxREAL);
   callInput[1] = mxCreateDoubleMatrix(1,1,mxREAL);
@@ -406,8 +411,8 @@ void ELCALLBACK draw_cal_target(INT16 x, INT16 y)
   inY = (double*)mxGetPr(callInput[1]);
   inSize = (double*)mxGetPr(callInput[2]);
   inColor = (double*)mxGetPr(callInput[3]);
-  *inX = (double)x;
-  *inY = (double)y;
+  *inX = (double)x + shiftX;
+  *inY = (double)y + shiftY;
 
   *inSize = 5; // in pixels for now
   memcpy(inColor, _calTarget.outerRGB, sizeof(double)*3);
@@ -849,7 +854,7 @@ int mglcGetKeys()
     i++;
   }
   return 0;
-#endif//__APPLE__
+#endif //__APPLE__
 
   //-----------------------------------------------------------------------------------///
   // ****************************** linux specific code  ****************************** //
@@ -931,7 +936,7 @@ INT16 mglcGetKeyEvent(MGLKeyEvent *mglKey)
 #ifdef __cocoa__
   // 64 bit version not implemented
   mexPrintf("(mglcGetKeyEvent) 64bit version not implemented\n");
-  return;
+  return 0;
   //-----------------------------------------------------------------------------------///
   // **************************** mac carbon specific code  *************************** //
   //-----------------------------------------------------------------------------------///
@@ -960,8 +965,8 @@ INT16 mglcGetKeyEvent(MGLKeyEvent *mglKey)
     mglKey->when = (INT16)theEvent.when;
     return 1;
   }
-#endif//__cocoa__
-#endif//__APPLE__
+#endif //__cocoa__
+#endif //__APPLE__
   //-----------------------------------------------------------------------------------///
   // ****************************** linux specific code  ****************************** //
   //-----------------------------------------------------------------------------------///
@@ -1122,8 +1127,8 @@ char *keycodeToChar(UInt16 keycode)
 
   return (c);
 }
-#endif//__cocoa__
-#endif//__APPLE__
+#endif //__cocoa__
+#endif //__APPLE__
 
 //-----------------------------------------------------------------------------------///
 // ****************************** linux specific code  ****************************** //

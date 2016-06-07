@@ -15,7 +15,7 @@ if ~any(nargin == [0])
 end
 
 if ~exist('mrParamsDialog')
-  disp(sprintf('(mglDoRetinotopy) You must have mrTools in your path to run the GUI for this function.\nSee here: http://gru.brain.riken.jp/doku.php/mgl/gettingStarted#initial_setup'));
+  disp(sprintf('(mglIsMrToolsLoaded) You must have mrTools in your path to run the GUI for this function.\nSee here: http://gru.stanford.edu/doku.php/mgl/gettingStarted#initial_setup'));
   tf = false;
 else
   tf = true;

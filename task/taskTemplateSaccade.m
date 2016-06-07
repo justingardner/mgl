@@ -26,7 +26,7 @@ task{1}.waitForBacktick = 0;
 task{1}.segmin = [1 1.5 0.5];
 task{1}.segmax = [1 1.5 1.5];
 task{1}.parameter.targetAngle = [0:45:359];
-task{1}.parameter.targetRadius = [8 12];
+task{1}.parameter.targetRadius = [5 8];
 task{1}.random = 1;
 
 % initialize the task

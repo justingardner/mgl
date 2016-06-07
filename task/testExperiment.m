@@ -7,16 +7,20 @@
 %  copyright: (c) 2006 Justin Gardner (GPL see mgl/COPYING)
 %    purpose: example program to show how to use the task structure
 %
-function myscreen = testExperiment
+function myscreen = testExperiment(screenName)
 
 % check arguments
-if ~any(nargin == [0])
+if ~any(nargin == [0 1])
   help testExperiment
   return
 end
 
 % initalize the screen
-myscreen = initScreen;
+if nargin >= 1
+  myscreen = initScreen(screenName);
+else
+  myscreen = initScreen;
+end
 
 % set the first task to be the fixation staircase task
 [task{1} myscreen] = fixStairInitTask(myscreen);
