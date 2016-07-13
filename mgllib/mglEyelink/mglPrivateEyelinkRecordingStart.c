@@ -25,6 +25,10 @@
     void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
 
+  plhs[0]= mxCreateDoubleMatrix(1,1,mxREAL);
+  double *returnVal = mxGetPr(plhs[0]);
+  *returnVal = 0;
+
     if (nrhs>1) /* What arguments should this take? */
     {
         usageError("mglEyelinkRecordingStart");
@@ -32,6 +36,7 @@
     }
 
     int edf_samples = 1, edf_events = 1, link_samples = 1, link_events = 1;
+    INT16 returnCode;
 
     if (nrhs==1) {
         int n;
@@ -60,9 +65,11 @@
     mexPrintf("(mglEyelinkRecordingStart) Recording:  edf_samples = %d, edf_events = %d, link_samples = %d, link_events = %d.\n", 
         edf_samples, edf_events, link_samples, link_events);
 
-    if(start_recording(edf_samples, edf_events, link_samples, link_events)!= 0) 
+    returnCode = start_recording(edf_samples, edf_events, link_samples, link_events);
+    if(returnCode != 0) 
     {
-        mexErrMsgTxt("Start recording failed");
+      mexPrintf("(mglPrivateEyelinkRecordingStart) Start recording failed with value %i\n",returnCode);
+      *returnVal = -1;
     }
 
 }
