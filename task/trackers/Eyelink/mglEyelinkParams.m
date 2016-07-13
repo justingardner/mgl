@@ -54,8 +54,9 @@ function params = mglEyelinkSetParams(params)
 % get calibration type
 paramsInfo = {};
 paramsInfo{end+1} = {'calibrationType',putOnTopOfList(params.calibrationType,{'HV9','HV5','HV3','H3','HV13'}),'Set the default calibration type to do'};
-paramsInfo{end+1} = {'calibrationAreaX',params.calibrationAreaX,'incdec=[-0.1 0.1]','minmax=[0 1]','Set the porportion of the area of the screen to do the calibration with (i.e. 0.5 would put the calibration targets at 50% of the screen width. This is sometimes useful if calibration at the far parts of the screen are impossible'};
-paramsInfo{end+1} = {'calibrationAreaY',params.calibrationAreaY,'incdec=[-0.1 0.1]','minmax=[0 1]','Set the porportion of the area of the screen to do the calibration with (i.e. 0.5 would put the calibration targets at 50% of the screen width. This is sometimes useful if calibration at the far parts of the screen are impossible'};
+paramsInfo{end+1} = {'calibrationAreaX',params.calibrationAreaX,'incdec=[-0.1 0.1]','minmax=[0.2 1]','Set the porportion of the area of the screen to do the calibration with (i.e. 0.5 would put the calibration targets at 50% of the screen width. This is sometimes useful if calibration at the far parts of the screen are impossible. Note that Eyelink does not allow values below 0.2 (gives an error of bad value if you try to set below 0.2)'};
+paramsInfo{end+1} = {'calibrationAreaY',params.calibrationAreaY,'incdec=[-0.1 0.1]','minmax=[0.2 1]','Set the porportion of the area of the screen to do the calibration with (i.e. 0.5 would put the calibration targets at 50% of the screen width. This is sometimes useful if calibration at the far parts of the screen are impossible. Note that Eyelink does not allow values below 0.2 (gives an error of bad value if you try to set below 0.2)'};
+paramsInfo{end+1} = {'cornerScaling',params.cornerScaling,'incdec=[-0.1 0.1]','minmax=[0.2 1]','Set the porportion that the corner targets are shifted towards the center of the screen (0.5 would be mean 50% of the way). This is sometimes useful if calibration at the far parts of the screen are impossible'};
 % get sampleRate
 paramsInfo{end+1} = {'sampleRate',putOnTopOfList(params.sampleRate,{500,1000,2000}),'Set the sample rate at which you would like to acquire data'};
 
@@ -90,6 +91,7 @@ function params = mglEyelinkValidateParams(params)
 necessaryFields = {'calibrationType','HV9';
   'calibrationAreaX',0.88;		   
   'calibrationAreaY',0.88;		   
+  'cornerScaling',1;		   
   'eventFilterLeft',1;
   'eventFilterRight',1;
   'eventFilterFixation',1;
