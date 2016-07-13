@@ -193,6 +193,7 @@ unsigned long cocoaOpen(double *displayNumber, int *screenWidth, int *screenHeig
   mglSetGlobalDouble("isCocoaWindow",1);
 
   NSOpenGLContext *myOpenGLContext = [[myWindow contentView] openGLContext];
+  [myOpenGLContext update];
 
   // return openGL context
   return((unsigned long)myOpenGLContext);
@@ -336,6 +337,12 @@ NSOpenGLView *addOpenGLContext(NSWindow *myWindow, double *displayNumber, int *s
   // sleep here seems to give enough time for something magical to happen
   usleep(100000);
 
+  // also, not precisely sure, but the window stopped showing up
+  // after some OS update - but would flash for a fraction of
+  // second on close - after this command was called. So calling
+  // it here on startup, but not really happy with why this should work
+  [[myWindow contentView] clearGLContext];
+
   // get openGL context
   myOpenGLContext = [myOpenGLView openGLContext];
   [myOpenGLContext makeCurrentContext];
@@ -348,6 +355,9 @@ NSOpenGLView *addOpenGLContext(NSWindow *myWindow, double *displayNumber, int *s
   // set the openGL context to be transparent so that we can see the movie below
   if (transparentBackground){
     const GLint alphaValue = 0;
+    [myOpenGLContext setValues:&alphaValue forParameter:NSOpenGLCPSurfaceOpacity];
+  } else{
+    const GLint alphaValue = 1;
     [myOpenGLContext setValues:&alphaValue forParameter:NSOpenGLCPSurfaceOpacity];
   }
 
