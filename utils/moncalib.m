@@ -211,17 +211,17 @@ end
 % function that sets the gamma table to all the values in val
 % and checks the luminance
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function retval = measureOutput(portNum,photometerNum,outputValues,numRepeats,setGamma)
+function retval = measureOutput(portNum,photometerNum,outputValues,calib,setGamma)
 
 global verbose;
-
+numRepeats = calib.numRepeats;
 % default to setting gamma values, not clor values
 if ~exist('setGamma','var'),setGamma=1;end
 
 % clear and flush screen
 mglClearScreen(0);mglFlush;
 
-if ~fastSearch
+if ~calib.fastSearch
     % Run the old search algorithm
     
     measuredLuminanceSte = [];measuredLuminance = [];
@@ -2023,7 +2023,7 @@ disp(sprintf('(moncalib:measureGamma) Measuring %i output luminance values from 
 
 % do the gamma measurements
 if ~isfield(calib,'uncorrected')
-  calib.uncorrected = measureOutput(portNum,photometerNum,testRange,calib.numRepeats);
+  calib.uncorrected = measureOutput(portNum,photometerNum,testRange,calib);
   saveCalib(calib);
 else
   disp(sprintf('(moncalib:measureGamma) Uncorrected luminance measurement already done'));
@@ -2218,7 +2218,7 @@ mglSetGammaTable(calib.table);
 
 %and see how well we have done
 if ~isfield(calib,'tableCorrected')
-  calib.tableCorrected = measureOutput(portNum,photometerNum,calib.uncorrected.outputValues,calib.numRepeats,0);
+  calib.tableCorrected = measureOutput(portNum,photometerNum,calib.uncorrected.outputValues,calib,0);
   saveCalib(calib);
 else
   disp(sprintf('Table corrected luminance measurement already done'));
