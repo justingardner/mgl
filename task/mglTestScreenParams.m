@@ -58,6 +58,13 @@ mglPolygon([-imageWidth/2 -imageWidth/2 -deviceWidth -deviceWidth -imageWidth/2]
 mglPolygon([-deviceWidth deviceWidth deviceWidth -deviceWidth -deviceWidth],[imageHeight/2 imageHeight/2 deviceHeight deviceHeight imageHeight/2],[0 0 0]);
 % bottom 
 mglPolygon([-deviceWidth deviceWidth deviceWidth -deviceWidth -deviceWidth],[-imageHeight/2 -imageHeight/2 -deviceHeight -deviceHeight -imageHeight/2],[0 0 0]);
+
+[~,t] = system('hostname');
+if strfind(t,'oban')
+    degOffset = atan(10/msc.displayDistance)*180/pi;
+    mglLines2(-degOffset,-30,-degOffset,30,1,[1 0 0]);
+    mglLines2(degOffset,-30,degOffset,30,1,[1 0 0]);
+end
 if thisWaitSecs(waitTime,msc)<=0,endScreen(msc);return,end
 
 % show fine gratings
