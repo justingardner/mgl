@@ -511,6 +511,14 @@ else
   myscreen.screenHeight = mglGetParam('screenHeight');
 end
 
+% check whether we need to set sound levels
+if myscreen.setVolume
+  myscreen.volume = mglVolume(myscreen.volumeLevel);
+  disp(sprintf('(initScreen) Sound volume set to: %s',num2str(myscreen.volume)));
+else
+  myscreen.volume = mglVolume;
+end
+
 % check to make sure we opened up correctly
 if isequal(mglGetParam('displayNumber'),-1)
   disp(sprintf('(initScreen) Unable to open screen'));

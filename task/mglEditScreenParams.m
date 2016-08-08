@@ -233,6 +233,8 @@ paramsInfo{end+1} = {'screenMaskStencilNum',thisScreenParams.screenMaskStencilNu
 if ~isfield(thisScreenParams,'screenMaskStencilNum')
   thisScreenParams.screenMaskFunction = 7;
 end
+paramsInfo{end+1} = {'setVolume',thisScreenParams.setVolume,'type=checkbox','Set volume to volumeLevel on initScreen','enable',thisScreenParams.enableChanges};
+paramsInfo{end+1} = {'volumeLevel',thisScreenParams.volumeLevel,'type=numeric','minmax=[0 1]','incdec=[-0.1 0.1]','Set volume to specified level - only if setVolume is set','contingent=setVolume','enable',thisScreenParams.enableChanges};
 % get info about subjectID
 mustSetSID = mglGetParam('mustSetSID');
 if isempty(mustSetSID),mustSetSID=false;end
@@ -574,7 +576,14 @@ else
     end
   end
 end
-  
+
+
+% set volume
+screenParams.setVolume = params.setVolume;
+if params.setVolume
+  screenParams.volumeLevel = params.volumeLevel;
+end
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %    setSIDSettingsFromParams    %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
