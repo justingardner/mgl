@@ -72,6 +72,7 @@
 %  mglInstallSound           : Install an .aiff file or matlab array for playing with mglPlaySound
 %  mglPlaySound              : Play a system sound
 %  mglDeleteSound            : Delete a previously created sound
+%  mglVolume                 : Get and set system volume
 %
 %Movies
 %  mglMovie                  : Function to play quicktime movies (mac 64bit only)
