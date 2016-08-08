@@ -486,10 +486,10 @@ if ~isempty(myscreen.screenNumber)
       refreshRate = displays(myscreen.screenNumber).refreshRate;
       desiredSizePixel = [myscreen.screenWidth myscreen.screenHeight];
       % now check if they are the same
-      if isequal(screenSizePixel(:),desiredSizePixel(:)) && isequal(refreshRate,myscreen.framesPerSecond)
-	disp(sprintf('(initScreen) Resolution and refersh rate do not appear to differ from current monitor settings. *Not* waiting after mglOpen. Note that if the monitor goes black for a second this means that the resolution has to be set by mac and in that case the gamma table may not get set correctly due to a race condition between mac system software setting the gamma table and initScreen setting the gamma table'));
-	waitAfterOpen = 0;
-      end
+      %if isequal(screenSizePixel(:),desiredSizePixel(:)) && isequal(refreshRate,myscreen.framesPerSecond)
+%	disp(sprintf('(initScreen) Resolution and refersh rate do not appear to differ from current monitor settings. *Not* waiting after mglOpen. Note that if the monitor goes black for a second this means that the resolution has to be set by mac and in that case the gamma table may not get set correctly due to a race condition between mac system software setting the gamma table and initScreen setting the gamma table'));
+%	waitAfterOpen = 0;
+%      end
     end
   end
 
