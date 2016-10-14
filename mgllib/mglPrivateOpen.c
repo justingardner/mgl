@@ -184,7 +184,7 @@ unsigned long cocoaOpen(double *displayNumber, int *screenWidth, int *screenHeig
   NSWindow *myWindow = initWindow(displayNumber,screenWidth,screenHeight);
   if (myWindow == NULL) { [pool drain]; return (unsigned long)NULL; }
 
-  // Attach openGLView
+  // Attach NSOpenGLView
   NSOpenGLView *myOpenGLView = addOpenGLContext(myWindow,displayNumber,screenWidth,screenHeight);
 
   // remember the window
@@ -224,13 +224,21 @@ NSWindow *initWindow(double *displayNumber, int *screenWidth, int *screenHeight)
 
   // set the size to the display size if we are spoofing full screen
   // which means that we are just making a window the size of the screen
-  // without calling enterFullScreen which captures the display. We
-  // also set the size here if displayNumber is set to >= 1
+  // without calling enterFullScreen which captures the display.
   int setSizeToMatchDisplay = 0;
-  if (spoofFullScreen>0)
-    setSizeToMatchDisplay = spoofFullScreen;
-  if (*displayNumber>=1)
-    setSizeToMatchDisplay = *displayNumber;
+  if (spoofFullScreen>0) {
+    if (*displayNumber>=1)
+      setSizeToMatchDisplay = *displayNumber;
+    else
+      setSizeToMatchDisplay = spoofFullScreen;
+  } 
+  else if (*displayNumber>=1) {
+      // make contentRect empty beacuse the full screen openGLContext will
+      // be the only thing we want to show (otherwise we will show the
+      // full screen context and the rect for the window).
+      contentRect = NSMakeRect(0,0,0,0);
+  }
+
     
   // set size to match full screen if this has been set
   if (setSizeToMatchDisplay) {
@@ -249,7 +257,7 @@ NSWindow *initWindow(double *displayNumber, int *screenWidth, int *screenHeight)
       // hide the task and menu bars if this is running on the main screen
       if (spoofFullScreen == 1) {
 	if (verbose) mexPrintf("(mglPrivateOpen) Hiding task and menu bar\n");
-	[NSMenu setMenuBarVisible:NO];
+	//	[NSMenu setMenuBarVisible:NO];
       }
     }
     else
@@ -287,8 +295,12 @@ NSWindow *initWindow(double *displayNumber, int *screenWidth, int *screenHeight)
 
   // show window
   if (!mglGetGlobalDouble("offscreenContext")) {
+    [myWindow makeKeyAndOrderFront:myWindow];
+    [myWindow setOrderedIndex:0];
     [myWindow orderFront:nil];
     [myWindow orderFrontRegardless];
+    // This call brings the window abobe the menu
+    [myWindow setLevel:(NSMainMenuWindowLevel+1)];
   }
   else
     if (verbose) mexPrintf("(mglPrivateOpen) Offscreen context\n");
@@ -337,6 +349,21 @@ NSOpenGLView *addOpenGLContext(NSWindow *myWindow, double *displayNumber, int *s
   // sleep here seems to give enough time for something magical to happen
   usleep(100000);
 
+  // check if it is a full screen context, and make the view go full screen
+  int spoofFullScreen = (int)mglGetGlobalDouble("spoofFullScreen");
+  if (!spoofFullScreen && (*displayNumber >= 1)) {
+    // get info about screens
+    NSArray *screens = [NSScreen screens];
+    if ([screens count] >= *displayNumber) {
+      // enter full screen
+      NSDictionary *fullScreenOptions = [NSDictionary dictionaryWithObjectsAndKeys: [NSNumber numberWithBool:NO],NSFullScreenModeAllScreens, nil];
+      [myOpenGLView enterFullScreenMode:[screens objectAtIndex:(*displayNumber-1)] withOptions:fullScreenOptions];
+    }
+    else {
+      mexPrintf("(mglPrivateOpen) Could not open display %i: out of range [1 %i]\n",*displayNumber,[screens count]);
+    }
+  }
+
   // also, not precisely sure, but the window stopped showing up
   // after some OS update - but would flash for a fraction of
   // second on close - after this command was called. So calling
@@ -366,23 +393,10 @@ NSOpenGLView *addOpenGLContext(NSWindow *myWindow, double *displayNumber, int *s
   [myOpenGLContext setValues:&swapInterval forParameter:NSOpenGLCPSwapInterval];
 
   // set to transparent black
-  CGLContextObj contextObj = (CGLContextObj)[myOpenGLContext CGLContextObj];
   glClearColor(1,1,1,1);
   glClear(GL_COLOR_BUFFER_BIT);
-  CGLFlushDrawable(contextObj); 
+  [myOpenGLContext flushBuffer];
 
-  // check if it is a full screen context, and make the view go full screen
-  if (*displayNumber >= 1) {
-    // get info about screens
-    NSArray *screens = [NSScreen screens];
-    if ([screens count] >= *displayNumber) {
-      // enter full screen
-      [myOpenGLView enterFullScreenMode:[screens objectAtIndex:(*displayNumber-1)] withOptions:nil];
-    }
-    else {
-      mexPrintf("(mglPrivateOpen) Could not open display %i: out of range [1 %i]\n",*displayNumber,[screens count]);
-    }
-  }
   return myOpenGLView;
 }
 
