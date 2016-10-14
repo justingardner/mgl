@@ -233,10 +233,16 @@ NSWindow *initWindow(double *displayNumber, int *screenWidth, int *screenHeight)
       setSizeToMatchDisplay = spoofFullScreen;
   } 
   else if (*displayNumber>=1) {
-      // make contentRect empty beacuse the full screen openGLContext will
-      // be the only thing we want to show (otherwise we will show the
-      // full screen context and the rect for the window).
-      contentRect = NSMakeRect(0,0,0,0);
+    // make contentRect empty beacuse the full screen openGLContext will
+    // be the only thing we want to show (otherwise we will show the
+    // full screen context and the rect for the window).
+    contentRect = NSMakeRect(0,0,0,0);
+    // set width and height to correct size
+    NSArray *screens = [NSScreen screens];
+    NSRect screenRect = [[screens objectAtIndex:(*displayNumber-1)] frame];
+    // reset screenWidth and screenHeight
+    *screenWidth = (int)screenRect.size.width;
+    *screenHeight = (int)screenRect.size.height;
   }
 
     
@@ -257,7 +263,7 @@ NSWindow *initWindow(double *displayNumber, int *screenWidth, int *screenHeight)
       // hide the task and menu bars if this is running on the main screen
       if (spoofFullScreen == 1) {
 	if (verbose) mexPrintf("(mglPrivateOpen) Hiding task and menu bar\n");
-	//	[NSMenu setMenuBarVisible:NO];
+	[NSMenu setMenuBarVisible:NO];
       }
     }
     else
