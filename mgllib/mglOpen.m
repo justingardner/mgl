@@ -43,6 +43,12 @@ else
   end
 end
 
+% in matlab version R2016a CGL stopped working (deprecated?)
+% so forcing use of cocoa window
+if ~verLessThan('matlab','9.0')
+  mglSetParam('useCGL',0);
+end
+
 % set verbose off
 if isempty(mglGetParam('verbose'))
   mglSetParam('verbose',0);

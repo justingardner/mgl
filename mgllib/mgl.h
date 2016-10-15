@@ -93,7 +93,6 @@
 // Necessary for the Listner code
 #import <Foundation/Foundation.h>
 #import <Appkit/Appkit.h>
-#import <QTKit/QTKit.h>
 
 // used for time function
 #include <mach/mach.h>
