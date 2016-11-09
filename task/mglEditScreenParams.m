@@ -209,6 +209,7 @@ paramsInfo{end+1} = {'autoCloseScreen',thisScreenParams.autoCloseScreen,'type=ch
 paramsInfo{end+1} = {'flipHorizontal',thisScreenParams.flipHV(1),'type=checkbox','Click if you want initScreen to set the coordinates so that the screen is horizontally flipped. This may be useful if you are viewing the screen through mirrors','enable',thisScreenParams.enableChanges};
 paramsInfo{end+1} = {'flipVertical',thisScreenParams.flipHV(2),'type=checkbox','Click if you want initScreen to set the coordinates so that the screen is vertically flipped. This may be useful if you are viewing the screen through mirrors','enable',thisScreenParams.enableChanges};
 paramsInfo{end+1} = {'hideCursor',thisScreenParams.hideCursor,'type=checkbox','Click if you want initScreen to hide the mouse for this display.','enable',thisScreenParams.enableChanges};
+paramsInfo{end+1} = {'transparentBackground',thisScreenParams.transparentBackground,'type=checkbox','Click if you want a transparent background. This is useful if you want to display mgl over some other display.'};
 paramsInfo{end+1} = {'backtickChar',backtickChar,'type=string','Set the keyboard character that is used a synch pulse from the scanner. At NYU this is the backtick character. If you use a different character enter it here. If you enter a number then this will be interpreted as a character code (see mglCharToKeycode).','enable',thisScreenParams.enableChanges};
 paramsInfo{end+1} = {'responseKeys',responseKeys,'type=string','Sets which keys you want to use for response keys. This should be a space delimited string, for example: 1 2 3 4 5 6 7 8 9 -> is the default, which uses the number keys. If you want to use keycodes, for example to use the numberic key pay, you can do: k84 k85 k86 k87 k88 k89 k90 k92 k93. Note that if that the responses recorded will be integers associated with the order in the list you provides - so: 1 2 8 9 will give response 1 2 3 4. You can also use letter keys: a b for example, will return 1 and 2 for the letters a and b, respectively.','enable',thisScreenParams.enableChanges};
 paramsInfo{end+1} = {'eatKeys',thisScreenParams.eatKeys,'type=checkbox','Sets whether to eat keys. That is, any key that initScreen uses, for example the response keys and the backtickChar will not be sent to the terminal. See the function mglEatKeys for more details.','enable',thisScreenParams.enableChanges};
@@ -517,6 +518,7 @@ screenParams.scale = params.scale;
 screenParams.scaleScreen = params.scaleScreen;
 screenParams.crop = params.crop;
 screenParams.cropScreen = params.cropScreen;
+screenParams.transparentBackground = params.transparentBackground;
 
 % get file saving settings
 screenParams.saveData = params.saveData;

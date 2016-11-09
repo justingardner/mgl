@@ -452,6 +452,13 @@ if exist('opengl')==2
   end
 end
 
+% set transparent background if necessary
+if myscreen.transparentBackground
+  mglSetParam('useCGL',0);
+  mglSetParam('transparentBackground',1);
+  mglSetParam('spoofFullScreen',1);
+end
+
 % set device origin if called for - this will shift the screen origin by the set amount
 if isfield(myscreen,'shiftOrigin') && (length(myscreen.shiftOrigin) >= 2)
   % get how much shift is called for
@@ -663,6 +670,10 @@ if mglGetParam('movieMode') == 1
   mglMovie('openWindow');
   mglMovie('moveWindowBehind');
   % and set background color to transparent
+  myscreen.background = [0 0 0 0];
+end
+
+if myscreen.transparentBackground
   myscreen.background = [0 0 0 0];
 end
 
