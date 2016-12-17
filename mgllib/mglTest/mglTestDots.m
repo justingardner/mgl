@@ -1,16 +1,16 @@
 % mglTestDots.m
 %
 %        $Id: mglTestDots.m 380 2008-12-31 04:39:55Z justin $
-%      usage: mglTestDots(screenNumber,numsec)
+%      usage: mglTestDots(screenNumber,numsec,backgroundColor)
 %         by: justin gardner
 %       date: 04/05/06
 %  copyright: (c) 2006 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
 %    purpose: test OpenGL dots
 %
-function retval = mglTestDots(screenNumber,numsec)
+function retval = mglTestDots(screenNumber,numsec,backgroundColor)
 
 % check arguments
-if ~any(nargin == [0 1 2])
+if ~any(nargin == [0 1 2 3])
   help testdots
   return
 end
@@ -18,7 +18,7 @@ end
 % parameters
 if exist('numsec')~=1,numsec = 5;,end
 if ~exist('screenNumber','var'),screenNumber = [];end
-
+if ~exist('backgroundColor','var');backgroundColor = [0.2 0.2 0.2];end
 % other parameters
 numdots = 5000;
 
@@ -41,7 +41,7 @@ dx = 10/mglGetParam('frameRate');
 % run it
 for i = 1:mglGetParam('frameRate')*numsec
   % clear the screen to gray
-  mglClearScreen([0.2 0.2 0.2]);
+  mglClearScreen(backgroundColor);
   % draw points with size 2 and color white
   mglPoints2(dots.x,dots.y,2,[1 1 1]);
 %   mglGluDisk(dots.x,dots.y,2*mglGetParam('xPixelsToDevice'),[1 1 1]);
