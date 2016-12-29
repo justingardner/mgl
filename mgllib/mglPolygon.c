@@ -45,8 +45,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     x = (double*)mxGetPr(prhs[0]);
     y = (double*)mxGetPr(prhs[1]);
  
-
-
     // set color of points
     if (nrhs < 3)
         // set default color
@@ -54,9 +52,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     else {
       // get color
       if (mglGetColor(prhs[2],color) == 0) 
-	glColor3f(1.0,1.0,1.0);
-      else
-	glColor3f(color[0],color[1],color[2]);
+	      glColor3f(1.0,1.0,1.0);
+      else // get RGB + alpha (default 1)
+	      glColor4f(color[0],color[1],color[2], color[3]);
     }
 
 
