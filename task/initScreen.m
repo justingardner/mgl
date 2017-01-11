@@ -191,88 +191,24 @@ if foundComputer
     end
     disp(sprintf('(initScreen) Monitor parameters for: %s',screenParams{foundComputer}.computerName));
   end
-  % setup all parameters for the monitor (if the settings are
-  % already set in myscreen then do nothing)
-  screenParamsFieldnames = fieldnames(screenParams{foundComputer});
-  for j = 1:length(screenParamsFieldnames)
-    if ~strcmp(screenParamsFieldnames{j},'computerName') && ~strcmp(screenParamsFieldnames{j},'displayName')  
-      % if the field doesn't already exist in myscreen
-      if ~isfield(myscreen,screenParamsFieldnames{j}) 
-	% then set the field
-	myscreen.(screenParamsFieldnames{j}) = screenParams{foundComputer}.(screenParamsFieldnames{j});
-      end
-    end
-  end
+  % keep the one that matches
+  screenParamsMatch = screenParams{foundComputer};
+else
+  % otherwise set it to a default one
+  screenParamsMatch = mglValidateScreenParams([]);
 end
 
-%%%%%%%%%%%%%%%%%
-% defaults if they have not been set
-%%%%%%%%%%%%%%%%%
-if ~isfield(myscreen,'displayName')
-  myscreen.displayName = [];
-end
-if ~isfield(myscreen,'screenNumber')
-  myscreen.screenNumber = [];
-end
-if ~isfield(myscreen,'screenWidth')
-  myscreen.screenWidth = [];
-end
-if ~isfield(myscreen,'screenHeight')
-  myscreen.screenHeight = [];
-end
-if ~isfield(myscreen,'displayDistance')
-  myscreen.displayDistance = 57;
-end
-if ~isfield(myscreen,'displaySize')
-  myscreen.displaySize = [31 23];
-end
-if ~isfield(myscreen,'displayPos')
-  myscreen.displayPos = [0 0];
-end
-if ~isfield(myscreen,'framesPerSecond')
-  myscreen.framesPerSecond = 60;
-end
-if ~isfield(myscreen,'autoCloseScreen')
-  myscreen.autoCloseScreen = 1;
-end
-if ~isfield(myscreen,'saveData')
-  myscreen.saveData = -1;
-end
-if ~isfield(myscreen,'flipHV')
-  myscreen.flipHV = [0 0];
-end
-if ~isfield(myscreen,'digin')
-  myscreen.digin = [];
-end
-if ~isfield(myscreen,'displayName')
-  myscreen.displayName = [];
-end
-if ~isfield(myscreen,'calibType')
-  myscreen.calibType = 'None';
-end
-if ~isfield(myscreen,'hideCursor')
-  myscreen.hideCursor = 0;
-end
-if ~isfield(myscreen,'backtickChar')
-  myscreen.backtickChar = '`';
-end
-if ~isfield(myscreen,'responseKeys')
-  myscreen.responseKeys = {'1' '2' '3' '4' '5' '6' '7' '8' '9' '0'};
-end
-if ~isfield(myscreen,'eatKeys')
-  myscreen.eatKeys = 0;
-end
-if ~isfield(myscreen,'squarePixels')
-  myscreen.squarePixels = 0;
-end
-if ~isfield(myscreen,'calibProportion')
-  myscreen.calibProportion = 0.36;
-end
-if ~isfield(myscreen,'eyeTrackerType')
-  myscreen.eyeTrackerType = 'None';
-end
-if ~isfield(myscreen,'useScreenMask')
-  myscreen.useScreenMask = false;
+% setup all parameters for the monitor (if the settings are
+% already set in myscreen then do nothing)
+screenParamsFieldnames = fieldnames(screenParamsMatch);
+for j = 1:length(screenParamsFieldnames)
+  if ~strcmp(screenParamsFieldnames{j},'computerName')
+    % if the field doesn't already exist in myscreen
+    if ~isfield(myscreen,screenParamsFieldnames{j}) 
+      % then set the field
+      myscreen.(screenParamsFieldnames{j}) = screenParamsMatch.(screenParamsFieldnames{j});
+    end
+  end
 end
 
 myscreen.pwd = pwd;
