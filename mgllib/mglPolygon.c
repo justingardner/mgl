@@ -52,9 +52,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     else {
       // get color
       if (mglGetColor(prhs[2],color) == 0) 
-	      glColor3f(1.0,1.0,1.0);
+        glColor3f(1.0,1.0,1.0);
       else // get RGB + alpha (default 1)
-	      glColor4f(color[0],color[1],color[2], color[3]);
+        glColor4f(color[0],color[1],color[2], color[3]);
     }
 
 
