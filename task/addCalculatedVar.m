@@ -12,6 +12,11 @@
 %             You may also want to specify all possible values a variable can take (useful if in
 %             each particular stimfile you won't necessarily encounter each value the variable can take);
 %             addCalculatedVar('newvar',[1 3 4 5 6 2 8 10],'100727_stim01','taskNum=2','phaseNum=2','allval',1:10);
+%             
+%             To not make backups - set backup=0
+%             addCalculatedVar('newvar',[1 3 4 5 6 2 8 10],'100728_stim01','backup=0');
+%             To always make backups (i.e. make a unique backup each time the file is changed)
+%             addCalculatedVar('newvar',[1 3 4 5 6 2 8 10],'100728_stim01','backup=2');
 %
 function retval = addCalculatedVar(varname,varval,stimfile,varargin)
 
@@ -80,11 +85,15 @@ if backup
     % now make sure there is an original backup
     originalBackup = sprintf('%s_original.mat',stripext(stimfile));
     if isfile(originalBackup)
-      originalBackup = sprintf('%s_backup_%s.mat',stripext(stimfile),datestr(now,'ddmmyyyy_HHMMSS'));
-      disp(sprintf('(addComputerBackup) Original backup already exists, saving as %s',originalBackup));
+      if backup >= 2
+	originalBackup = sprintf('%s_backup_%s.mat',stripext(stimfile),datestr(now,'ddmmyyyy_HHMMSS'));
+	disp(sprintf('(adCalculatedVar) Original backup already exists, saving as %s',originalBackup));
+      else
+	disp(sprintf('(adCalculatedVar) Original backup %s already exists, skipping making new backup (set backup=2 if you want multiple backups)',originalBackup));
+      end
     end
     if isfile(originalBackup)
-      disp(sprintf('(addComputerBackup) %s already exists',originalBackup));
+      disp(sprintf('(adCalculatedVar) %s already exists',originalBackup));
     else
       % save
       eval(sprintf('save %s -struct s',originalBackup));
