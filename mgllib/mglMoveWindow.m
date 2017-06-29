@@ -30,7 +30,8 @@ end
 
 % move the window
 if isscalar(leftPos) && isscalar(topPos)
-  mglPrivateMoveWindow(leftPos, topPos);
+%  mglPrivateMoveWindow(leftPos, topPos);
+  disp(sprintf('(mglMoveWindow) Has been busted by some OS update - needs to be fixed. Window will not be moved.'));
 else
   disp(sprintf('(mglMoveWindow) leftPos and topPos must both be scalars'));
 end
