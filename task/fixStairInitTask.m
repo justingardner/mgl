@@ -41,6 +41,7 @@ if ~isfield(fixStimulus,'stairUp') fixStimulus.stairUp = 1; end
 if ~isfield(fixStimulus,'stairDown') fixStimulus.stairDown = 2; end
 if ~isfield(fixStimulus,'stairStepSize') fixStimulus.stairStepSize = 0.05; end
 if ~isfield(fixStimulus,'stairUseLevitt') fixStimulus.stairUseLevitt = 0; end
+if ~isfield(fixStimulus,'stairUsePest') fixStimulus.stairUsePest = 0; end
 if ~isfield(fixStimulus,'stimColor') fixStimulus.stimColor = [0 1 1]; end
 if ~isfield(fixStimulus,'responseColor') fixStimulus.responseColor = [1 1 0]; end
 if ~isfield(fixStimulus,'interColor') fixStimulus.interColor = [0 1 1]; end
@@ -67,9 +68,19 @@ task{1}.getResponse = [0 0 0 0 0 1];
 [task{1} myscreen] = addTraces(task{1}, myscreen, 'segment', 'phase', 'response');
 
 % init the staircase
-fixStimulus.staircase = upDownStaircase(fixStimulus.stairUp,fixStimulus.stairDown,fixStimulus.threshold,fixStimulus.stairStepSize,fixStimulus.stairUseLevitt);
-fixStimulus.staircase.minThreshold = 0;
-fixStimulus.staircase.maxThreshold = 1;
+if fixStimulus.stairUseLevitt
+    fixStimulus.staircase = doStaircase('init','upDown','nup',fixStimulus.stairUp,...
+        'ndown',fixStimulus.stairDown,'initialThreshold',fixStimulus.threshold,...
+        'initialStepsize','testType=levitt','minThreshold',0,'maxThreshold',1);
+elseif fixStimulus.stairUsePest
+    fixStimulus.staircase = doStaircase('init','upDown','nup',fixStimulus.stairUp,...
+        'ndown',fixStimulus.stairDown,'initialThreshold',fixStimulus.threshold,...
+        'initialStepsize','testType=pest','minThreshold',0,'maxThreshold',1);
+else
+    fixStimulus.staircase = doStaircase('init','upDown','nup',fixStimulus.stairUp,...
+        'ndown',fixStimulus.stairDown,'initialThreshold',fixStimulus.threshold,...
+        'initialStepsize','minThreshold',0,'maxThreshold',1);
+end
 
 % init the task
 [task{1} myscreen] = initTask(task{1},myscreen,@fixStartSegmentCallback,@fixDrawStimulusCallback,@fixTrialResponseCallback,@fixTrialStartCallback);
@@ -199,5 +210,5 @@ else
 end
 
 % update staircase
-fixStimulus.staircase = upDownStaircase(fixStimulus.staircase,response);
-fixStimulus.threshold = fixStimulus.staircase.threshold;
+fixStimulus.staircase = doStaircase('update',fixStimulus.staircase,response);
+[fixStimulus.threshold, fixStimulus.staircase] = doStaircase('testValue',fixStimulus.staircase);
