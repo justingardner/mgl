@@ -34,7 +34,7 @@ unsigned long installSound(char *filename);
 // samples in order of samples, interleaved by channel e.g.:
 // for data with 2 channels, 3 samples
 // d = [s1c1 s1c2 s2c1 s2c2 s3c1 s3c2];
-unsigned long installSoundFromData(int *d,unsigned int nChannels,unsigned int nSamples);
+unsigned long installSoundFromData(int *d,unsigned int nChannels,unsigned int nSamples, unsigned int sampleRate);
 // remove sound, takes the identifier returned from
 // the above function and clears the object from memory.
 // So, it can no longer be played.
@@ -69,7 +69,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     }
     plhs[0] = mxCreateDoubleMatrix(0,0,mxREAL);
   } 
-  // with a single argument
+  // with an argument
   else {
     if (mxIsChar(prhs[0])) {
       // set sound to the file that is passed in if it is a string
@@ -83,8 +83,14 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       // Number of columns to number of samples
       unsigned int nChannels = mxGetM(prhs[0]);
       unsigned int nSamples = mxGetN(prhs[0]);
+      // if there is additional argument, then that should be the 
+      // sample rate
+      unsigned int sampleRate = 8192;
+      if (nrhs >= 2)
+	sampleRate = (unsigned int)*mxGetPr(prhs[1]);
+	
       // install the sound
-      soundID = installSoundFromData((int *)mxGetPr(prhs[0]),nChannels,nSamples);
+      soundID = installSoundFromData((int *)mxGetPr(prhs[0]),nChannels,nSamples,sampleRate);
     }
   }
 
@@ -159,7 +165,7 @@ unsigned long installSound(char *filename)
 ///////////////////////////////////
 //   cocoaInstallSoundFromData   //
 ///////////////////////////////////
-unsigned long installSoundFromData(int *d, unsigned int nChannels, unsigned int nSamples)
+unsigned long installSoundFromData(int *d, unsigned int nChannels, unsigned int nSamples, unsigned int sampleRate)
 {
   // index variable
   int i;
@@ -189,7 +195,6 @@ unsigned long installSoundFromData(int *d, unsigned int nChannels, unsigned int 
         
 
   // some constants 
-  const unsigned int sampleRate = 8192;
   const unsigned int bytesPerFrame = nChannels * sizeof(unsigned int);
   const unsigned int dataSize = nSamples * bytesPerFrame;
   const unsigned int totalSize = dataSize + sizeof(struct aiffFile);
