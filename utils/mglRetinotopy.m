@@ -62,7 +62,7 @@
 function myscreen = mglRetinotopy(varargin)
 
 % evaluate the arguments
-eval(evalargs(varargin,0,0,{'wedges','rings','bars','barsTask','barsFix','barsTaskEasy','barsTaskDefault','barAngle','elementAngle','direction','dutyCycle','stepsPerCycle','stimulusPeriod','numCycles','doEyeCalib','initialHalfCycle','volumesPerCycle','displayName','easyFixTask','dispText','barWidth','barSweepExtent','elementSize','barStepsMatchElementSize','synchToVolEachCycle','blanks','fixedRandom','yOffset','xOffset','imageWidth','imageHeight'}));
+eval(evalargs(varargin,0,0,{'wedges','rings','bars','barsTask','barsFix','barsTaskEasy','barsTaskDefault','barAngle','barContrast','elementAngle','direction','dutyCycle','stepsPerCycle','stimulusPeriod','numCycles','doEyeCalib','initialHalfCycle','volumesPerCycle','displayName','easyFixTask','dispText','barWidth','barSweepExtent','elementSize','barStepsMatchElementSize','synchToVolEachCycle','blanks','fixedRandom','yOffset','xOffset','imageWidth','imageHeight'}));
 
 global stimulus;
 
@@ -120,6 +120,11 @@ if exist('barsTaskEasy')
   maxCoherence = 1;
 else
   barsTaskEasy = false;
+end
+if exist('barContrast','var') && ~isempty(barContrast) && (barContrast >=0 && barContrast<=1)
+    stimulus.barContrast = barContrast;
+else
+    stimulus.barContrast = 1;
 end
 
 % initalize the screen
@@ -848,7 +853,8 @@ end
   if ~isfield(stimulus,'last') || ~isfield(stimulus,'x') || ...
 	(stimulus.elementWidth ~= stimulus.last.elementWidth) || ...
 	(stimulus.elementHeight ~= stimulus.last.elementHeight) || ...
-	(stimulus.elementVelocity ~= stimulus.last.elementVelocity)
+	(stimulus.elementVelocity ~= stimulus.last.elementVelocity) || ...
+    (isfield(stimulus,'last') && (stimulus.barContrast ~= stimulus.last.barContrast))
     maxDim = ceil(max(stimulus.imageWidth,stimulus.imageHeight)/stimulus.elementWidth)*stimulus.elementWidth;
     minRect = -maxDim/2-2*stimulus.elementWidth;
     maxRect = maxDim/2;
@@ -881,8 +887,8 @@ end
 	  % calculate element
 	  stimulus.xRect{phaseNum}(:,end+1) = [x x x+stimulus.elementWidth x+stimulus.elementWidth];
 	  stimulus.yRect{phaseNum}(:,end+1) = [y y+stimulus.elementHeight y+stimulus.elementHeight y];
-	  % also calculate what color we ant
-	  stimulus.cRect{phaseNum}(:,end+1) = [1 1 1]*(isodd(xNum+isodd(yNum)));
+	  % also calculate what color we want
+	  stimulus.cRect{phaseNum}(:,end+1) = ([1 1 1]*(isodd(xNum+isodd(yNum)))-0.5) * stimulus.barContrast + 0.5;
 	end
       end
       disppercent(phaseNum/length(allPhases1));
@@ -908,6 +914,7 @@ end
   stimulus.last.elementWidth = stimulus.elementWidth;
   stimulus.last.elementHeight = stimulus.elementHeight;
   stimulus.last.elementVelocity = stimulus.elementVelocity;
+  stimulus.last.barContrast = stimulus.barContrast;
 
 % new we calculate the masks that cover the stimulus so that we can
 % have either rings or wedges, we start by making a set of wedge masks
