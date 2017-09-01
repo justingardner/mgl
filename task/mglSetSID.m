@@ -534,6 +534,7 @@ if isequal(status,1)
   return
 end
 
+
 % if so, then load it and delete the decrypt file
 sidDatabase = myreadtable(sidDatabaseDecrypt);
 delete(sidDatabaseDecrypt);
@@ -629,13 +630,6 @@ for iField = 1:length(requiredFields)
   % which is used for the check below for any fields that exist
   % that are not required
   requiredFieldNames{iField} = requiredFields{iField}{1};
-end
-
-% if there are any extraneous fields, then remove them
-extraneousFields = setdiff(fieldnames(sidDatabase),requiredFieldNames);
-for iField = 1:length(extraneousFields)
-  disp(sprintf('(mglSetSID) Removing extraneous field %s from sid database',extraneousFields{iField}));
-  sidDatabase = rmfield(sidDatabase,extraneousFields{iField});
 end
 
 % write sids to file
@@ -734,8 +728,55 @@ for iField = 1:length(requiredFields)
   end
 end
 
-% bring up dialog box
-params = mrParamsDialog(paramsInfo);
+% get validated user input
+validated = false;
+% some fields that don't need to be validated
+validationSkip = {'private'};
+
+while ~validated
+  % bring up dialog box
+  params = mrParamsDialog(paramsInfo);
+
+  % assume validated, check below for empty fields
+  validated = true;
+  
+  % if user hit cancel then dont worry about validating
+  if ~isempty(params)
+    missingFields = 'Missing required field(s):';
+    % check required fields
+    for iRequired = 1:length(requiredFields)
+      if ~any(strcmp(requiredFields{iRequired},validationSkip))
+	% check if required field is not set
+	if isempty(params.(requiredFields{iRequired}{1}))
+	  % make string to report which fields are missing
+	  missingFields = sprintf('%s %s',missingFields,requiredFields{iRequired}{1});
+          % not validated.
+	  validated = false;
+	  % reset paramsInfo, so that the dialog box comes up again with 
+	  % what the user already put in.
+	  fields = fieldnames(params);
+	  for iField = 1:length(fields)
+	    for jField = 1:length(paramsInfo)
+	      % look for matching parameter in paramsInfo
+	      if isequal(paramsInfo{jField}{1},fields{iField})
+		if iscell(paramsInfo{jField}{2})
+		  % put value set by user on top of list
+		  paramsInfo{jField}{2} = putOnTopOfList(params.(fields{iField}),paramsInfo{jField}{2});
+		else
+		  % then set with value set by user
+		  paramsInfo{jField}{2} = params.(fields{iField});
+		end
+	      end
+	    end
+	  end
+	end
+      end
+    end
+  end
+  if ~validated
+    warndlg(missingFields,'Missing fields','modal');
+  end
+end
 
 % save the database
 if ~isempty(params)
@@ -1731,7 +1772,13 @@ fprintf(f,'\n');
 % write out each row
 for iRow = 1:length(t.sid)
   for iField = 1:length(fields)
-    fieldVal = t.(fields{iField}){iRow};
+    % check to see if field exists
+    if isfield(t,fields{iField}) && (length(t.(fields{iField})) >= iRow)
+      % if it does get it
+      fieldVal = t.(fields{iField}){iRow};
+    else
+      fieldVal = 'N/A';
+    end
     % check if field has not been set
     if iscell(fieldVal)
       fieldVal = 'N/A';
