@@ -46,7 +46,7 @@
 // 64 bit OSes shouldn't define these so turn them off for certain systems.
 #ifndef _WIN64
 #define mwIndex int
-#define mwSize int
+#define mwSize size_t
 #endif
     
 // 64 bit Windows a 64 bit size value to store any context pointers, e.g. OpenGL, hardware, etc.

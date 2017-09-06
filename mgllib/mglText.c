@@ -127,7 +127,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
   // create the output structure
   const char *fieldNames[] =  {"textureNumber","imageWidth","imageHeight","textureAxes","textImageRect","hFlip","vFlip","isText","textureType","liveBuffer" };
-  int outDims[2] = {1, 1};
+  size_t outDims[2] = {1, 1};
   plhs[0] = mxCreateStructArray(1,outDims,10,fieldNames);
   
   // now set the textureNumber field
