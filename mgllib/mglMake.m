@@ -174,7 +174,9 @@ if ismac
   end
       
   % use different options depending on version
-  if sdkVersion == 10.11
+  if sdkVersion == 10.12
+    optf = sprintf('-f %s',fullfile(fileparts(which('mglOpen')),'clang_maci64.xml'));
+  elseif sdkVersion == 10.11
     optf = sprintf('-f %s',fullfile(fileparts(which('mglOpen')),'clang_maci64.xml'));
   elseif sdkVersion == 10.9
     % note this idiotic seting of char16_t is some
