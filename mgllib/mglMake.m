@@ -77,7 +77,11 @@ if (nargin>=1) && isstr(rebuild)
   if isfile(mglFilename)
     forceCompileSingleFile = mglFilename;
     rebuild = 2;
+  elseif strcmp(lower(stripext(rebuild)),'mydisp')
+    forceCompileSingleFile = fullfile(mglpath,'utils','myDisp.c');
+    rebuild = 2;
   end
+    
 end
 
 % interpret rebuild argument
@@ -172,7 +176,7 @@ if ismac
     sdkVersion = sdkVersions(whichVersion);
     sdkPaths = sdkPaths{whichVesion};
   end
-      
+
   % use different options depending on version
   if sdkVersion == 10.9
     % note this idiotic seting of char16_t is some
@@ -190,6 +194,8 @@ if ismac
     disp(sprintf('(mglMake) No specific mex options found for sdk version %s, using generic options',num2str(sdkVersion)));
     optf = '';
   end
+  optf = '-Dchar16_t=uint16_T';
+
 elseif ispc
   % We don't use a special options file.  The required libraries are set in
   % mgl.h and compile flags are set here.  The default mex setup file
