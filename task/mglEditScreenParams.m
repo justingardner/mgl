@@ -242,7 +242,7 @@ if isempty(mustSetSID),mustSetSID=false;end
 sidDatabaseFilename = mglGetParam('sidDatabaseFilename');
 if isempty(sidDatabaseFilename),sidDatabaseFilename='';end
 sidRaceEthnicity = mglGetParam('sidRaceEthnicity');
-if isempty(sidRaceEthnicity),sidRaceEthnicity=false;end
+if isempty(sidRaceEthnicity),sidRaceEthnicity=true;end
 sidValidIntervalInHours = mglGetParam('sidValidIntervalInHours');
 if isempty(sidValidIntervalInHours),sidValidIntervalInHours=1;end
 
