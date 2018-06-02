@@ -27,6 +27,7 @@ $Id$
 #define MIN_FILTER 3
 
 #define RGBATYPE GLubyte
+       //#define RGBATYPE GLushort
 
 //////////////
 //   main   //
@@ -36,10 +37,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   // declare some variables
   GLenum textureType;
   int i,j;
-  int liveBuffer = 0;
-  double *textureParams;
-  int profile = 0;
-  double startTime;
 
   // check for open window
   if (!mglIsWindowOpen()) {
@@ -81,10 +78,12 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   imageWidth = (int)dims[1];
   imageHeight = (int)dims[0];
 
-  // in UINT8 data in which we are going to directly copy.
+  //  data in which we are going to directly copy.
   RGBATYPE *imageFormatted;
   // allocate temporary memory to make copy into
   imageFormatted = (RGBATYPE*)malloc(imageWidth*imageHeight*sizeof(RGBATYPE)*BYTEDEPTH);
+  // display size 
+  mexPrintf("(mglPrivateCreateTexture) Testing with %i bytes per channel\n",(int)sizeof(RGBATYPE));
 
   // get the input image data
   double *imageData = mxGetPr(prhs[0]);
@@ -102,10 +101,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       int ind = i + colStart;
       int outind = i*widthDepth;
       
-      imageFormatted[c+outind] = (RGBATYPE)imageData[ind];
-      imageFormatted[c+outind+1] = (RGBATYPE)imageData[ind+imageSize];
-      imageFormatted[c+outind+2] = (RGBATYPE)imageData[ind+imageSize2];
-      imageFormatted[c+outind+3] = (RGBATYPE)imageData[ind+imageSize3];
+      imageFormatted[c+outind] = (RGBATYPE)(imageData[ind]);
+      imageFormatted[c+outind+1] = (RGBATYPE)(imageData[ind+imageSize]);
+      imageFormatted[c+outind+2] = (RGBATYPE)(imageData[ind+imageSize2]);
+      imageFormatted[c+outind+3] = (RGBATYPE)(imageData[ind+imageSize3]);
     }
   }
   
@@ -117,8 +116,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   textureType = GL_TEXTURE_RECTANGLE_EXT;
   glBindTexture(textureType, textureNumber);
 
-  // print out some info
-  mexPrintf("(mglPrivateCreateTexture) Testing with %i bytes per channel\n",(int)sizeof(RGBATYPE));
+  // print out what is in the buffer
   int loc = 0;
   for (i=0;i<imageWidth;i++) {
     for (j=0;j<imageHeight;j++) {
@@ -128,10 +126,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mexPrintf("\n");
   }
 
+  // See here:  https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/glTexImage2D.xhtml
   // create the texture
-  //  glTexImage2D(GL_TEXTURE_RECTANGLE_EXT,0,GL_RGBA16,imageWidth,imageHeight,0,GL_RGBA16,GL_UNSIGNED_SHORT,imageFormatted);
+  //  glTexImage2D(GL_TEXTURE_RECTANGLE_EXT,0,GL_RGBA16,imageWidth,imageHeight,0,GL_RGBA,GL_UNSIGNED_SHORT,imageFormatted);
+  //  glTexImage2D(GL_TEXTURE_RECTANGLE_EXT,0,GL_RGBA16,imageWidth,imageHeight,0,GL_RGBA,GL_UNSIGNED_SHORT,imageFormatted);
 
-  // This is standard version - which should be working
+  // This is standard version - which should be working - set the
+  // RGBATYPE to GLubyte at the top if you want to test
   glTexImage2D(GL_TEXTURE_RECTANGLE_EXT,0,GL_RGBA,imageWidth,imageHeight,0,GL_RGBA,GL_UNSIGNED_BYTE,imageFormatted);
 
   // bind the texture
