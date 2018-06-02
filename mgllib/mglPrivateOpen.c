@@ -335,11 +335,24 @@ NSOpenGLView *addOpenGLContext(NSWindow *myWindow, double *displayNumber, int *s
     NSOpenGLPFAStencilSize, 8,
       0
   };
+
+  /*
+  NSOpenGLPixelFormatAttribute attrs[] = {
+    NSOpenGLPFADoubleBuffer,
+    NSOpenGLPFAColorSize, 64,
+    NSOpenGLPFAColorFloat,
+    NSOpenGLPFAMultisample,
+    //    NSOpenGLPFAOpenGLProfile, NSOpenGLProfileVersion4_1Core,  
+    0
+  };
+  mexPrintf("(mglPrivateOpen) Trying to open 64 bit color size\n");
+  */
   NSOpenGLPixelFormat* myPixelFormat = [[NSOpenGLPixelFormat alloc] initWithAttributes:attrs];
   if (myPixelFormat==nil) {
     mexPrintf("(mglPrivateOpen) Could not create pixel format\n");
     return NULL;
   }
+
 
   // Create the openGLview
   myOpenGLView = [[NSOpenGLView alloc] initWithFrame:NSMakeRect(0,0,*screenWidth,*screenHeight) pixelFormat:myPixelFormat];
