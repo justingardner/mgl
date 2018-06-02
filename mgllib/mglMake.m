@@ -74,7 +74,7 @@ if (nargin>=1) && isstr(rebuild)
   mglfile = sprintf('%s.c',stripext(rebuild));
   % check if it exists
   mglFilename = fullfile(mglpath,'mgllib',mglfile);
-  if isfile(mglFilename)
+  if mglIsFile(mglFilename)
     forceCompileSingleFile = mglFilename;
     rebuild = 2;
   elseif strcmp(lower(stripext(rebuild)),'mydisp')
@@ -375,7 +375,7 @@ end
 % check for mexopts file
 [dummy mexoptsFilename] = strtok(optf,'-f ');
 mexoptsFilename = strtrim(mexoptsFilename);
-if ~isempty(mexoptsFilename) && ~isfile(mexoptsFilename)
+if ~isempty(mexoptsFilename) && ~mglIsFile(mexoptsFilename)
   disp(sprintf('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!'));
   disp(sprintf('(mglMake) Cannot find mexopts file for your setup: %s in the digin directory: %s',mexoptsFilename,pwd));
   disp(sprintf('          Consider converting one from mgl/mgllib and moving into digin'));

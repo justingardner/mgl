@@ -34,7 +34,7 @@ filename = sprintf('%s_stim%02i',thedate,gNumSaves);
 % make sure we don't have an existing file in the directory
 % that would get overwritten
 changedName = 0;
-while(isfile(fullfile(myscreen.datadir,sprintf('%s.mat',filename))))
+while(mglIsFile(fullfile(myscreen.datadir,sprintf('%s.mat',filename))))
   gNumSaves = gNumSaves+1;
   thedate = [datestr(now,'yy') datestr(now,'mm') datestr(now,'dd')];
   filename = sprintf('%s_stim%02i',thedate,gNumSaves);
@@ -105,7 +105,7 @@ if (strcmp(lower(response),'n'))
   while ~uniqueFilename
     abortedFilename = sprintf('%s_aborted%04i',filename,abortNumber);
     abortNumber = abortNumber + 1;
-    if ~isfile(sprintf('%s.mat',(fullfile(abortedStimfilesDir,abortedFilename)))) uniqueFilename = true; end
+    if ~mglIsFile(sprintf('%s.mat',(fullfile(abortedStimfilesDir,abortedFilename)))) uniqueFilename = true; end
   end
   % make filename and tell user what is going on
   filename = fullfile(abortedStimfilesDir,abortedFilename);
@@ -149,7 +149,7 @@ try
   mydisp(sprintf('done.\n'));
 catch
   % check for file existance
-  if ~strcmp(lower(response),'n') && ~isfile(filename)
+  if ~strcmp(lower(response),'n') && ~mglIsFile(filename)
     disp(sprintf('(saveStimData) !!! !!! Stimfile did not save to %s. There is no record of what was run in this experiment. You may not have the correct permissions to save the directory. !!! !!! !!! !!!.\n(saveStmiData) !!! Type dbcont to continue, but you may want to try to save the stimfile somewhere by using the command (but, change the filename):\n\n %s',filename,commandStr));
     keyboard
   end

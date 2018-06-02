@@ -127,12 +127,12 @@ if isstr(varargin{1})
       filename = fullfile(homedir,filename(2:end));
     end
     % check for file
-    if ~isfile(filename)
+    if ~mglIsFile(filename)
       % change extension to .mov and try again
       [filepath filenameCheck ext] = fileparts(filename);
       filenameCheck = sprintf('%s.mov',fullfile(filepath,filenameCheck));
       % if not there, give a warning and give up
-      if ~isfile(filenameCheck)
+      if ~mglIsFile(filenameCheck)
 	disp(sprintf('(mglMovie) Could not find file: %s',filename));
 	return;
       else

@@ -187,7 +187,7 @@ s = [];
 % load stimfile
 if isstr(stimfile)
   stimfile = setext(stimfile,'mat');
-  if ~isfile(stimfile)
+  if ~mglIsFile(stimfile)
     disp(sprintf('(mglRetinotopy) Could not open stimfile: %s',stimfile));
     return
   end

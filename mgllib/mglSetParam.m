@@ -32,7 +32,7 @@ if (nargin >= 3) && (isequal(makePersistent,1) || isequal(makePersistent,2))
     % shared file
     persistentParamsFilename = '/Users/Shared/.mglParams.mat';
   end
-  if isfile(persistentParamsFilename)
+  if mglIsFile(persistentParamsFilename)
     load(persistentParamsFilename);
   end
   % now set the curent param

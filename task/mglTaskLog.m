@@ -141,7 +141,7 @@ end
 logpath = fullfile(logpath,logdir);
 
 % ok check for logifle
-if isfile(logfilename)
+if mglIsFile(logfilename)
   % load the log
   log = myreadtable(logfilename);
 else
@@ -356,7 +356,7 @@ if ~isdir(logpath)
 end
 
 % check for existence of the logfile
-if isfile(logfilename)
+if mglIsFile(logfilename)
   % load the log
   log = myreadtable(logfilename);
 else
@@ -440,7 +440,7 @@ function taskName = getTaskName(stimfileName)
 
 taskName = [];
 % try to load stimfile
-if isfile(stimfileName)
+if mglIsFile(stimfileName)
   s = load(stimfileName);
   % if there is a task variable
   % then go look for the last in 

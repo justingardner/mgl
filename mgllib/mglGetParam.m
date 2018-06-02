@@ -25,7 +25,7 @@ if ~isfield(MGL,'persistentParamsLoaded')
   persistentParamsFilenames = {'~/.mglParams.mat','/Users/Shared/.mglParams.mat'};
   for i = 1:length(persistentParamsFilenames)
     persistentParamsFilename = persistentParamsFilenames{i};
-    if isfile(persistentParamsFilename)
+    if mglIsFile(persistentParamsFilename)
       load(persistentParamsFilename);
       if exist('persistentParams','var')
 	persistentParamNames = fieldnames(persistentParams);

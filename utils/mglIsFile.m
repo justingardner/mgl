@@ -1,18 +1,18 @@
-% isfile.m
+% mglIsFile.m
 %
-%      usage: isfile(filename)
+%      usage: mglIsFile(filename)
 %         by: justin gardner
 %       date: 08/20/03
-%       e.g.: isfile('filename')
+%       e.g.: mglIsFile('filename')
 %    purpose: function to check whether file exists
 %             Note meta characters like "?", "*", or "~user" are not recognized but "~/" can be used for filename.
 
 %
-function [isit permission] = isfile(filename)
+function [isit permission] = mglIsFile(filename)
 
 isit = 0;permission = [];
 if (nargin ~= 1)
-  help isfile;
+  help mglIsFile;
   return
 end
 if isempty(filename),isit = 0;,return,end
@@ -30,7 +30,7 @@ if (fid ~= -1)
   if (length(filename)>=1) && ~isequal(filename(1),filesep)
     openname = fopen(fid);
     if ~strcmp(fullfile(pwd,filename),openname)
-      %disp(sprintf('(isfile) Found file %s, but not in current path',openname));
+      %disp(sprintf('(mglIsFile) Found file %s, but not in current path',openname));
       isit = false;
       fclose(fid);
       return;
