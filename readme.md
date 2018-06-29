@@ -8,7 +8,7 @@ Full documentation can be found here: [http://gru.stanford.edu/mgl](http://gru.s
 
 # mgl Citation
 
-Gardner, J.L., Merriam E.P., Schluppeck, D., Hallum, L., Pestilli, F., Liu, T., Birman, D., Jagadeesh, A. and Larsson, J. (2018) MGL: Visual psychophysics stimuli and experimental design package. Available from: http://gru.stanford.edu/mgl/ DOI: https://doi.org/10.5281/zenodo.1299497
+Gardner, Justin L., Merriam, Elisha P., Schluppeck, Denis, & Larsson, Jonas. (2018, June 28). MGL: Visual psychophysics stimuli and experimental design package (Version 2.0). Zenodo. http://doi.org/10.5281/zenodo.1299497
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.1299497.svg)](https://doi.org/10.5281/zenodo.1299497)
 
