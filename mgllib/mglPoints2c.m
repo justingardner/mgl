@@ -1,7 +1,7 @@
-% mglPoints2.m
+% mglPoints2c.m
 %
 %        $Id$
-%      usage: mglPoints2()
+%      usage: mglPoints2c()
 %         by: justin gardner & Jonas Larsson
 %       date: 04/03/06
 %  copyright: (c) 2006 Justin Gardner, Jonas Larsson, Dan Birman (GPL see mgl/COPYING)
