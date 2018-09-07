@@ -32,7 +32,7 @@ if (length(screenParamsFilename)<3) || ~isequal(screenParamsFilename(end-2:end),
 end
 
 % check for file
-if ~isfile(screenParamsFilename)
+if ~mglIsFile(screenParamsFilename)
   disp(sprintf('(mglGetScreenParams) Could not find screenParams file %s',screenParamsFilename));
   screenParams = {};
 else

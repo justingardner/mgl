@@ -2565,7 +2565,7 @@ if ~todo.photometerTest && ~todo.measureSpectrum && ~todo.testExponent && ~todo.
     % get how long it took to do the calibration
     [filepath filename] = fileparts(calib.filename);
     filename = fullfile(filepath,sprintf('%s.mat',filename));
-    if isfile(filename)
+    if mglIsFile(filename)
       d = dir(filename);
       if isfield(d,'datenum') && ~isempty(d.datenum)
 	disp(sprintf('(moncalib) Calibration took %s',datestr(d.datenum-datenum(calib.date),13)));

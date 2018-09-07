@@ -543,7 +543,7 @@ switch myscreen.calibType
     % if we can't find the exact match
     [calibPath calibFilename] = fileparts(calibFilename);
     calibFilename = fullfile(calibPath,calibFilename);
-    if ~isfile(sprintf('%s.mat',calibFilename))
+    if ~mglIsFile(sprintf('%s.mat',calibFilename))
       disp(sprintf('(initScreen) Could not find calibFilename: %s\n',calibFilename));
       calibFilename = getCalibFilename(myscreen,calibFilename);
     end
@@ -555,7 +555,7 @@ switch myscreen.calibType
   end
   % no go and try to use that calibration
   if ~isempty(calibFilename)
-    if isfile(sprintf('%s.mat',calibFilename))
+    if mglIsFile(sprintf('%s.mat',calibFilename))
       load(calibFilename);
       if exist('calib','var') && isfield(calib,'table')
 	myscreen.gammaTable = calib.table;

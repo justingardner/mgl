@@ -182,7 +182,7 @@ end
 backupName = sprintf('%s_backup_%s.mat',filenameShort,datestr(now,'YYYY_mm_DD_HH_MM_SS'));
 backupName = fullfile(fileparts(filename),backupName);
 
-if isfile(filename)
+if mglIsFile(filename)
   disp(sprintf('(editStimfile) Making backup of %s to %s',getLastDir(filename),getLastDir(backupName)));
   movefile(filename,backupName);
 else
@@ -523,7 +523,7 @@ gEditStimfile.nLoaded = 0;
 % read the stimFiles
 for iFile = 1:gEditStimfile.n
   filename = setext(gEditStimfile.stimFilename{iFile},'mat');
-  if ~isfile(filename)
+  if ~mglIsFile(filename)
     disp(sprintf('(editStimfile) Could not find stimfile: %s',filename));
     return
   else
@@ -581,7 +581,7 @@ for iFile = 1:gEditStimfile.n
     % try to load matching carfile
     filename = setext(gEditStimfile.carFilename{iFile},'car');
     
-    if ~isfile(filename)
+    if ~mglIsFile(filename)
       disp(sprintf('(editStimfile) Could not find carfile: %s',filename));
       % can't load, set all carFilename to empty and give up loading
       gEditStimfile.carFilename = [];

@@ -364,7 +364,7 @@ if ~force
   if ~strcmp(lower(sidStr),'test')
     % otherwise, get database name
     sidDatabaseSID = mlrReplaceTilde(setext(mglGetParam('sidDatabaseFilename'),'mat',0));
-    if ~isfile(sidDatabaseSID)
+    if ~mglIsFile(sidDatabaseSID)
       disp(sprintf('(mglSetSID) Could not find SID file %s, so cannot validate',sidDatabaseSID));
     else
       % load it
@@ -500,7 +500,7 @@ sidDatabaseDecrypt = setext(sidDatabaseFilename,'csv',0);
 global requiredFields;
 
 % check if data base exists
-if ~isfile(sidDatabaseFilename)
+if ~mglIsFile(sidDatabaseFilename)
   if askuser(sprintf('(mglSetSID) Could not find SID Database file %s, create one from scratch?',sidDatabaseFilename))
     for iField = 1:length(requiredFields)
       % check if default is a cell
@@ -520,7 +520,7 @@ end
 % load unencrypted part of database that does not contain
 % any personal identifiers
 sidDatabaseFilenameUnencrypted = mlrReplaceTilde(setext(mglGetParam('sidDatabaseFilename'),'mat',0));
-if ~isfile(sidDatabaseFilenameUnencrypted)
+if ~mglIsFile(sidDatabaseFilenameUnencrypted)
   disp(sprintf('(mglSetSID) !!! Could not find unencrypted dataabase that contains info devoid of personal identifiers. Will try to load from encrypted database'));
 else
   unencrypted = load(sidDatabaseFilenameUnencrypted);
@@ -606,7 +606,7 @@ if isempty(sidDatabaseFilename)
 end
 
 % check if data base exists
-if ~isfile(sidDatabaseFilename)
+if ~mglIsFile(sidDatabaseFilename)
   disp(sprintf('(mglSetSID) Could not find SID database file %s',sidDatabaseFilename));
   
   if (~askuser(sprintf('(mglSetSID) Create SID database file: %s',sidDatabaseFilename)))
@@ -1633,7 +1633,7 @@ if ~mglIsMrToolsLoaded,return,end
 sidDatabaseLockFilename = mlrReplaceTilde(setext(mglGetParam('sidDatabaseFilename'),'lock',0));
 
 % see if it exists
-if isfile(sidDatabaseLockFilename)
+if mglIsFile(sidDatabaseLockFilename)
   % try to load it
   [username locktime] = readlock(sidDatabaseLockFilename);
   if isempty(username),return,end
@@ -1689,7 +1689,7 @@ if nargin < 1,warnOnStolenLock = false;end
 sidDatabaseLockFilename = mlrReplaceTilde(setext(mglGetParam('sidDatabaseFilename'),'lock',0));
 
 % check if lock is there
-if ~isfile(sidDatabaseLockFilename)
+if ~mglIsFile(sidDatabaseLockFilename)
   disp(sprintf('(mglSetSID) Lock has already been removed'));
   return
 end

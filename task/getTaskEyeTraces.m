@@ -121,7 +121,7 @@ end
 
 % check for file, should be in myscreen directory
 eyeTrackerFilename = fullfile(stimfile.stimfilePath,sprintf('%s.%s',eyeTrackerFilename,eyeTrackerFileExt));
-if ~isfile(eyeTrackerFilename)
+if ~mglIsFile(eyeTrackerFilename)
   disp(sprintf('(getTaskEyeTraces) Could not find eye tracker file %s',eyeTrackerFilename));
   return
 end

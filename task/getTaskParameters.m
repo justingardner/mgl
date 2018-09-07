@@ -30,7 +30,7 @@ if (nargin == 1) && isstr(myscreen)
     filename = sprintf('%s.mat',fullfile(pwd,filename));
   end
     
-  if ~isfile(filename)
+  if ~mglIsFile(filename)
     disp(sprintf('(getTaskParameters) Could not find file %s',filename));
     return
   end

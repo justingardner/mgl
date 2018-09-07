@@ -29,7 +29,7 @@ end
 if isempty(e)
     filename = fullfile(p, [n '.edf']);
 end
-if isfile(filename)
+if mglIsFile(filename)
   % mglPrivateEleyinkReadEDF returns a structre
   retval = mglPrivateEyelinkEDFRead(filename,verbose);
   if isempty(retval),return,end

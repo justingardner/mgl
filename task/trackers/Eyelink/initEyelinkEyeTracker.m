@@ -123,7 +123,7 @@ if ~isfield(myscreen.eyetracker, 'savedata') || myscreen.eyetracker.savedata
   % make sure we don't have an existing file in the directory
   % that would get overwritten
   changedName = 0;
-  while(isfile(fullfile(myscreen.datadir,sprintf('%s.edf',myscreen.eyetracker.datafilename))))
+  while(mglIsFile(fullfile(myscreen.datadir,sprintf('%s.edf',myscreen.eyetracker.datafilename))))
     nSaves = nSaves+1;
     thedate = [datestr(now,'yy') datestr(now,'mm') datestr(now,'dd')];
     myscreen.eyetracker.datafilename = sprintf('%s%02i',thedate,nSaves);

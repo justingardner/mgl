@@ -34,7 +34,7 @@ backup = [];
 getArgs(varargin,{'taskNum=1','phaseNum=1','force=0','allval=[]','backup=1'});
 
 stimfile = setext(stimfile,'mat');
-if ~isfile(stimfile)
+if ~mglIsFile(stimfile)
   disp(sprintf('(addCalculatedVar) Could not find stimfile %s',stimfile));
   return
 end
@@ -84,7 +84,7 @@ end
 if backup
     % now make sure there is an original backup
     originalBackup = sprintf('%s_original.mat',stripext(stimfile));
-    if isfile(originalBackup)
+    if mglIsFile(originalBackup)
       if backup >= 2
 	originalBackup = sprintf('%s_backup_%s.mat',stripext(stimfile),datestr(now,'ddmmyyyy_HHMMSS'));
 	disp(sprintf('(adCalculatedVar) Original backup already exists, saving as %s',originalBackup));
@@ -92,7 +92,7 @@ if backup
 	disp(sprintf('(adCalculatedVar) Original backup %s already exists, skipping making new backup (set backup=2 if you want multiple backups)',originalBackup));
       end
     end
-    if isfile(originalBackup)
+    if mglIsFile(originalBackup)
       disp(sprintf('(adCalculatedVar) %s already exists',originalBackup));
     else
       % save

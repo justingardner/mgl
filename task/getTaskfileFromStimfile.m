@@ -68,7 +68,7 @@ for iStimfile = 1:length(stimfiles)
     if askuser(sprintf('(getTaskfileFromStimfile) Retrieve task file %s',taskFilename));
       saveName = setext(taskFilename,'m');
       % file name bonk
-      if isfile(saveName)
+      if mglIsFile(saveName)
 	% ask for overwrite
 	if ~askuser(sprintf('(getTaskfileFromStimfile) Overwrite file %s in current directory',saveName));
 	  saveName = input(sprintf('(getTaskfileFromStimfile) Enter name to save as and hit return (or just return to skip): ',taskFilename),'s');

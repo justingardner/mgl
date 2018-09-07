@@ -324,7 +324,7 @@ void setGammaTableWithFormula(int displayNumber, int verbose, double redMin, dou
   displayErrorNum = CGSetDisplayTransferByFormula(whichDisplay,redMin,redMax,redGamma,greenMin,greenMax,greenGamma,blueMin,blueMax,blueGamma);
 
   if (displayErrorNum) {
-    mexPrintf("(mglPrivateSetGammaTable) Error setting gamma table (%s num=%i)\n",CGLErrorString(displayErrorNum),displayErrorNum);
+    mexPrintf("(mglPrivateSetGammaTable) Error setting gamma table (%s num=%i)\n",CGLErrorString((CGLError)displayErrorNum),displayErrorNum);
   }
 }
 ////////////////////////////////
@@ -336,6 +336,7 @@ void setGammaTableWithTable(int displayNumber, int verbose, int gammaTableSize, 
   CGDirectDisplayID displays[kMaxDisplays];
   CGDirectDisplayID whichDisplay;
   CGDisplayCount numDisplays;
+  int i;
 
   // check number of displays
   displayErrorNum = CGGetActiveDisplayList(kMaxDisplays,displays,&numDisplays);
@@ -356,8 +357,15 @@ void setGammaTableWithTable(int displayNumber, int verbose, int gammaTableSize, 
   if (verbose) mexPrintf("(mglPrivateSetGammaTable) Using table\n");
   displayErrorNum = CGSetDisplayTransferByTable(whichDisplay,numTableEntries,redTable,greenTable,blueTable);
 
+  // print out table if verbose is set to 2
+  if (verbose>1) {
+    for (i = 0;i < numTableEntries;i++) {
+      mexPrintf("%i: %0.2f %0.2f %0.2f\n",i,(double)redTable[i],(double)greenTable[i],(double)blueTable[i]);
+    }
+  }
+
   if (displayErrorNum) {
-    mexPrintf("(mglPrivateSetGammaTable) Error setting gamma table (%s num=%i)\n",CGLErrorString(displayErrorNum),displayErrorNum);
+    mexPrintf("(mglPrivateSetGammaTable) Error setting gamma table (%s num=%i)\n",CGLErrorString((CGLError)displayErrorNum),displayErrorNum);
   }
 }
 ///////////////////////////
@@ -385,7 +393,7 @@ int getGammaTableSize(int displayNumber)
     whichDisplay = kCGDirectMainDisplay;
   else
     whichDisplay = displays[displayNumber-1];
-    
+
   return(CGDisplayGammaTableCapacity(whichDisplay));
 }
 #endif//__APPLE__

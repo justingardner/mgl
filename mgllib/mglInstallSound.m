@@ -86,7 +86,7 @@ elseif isdir(soundName)
   for i = 1:length(soundDir)
     mglInstallSound(fullfile(soundPath,soundDir(i).name));
   end
-elseif isfile(soundName)
+elseif mglIsFile(soundName)
   % install a sound
   soundNum = mglPrivateInstallSound(soundName);
   if ~isempty(soundNum)
