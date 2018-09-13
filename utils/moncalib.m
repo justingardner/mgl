@@ -400,12 +400,22 @@ calib.colors.XYZ2RGB = inv(calib.colors.RGB2XYZ);
 function setGamma_(setGamma,val)
 global verbose
 
+% make sure we have a column vector
+if size(val,2)==3
+    val = val';
+end
+if size(val,1)~=3 || size(val,2)~=1
+    warning('Gamma table output setting seems to be the incorrect size');
+    disp('Transition to keyboard:');
+    keyboard
+end 
+
 if setGamma
     if (verbose>1),disp(sprintf('Setting gamma table output to %1.2f %1.2f %1.2f',val(1),val(2),val(3)));end
-    mglSetGammaTable(repmat(val,256,1)');
+    mglSetGammaTable(repmat(val,1,256));
 else
     if (verbose>1),disp(sprintf('Setting screen output to %1.2f %1.2f %1.2f',val(1),val(2),val(3)));end
-    mglClearScreen(val);mglFlush;
+    mglClearScreen(val');mglFlush;
 end
 % wait a bit to make sure it has changed
 mglWaitSecs(0.1);
@@ -579,7 +589,7 @@ if iscell(outputValues)
         outputValues_(i,:) = outputValues{i};
     end
 else
-    outputValues_ = repmat(outputValues,3,1);
+    outputValues_ = repmat(outputValues',1,3);
 end
 retval = measureOutput_(portNum,photometerNum,outputValues_,calib.numRepeats,calib.fastSearch,setGamma);
 
