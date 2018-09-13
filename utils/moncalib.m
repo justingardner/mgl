@@ -131,7 +131,15 @@ end
 % display spectrum
 if todo.displaySpectrum,displaySpectrum(calib);end
 
-% measure the gamma output of each color channel separately
+if todo.buildConversionMatrices
+    % compute the conversion matrix using the spectrum
+    calib = computeXYZ2RGB(calib);
+    % save the file
+    saveCalib(calib);
+end
+
+%% measure the gamma output of each color channel separately and inver the table
+% per-channel gamma table
 if todo.measureGammaEachChannel
     % run the calibration
     calib = measureGammaEachChannel(calib,portNum,photometerNum);
@@ -140,6 +148,123 @@ if todo.measureGammaEachChannel
 end
 if todo.displayGammaEachChannel,displayGammaEachChannel(calib),end
 
+%% TODO: test each channel for linearity
+% if todo.testTableEachChannel
+%     calib = testTableEachChannel(calib);
+%     saveCalib(calib);
+% end
+warning('Todo: add test code for each channel version');
+
+%% Test the color output
+
+% stop = 1;
+% 
+% % set the gamma table
+% origTable = mglGetGammaTable;
+% mglSetGammaTable(calib.tableEachChannel);
+% % go through L*a*b* color space and pick random values, display on the
+% % screen, and measure the error between what you expected to see and what
+% % you actually got. Keep in mind that anything with an RGB value <0 or >1
+% % won't actually be capable of being shown (duh).
+% Ls = [25 65 100];
+% as = [-25 -15 0 15 25];
+% bs = [-25 -15 0 15 25];
+% 
+% lab = zeros(length(Ls),length(as),length(bs),3);
+% matlab_xyz = lab;
+% rgb = lab;
+% mXYZ = lab;
+% mLAB = lab;
+% ingamut = ones(length(Ls),length(as),length(bs));
+% 
+% for li = 1:length(Ls)
+%     for ai = 1:length(as)
+%         for bi = 1:length(bs)
+%             L = Ls(li);
+%             a = as(ai);
+%             b = bs(bi);
+%             
+%             lab(li,ai,bi,:) = [L a b];
+%             % compute the matlab rgb
+% %             matlab_rgb(li,ai,bi,:) = lab2rgb([L a b]);
+%             % compute our XYZ
+%             matlab_xyz(li,ai,bi,:) = lab2xyz([L a b]);
+% %             disp(sprintf('MATLAB expected XYZ: [%1.2f %1.2f %1.2f]',matlab_xyz(li,ai,bi,1),matlab_xyz(li,ai,bi,2),matlab_xyz(li,ai,bi,3)));
+%             % convert with our conversion function
+%             crgb = calib.colors.XYZ2RGB*squeeze(matlab_xyz(li,ai,bi,:));
+%             rgb(li,ai,bi,:) = crgb;
+%             % display
+%             if any(crgb>1) || any(crgb<0)
+%                 disp('Out of gamut: measurement will be off - skipping');
+%                 ingamut(li,ai,bi) = 0;
+%             else
+%                 disp(sprintf('Our RGB values R: %1.2f G: %1.2f B: %1.2f',crgb(1),crgb(2),crgb(3)));
+% 
+%                 mglClearScreen(crgb'); mglFlush;
+%                 % make an Lxy measurement
+%                 [mL,x,y,success] = photometerMeasure_(portNum,photometerNum,calib.numRepeats);
+%                 mXYZ(li,ai,bi,:) = [x/y*mL mL (1-x-y)/y*mL]/100;
+%                 cmLAB = xyz2lab(squeeze(mXYZ(li,ai,bi,:))');
+%                 mLAB(li,ai,bi,:) = cmLAB;
+%                 disp(sprintf('Display  L*a*b* L: %1.2f a: %1.2f b: %1.2f',L,a,b));
+%                 disp(sprintf('Measured L*a*b* L: %1.2f a: %1.2f b: %1.2f',cmLAB(1),cmLAB(2),cmLAB(3)));
+%             end
+%             disp('*********************************************');
+%         end
+%     end
+% end
+% 
+% % clear the gamma table so that we can do other shit
+% mglSetGammaTable(origTable);
+% 
+% % take values that were in gamut and compute L*a*b* distance
+% dist = [];
+% for li = 1:length(Ls)
+%     for ai = 1:length(as)
+%         for bi = 1:length(bs)
+%             if ingamut(li,ai,bi)
+%                 clab = lab(li,ai,bi,:);
+%                 cmlab = mLAB(li,ai,bi,:);
+%                 dlab = clab-cmlab;
+%                 dist(end+1) = sqrt(sum(dlab.^2));
+%             end
+%         end
+%     end
+% end
+% 
+% figure; 
+% hist(dist);
+% xaxis([0 10]);
+% 
+% %todo for tomorrow:
+% % - check that the channels are actually linear
+% % - pick XYZ values at L=0, scale by magnitude for luminance, restrict
+% % range to avoid edges of the RGB curve 
+% 
+% %%
+% for li = 1:length(Ls)
+%     for ai = 1:length(as)
+%         for bi = 1:length(bs)
+%             if ingamut(li,ai,bi)
+%                 disp(squeeze(matlab_xyz(li,ai,bi,:))');
+%                 disp(squeeze(mXYZ(li,ai,bi,:))');
+%             end
+%         end
+%     end
+% end
+% 
+% %%
+%     figure;
+% for i = 1:3
+%     subplot(3,1,i); hold on
+%     x = matlab_xyz(:,:,:,i);
+%     mx = mXYZ(:,:,:,i);
+%     idx = x>0;
+%     plot(x(idx),mx(idx),'*');
+%     plot([0 1],[0 1],'--');
+% end
+
+%%
 % measure the gamma output of the monitor and build inverse table for linearizing output
 if todo.measureGamma
     % run the calibration
@@ -206,6 +331,69 @@ if todo.setupCalib
     saveCalib(calib);
 end
 
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% internal helper - sets either the gamma table or the background
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function calib = computeXYZ2RGB(calib)
+% build the xyz2rgb conversion matrix 
+% get the color matching function standard
+
+% we have to use CIE_1931 since the lab2xyz function is in that space,
+% prety sure this doesn't matter anyway since we're really working with
+% L*a*b* values, we just go to XYZ and then to RGB
+[lambda,Xfcn,Yfcn,Zfcn] = mglColorMatchingFunctions('CIE_1931');
+
+% double check that the testColors are in the right order
+if ~(all(calib.spectrum.testColors{1}==[1 0 0]) && all(calib.spectrum.testColors{2}==[0 1 0]) && all(calib.spectrum.testColors{3}==[0 0 1]))
+    warning('Test color orders didn''t come out as expected. There''s some missing code here to find the correct order.');
+    keyboard
+end
+
+% get the radiance measurements for the guns
+Rlambda = calib.spectrum.wavelength{1};
+Rspectrum = calib.spectrum.radiance{1};
+Glambda = calib.spectrum.wavelength{2};
+Gspectrum = calib.spectrum.radiance{2};
+Blambda = calib.spectrum.wavelength{3};
+Bspectrum = calib.spectrum.radiance{3};
+
+white = calib.spectrum.radiance{5};
+
+% check whether the spectrum lambda differ, if not just use one
+if all(Rlambda==Glambda) && all(Glambda==Blambda)
+    RGBlambda = Rlambda;
+else
+    warning('Lambda functions returned from the spectrometer are different. Deal with that in some way');
+    keyboard
+end
+
+% check if RGBlambda is contained within lambda
+if (min(RGBlambda)<min(lambda)) || (max(RGBlambda)>max(lambda))
+    warning('There is a range of RGBlambda values that we can''t get to because the defined color matching function range is too narrow');
+    keyboard
+end
+
+% collapse the range of lambda to the range of RGBlambda
+Xfcn = interp1(lambda,Xfcn,RGBlambda);
+Yfcn = interp1(lambda,Yfcn,RGBlambda);
+Zfcn = interp1(lambda,Zfcn,RGBlambda);
+
+% build the conversion matrix
+XYZ = [Xfcn Yfcn Zfcn];
+RGB = [Rspectrum Gspectrum Bspectrum];
+
+% get k the watts to lumens value
+k = 1/(Yfcn'*white);
+
+calib.colors = struct;
+calib.colors.lambda = RGBlambda;
+calib.colors.XYZ = XYZ;
+calib.colors.RGB = RGB; % problem: these are in the wrong dimensions
+calib.colors.RGB2XYZ = XYZ'*RGB*k;
+calib.colors.XYZ2RGB = inv(calib.colors.RGB2XYZ);
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % internal helper - sets either the gamma table or the background
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -213,10 +401,10 @@ function setGamma_(setGamma,val)
 global verbose
 
 if setGamma
-    if (verbose>1),disp(sprintf('Setting gamma table output to %f',val));end
+    if (verbose>1),disp(sprintf('Setting gamma table output to %1.2f %1.2f %1.2f',val(1),val(2),val(3)));end
     mglSetGammaTable(repmat(val,256,1)');
 else
-    if (verbose>1),disp(sprintf('Setting screen output to %f',val));end
+    if (verbose>1),disp(sprintf('Setting screen output to %1.2f %1.2f %1.2f',val(1),val(2),val(3)));end
     mglClearScreen(val);mglFlush;
 end
 % wait a bit to make sure it has changed
@@ -239,7 +427,7 @@ for repeatNum = 1:numRepeats
         % get the measurement from the photometer
         [L(repeatNum), x(repeatNum), y(repeatNum)] = photometerMeasure(portNum,photometerNum);
         % check to see if it is a bad measurement
-        if isnan(thisMeasuredLuminance(repeatNum))
+        if isnan(L(repeatNum))
             % if it is and, we have already tried three times, then give up
             badMeasurements = badMeasurements+1;
             if (badMeasurements > 3)
@@ -338,8 +526,30 @@ else
     end
     
     if any(isnan(measuredLuminance))
-        stop = 1;
+        % set the zero point to zero
+        mVals = mean(outputValues,2);
+        if any(mVals==0)
+            measuredLuminance(mVals==0)=0;
+        end
+        % we know it's wrong, but use a linear interpolation (rather than
+        % assigning zero) for any missing intermediate measurements (tend
+        % to be few)
+        valid = ~isnan(measuredLuminance);
+        missing = find(isnan(measuredLuminance));
+        measuredLuminance(missing) = interp1(mVals(valid),measuredLuminance(valid),mVals(missing));
     end
+    
+    % re-order into ascending
+    mRow = mean(outputValues,2);
+    
+    [~,idx] = sort(mRow,'ascend');
+    outputValues = outputValues(idx,:);
+    measuredLuminance = measuredLuminance(idx);
+    measuredX = measuredX(idx);
+    measuredY = measuredY(idx);
+    measuredLuminanceSte = measuredLuminanceSte(idx);
+    measuredXSte = measuredXSte(idx);
+    measuredYSte = measuredYSte(idx);
 end
 if (verbose == 1),disppercent(inf);end
 
@@ -362,9 +572,19 @@ function retval = measureOutput(portNum,photometerNum,outputValues,calib,setGamm
 if ~exist('setGamma','var'),setGamma=1;end
 
 % expand outputValues
-outputValues = repmat(outputValues,3,1);
 
-retval = measureOutput_(portNum,photometerNum,outputValues,calib.numRepeats,calib.fastSearch,setGamma);
+outputValues_ = zeros(length(outputValues),3);
+if iscell(outputValues)
+    for i = 1:length(outputValues_)
+        outputValues_(i,:) = outputValues{i};
+    end
+else
+    outputValues_ = repmat(outputValues,3,1);
+end
+retval = measureOutput_(portNum,photometerNum,outputValues_,calib.numRepeats,calib.fastSearch,setGamma);
+
+% collapse outputValues
+retval.outputValues = outputValues;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % function that sets the gamma table to all the values in val
@@ -377,15 +597,17 @@ function retval = measureOutputColor(portNum,photometerNum,outputValues,calib,se
 % default to setting gamma values, not color values
 if ~exist('setGamma','var'),setGamma=1;end
 
-outputValues_ = outputValues;
-if iscell(outputValues_)
-    outputValues = [];
+outputValues_ = zeros(length(outputValues),3);
+if iscell(outputValues)
     for i = 1:length(outputValues_)
-        outputValues(i,:) = outputValues_{i};
+        outputValues_(i,:) = outputValues{i};
     end
 end
 
-retval = measureOutput_(portNum,photometerNum,outputValues,calib.numRepeats,calib.fastSearch,setGamma);
+retval = measureOutput_(portNum,photometerNum,outputValues_,calib.numRepeats,calib.fastSearch,setGamma);
+
+% return to cell format
+retval.outputValues = outputValues;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % display a figure that shows measurements
@@ -2008,21 +2230,26 @@ else
     disp(sprintf('(moncalib:measureGammaForEachChannel) Uncorrected luminance measurement for blue ready done'));
 end
 
-% now build a reverse lookup table
-% use linear interpolation
-%desiredOutput = min(calib.uncorrected.luminance):(max(calib.uncorrected.luminance)-min(calib.uncorrected.luminance))/255:max(calib.uncorrected.luminance);
-% check to make sure that we have unique values,
-% otherwise interp1 will fail
-%while length(calib.uncorrected.luminance) ~= length(unique(calib.uncorrected.luminance))
-%  disp(sprintf('Adjusting luminance values to make them unique'));
-% slight hack here, adding a bit of noise to keep the values
-% unique, shouldn't really distort anything though since the
-% noise is very small.
-%  calib.uncorrected.luminance = calib.uncorrected.luminance + rand(size(calib.uncorrected.luminance))/1000000;
-%end
-% interpolate table
-%calib.table = interp1(calib.uncorrected.luminance,calib.uncorrected.outputValues,desiredOutput,'linear')';
-
+% build the reverse lookup table for each of the 3 channels
+channels = {'R','G','B'};
+calib.tableEachChannel = zeros(3,256);
+for channel = 1:3
+    uncorrected = calib.uncorrectedEachChannel.(channels{channel});
+    % now build a reverse lookup table
+    % use linear interpolation
+    desiredOutput = min(uncorrected.luminance):(max(uncorrected.luminance)-min(uncorrected.luminance))/255:max(uncorrected.luminance);
+    % check to make sure that we have unique values,
+    % otherwise interp1 will fail
+    while length(uncorrected.luminance) ~= length(unique(uncorrected.luminance))
+        disp(sprintf('Adjusting luminance values to make them unique'));
+        % slight hack here, adding a bit of noise to keep the values
+        % unique, shouldn't really distort anything though since the
+        % noise is very small.
+        uncorrected.luminance = uncorrected.luminance + rand(size(uncorrected.luminance))/1000000;
+    end
+    % interpolate table
+    calib.tableEachChannel(channel,:) = interp1(uncorrected.luminance,testRange,desiredOutput,'linear')';
+end
 
 %%%%%%%%%%%%%%%%%%%%%%
 %    displayGamma    %
@@ -2294,10 +2521,12 @@ todo.photometerTest = 0;
 todo.initWaitTime = initWaitTime;
 todo.measureSpectrum = spectrum;
 todo.displaySpectrum = spectrum;
+todo.buildConversionMatrices = spectrum;
 todo.measureGamma = gamma;
 todo.displayGamma = gamma;
 todo.measureGammaEachChannel = gammaEachChannel;
 todo.displayGammaEachChannel = gammaEachChannel;
+todo.testTableEachChannel = gammaEachChannel;
 todo.fitExponent = exponent;
 todo.displayExponent = exponent;
 todo.testExponent = exponent;
