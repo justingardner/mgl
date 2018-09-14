@@ -131,13 +131,6 @@ end
 % display spectrum
 if todo.displaySpectrum,displaySpectrum(calib);end
 
-if todo.buildConversionMatrices
-    % compute the conversion matrix using the spectrum
-    calib = computeXYZ2RGB(calib);
-    % save the file
-    saveCalib(calib);
-end
-
 % measure the gamma output of each color channel separately and invert the table
 % per-channel gamma table
 if todo.measureGammaEachChannel
@@ -2419,7 +2412,6 @@ todo.photometerTest = 0;
 todo.initWaitTime = initWaitTime;
 todo.measureSpectrum = spectrum;
 todo.displaySpectrum = spectrum;
-todo.buildConversionMatrices = spectrum;
 todo.measureGamma = gamma;
 todo.displayGamma = gamma;
 todo.measureGammaEachChannel = gammaEachChannel;
