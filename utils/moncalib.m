@@ -2196,13 +2196,15 @@ disp(sprintf('Using table values to linearize gamma'));
 mglSetGammaTable(calib.tableEachChannel);
 
 %and see how well we have done
-if ~isfield(calib,'tableCorrected')
+channels = {'R','G','B'};
+if ~isfield(calib,'tableCorrectedEachChannel')
     for i = 1:3
-        outputValues = zeros(length(calib.uncorrected.outputValues),3);
-        outputValues(:,i) = calib.uncorrected.outputValues;
-        calib.tableCorrectedEachChannel{i} = measureOutputColor(portNum,photometerNum,outputValues,calib,0);
+        outputValues = calib.uncorrectedEachChannel.(channels{i}).outputValues;
+        for oi = 1:length(outputValues)
+            outputValues_(oi,:) = outputValues{oi};
+        end
+        calib.tableCorrectedEachChannel.(channels{i}) = measureOutputColor(portNum,photometerNum,outputValues,calib,0);
     end
-    saveCalib(calib);
 else
     disp(sprintf('Table corrected luminance measurement already done'));
 end
@@ -2213,15 +2215,25 @@ end
 function displayTestTableEachChannel(calib)
 
 figure;
-if isfield(calib,'tableCorrected')
+channels = {'R','G','B'};
+if isfield(calib,'tableCorrectedEachChannel')
     for i = 1:3
-        subpot(3,1,i);
+        subplot(3,1,i);
         hold on
         
-        dispLuminanceFigure(calib.tableCorrectedEachChannel{i},'c');
+        dispLuminanceFigure(calib.uncorrectedEachChannel.(channels{i}),'k');
+        
+        dispLuminanceFigure(calib.tableCorrectedEachChannel.(channels{i}),'c');
     
         % plot the ideal
-        plot(calib.uncorrected.outputValues,calib.uncorrected.outputValues*(max(calib.uncorrected.luminance)-min(calib.uncorrected.luminance))+min(calib.uncorrected.luminance),'g-');
+        uncorr = calib.uncorrectedEachChannel.(channels{i});
+        outputValues = uncorr.outputValues;
+        outputValues_ = [];
+        for oi = 1:length(outputValues)
+            outputValues_(oi,:) = outputValues{oi};
+        end
+        outputValues_ = outputValues_(:,i);
+        plot(outputValues_,outputValues_*(max(uncorr.luminance)-min(uncorr.luminance))+min(uncorr.luminance),'g-');
         if isfield(calib,'gamma')
             mylegend({'uncorrected','corrected (gamma)','corrected (table)','ideal'},{'ko','ro','co','go'},2);
         else
