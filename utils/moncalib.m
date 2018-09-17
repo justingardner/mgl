@@ -152,7 +152,6 @@ end
 
 if todo.displayTestTableEachChannel,displayTestTableEachChannel(calib);end
 
-%%
 % measure the gamma output of the monitor and build inverse table for linearizing output
 if todo.measureGamma
     % run the calibration
@@ -201,6 +200,24 @@ end
 % display the bit test
 if todo.displayBitTest,displayBitTest(calib);end
 
+
+% add color info
+if todo.computeColorMatrices
+    calib = computeColorMatrices(calib);
+    % save the file
+    saveCalib(calib);
+end
+
+if todo.testColorMatrices
+    calib = testColorMatrices(calib,portNum,photometerNum);
+
+    saveCalib(calib);
+end
+
+if todo.displayColorMatrices
+    displayColorMatrices(calib);
+end
+
 if todo.setupCalib
     % finish up
     % close the serial port, it may be better to just leave it
@@ -219,6 +236,198 @@ if todo.setupCalib
     saveCalib(calib);
 end
 
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% internal helper - display information on color calibration test
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+function displayColorMatrices(calib)
+
+return
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% internal helper - test the color matrix
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+function calib = testColorMatrices(calib,portNum,photometerNum)
+
+%% Test the color output
+
+%% set the gamma table
+origTable = mglGetGammaTable;
+mglSetGammaTable(calib.tableEachChannel);
+
+%% pick a set of values that are within the gamut (avoid top 0.9->1.0 range)
+
+% go through L*a*b* color space and pick random values, display on the
+% screen, and measure the error between what you expected to see and what
+% you actually got. Keep in mind that anything with an RGB value <0 or >1
+% won't actually be capable of being shown (duh).
+Ls = [25 65 100];
+as = [-25 -15 0 15 25];
+bs = [-25 -15 0 15 25];
+
+lab = zeros(length(Ls),length(as),length(bs),3);
+matlab_xyz = lab;
+rgb = lab;
+mXYZ = lab;
+mLAB = lab;
+ingamut = ones(length(Ls),length(as),length(bs));
+
+for li = 1:length(Ls)
+    for ai = 1:length(as)
+        for bi = 1:length(bs)
+            L = Ls(li);
+            a = as(ai);
+            b = bs(bi);
+            
+            lab(li,ai,bi,:) = [L a b];
+            % compute the matlab rgb
+%             matlab_rgb(li,ai,bi,:) = lab2rgb([L a b]);
+            % compute our XYZ
+            matlab_xyz(li,ai,bi,:) = lab2xyz([L a b]);
+%             disp(sprintf('MATLAB expected XYZ: [%1.2f %1.2f %1.2f]',matlab_xyz(li,ai,bi,1),matlab_xyz(li,ai,bi,2),matlab_xyz(li,ai,bi,3)));
+            % convert with our conversion function
+            crgb = calib.colors.XYZ2RGB*squeeze(matlab_xyz(li,ai,bi,:));
+            rgb(li,ai,bi,:) = crgb;
+            % display
+            if any(crgb>1) || any(crgb<0)
+                disp('Out of gamut: measurement will be off - skipping');
+                ingamut(li,ai,bi) = 0;
+            else
+                disp(sprintf('Our RGB values R: %1.2f G: %1.2f B: %1.2f',crgb(1),crgb(2),crgb(3)));
+
+                mglClearScreen(crgb'); mglFlush;
+                % make an Lxy measurement
+                [mL,x,y,success] = photometerMeasure_(portNum,photometerNum,calib.numRepeats);
+                mXYZ(li,ai,bi,:) = [x/y*mL mL (1-x-y)/y*mL]/100;
+                cmLAB = xyz2lab(squeeze(mXYZ(li,ai,bi,:))');
+                mLAB(li,ai,bi,:) = cmLAB;
+                disp(sprintf('Display  L*a*b* L: %1.2f a: %1.2f b: %1.2f',L,a,b));
+                disp(sprintf('Measured L*a*b* L: %1.2f a: %1.2f b: %1.2f',cmLAB(1),cmLAB(2),cmLAB(3)));
+            end
+            disp('*********************************************');
+        end
+    end
+end
+
+% clear the gamma table so that we can do other stuff
+mglSetGammaTable(origTable);
+
+%
+
+
+% take values that were in gamut and compute L*a*b* distance
+dist = [];
+for li = 1:length(Ls)
+    for ai = 1:length(as)
+        for bi = 1:length(bs)
+            if ingamut(li,ai,bi)
+                clab = lab(li,ai,bi,:);
+                cmlab = mLAB(li,ai,bi,:);
+                dlab = clab-cmlab;
+                dist(end+1) = sqrt(sum(dlab.^2));
+            end
+        end
+    end
+end
+
+figure; 
+hist(dist);
+xaxis([0 10]);
+
+%todo for tomorrow:
+% - check that the channels are actually linear
+% - pick XYZ values at L=0, scale by magnitude for luminance, restrict
+% range to avoid edges of the RGB curve 
+
+%%
+for li = 1:length(Ls)
+    for ai = 1:length(as)
+        for bi = 1:length(bs)
+            if ingamut(li,ai,bi)
+                disp(squeeze(matlab_xyz(li,ai,bi,:))');
+                disp(squeeze(mXYZ(li,ai,bi,:))');
+            end
+        end
+    end
+end
+
+%%
+    figure;
+for i = 1:3
+    subplot(3,1,i); hold on
+    x = matlab_xyz(:,:,:,i);
+    mx = mXYZ(:,:,:,i);
+    idx = x>0;
+    plot(x(idx),mx(idx),'*');
+    plot([0 1],[0 1],'--');
+end
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% internal helper - computes conversion matrix
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function calib = computeColorMatrices(calib)
+% build the xyz2rgb conversion matrix 
+% get the color matching function standard
+
+% we have to use CIE_1931 since the lab2xyz function is in that space,
+% prety sure this doesn't matter anyway since we're really working with
+% L*a*b* values, we just go to XYZ and then to RGB
+[lambda,Xfcn,Yfcn,Zfcn] = mglColorMatchingFunctions('CIE_1931');
+
+% double check that the testColors are in the right order
+if ~(all(calib.spectrum.testColors{1}==[1 0 0]) && all(calib.spectrum.testColors{2}==[0 1 0]) && all(calib.spectrum.testColors{3}==[0 0 1]))
+    warning('Test color orders didn''t come out as expected. There''s some missing code here to find the correct order.');
+    keyboard
+end
+
+% get the radiance measurements for the guns
+Rlambda = calib.spectrum.wavelength{1};
+Rspectrum = calib.spectrum.radiance{1};
+Glambda = calib.spectrum.wavelength{2};
+Gspectrum = calib.spectrum.radiance{2};
+Blambda = calib.spectrum.wavelength{3};
+Bspectrum = calib.spectrum.radiance{3};
+
+white = calib.spectrum.radiance{5};
+
+% check whether the spectrum lambda differ, if not just use one
+if all(Rlambda==Glambda) && all(Glambda==Blambda)
+    RGBlambda = Rlambda;
+else
+    warning('Lambda functions returned from the spectrometer are different. Deal with that in some way');
+    keyboard
+end
+
+% check if RGBlambda is contained within lambda
+if (min(RGBlambda)<min(lambda)) || (max(RGBlambda)>max(lambda))
+    warning('There is a range of RGBlambda values that we can''t get to because the defined color matching function range is too narrow');
+    keyboard
+end
+
+% collapse the range of lambda to the range of RGBlambda
+Xfcn = interp1(lambda,Xfcn,RGBlambda);
+Yfcn = interp1(lambda,Yfcn,RGBlambda);
+Zfcn = interp1(lambda,Zfcn,RGBlambda);
+
+% build the conversion matrix
+XYZ = [Xfcn Yfcn Zfcn];
+RGB = [Rspectrum Gspectrum Bspectrum];
+
+% get k the watts to lumens value
+k = 1/(Yfcn'*white);
+
+calib.colors = struct;
+calib.colors.lambda = RGBlambda;
+calib.colors.XYZ = XYZ;
+calib.colors.RGB = RGB; % problem: these are in the wrong dimensions
+calib.colors.RGB2XYZ = XYZ'*RGB*k;
+calib.colors.XYZ2RGB = inv(calib.colors.RGB2XYZ);
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -2346,6 +2555,7 @@ bitTest = 0;
 reset = 0;
 justDisplay = 0;
 fastSearch = 0;
+color = spectrum;
 
 bitTestBits = 10;
 bitTestN = 12;
@@ -2424,6 +2634,7 @@ todo.photometerTest = 0;
 todo.initWaitTime = initWaitTime;
 todo.measureSpectrum = spectrum;
 todo.displaySpectrum = spectrum;
+todo.computeColorMatrices = color;
 todo.measureGamma = gamma;
 todo.displayGamma = gamma;
 todo.measureGammaEachChannel = gammaEachChannel;
@@ -2524,6 +2735,7 @@ if justDisplay
     todo.displayGamma = 1;
     todo.measureGammaEachChannel = 0;
     todo.displayGammaEachChannel = 1;
+    todo.displayTestTableEachChannel=1;
     todo.fitExponent = 0;
     todo.displayExponent = 0;
     todo.testExponent = 0;
@@ -2532,6 +2744,9 @@ if justDisplay
     todo.displayTestTable = 1;
     todo.bitTest = 0;
     todo.displayBitTest = 1;
+    todo.computeColorMatrices = 0;
+    todo.testColorMatrices = 0;
+    todo.displayColorMatrices = 1;
 end
 
 % choose the range of values over which to test for the number
