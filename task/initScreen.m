@@ -558,7 +558,11 @@ switch myscreen.calibType
     if mglIsFile(sprintf('%s.mat',calibFilename))
       load(calibFilename);
       if exist('calib','var') && isfield(calib,'table')
-	myscreen.gammaTable = calib.table;
+    if isfield(calib,'tableEachChannel')
+        myscreen.gammaTable = calib.tableEachChannel;
+    else
+        myscreen.gammaTable = calib.table;
+    end
 	mglSetGammaTable(myscreen.gammaTable);
 	gammaNotSet = 0;
 	[calibPath calibFilename] = fileparts(calibFilename);

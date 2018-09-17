@@ -1,4 +1,4 @@
-function rgb = mglLab2rgb(Lab,calib)
+function [rgb,xyz] = mglLab2rgb(Lab,calib)
 %% MGLLAB2RGB
 %
 %   Input:
@@ -22,11 +22,13 @@ if size(Lab,2)~=3
 end
 
 rgb = zeros(size(Lab));
+xyz = zeros(size(Lab));
 
 for i = 1:size(Lab,1)
-    xyz = lab2xyz(Lab(i,:));
-    if size(xyz,1)~=3
-        xyz = xyz';
-    end
-    rgb(i,:) = calib.colors.XYZ2RGB*xyz;
+    xyz_ = lab2xyz(Lab(i,:));
+    
+    xyz(i,:) = xyz_;
 end
+
+rgb = calib.colors.XYZ2RGB*xyz';
+rgb = rgb';

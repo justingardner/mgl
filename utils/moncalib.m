@@ -87,19 +87,6 @@ function calib = moncalib(varargin)
 % parse arguments
 [calib todo] = parseArgs(nargin,varargin);
 
-%% FOR TESTING
-clear calib
-load 0010_dubonnet_180914
-
-todo.measureGamma=0;
-todo.displayGamma =0 ;
-todo.testTable =0;
-todo.displayTestTable=0;
-
-todo.computeColorMatries=1;
-todo.testColorMatrices=1;
-todo.displayColorMatrices=1;
-%%
 if isempty(calib),return,end
 
 global verbose
@@ -258,128 +245,122 @@ end
 
 
 function displayColorMatrices(calib)
+% draw a plot which shows the offset in the color matrix measurements
 
-return
+warning('(displayColorMatrices) not implemented');
+% stop = 1;
+% 
+% %%
+% mrgb = calib.colors.XYZ2RGB * calib.colors.test.mxyz';
+% mrgb = mrgb';
+% 
+% %%
+% figure; hold on
+% 
+% for ii = 1:size(calib.colors.test.xyz_,1)
+%     % plot a vector from actual to measured
+%     rgb_ = calib.colors.test.rgb_(ii,:);
+%     crgb = mrgb(ii,:);
+% %     mxyz = calib.colors.test.mxyz(ii,:);
+%     
+%     plot3([rgb_(1) crgb(1)],[rgb_(2) crgb(2)],[rgb_(3) crgb(3)]);
+% end
+% 
+% xlabel('R');
+% ylabel('G');
+% xlabel('B');
 
 
+%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % internal helper - test the color matrix
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 function calib = testColorMatrices(calib,portNum,photometerNum)
-
-%% Test the color output
-
-%% set the gamma table
+% set the gamma table
 origTable = mglGetGammaTable;
 mglSetGammaTable(calib.tableEachChannel);
 
-%% pick a set of values that are within the gamut (avoid top 0.9->1.0 range)
+% pick a set of values that are within the gamut (avoid top 0.9->1.0 range)
 
 % go through L*a*b* color space and pick random values, display on the
 % screen, and measure the error between what you expected to see and what
 % you actually got. Keep in mind that anything with an RGB value <0 or >1
 % won't actually be capable of being shown (duh).
-Ls = [25 65 100];
-as = [-25 -15 0 15 25];
-bs = [-25 -15 0 15 25];
+Ls = [0:20:100];
+as = [-127:20:128];
+bs = [-127:20:128];
 
-lab = zeros(length(Ls),length(as),length(bs),3);
-matlab_xyz = lab;
-rgb = lab;
-mXYZ = lab;
-mLAB = lab;
-ingamut = ones(length(Ls),length(as),length(bs));
-
+Lab = []; count = 1;
 for li = 1:length(Ls)
     for ai = 1:length(as)
         for bi = 1:length(bs)
-            L = Ls(li);
-            a = as(ai);
-            b = bs(bi);
-            
-            lab(li,ai,bi,:) = [L a b];
-            % compute the matlab rgb
-%             matlab_rgb(li,ai,bi,:) = lab2rgb([L a b]);
-            % compute our XYZ
-            matlab_xyz(li,ai,bi,:) = lab2xyz([L a b]);
-%             disp(sprintf('MATLAB expected XYZ: [%1.2f %1.2f %1.2f]',matlab_xyz(li,ai,bi,1),matlab_xyz(li,ai,bi,2),matlab_xyz(li,ai,bi,3)));
-            % convert with our conversion function
-            crgb = calib.colors.XYZ2RGB*squeeze(matlab_xyz(li,ai,bi,:));
-            rgb(li,ai,bi,:) = crgb;
-            % display
-            if any(crgb>1) || any(crgb<0)
-                disp('Out of gamut: measurement will be off - skipping');
-                ingamut(li,ai,bi) = 0;
-            else
-                disp(sprintf('Our RGB values R: %1.2f G: %1.2f B: %1.2f',crgb(1),crgb(2),crgb(3)));
-
-                mglClearScreen(crgb'); mglFlush;
-                % make an Lxy measurement
-                [mL,x,y,success] = photometerMeasure_(portNum,photometerNum,calib.numRepeats);
-                mXYZ(li,ai,bi,:) = [x/y*mL mL (1-x-y)/y*mL]/100;
-                cmLAB = xyz2lab(squeeze(mXYZ(li,ai,bi,:))');
-                mLAB(li,ai,bi,:) = cmLAB;
-                disp(sprintf('Display  L*a*b* L: %1.2f a: %1.2f b: %1.2f',L,a,b));
-                disp(sprintf('Measured L*a*b* L: %1.2f a: %1.2f b: %1.2f',cmLAB(1),cmLAB(2),cmLAB(3)));
-            end
-            disp('*********************************************');
+            Lab(count,:) = [Ls(li) as(ai) bs(bi)];
+            count = count + 1;
         end
     end
+end
+
+%
+[rgb,xyz] = mglLab2rgb(Lab,calib);
+% In-gamut caluclation
+ingam = logical(all(rgb>0,2) .* all(rgb<1,2));
+
+% sub-select only values within the theoretical gamut
+Lab = Lab(ingam,:);
+xyz = xyz(ingam,:);
+rgb = rgb(ingam,:);
+
+% display test values 
+
+% pick 50 values at random to test
+idx = randperm(length(Lab));
+idx = idx(1:min(length(Lab),50));
+
+Lab_ = Lab(idx,:);
+xyz_ = xyz(idx,:);
+rgb_ = rgb(idx,:);
+
+% re-sort by L values
+[~,sidx] = sort(Lab_(:,1));
+Lab_ = Lab_(sidx,:);
+xyz_ = xyz_(sidx,:);
+rgb_ = rgb_(sidx,:);
+
+% also compute the little xyz coordinates:
+lxyz = xyz_ ./ repmat(sum(xyz_,2),1,3);
+lxy = lxyz(:,1:2);
+
+%
+mLxy = zeros(size(Lab_));
+for ii = 1:size(Lab_,1)
+    disp(sprintf('Testing color calibration with RGB: [%0.2f %0.2f %0.2f]',rgb_(ii,1),rgb(ii,2),rgb(ii,3)));
+    % set the screen the rgb_ color
+    mglClearScreen(rgb_(ii,:)); mglFlush
+    % measure
+    [L,x,y,~] = photometerMeasure_(portNum,photometerNum,1);
+    mLxy(ii,:) = [mean(L),mean(x),mean(y)];
+end
+
+%
+dif = mLxy(:,2:3)-lxy;
+
+for ii = 1:size(dif,1)
+    disp(sprintf('Output: x:%0.2f y:%0.2f',lxy(ii,1),lxy(ii,2)));
+    disp(sprintf('Measrd: x:%0.2f y:%0.2f',mLxy(ii,2),mLxy(ii,3)));
+    disp(sprintf('Difrnc: x:%0.2f y:%0.2f',dif(ii,1),dif(ii,2)));
+    disp('**********************');
 end
 
 % clear the gamma table so that we can do other stuff
 mglSetGammaTable(origTable);
 
-%
-
-
-% take values that were in gamut and compute L*a*b* distance
-dist = [];
-for li = 1:length(Ls)
-    for ai = 1:length(as)
-        for bi = 1:length(bs)
-            if ingamut(li,ai,bi)
-                clab = lab(li,ai,bi,:);
-                cmlab = mLAB(li,ai,bi,:);
-                dlab = clab-cmlab;
-                dist(end+1) = sqrt(sum(dlab.^2));
-            end
-        end
-    end
-end
-
-figure; 
-hist(dist);
-xaxis([0 10]);
-
-%todo for tomorrow:
-% - check that the channels are actually linear
-% - pick XYZ values at L=0, scale by magnitude for luminance, restrict
-% range to avoid edges of the RGB curve 
-
-%%
-for li = 1:length(Ls)
-    for ai = 1:length(as)
-        for bi = 1:length(bs)
-            if ingamut(li,ai,bi)
-                disp(squeeze(matlab_xyz(li,ai,bi,:))');
-                disp(squeeze(mXYZ(li,ai,bi,:))');
-            end
-        end
-    end
-end
-
-%%
-    figure;
-for i = 1:3
-    subplot(3,1,i); hold on
-    x = matlab_xyz(:,:,:,i);
-    mx = mXYZ(:,:,:,i);
-    idx = x>0;
-    plot(x(idx),mx(idx),'*');
-    plot([0 1],[0 1],'--');
-end
+% save the test info into calib
+calib.colors.test = struct;
+calib.colors.test.Lab_ = Lab_;
+calib.colors.test.xyz_ = xyz_;
+calib.colors.test.mLxy = mLxy;
+calib.colors.test.rgb_ = rgb_;
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -407,8 +388,9 @@ Glambda = calib.spectrum.wavelength{2};
 Gspectrum = calib.spectrum.radiance{2};
 Blambda = calib.spectrum.wavelength{3};
 Bspectrum = calib.spectrum.radiance{3};
-
+% 
 white = calib.spectrum.radiance{5};
+% d65 = d65SPD;
 
 % check whether the spectrum lambda differ, if not just use one
 if all(Rlambda==Glambda) && all(Glambda==Blambda)
@@ -432,9 +414,14 @@ Zfcn = interp1(lambda,Zfcn,RGBlambda);
 % build the conversion matrix
 XYZ = [Xfcn Yfcn Zfcn];
 RGB = [Rspectrum Gspectrum Bspectrum];
+ 
+% for some reason the luminance scale is 1/30... Huh?
+k = 30;
 
-% get k the watts to lumens value
-k = 1/(Yfcn'*white);
+% this seems to be roughly what you get by multiplying the Yfcn by the
+% white spectrum. Which makes sense if we want the Y channel to be
+% luminance. This seems fairly certain to be wrong?
+% k = 1/(Yfcn'*white);
 
 calib.colors = struct;
 calib.colors.lambda = RGBlambda;
@@ -442,7 +429,12 @@ calib.colors.XYZ = XYZ;
 calib.colors.RGB = RGB; % problem: these are in the wrong dimensions
 calib.colors.RGB2XYZ = XYZ'*RGB*k;
 calib.colors.XYZ2RGB = inv(calib.colors.RGB2XYZ);
+calib.colors.lumScale = 1;
 
+% this code will fix scaling that's wrong if it turns out 30 is not right:
+% re-scale such that Lab2rgb([100 0 0]) results in white
+% out_rgb = mglLab2rgb([100 0 0],calib);
+% calib.colors.lumScale = 1/mean(out_rgb);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % internal helper - sets either the gamma table or the background
