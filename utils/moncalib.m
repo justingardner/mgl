@@ -86,6 +86,20 @@ function calib = moncalib(varargin)
 
 % parse arguments
 [calib todo] = parseArgs(nargin,varargin);
+
+%% FOR TESTING
+clear calib
+load 0010_dubonnet_180914
+
+todo.measureGamma=0;
+todo.displayGamma =0 ;
+todo.testTable =0;
+todo.displayTestTable=0;
+
+todo.computeColorMatries=1;
+todo.testColorMatrices=1;
+todo.displayColorMatrices=1;
+%%
 if isempty(calib),return,end
 
 global verbose
@@ -2635,6 +2649,8 @@ todo.initWaitTime = initWaitTime;
 todo.measureSpectrum = spectrum;
 todo.displaySpectrum = spectrum;
 todo.computeColorMatrices = color;
+todo.testColorMatrices = color;
+todo.displayColorMatrices = color;
 todo.measureGamma = gamma;
 todo.displayGamma = gamma;
 todo.measureGammaEachChannel = gammaEachChannel;
