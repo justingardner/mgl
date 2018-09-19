@@ -559,6 +559,7 @@ switch myscreen.calibType
       load(calibFilename);
       if exist('calib','var') && isfield(calib,'table')
     if isfield(calib,'tableEachChannel')
+        disp('(initScreen) Per-channel gamma available. Linearizing RGB channels separately.');
         myscreen.gammaTable = calib.tableEachChannel;
     else
         myscreen.gammaTable = calib.table;
