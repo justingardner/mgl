@@ -29,6 +29,9 @@
 %             To list all subjects:
 %             mglSetSID('list');
 %
+%             Or list subjects added after a certain date
+%             mglSetSID('list','listStartDate=Jan 1, 2015')
+%
 %             To remove a subject
 %             mglSetSID('s999','remove');
 %
@@ -97,8 +100,9 @@ force = false;
 edit  = false;
 remove = false;
 private = [];
+listStartDate = [];
 if (nargin > 1) && mglIsMrToolsLoaded
-  getArgs(varargin,{'force=0','edit=0','private=[]','remove=0'});
+  getArgs(varargin,{'force=0','edit=0','private=[]','remove=0','listStartDate=[]'});
 end
 
 % FIX, FIX, FIX
@@ -184,7 +188,7 @@ elseif isequal(sid,'add')
 % list all entries
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 elseif isequal(sid,'list')
-  listSID(private);
+  listSID(private,listStartDate);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % see if it is a subject name
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -810,7 +814,7 @@ end
 %%%%%%%%%%%%%%%%
 %    listSID   %
 %%%%%%%%%%%%%%%%
-function listSID(private)
+function listSID(private,listStartDate)
 
 global gMaxSID;
 
@@ -829,6 +833,38 @@ releaseLock;
 % check for problem opening database
 if isempty(sidDatabase),return,end
 
+% select out database entries that match listStartYear parameter
+if ~isempty(listStartDate)
+  % display what we are doing
+  disp(sprintf('(mglSetSID) Removing entries that were entered before: %s',listStartDate));
+  dispHeader('drop list');
+  % cycle through looking at dates
+  keepList = [];
+  for iSID = 1:length(sidDatabase.sid)
+    if datenum(sidDatabase.dateAdded{iSID})>datenum(listStartDate)
+      % keep this one
+      keepList(end+1) = iSID;
+    else
+      % display that we are dropping the following sid
+      dispSID(sidDatabase,iSID);
+    end
+  end
+  % check for empty
+  if isempty(keepList)
+    disp(sprintf('(mglSetSID) No matching entries'));
+    return
+  end
+  % now just keep the ones in the keepList
+  allFields = fieldnames(sidDatabase);
+  for iField = 1:length(allFields)
+    % subset all fields that have more than one entry 
+    % i.e. ones that are per-subject
+    if length(sidDatabase.(allFields{iField})) > 1
+      sidDatabase.(allFields{iField}) = {sidDatabase.(allFields{iField}){keepList}};
+    end
+  end
+  dispHeader(sprintf('List of entries since: %s',listStartDate));
+end
 % get postfix
 if ~isempty(private)
   postfix = getPostfix(sidDatabase,private);
@@ -870,6 +906,18 @@ for iRace = 1:length(stats.race)
   stats.otherRace4N(iRace) = sum(strcmp(stats.race{iRace},lower(sidDatabase.otherRace4)));
 end
 
+% count number of declines
+declineRace = strcmp('n/a',lower(sidDatabase.race)) | strcmp('decline',lower(sidDatabase.race));
+declineRace1 = strcmp('n/a',lower(sidDatabase.otherRace1)) | strcmp('decline',lower(sidDatabase.otherRace1));
+declineRace2 = strcmp('n/a',lower(sidDatabase.otherRace2)) | strcmp('decline',lower(sidDatabase.otherRace2));
+declineRace3 = strcmp('n/a',lower(sidDatabase.otherRace3)) | strcmp('decline',lower(sidDatabase.otherRace3));
+declineRace4 = strcmp('n/a',lower(sidDatabase.otherRace4)) | strcmp('decline',lower(sidDatabase.otherRace4));
+stats.raceDeclineTotal = sum(declineRace & declineRace1 & declineRace2 & declineRace4);
+
+% count races across all fields
+stats.raceTotal = stats.raceN + stats.otherRace1N + stats.otherRace2N + stats.otherRace3N + stats.otherRace4N;
+
+
 % get age in years
 for iSID = 1:stats.n
   if ~isempty(sidDatabase.dob{iSID})
@@ -888,6 +936,7 @@ dispHeader('Gender');
 disp(sprintf('Total n: %i',stats.n));
 disp(sprintf('Female: %i (%0.2f%%)',stats.f,100*stats.f/stats.n));
 disp(sprintf('Male: %i (%0.2f%%)',stats.m,100*stats.m/stats.n));
+disp(sprintf('Decline: %i (%0.2f%%)',stats.n-(stats.m+stats.f),100*(stats.n-(stats.m+stats.f))/stats.n));
 dispHeader('Ethnicity');
 for iEthnicity = 1:length(stats.ethnicity)
   disp(sprintf('%s: %i (%0.2f%%)',stats.ethnicity{iEthnicity},stats.ethnicityN(iEthnicity),100*stats.ethnicityN(iEthnicity)/stats.n));
@@ -911,6 +960,13 @@ end
 dispHeader('Race other 4');
 for iRace = 1:length(stats.race)
   disp(sprintf('%s: %i (%0.2f%%)',stats.race{iRace},stats.otherRace4N(iRace),100*stats.otherRace4N(iRace)/stats.n));
+end
+dispHeader('Race totals');
+disp(sprintf('Decline or n/a: %i (%0.2f%%)',stats.raceDeclineTotal, 100*stats.raceDeclineTotal/stats.n));
+for iRace = 1:length(stats.race)
+  if ~any(strcmp(lower(stats.race{iRace}),{'n/a','decline'}))
+    disp(sprintf('%s: %i (%0.2f%%)',stats.race{iRace},stats.raceN(iRace),100*stats.raceN(iRace)/stats.n));
+  end
 end
 
 %%%%%%%%%%%%%%%%%
