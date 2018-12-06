@@ -787,6 +787,17 @@ end
 
 % save the database
 if ~isempty(params)
+  % check for repeat by first/last name
+  firstIdx = cellfun(@(x) strcmp(x,params.firstName),sidDatabase.firstName);
+  lastIdx = cellfun(@(x) strcmp(x,params.lastName),sidDatabase.lastName);
+  idx = firstIdx .* lastIdx;
+  if any(idx)
+    sid = sidDatabase.sid{logical(idx)};
+    warndlg(sprintf('Subject %s %s is already in the database with subject ID %s',params.firstName,params.lastName,sid));
+    releaseLock(true);
+    return
+  end
+    
   % add the subject to the database
   for iField = 1:length(requiredFields)
     % convert sid, which is a number into a sid string
