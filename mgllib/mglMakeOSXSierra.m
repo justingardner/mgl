@@ -1,4 +1,4 @@
-% mglMake.m
+% mglMakeOSXSierra.m
 %
 %        $Id$
 %      usage: mglMake(rebuild)
@@ -48,7 +48,7 @@
 %             You can also force compile individual functions
 %             mglMake mglFlush
 %
-function retval = mglMake(rebuild, varargin)
+function retval = OSXSierra_mglMake(rebuild, varargin)
 
 % check arguments
 if any(nargin > 10) % arbitrary...
@@ -74,14 +74,10 @@ if (nargin>=1) && isstr(rebuild)
   mglfile = sprintf('%s.c',stripext(rebuild));
   % check if it exists
   mglFilename = fullfile(mglpath,'mgllib',mglfile);
-  if mglIsFile(mglFilename)
+  if isfile(mglFilename)
     forceCompileSingleFile = mglFilename;
     rebuild = 2;
-  elseif strcmp(lower(stripext(rebuild)),'mydisp')
-    forceCompileSingleFile = fullfile(mglpath,'utils','myDisp.c');
-    rebuild = 2;
   end
-    
 end
 
 % interpret rebuild argument
@@ -176,10 +172,10 @@ if ismac
     sdkVersion = sdkVersions(whichVersion);
     sdkPaths = sdkPaths{whichVesion};
   end
-
+      
   % use different options depending on version
   if sdkVersion == 10.12
-    optf = sprintf('-f %s',fullfile(fileparts(which('mglOpen')),'clang_maci64.xml'));
+    optf = sprintf('-f %s',fullfile(fileparts(which('mglOpen')),'OSXSierra_clang_maci64.xml'));
   elseif sdkVersion == 10.11
     optf = sprintf('-f %s',fullfile(fileparts(which('mglOpen')),'clang_maci64.xml'));
   elseif sdkVersion == 10.9
@@ -198,8 +194,6 @@ if ismac
     disp(sprintf('(mglMake) No specific mex options found for sdk version %s, using generic options',num2str(sdkVersion)));
     optf = '';
   end
-  optf = '-Dchar16_t=uint16_T';
-
 elseif ispc
   % We don't use a special options file.  The required libraries are set in
   % mgl.h and compile flags are set here.  The default mex setup file
@@ -377,7 +371,7 @@ end
 % check for mexopts file
 [dummy mexoptsFilename] = strtok(optf,'-f ');
 mexoptsFilename = strtrim(mexoptsFilename);
-if ~isempty(mexoptsFilename) && ~mglIsFile(mexoptsFilename)
+if ~isempty(mexoptsFilename) && ~isfile(mexoptsFilename)
   disp(sprintf('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!'));
   disp(sprintf('(mglMake) Cannot find mexopts file for your setup: %s in the digin directory: %s',mexoptsFilename,pwd));
   disp(sprintf('          Consider converting one from mgl/mgllib and moving into digin'));

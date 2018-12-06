@@ -177,7 +177,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         pthread_mutex_unlock(&mut);
 	// return event as a matlab structure
         const char *fieldNames[] =  {"when","keyCode","shift","control","alt","command","capslock","keyboard"};
-        int outDims[2] = {1, 1};
+        size_t outDims[2] = {1, 1};
         plhs[0] = mxCreateStructArray(1,outDims,8,fieldNames);
 
         mxSetField(plhs[0],0,"when",mxCreateDoubleMatrix(1,1,mxREAL));
@@ -220,7 +220,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         int i = 0;
 	// return event as a matlab structure
         const char *fieldNames[] =  {"when","keyCode"};
-        int outDims[2] = {1, 1};
+        size_t outDims[2] = {1, 1};
         plhs[0] = mxCreateStructArray(1,outDims,2,fieldNames);
 
         mxSetField(plhs[0],0,"when",mxCreateDoubleMatrix(1,count,mxREAL));
@@ -275,7 +275,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         pthread_mutex_unlock(&mut);
     // return event as a matlab structure
         const char *fieldNames[] =  {"when","buttons","x","y","clickState"};
-        int outDims[2] = {1, 1};
+        size_t outDims[2] = {1, 1};
         plhs[0] = mxCreateStructArray(1,outDims,5,fieldNames);
 
         mxSetField(plhs[0],0,"when",mxCreateDoubleMatrix(1,1,mxREAL));
@@ -313,7 +313,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         int i = 0;
     // return event as a matlab structure
         const char *fieldNames[] =  {"when","buttons","x","y","clickState"};
-        int outDims[2] = {1, 1};
+        size_t outDims[2] = {1, 1};
         plhs[0] = mxCreateStructArray(1,outDims,5,fieldNames);
 
         mxSetField(plhs[0],0,"when",mxCreateDoubleMatrix(1,count,mxREAL));

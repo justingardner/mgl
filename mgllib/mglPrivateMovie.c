@@ -81,7 +81,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     if (moviePointer != 0) {
       // create the output structure
       const char *fieldNames[] =  {"filename","moviePointer"};
-      int outDims[2] = {1, 1};
+      size_t outDims[2] = {1, 1};
       plhs[0] = mxCreateStructArray(1,outDims,2,fieldNames);
       
       // add the field for filename, but leave it empty since mglMovie will fill it in
