@@ -178,9 +178,7 @@ if ismac
   end
 
   % use different options depending on version
-  if sdkVersion == 10.12
-    optf = sprintf('-f %s',fullfile(fileparts(which('mglOpen')),'clang_maci64.xml'));
-  elseif sdkVersion == 10.11
+  if sdkVersion == 10.11
     optf = sprintf('-f %s',fullfile(fileparts(which('mglOpen')),'clang_maci64.xml'));
   elseif sdkVersion == 10.9
     % note this idiotic seting of char16_t is some
@@ -195,10 +193,12 @@ if ismac
   elseif sdkVersion == 10.5
     optf = '-f ./mexopts.10.5.sh';
   else
-    disp(sprintf('(mglMake) No specific mex options found for sdk version %s, using generic options',num2str(sdkVersion)));
     optf = '';
   end
   optf = '-Dchar16_t=uint16_T';
+  if sdkVersion >= 10.14
+    optf = sprintf('%s -D__ASSERT_MACROS_DEFINE_VERSIONS_WITHOUT_UNDERSCORES=1',optf);
+  end
 
 elseif ispc
   % We don't use a special options file.  The required libraries are set in
