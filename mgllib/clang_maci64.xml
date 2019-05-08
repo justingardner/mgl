@@ -36,7 +36,7 @@
     
     LD="$CC"
     LDFLAGS1="-Wl,-twolevel_namespace -undefined error -arch x86_64 -mmacosx-version-min=$SDKVER -Wl,-syslibroot,$ISYSROOT $LDBUNDLE $LINKEXPORT"
-    LDFLAGS="$LDFLAGS1 -bundle -framework Foundation -framework agl -framework Carbon -framework Cocoa -framework CoreServices -framework openGL -framework QTKit"
+    LDFLAGS="$LDFLAGS1 -bundle -framework Foundation -framework agl -framework Carbon -framework Cocoa -framework CoreServices -framework openGL -framework QTKit -framework CoreFoundation -framework AudioUnit -framework AudioToolbox -framework CoreAudio"
     LDBUNDLE="-bundle "
     LINKEXPORT="-Wl,-exported_symbols_list,&quot;$MATLABROOT/extern/lib/maci64/mexFunction.map&quot;"
     LINKLIBS="-L&quot;$MATLABROOT/bin/maci64&quot; -lmx -lmex -lmat -lc++"
