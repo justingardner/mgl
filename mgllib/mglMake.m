@@ -233,8 +233,14 @@ if isempty(optf)
 else
   disp(sprintf('(mglMake) Using %s options for mex',optf));
 end
-% close all open displays
-mglSwitchDisplay(-1);
+
+try
+  % close all open displays
+  mglSwitchDisplay(-1);
+catch
+  disp(sprintf('(mglMake) Error runing mglSwitchDisplay - perhaps the binaries are corrupted'));
+end
+
 
 % clear the MGL global
 clear global MGL;
