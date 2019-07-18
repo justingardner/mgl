@@ -10,6 +10,9 @@
 %
 function myscreen = endScreen(myscreen)
 
+% make sure to display cursor
+mglDisplayCursor(1);
+  
 if nargin == 0
   disp(sprintf('(endScreen) No myscreen variable passed in, just closing screen and shutting down listeners'));
   mglClose;
@@ -54,6 +57,3 @@ if ((nargin == 1) && (isfield(myscreen,'makeTraces')) && (myscreen.makeTraces ==
   myscreen = makeTraces(myscreen);
 end
 
-if myscreen.hideCursor
-  mglDisplayCursor(1);
-end
