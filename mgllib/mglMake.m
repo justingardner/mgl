@@ -84,13 +84,18 @@ if (nargin>=1) && isstr(rebuild)
     
 end
 
+% capture any lingering text output from system - this can 
+% occur for example after a ctrl-c which leaves mex: interrupted around
+[a b] = system('');
+
 % interpret rebuild argument
 digio = 0;eyelink = 0;versionCheck = false;
 if ~exist('rebuild','var')
   rebuild=0;
   [s,r] = system('uname -r');
+  r = strsplit(r);r = r{end-1};
   osmajorver = str2num(strtok(r,'.'));
-  if ismac() && osmajorver < 9
+  if ismac() && (isempty(osmajorver) || (osmajorver < 9))
     varargin = {'-D__carbon__', varargin{:}};
     fprintf(2,'(mglMake) Defaulting to carbon')
   end            
@@ -236,11 +241,10 @@ end
 
 try
   % close all open displays
-  mglSwitchDisplay(-1);
+   mglSwitchDisplay(-1);
 catch
   disp(sprintf('(mglMake) Error runing mglSwitchDisplay - perhaps the binaries are corrupted'));
 end
-
 
 % clear the MGL global
 clear global MGL;
@@ -269,6 +273,7 @@ else
   mexdir{1} = mgldir;
 end
 
+continueAfterMexFailure = 0;
 
 % force compile as single file
 if forceCompileSingleFile
@@ -313,6 +318,19 @@ elseif ~digio
         disp(['Error compiling ' sourcefile(i).name]);
         disp(err.message);
         disp(err.identifier);
+	% see if we should continue going or not
+	if ~continueAfterMexFailure
+	  % capture any lingering text output from system - this can 
+	  % occur for example after a ctrl-c which leaves mex: interrupted around
+	  [a b] = system('');
+	  % ask user what to do
+	  r = askuser('(mglMake) Compilation failure. Do you want to continue compiling other files',1);
+	  if isinf(r)
+	    continueAfterMexFailure = 1;
+	  elseif (r==0)
+	    return
+	  end
+	end
       end
     else
       disp(sprintf('%s is up to date',sourcefile(i).name));
@@ -480,3 +498,76 @@ for iPathName = 1:length(pathNames);
     end
   end
 end
+
+% askuser.m
+%
+%      usage: askuser(question,<toall>,<useDialog>)
+%         by: justin gardner
+%       date: 02/08/06
+%    purpose: ask the user a yes/no question. Question is a string or a cell arry of strings with the question. This
+%             function will return 1 for yes and 0 for no. If toall is set to 1, then
+%             'Yes to all' will be an option, which if selected will return inf
+%
+function r = askuser(question,toall,useDialog)
+
+% check arguments
+if ~any(nargin == [1 2 3])
+  help askuser
+  return
+end
+
+if ieNotDefined('toall'),toall = 0;,end
+if ieNotDefined('useDialog'),useDialog=0;end
+
+% if explicitly set to useDialog then use dialog, otherwise
+% check verbose setting
+if useDialog
+  verbose = 1;
+else
+  verbose = mrGetPref('verbose');
+  if strcmp(verbose,'Yes'),verbose = 1;else,verbose = 0;end
+end
+
+r = [];
+
+question=cellstr(question); %convert question into a cell array
+  
+
+while isempty(r)
+  % ask the question
+  if ~verbose
+    % not verbose, use text question
+    %fprintf('\n');
+    for iLine = 1:length(question)-1
+      fprintf([question{iLine} '\n']);
+    end
+    if toall
+      % ask the question (with option for all)
+      r = input([question{end} ' (y/n or a for Yes to all)? '],'s');
+    else
+      % ask question (without option for all)
+      r = input([question{end} ' (y/n)? '],'s');
+    end
+  else
+    if toall
+      % verbose, use dialog
+      r = questdlg(question,'','Yes','No','All','Yes');
+      r = lower(r(1));
+    else
+      r = questdlg(question,'','Yes','No','Yes');
+      r = lower(r(1));
+    end
+  end
+  % make sure we got a valid answer
+  if (lower(r) == 'n')
+    r = 0;
+  elseif (lower(r) == 'y')
+    r = 1;
+  elseif (lower(r) == 'a') & toall
+    r = inf;
+  else
+    r =[];
+  end
+end
+
+
