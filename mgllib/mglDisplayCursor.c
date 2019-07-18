@@ -67,7 +67,7 @@ void showCursor()
 {
   // display cursor
   //  CGDisplayShowCursor( kCGDirectMainDisplay ) ; 
-  [NSCursor hide];
+  [NSCursor unhide];
 }
 ////////////////////
 //   hideCursor   //
@@ -76,7 +76,7 @@ void hideCursor()
 {
   // Hide cursor
   //  CGDisplayHideCursor( kCGDirectMainDisplay ) ; 
-  [NSCursor unhide];
+  [NSCursor hide];
 }
 #endif//__APPLE__
 //-----------------------------------------------------------------------------------///
