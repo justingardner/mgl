@@ -87,7 +87,7 @@ mxArray *charToKeycode(const mxArray *cellArrayOfChars, int returnAllMatches)
   // we need a cell array, otherwise we use a single array
   mxArray *keycodeArray;
   if (returnAllMatches)  {
-    const mwSize dims[2] = {1,nkeys};
+    const int dims[2] = {1,nkeys};
     keycodeArray = mxCreateCellArray(2,dims);
   }
   else

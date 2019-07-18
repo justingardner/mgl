@@ -26,7 +26,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 	int ri, gi, bi, ix, iy, inputM, inputN, pixelIndex = 0;
 	size_t numPoints;
 	double *inputMatrix, *centerPos;
-	const mwSize *dims;
+	const int *dims;
 	GLfloat *pixelData, rv, gv, bv, rasterX, rasterY;
 	GLdouble currentRasterPosition[4];
 	

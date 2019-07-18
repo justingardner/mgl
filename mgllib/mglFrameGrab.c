@@ -74,7 +74,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   }
 
   // create the matlab array for returning data
-  mwSize dims[3];
+  int dims[3];
   dims[0] = (mwSize)width;dims[1] = (mwSize)height;dims[2] = 3;
   plhs[0] = mxCreateNumericArray(3,dims,mxSINGLE_CLASS,mxREAL);
   GLfloat *outPtr = (GLfloat*)mxGetPr(plhs[0]);

@@ -223,7 +223,8 @@ unsigned long installSoundFromData(int *d, unsigned int nChannels, unsigned int 
         
   // set bizarre extended 80 type (10 bytes?)
   double sampleRateDouble = (double)sampleRate;
-  dtox80(&sampleRateDouble, &aiff->sampleRate);
+  extended80 aiffSampleRate = aiff->sampleRate;
+  dtox80(&sampleRateDouble, &aiffSampleRate);
                 
   // Sound chunk will actually contain data
   aiff->ssndID = CFSwapInt32('SSND');

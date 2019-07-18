@@ -156,7 +156,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   }
 
   // variables for dimensions
-  const mwSize *dims = mxGetDimensions(prhs[0]); // rows cols
+  const int *dims = mxGetDimensions(prhs[0]); // rows cols
   const mwSize ndims = mxGetNumberOfDimensions(prhs[0]); 
   const size_t n = mxGetNumberOfElements(prhs[0]);
   int imageWidth, imageHeight;
@@ -434,7 +434,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
   // create the output structure
   const char *fieldNames[] =  {"textureNumber","imageWidth","imageHeight","textureAxes","textureType","liveBuffer" };
-  mwSize outDims[2] = {1, 1};
+  int outDims[2] = {1, 1};
   plhs[0] = mxCreateStructArray(1,outDims,6,fieldNames);
 
   // now set the textureNumber field

@@ -40,7 +40,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   int frameRate,screenWidth,screenHeight,bitDepth,displayNumber,numDisplays,defaultDisplayNum,changeResolution = 0;
   int requestedScreenWidth, requestedScreenHeight, requestedFrameRate, requestedBitDepth;
   const char *fieldNames[] = {"displayNumber","numDisplays","screenWidth","screenHeight","frameRate","bitDepth"};
-  const mwSize outDims[2] = {1, 1};
+  const int outDims[2] = {1, 1};
 
   // get how many displays there are at which one is the default.
   getNumDisplaysAndDefault(&numDisplays,&defaultDisplayNum);
@@ -427,8 +427,8 @@ boolean_t setBestMode(CGDirectDisplayID whichDisplay,int screenWidth,int screenH
     // check that the width/height are matched to the best
     if ((bestWidth == (int)CGDisplayModeGetWidth(mode)) && (bestHeight == (int)CGDisplayModeGetHeight(mode))) {
       thisBitDepth = getBitDepth(mode);
-      if (abs((double)bitDepth-(double)thisBitDepth) < minDifference) {
-	minDifference = abs((double)bitDepth-(double)thisBitDepth);
+      if (fabs((double)bitDepth-(double)thisBitDepth) < minDifference) {
+	minDifference = fabs((double)bitDepth-(double)thisBitDepth);
 	bestBitDepth = thisBitDepth;
       }
     }
@@ -444,8 +444,8 @@ boolean_t setBestMode(CGDirectDisplayID whichDisplay,int screenWidth,int screenH
     if ((bestWidth == (int)CGDisplayModeGetWidth(mode)) && (bestHeight == (int)CGDisplayModeGetHeight(mode)) && (bestBitDepth == getBitDepth(mode))) {
       thisFrameRate = (int)CGDisplayModeGetRefreshRate(mode);
       if (thisFrameRate == 0) thisFrameRate = 60;
-      if (abs((double)frameRate-(double)thisFrameRate) < minDifference) {
-	minDifference = abs((double)frameRate-(double)thisFrameRate);
+      if (fabs((double)frameRate-(double)thisFrameRate) < minDifference) {
+	minDifference = fabs((double)frameRate-(double)thisFrameRate);
 	bestFrameRate = thisFrameRate;
       }
     }

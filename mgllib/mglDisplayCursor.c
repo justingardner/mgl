@@ -66,7 +66,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 void showCursor()
 {
   // display cursor
-  CGDisplayShowCursor( kCGDirectMainDisplay ) ; 
+  //  CGDisplayShowCursor( kCGDirectMainDisplay ) ; 
+  [NSCursor hide];
 }
 ////////////////////
 //   hideCursor   //
@@ -74,7 +75,8 @@ void showCursor()
 void hideCursor()
 {
   // Hide cursor
-  CGDisplayHideCursor( kCGDirectMainDisplay ) ; 
+  //  CGDisplayHideCursor( kCGDirectMainDisplay ) ; 
+  [NSCursor unhide];
 }
 #endif//__APPLE__
 //-----------------------------------------------------------------------------------///

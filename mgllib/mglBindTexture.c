@@ -65,7 +65,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     return;
   }
   // variables for dimensions of second input
-  const mwSize *dims = mxGetDimensions(prhs[1]); // rows cols
+  const int *dims = mxGetDimensions(prhs[1]); // rows cols
   const mwSize ndims = mxGetNumberOfDimensions(prhs[1]); 
 
   // allocate space for texture info

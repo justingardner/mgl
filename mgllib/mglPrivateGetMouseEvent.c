@@ -152,7 +152,7 @@ mxArray *makeOutputStructure(double **outptrX, double **outptrY, double **outptr
   // create the output structure
   mxArray *plhs;
   const char *fieldNames[] =  {"x","y","button","when" };
-  size_t outDims[2] = {1, 1};
+  int outDims[2] = {1, 1};
   plhs = mxCreateStructArray(1,outDims,4,fieldNames);
 
   // set the fields

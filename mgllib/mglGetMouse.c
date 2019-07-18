@@ -50,7 +50,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
   // create the output structure
   const char *fieldNames[] =  {"buttons","x","y" };
-  const mwSize outDims[2] = {1, 1};
+  const int outDims[2] = {1, 1};
   plhs[0] = mxCreateStructArray(1,outDims,3,fieldNames);
 
   // and the field for X

@@ -156,7 +156,7 @@ mxArray *makeOutputStructure(double **outptrCharCode, double **outptrKeyCode, do
   // create the output structure
   mxArray *plhs;
   const char *fieldNames[] =  {"charCode","keyCode","keyboard","when" };
-  size_t outDims[2] = {1, 1};
+  int outDims[2] = {1, 1};
   plhs = mxCreateStructArray(1,outDims,4,fieldNames);
   
   // Create the output fields

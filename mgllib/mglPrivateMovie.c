@@ -81,7 +81,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     if (moviePointer != 0) {
       // create the output structure
       const char *fieldNames[] =  {"filename","moviePointer"};
-      size_t outDims[2] = {1, 1};
+      int outDims[2] = {1, 1};
       plhs[0] = mxCreateStructArray(1,outDims,2,fieldNames);
       
       // add the field for filename, but leave it empty since mglMovie will fill it in
@@ -475,7 +475,7 @@ mxArray *doMovieCommand(int command, unsigned long moviePointer, const mxArray *
       int totalReadCount = 0,bufSize = widthAndHeight[0]*widthAndHeight[1]*3;
       // note that width/height are intentionally swaped here so that
       // image displays correctly when you do imagesc
-      mwSize dims[3] = {widthAndHeight[1], widthAndHeight[0], 3};
+      int dims[3] = {widthAndHeight[1], widthAndHeight[0], 3};
       retval = mxCreateNumericArray(3, dims, mxUINT8_CLASS, mxREAL);
       uint8 *outputPtr = (uint8 *)mxGetPr(retval), *outputPtrReader = outputPtr;
       // need to read in blocks

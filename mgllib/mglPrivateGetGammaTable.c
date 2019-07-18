@@ -61,7 +61,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   formulaResults = getGammaFormula(&redMin,&redMax,&redGamma,&greenMin,&greenMax,&greenGamma,&blueMin,&blueMax,&blueGamma);
 
   if (result) {    
-    mwSize ndims[] = {1};int nFormulaFields = 9;int nTableFields = 3;
+    int ndims[] = {1};int nFormulaFields = 9;int nTableFields = 3;
     const char *formulaFieldNames[] = {"redMin","redMax","redGamma","greenMin","greenMax","greenGamma","blueMin","blueMax","blueGamma","redTable","greenTable","blueTable"};
     const char *tableFieldNames[] = {"redTable","greenTable","blueTable"};
     if (formulaResults)
