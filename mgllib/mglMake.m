@@ -89,7 +89,7 @@ end
 [a b] = system('');
 
 % interpret rebuild argument
-digio = 0;eyelink = 0;versionCheck = false;
+digio = 0;eyelink = 0;camera = 0;versionCheck = false;
 if ~exist('rebuild','var')
   rebuild=0;
   [s,r] = system('uname -r');
@@ -116,6 +116,9 @@ else
   elseif isequal(lower(rebuild),'eyelink')
     rebuild = 0;
     eyelink = 1;
+  elseif isequal(lower(rebuild),'camera')
+    rebuild = 0;
+    camera = 1;
   elseif ischar(rebuild) && isequal(rebuild(1), '-')
     varargin = {rebuild, varargin{:}};
     rebuild=0;
@@ -134,6 +137,8 @@ for nArg = 1:numel(varargin)
     digio = true;
   elseif isequal(lower(varargin{nArg}),'eyelink')
     eyelink = true;
+  elseif isequal(lower(varargin{nArg}),'camera')
+    camera = true;
   else
     error('Attempted to pass an argument that is not a mex option.');
   end
@@ -269,9 +274,12 @@ end
 % set directories to check for mex files to compile
 if eyelink
   mexdir{1} = fullfile(mgldir, 'mglEyelink');
+elseif camera
+  mexdir{1} = fullfile(mgldir, 'mglCamera');
 else
   mexdir{1} = mgldir;
 end
+
 
 continueAfterMexFailure = 0;
 
@@ -323,8 +331,12 @@ elseif ~digio
 	  % capture any lingering text output from system - this can 
 	  % occur for example after a ctrl-c which leaves mex: interrupted around
 	  [a b] = system('');
-	  % ask user what to do
-	  r = askuser('(mglMake) Compilation failure. Do you want to continue compiling other files',1);
+	  % ask user what to do if this is not the last file
+	  if i ~= length(sourcefile)
+	    r = askuser('(mglMake) Compilation failure. Do you want to continue compiling other files',1);
+	  else
+	    r = 0;
+	  end
 	  if isinf(r)
 	    continueAfterMexFailure = 1;
 	  elseif (r==0)
