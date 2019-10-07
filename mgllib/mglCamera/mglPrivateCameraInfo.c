@@ -30,12 +30,11 @@ copyright: (c) 2019 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
 mxArray *getSingleCameraInfo(spinCamera, spinError *);
 mxArray *getCategoryNodeAndAllFeatures(spinNodeHandle , unsigned int, spinError *);
 
-
 ////////////////////////
 //   define section   //
 ////////////////////////
 // This macro helps with C-strings.
-#define MAX_BUFF_LEN 256
+#define MAX_BUFF_LEN 1024
 // This macro defines the maximum number of characters that will be printed out
 // for any information retrieved from a node.
 #define MAX_CHARS 35
@@ -188,6 +187,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   }
 }
 
+/////////////////////////////
+//   getSingleCameraInfo   //
+/////////////////////////////
 // This function acts as the body of the example. First the TL device and
 // TL stream nodemaps are retrieved and their nodes printed. Following this,
 // the camera is initialized and then the GenICam node is retrieved
@@ -340,6 +342,9 @@ mxArray *getSingleCameraInfo(spinCamera hCam, spinError *err)
   return(retval);
 }
 
+///////////////////////////////////////
+//   getCategoryNodeAndAllFeatures   //
+///////////////////////////////////////
 // This function retrieves and prints out the display name of a category node
 // before printing all child nodes. Child nodes that are also category nodes are
 // printed recursively.
@@ -347,6 +352,7 @@ mxArray *getCategoryNodeAndAllFeatures(spinNodeHandle hCategoryNode, unsigned in
 {
   *err = SPINNAKER_ERR_SUCCESS;
   unsigned int i = 0;
+  unsigned int iFeature = 0;
 
   // Retrieve display name
   char displayName[MAX_BUFF_LEN];
@@ -356,7 +362,7 @@ mxArray *getCategoryNodeAndAllFeatures(spinNodeHandle hCategoryNode, unsigned in
   if (*err != SPINNAKER_ERR_SUCCESS) {
     return mxCreateDoubleMatrix(0,0,0);
   }
-
+  mexPrintf("Display name: %s\n",displayName);
   //
   // Retrieve number of children
   //
@@ -379,7 +385,9 @@ mxArray *getCategoryNodeAndAllFeatures(spinNodeHandle hCategoryNode, unsigned in
   char **fieldNames = (char **)malloc(numberOfFeatures * sizeof(char *));
   int numFields = 0;
   const int outDims[2] = {1, 1};
-  mxArray *vals = mxCreateCellArray(1, (const int *)&numberOfFeatures);
+  const int nArrayElements = numberOfFeatures;
+  mexPrintf("numFeatures: %i\n",nArrayElements);
+  mxArray *vals = mxCreateCellArray(1, &nArrayElements);
 
   // for holding values of fields
   int64_t integerValue = 0;
@@ -390,7 +398,11 @@ mxArray *getCategoryNodeAndAllFeatures(spinNodeHandle hCategoryNode, unsigned in
   bool8_t booleanValue = False;
   char value[MAX_BUFF_LEN];
   size_t valueLength = MAX_BUFF_LEN;
+  char nodeName[MAX_BUFF_LEN];
+  size_t nodeNameLength = MAX_BUFF_LEN;
 
+  // Retrieve child
+  spinNodeHandle hFeatureNode = NULL;
   //
   // Iterate through all children
   //
@@ -398,13 +410,12 @@ mxArray *getCategoryNodeAndAllFeatures(spinNodeHandle hCategoryNode, unsigned in
   // It is important to note that the children of an enumeration nodes
   // may be of any node type.
   //
-  for (i = 0; i < numberOfFeatures; i++) {
-    // Retrieve child
-    spinNodeHandle hFeatureNode = NULL;
+  for (iFeature = 0; iFeature < numberOfFeatures; iFeature++) {
 
-    *err = spinCategoryGetFeatureByIndex(hCategoryNode, i, &hFeatureNode);
+    *err = spinCategoryGetFeatureByIndex(hCategoryNode, iFeature, &hFeatureNode);
     if (*err != SPINNAKER_ERR_SUCCESS) {
-      return mxCreateDoubleMatrix(0,0,0);
+      mexPrintf("(mglPrivateCameraInfo:spinCategoryGetFeatureByIndex) Error code: %i\n",*err);
+      continue;
     }
 
     bool8_t featureNodeIsAvailable = False;
@@ -412,15 +423,18 @@ mxArray *getCategoryNodeAndAllFeatures(spinNodeHandle hCategoryNode, unsigned in
 
     *err = spinNodeIsAvailable(hFeatureNode, &featureNodeIsAvailable);
     if (*err != SPINNAKER_ERR_SUCCESS) {
-      return mxCreateDoubleMatrix(0,0,0);
+      mexPrintf("(mglPrivateCameraInfo:spinNodeIsAvaialble) Error code: %i\n",*err);
+      continue;
     }
 
     *err = spinNodeIsReadable(hFeatureNode, &featureNodeIsReadable);
     if (*err != SPINNAKER_ERR_SUCCESS) {
-      return mxCreateDoubleMatrix(0,0,0);
+      mexPrintf("(mglPrivateCameraInfo:spinNodeIsReadable) Error code: %i\n",*err);
+      continue;
     }
 
     if (!featureNodeIsAvailable || !featureNodeIsReadable) {
+      mexPrintf("(mglPrivateCameraInfo) Feature node unavailable or unreadable\n");
       continue;
     }
 
@@ -428,35 +442,47 @@ mxArray *getCategoryNodeAndAllFeatures(spinNodeHandle hCategoryNode, unsigned in
 
     *err = spinNodeGetType(hFeatureNode, &type);
     if (*err != SPINNAKER_ERR_SUCCESS) {
-      return mxCreateDoubleMatrix(0,0,0);
+      mexPrintf("(mglPrivateCameraInfo:spinNodeGetType) Error code: %i\n",*err);
+      continue;
     }
 
     // Category nodes must be dealt with separately in order to
     // retrieve subnodes recursively.
     if (type == CategoryNode) {
+      mexPrintf("%i/%i l%i: Category node\n",iFeature,numberOfFeatures,level);
+      // set the field name
+      fieldNames[numFields] = (char *)malloc(strlen(displayName)+1);
+      sprintf(fieldNames[numFields],"%s",displayName);
       // call recursively
-      return(getCategoryNodeAndAllFeatures(hFeatureNode, level + 1, err));
+      mexPrintf("%i/%i l%i: Recursive: %s level: %i\n",iFeature,numberOfFeatures,level,fieldNames[numFields],level+1);
+      mxSetCell(vals,numFields++,getCategoryNodeAndAllFeatures(hFeatureNode, level + 1, err));
+      mexPrintf("%i/%i l%i: Returned from recursive\n",iFeature,numberOfFeatures,level);
     }
     // Read all non-category nodes using spinNodeToString() function
     else {
-      char nodeName[MAX_BUFF_LEN];
-      size_t nodeNameLength = MAX_BUFF_LEN;
-      *err = spinNodeGetName(hFeatureNode, nodeName, &nodeNameLength);
+      mexPrintf("%i/%i l%i: Non-Category node ",iFeature,numberOfFeatures,level);
+      //      *err = spinNodeGetDisplayName(hFeatureNode, nodeName, &nodeNameLength);
+      *err = spinNodeGetDisplayName(hFeatureNode, nodeName, &nodeNameLength);
       if (*err != SPINNAKER_ERR_SUCCESS) {
-	return mxCreateDoubleMatrix(0,0,0);
+
+	mexPrintf("%i/%i l%i: ERROR spinNodeGetName ERROR: %i (%s)\n",iFeature,numberOfFeatures,level,*err,nodeName);
+	//	continue;
       }
       // set the field with the display name
+      mexPrintf("(%s) strlen: %i ",nodeName,strlen(nodeName));
       fieldNames[numFields] = (char *)malloc(strlen(nodeName)+1);
       sprintf(fieldNames[numFields++],"%s",nodeName);
 
       switch (type){
         case StringNode:
+	  mexPrintf("string ");
 	  // get string value
 	  // Ensure allocated buffer is large enough for storing the string
 	  *err = spinStringGetValue(hFeatureNode, NULL, &stringValueLength);
 	  if ((*err == SPINNAKER_ERR_SUCCESS) && (stringValueLength <= k_maxChars)) {
             *err = spinNodeToString(hFeatureNode, stringValue, &stringValueLength);
 	  }
+	  mexPrintf("\"%s\"\n",stringValue);
 	  // if all was ok, then set the output val
 	  if (*err == SPINNAKER_ERR_SUCCESS) {
 	    mxSetCell(vals,numFields-1,mxCreateString(stringValue));
@@ -464,27 +490,33 @@ mxArray *getCategoryNodeAndAllFeatures(spinNodeHandle hCategoryNode, unsigned in
 	  break;
 
         case IntegerNode:
+	  mexPrintf("Int ");
 	  // get integer value
 	  *err = spinIntegerGetValue(hFeatureNode, &integerValue);
 	  if (*err == SPINNAKER_ERR_SUCCESS) {
 	    mxSetCell(vals,numFields-1,mxCreateDoubleScalar((double)integerValue));
 	  }
+	  mexPrintf("%i\n",(int)integerValue);
 	  break;
 
         case FloatNode:
+	  mexPrintf("Float ");
 	  // get float value
 	  *err = spinFloatGetValue(hFeatureNode, &floatValue);
 	  if (*err == SPINNAKER_ERR_SUCCESS) {
 	    mxSetCell(vals,numFields-1,mxCreateDoubleScalar((double)floatValue));
 	  }
+	  mexPrintf("%d\n",(double)floatValue);
 	  break;
 
         case BooleanNode:
+	  mexPrintf("Boolean ");
 	  // get boolean value
 	  *err = spinBooleanGetValue(hFeatureNode, &booleanValue);
 	  if (*err == SPINNAKER_ERR_SUCCESS) {
 	    mxSetCell(vals,numFields-1,mxCreateDoubleScalar((double)booleanValue));
 	  }
+	  mexPrintf("%i\n",(int)booleanValue);
 	  break;
 
         case CommandNode:
@@ -497,6 +529,7 @@ mxArray *getCategoryNodeAndAllFeatures(spinNodeHandle hCategoryNode, unsigned in
         case PortNode:
         case UnknownNode:
 
+	  mexPrintf("Other ");
 	  // Ensure allocated buffer is large enough for storing the string
 	  *err = spinNodeToString(hFeatureNode, NULL, &valueLength);
 
@@ -504,8 +537,9 @@ mxArray *getCategoryNodeAndAllFeatures(spinNodeHandle hCategoryNode, unsigned in
 	    const unsigned int k_maxChars = MAX_CHARS;
 	    if (valueLength <= k_maxChars) {
 	      *err = spinNodeToString(hFeatureNode, value, &valueLength);
+	      mexPrintf("valueLen: %i (%s) numFields: %i\n",valueLength,value,numFields);
 	      if (*err == SPINNAKER_ERR_SUCCESS) {
-		mxSetCell(vals,numFields-1,mxCreateString(stringValue));
+		mxSetCell(vals,numFields-1,mxCreateString(value));
 	      }
 	    }
 	  }
@@ -518,21 +552,25 @@ mxArray *getCategoryNodeAndAllFeatures(spinNodeHandle hCategoryNode, unsigned in
   if (numFields > 0) {
     // create return structure
     mxArray *retval = mxCreateStructArray(1,outDims,numFields,(const char **)fieldNames);
+    mexPrintf("%i/%i l%i: Creating output structures of %i fields: ",iFeature,numberOfFeatures,level,numFields);
     // cycle through and set values of structure
-    for (i = 0; i < numberOfFeatures; i++) {
-      mxSetField(retval,0,fieldNames[i],mxGetCell(vals,i));
+    for (iFeature = 0; iFeature < numFields; iFeature++) {
+      mexPrintf("%s ",fieldNames[iFeature]);
+      //mxSetField(retval,0,fieldNames[iFeature],mxGetCell(vals,iFeature));
     }
+    mexPrintf("\nFinish level: %i\n",level);
 
     // free up string error
-    for (int iField = 0;iField<numFields;iField++) {
-      free(fieldNames[iField]);
-    }
-    free(fieldNames);
+    //    for (iFeature = 0;iFeature<numFields;iFeature++) {
+    //      free(fieldNames[iFeature]);
+    //    }
+    //    free(fieldNames);
     // return the structure
-    return(retval);
+    return(mxCreateDoubleMatrix(0,0,0));
   }
-  // nothing was created, retrun empty
-  return mxCreateDoubleMatrix(0,0,0);
+
+  // nothing was created, return empty
+  return(mxCreateDoubleMatrix(0,0,0));
 }
 
 
