@@ -122,9 +122,7 @@ mxArray *RunSingleCamera(CameraPtr pCam, unsigned int numImages, unsigned int *i
         vector<ImagePtr> images;
         err = AcquireImages(pCam, numImages, nodeMap, images);
         if (err < 0)
-        {
-	  return(mxCreateDoubleScalar(31));
-        }
+	  return(mxCreateDoubleMatrix(0,0,mxREAL));
 
 	// get image size
 	*imageWidth = images[0]->GetWidth();
@@ -141,9 +139,8 @@ mxArray *RunSingleCamera(CameraPtr pCam, unsigned int numImages, unsigned int *i
 	unsigned char *dataPtr = (unsigned char *)(double*)mxGetPr(retval);
 
 	// fill the matlab pointer with images
-        for (unsigned int imageCnt = 0; imageCnt < images.size(); imageCnt++) {
+        for (unsigned int imageCnt = 0; imageCnt < images.size(); imageCnt++)
 	  memcpy(dataPtr+imageCnt*imageSize,images[imageCnt]->GetData(),imageSize);
-	}
 
         // Deinitialize camera
         pCam->DeInit();
@@ -154,7 +151,7 @@ mxArray *RunSingleCamera(CameraPtr pCam, unsigned int numImages, unsigned int *i
         cout << "(mglPrivateCameraCapture) Error: " << e.what() << endl;
         result = -1;
     }
-    return(mxCreateDoubleScalar(32));
+    return(mxCreateDoubleMatrix(0,0,mxREAL));
 
 }
 
