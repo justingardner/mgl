@@ -30,75 +30,40 @@ using namespace std;
 ///////////////////////////////
 //   function declarations   //
 ///////////////////////////////
+int AcquireImages(CameraPtr pCam, unsigned int numImages, INodeMap& nodeMap, vector<ImagePtr>& images);
+mxArray *RunSingleCamera(CameraPtr pCam, unsigned int numImages, unsigned int *imageWidth, unsigned int *imageHeight);
 
-////////////////////////
-//   define section   //
-////////////////////////
-
-// This function prints the device information of the camera from the transport
-// layer; please see NodeMapInfo example for more in-depth comments on printing
-// device information from the nodemap.
-int PrintDeviceInfo(INodeMap& nodeMap)
-{
-    int result = 0;
-    cout << endl << "*** DEVICE INFORMATION ***" << endl << endl;
-    try
-    {
-        FeatureList_t features;
-        CCategoryPtr category = nodeMap.GetNode("DeviceInformation");
-        if (IsAvailable(category) && IsReadable(category))
-        {
-            category->GetFeatures(features);
-            FeatureList_t::const_iterator it;
-            for (it = features.begin(); it != features.end(); ++it)
-            {
-                CNodePtr pfeatureNode = *it;
-                cout << pfeatureNode->GetName() << " : ";
-                CValuePtr pValue = (CValuePtr)pfeatureNode;
-                cout << (IsReadable(pValue) ? pValue->ToString() : "Node not readable");
-                cout << endl;
-            }
-        }
-        else
-        {
-            cout << "Device control information not available." << endl;
-        }
-    }
-    catch (Spinnaker::Exception& e)
-    {
-        cout << "Error: " << e.what() << endl;
-        result = -1;
-    }
-    return result;
-}
+///////////////////////
+//   AcquireImages   //
+///////////////////////
 // This function acquires and saves 10 images from a device; please see
 // Acquisition example for more in-depth comments on acquiring images.
 int AcquireImages(CameraPtr pCam, unsigned int numImages, INodeMap& nodeMap, vector<ImagePtr>& images)
 {
     int result = 0;
-    cout << endl << endl << "*** IMAGE ACQUISITION ***" << endl << endl;
+
     try
     {
         // Set acquisition mode to continuous
         CEnumerationPtr ptrAcquisitionMode = nodeMap.GetNode("AcquisitionMode");
         if (!IsAvailable(ptrAcquisitionMode) || !IsWritable(ptrAcquisitionMode))
         {
-            cout << "Unable to set acquisition mode to continuous (node retrieval). Aborting..." << endl << endl;
+            cout << "(mglPrivateCameraCapture) Unable to set acquisition mode to continuous (node retrieval). Aborting..." << endl << endl;
             return -1;
         }
         CEnumEntryPtr ptrAcquisitionModeContinuous = ptrAcquisitionMode->GetEntryByName("Continuous");
         if (!IsAvailable(ptrAcquisitionModeContinuous) || !IsReadable(ptrAcquisitionModeContinuous))
         {
-            cout << "Unable to set acquisition mode to continuous (entry 'continuous' retrieval). Aborting..." << endl
+            cout << "(mglPrivateCameraCapture) Unable to set acquisition mode to continuous (entry 'continuous' retrieval). Aborting..." << endl
                  << endl;
             return -1;
         }
         int64_t acquisitionModeContinuous = ptrAcquisitionModeContinuous->GetValue();
         ptrAcquisitionMode->SetIntValue(acquisitionModeContinuous);
-        cout << "Acquisition mode set to continuous..." << endl;
+
         // Begin acquiring images
         pCam->BeginAcquisition();
-        cout << "Acquiring images..." << endl << endl;
+
         // Retrieve and convert images
         const unsigned int k_numImages = numImages;
         for (unsigned int imageCnt = 0; imageCnt < k_numImages; imageCnt++)
@@ -109,13 +74,12 @@ int AcquireImages(CameraPtr pCam, unsigned int numImages, INodeMap& nodeMap, vec
             {
                 if (pResultImage->IsIncomplete())
                 {
-                    cout << "Image incomplete with image status " << pResultImage->GetImageStatus() << "..." << endl
+                    cout << "(mglPrivateCameraCapture) Image incomplete with image status " << pResultImage->GetImageStatus() << "..." << endl
                          << endl;
                 }
                 else
                 {
-                    cout << "Grabbed image " << imageCnt << ", width = " << pResultImage->GetWidth()
-                         << ", height = " << pResultImage->GetHeight() << endl;
+		  cout << "(mglPrivateCameraCapture) Grabbed image " << imageCnt+1 << ": (" << pResultImage->GetWidth() << " x " << pResultImage->GetHeight() << ")" << endl;
                     // Deep copy image into image vector
                     images.push_back(pResultImage->Convert(PixelFormat_Mono8, HQ_LINEAR));
                 }
@@ -138,6 +102,10 @@ int AcquireImages(CameraPtr pCam, unsigned int numImages, INodeMap& nodeMap, vec
     }
     return result;
 }
+
+/////////////////////////
+//   RunSingleCamera   //
+/////////////////////////
 // This function acts as the body of the example; please see NodeMapInfo example
 // for more in-depth comments on setting up cameras.
 mxArray *RunSingleCamera(CameraPtr pCam, unsigned int numImages, unsigned int *imageWidth, unsigned int *imageHeight)
@@ -146,9 +114,6 @@ mxArray *RunSingleCamera(CameraPtr pCam, unsigned int numImages, unsigned int *i
     int err = 0;
     try
     {
-        // Retrieve TL device nodemap and print device information
-        INodeMap& nodeMapTLDevice = pCam->GetTLDeviceNodeMap();
-        result = PrintDeviceInfo(nodeMapTLDevice);
         // Initialize camera
         pCam->Init();
         // Retrieve GenICam nodemap
@@ -160,8 +125,6 @@ mxArray *RunSingleCamera(CameraPtr pCam, unsigned int numImages, unsigned int *i
         {
 	  return(mxCreateDoubleScalar(31));
         }
-        // Save vector of images to video
-	//        result = result | SaveVectorToVideo(nodeMap, nodeMapTLDevice, images);
 
 	// get image size
 	*imageWidth = images[0]->GetWidth();
@@ -194,6 +157,10 @@ mxArray *RunSingleCamera(CameraPtr pCam, unsigned int numImages, unsigned int *i
     return(mxCreateDoubleScalar(32));
 
 }
+
+/////////////////////
+//   mexFunction   //
+/////////////////////
 // Example entry point; please see Enumeration example for more in-depth
 // comments on preparing and cleaning up the system.
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
