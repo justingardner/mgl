@@ -38,6 +38,7 @@ using namespace std;
 #define INIT 1
 #define QUIT 2
 #define CAPTURE 3
+#define GETDATA 4
 
 ///////////////////////////////
 //   function declarations   //
@@ -46,7 +47,6 @@ void* cameraThread(void *data);
 void startCameraThread();
 void mglPrivateCameraThreadOnExit(void);
 int AcquireImages(CameraPtr pCam, unsigned int numImages, INodeMap& nodeMap, vector<ImagePtr>& images);
-mxArray *RunSingleCamera(CameraPtr pCam, unsigned int numImages, unsigned int *imageWidth, unsigned int *imageHeight);
 
 ////////////////
 //   globals  //
@@ -54,6 +54,10 @@ mxArray *RunSingleCamera(CameraPtr pCam, unsigned int numImages, unsigned int *i
 static pthread_mutex_t gMutex;
 static int gCameraThreadInstalled = FALSE;
 static int gCommand = 0;
+static mxArray *gData;
+unsigned int gImageWidth, gImageHeight;
+// Pointer for images
+vector<ImagePtr> gImages;
 
 //////////////
 //   main   //
@@ -65,9 +69,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
   // INIT command -----------------------------------------------------------------
   if (command == INIT) {
-    // return argument set to 0
-    plhs[0] = mxCreateDoubleScalar(0);
-
     // start the thread that will have a callback that gets called every
     // time there is a keyboard or mouse event of interest
     if (!gCameraThreadInstalled) {
@@ -92,7 +93,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       pthread_mutex_unlock(&gMutex);
 
       // started running, return 1
-      *mxGetPr(plhs[0]) = 1;
+      plhs[0] = mxCreateDoubleScalar(1);
     }
     else {
 
@@ -102,7 +103,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       pthread_mutex_unlock(&gMutex);
 
       // already running, return 1
-      *mxGetPr(plhs[0]) = 1;
+      plhs[0] = mxCreateDoubleScalar(1);
     }
   }
   // Capture command -----------------------------------------------------------------
@@ -114,6 +115,41 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
       // set flag to capture
       gCommand = CAPTURE;
+
+      // unlock the mutex
+      pthread_mutex_unlock(&gMutex);
+    }
+    // return 1
+    plhs[0] = mxCreateDoubleScalar(1);
+  }
+  // Get data command -----------------------------------------------------------------
+  else if (command == GETDATA) {
+    if (gCameraThreadInstalled) {
+      
+      // lock the pthread mutex
+      pthread_mutex_lock(&gMutex);
+
+      unsigned int imageSize = gImageWidth * gImageHeight;
+      unsigned int nImages = gImages.size();
+      mexPrintf("imageSize: %i x %i (n=%i) \n",gImageWidth,gImageHeight,nImages);
+
+      // allocate buffer for return array
+      plhs[0] = mxCreateNumericMatrix(imageSize,nImages,mxUINT8_CLASS,mxREAL);
+
+      // cycle through images and return into matrix
+      // get pointer (matlab claims that this is no longer a good way to get
+      // pointers, but the function mxSetUint8s does not compile for me
+      // and also doesn't seem to allow updating the pointer, so sticking
+      // to what works
+      unsigned char *dataPtr = (unsigned char *)(double*)mxGetPr(plhs[0]);
+
+      // fill the matlab pointer with images
+      for (unsigned int imageCnt = 0; imageCnt < nImages; imageCnt++)
+      	memcpy(dataPtr+imageCnt*imageSize,gImages[imageCnt]->GetData(),imageSize);
+
+      // get pointer to data
+      plhs[1] = mxCreateDoubleScalar(gImageWidth);
+      plhs[2] = mxCreateDoubleScalar(gImageHeight);
 
       // unlock the mutex
       pthread_mutex_unlock(&gMutex);
@@ -189,31 +225,53 @@ void* cameraThread(void *data)
     return NULL;
   }
 
-  // Get images
-  unsigned int imageWidth, imageHeight;
-  unsigned int stopCameraThread = FALSE;
-  // loop here waiting for commands
-  while (!stopCameraThread) {
+  // Set up pointer to camera
+  CameraPtr pCam = camList.GetByIndex(cameraNum-1);
 
-    // lock mutex
-    pthread_mutex_lock(&gMutex);
+  // nodeMap
+  try{
+    // Initialize camera
+    pCam->Init();
+    // Retrieve GenICam nodemap
+    INodeMap &nodeMap = pCam->GetNodeMap();
+  
+    // image info pointers
+    unsigned int stopCameraThread = FALSE;
+    int err;
 
-    // check commands
-    if (gCommand == CAPTURE) {
-      // capture images
-      RunSingleCamera(camList.GetByIndex(cameraNum-1),numImages,&imageWidth,&imageHeight);
+    // loop here waiting for commands
+    while (!stopCameraThread) {
+
+      // lock mutex
+      pthread_mutex_lock(&gMutex);
+
+      // check commands
+      if (gCommand == CAPTURE) {
+	// capture images
+	err = AcquireImages(pCam, numImages, nodeMap, gImages);
+
+	// get image size
+	gImageWidth = gImages[0]->GetWidth();
+	gImageHeight = gImages[0]->GetHeight();
+      }
+      else if (gCommand == QUIT) {
+	// stop the thread
+	stopCameraThread = TRUE;
+      }
+
+      // set command back to NOCOMMAND
+      gCommand = NOCOMMAND;
+
+      // unlock mutex
+      pthread_mutex_unlock(&gMutex);
     }
-    else if (gCommand == QUIT) {
-      // stop the thread
-      stopCameraThread = TRUE;
-    }
-
-    // set command back to NOCOMMAND
-    gCommand = NOCOMMAND;
-
-    // unlock mutex
-    pthread_mutex_unlock(&gMutex);
   }
+  catch (Spinnaker::Exception& e) {
+    cout << "(mglPrivateCameraCapture) Error: " << e.what() << endl;
+  }
+
+  // Deinitialize camera
+  pCam->DeInit();
 
   // Clear camera list before releasing system
   camList.Clear();
@@ -232,9 +290,9 @@ void* cameraThread(void *data)
 void mglPrivateCameraThreadOnExit()
 {
   // call mglSwitchDisplay with -1 to close all open screens
-  mxArray *callInput =  mxCreateDoubleMatrix(1,1,mxREAL);
-  *(double*)mxGetPr(callInput) = 0;
-  mexCallMATLAB(0,NULL,1,&callInput,"mglListener");
+  //  mxArray *callInput =  mxCreateDoubleMatrix(1,1,mxREAL);
+  //  *(double*)mxGetPr(callInput) = 0;
+  //  mexCallMATLAB(0,NULL,1,&callInput,"mglListener");
 }
 
 
@@ -326,57 +384,5 @@ int AcquireImages(CameraPtr pCam, unsigned int numImages, INodeMap& nodeMap, vec
         result = -1;
     }
     return result;
-}
-
-/////////////////////////
-//   RunSingleCamera   //
-/////////////////////////
-// This function acts as the body of the example; please see NodeMapInfo example
-// for more in-depth comments on setting up cameras.
-mxArray *RunSingleCamera(CameraPtr pCam, unsigned int numImages, unsigned int *imageWidth, unsigned int *imageHeight)
-{
-    int result = 0;
-    int err = 0;
-    try
-    {
-        // Initialize camera
-        pCam->Init();
-        // Retrieve GenICam nodemap
-        INodeMap& nodeMap = pCam->GetNodeMap();
-        // Acquire images and save into vector
-        vector<ImagePtr> images;
-        err = AcquireImages(pCam, numImages, nodeMap, images);
-        if (err < 0)
-	  return(mxCreateDoubleMatrix(0,0,mxREAL));
-
-	// get image size
-	*imageWidth = images[0]->GetWidth();
-	*imageHeight = images[0]->GetHeight();
-	unsigned int imageSize = (*imageWidth) * (*imageHeight);
-
-	// allocate buffer for return array
-	mxArray *retval = mxCreateNumericMatrix(imageSize,images.size(),mxUINT8_CLASS,mxREAL);
-	// cycle through images and return into matrix
-	// get pointer (matlab claims that this is no longer a good way to get
-	// pointers, but the function mxSetUint8s does not compile for me
-	// and also doesn't seem to allow updating the pointer, so sticking
-	// to what works
-	unsigned char *dataPtr = (unsigned char *)(double*)mxGetPr(retval);
-
-	// fill the matlab pointer with images
-        for (unsigned int imageCnt = 0; imageCnt < images.size(); imageCnt++)
-	  memcpy(dataPtr+imageCnt*imageSize,images[imageCnt]->GetData(),imageSize);
-
-        // Deinitialize camera
-        pCam->DeInit();
-	return(retval);
-    }
-    catch (Spinnaker::Exception& e)
-    {
-        cout << "(mglPrivateCameraCapture) Error: " << e.what() << endl;
-        result = -1;
-    }
-    return(mxCreateDoubleMatrix(0,0,mxREAL));
-
 }
 
