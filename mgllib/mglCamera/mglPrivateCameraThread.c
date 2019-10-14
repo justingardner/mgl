@@ -87,7 +87,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       mexPrintf("(mglPrivateCameraThread) Starting camera thread. End with mglCameraThread('quit').\n");
 
       // tell matlab to call this function to cleanup properly
-      mexAtExit(mglPrivateCameraThreadOnExit);
+      //mexAtExit(mglPrivateCameraThreadOnExit);
 
       // unlock the mutex
       pthread_mutex_unlock(&gMutex);
@@ -193,7 +193,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 void* cameraThread(void *data)
 {
   int i = 0;
-  mexPrintf("Starting camera thread\n");
   
   // number of images to grab and camera to grab from
   unsigned int numImages = 100;
@@ -257,6 +256,10 @@ void* cameraThread(void *data)
       else if (gCommand == QUIT) {
 	// stop the thread
 	stopCameraThread = TRUE;
+	// unlock mutex
+	pthread_mutex_unlock(&gMutex);
+	// drop out of loop
+	continue;
       }
 
       // set command back to NOCOMMAND
