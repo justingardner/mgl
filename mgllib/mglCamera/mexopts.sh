@@ -219,10 +219,10 @@ echo "Error: Did not imbed 'options.sh' code"; exit 1 #imbed options.sh glnxi64 
             # CkeyManufacturer: GNU
             # CkeyLanguage: C
             # CkeyVersion:
-           CC='gcc'
+           CC='g++'
 #            CC='g++-4.0'
             ARCHS='x86_64'
-            CFLAGS="-x objective-c -fno-common -no-cpp-precomp -arch $ARCHS -I/Applications/Spinnaker/include/spinc -I/usr/local/include/spinnaker/spinc -Wno-deprecated-declarations -Wno-deprecated -Wno-implicit-function-declaration"
+            CFLAGS="-std=c++11 -fno-common -no-cpp-precomp -arch $ARCHS -I/Applications/Spinnaker/include/spinc -I/usr/local/include/spinnaker -Wno-deprecated-declarations -Wno-deprecated -Wno-implicit-function-declaration"
             CFLAGS="$CFLAGS  -fexceptions"
             CLIBS="$MLIBS"
             COPTIMFLAGS='-O2 -DNDEBUG'

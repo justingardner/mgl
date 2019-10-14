@@ -238,6 +238,16 @@ if versionCheck
   return
 end
 
+
+if camera
+  % camera compilation does not like the: -Dchar16_t=uint16_T setting, so remove it
+  removeOptionName = '-Dchar16_t=uint16_T';
+  removeOptionLoc = findstr(optf,removeOptionName);
+  if ~isempty(removeOptionLoc)
+    optf = optf([1:removeOptionLoc(1)-1 (removeOptionLoc(1)+length(removeOptionName)):end]);
+  end    
+end
+
 if isempty(optf)
   disp(sprintf('(mglMake) Using standrad options for mex',optf));
 else
