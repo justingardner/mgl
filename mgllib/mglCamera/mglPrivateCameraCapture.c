@@ -86,7 +86,7 @@ int AcquireImages(CameraPtr pCam, unsigned int numImages, INodeMap& nodeMap, vec
             }
             catch (Spinnaker::Exception& e)
             {
-                cout << "Error: " << e.what() << endl;
+                cout << "(mglPrivateCameraCapture) Error: " << e.what() << endl;
                 result = -1;
             }
             // Release image
@@ -97,7 +97,7 @@ int AcquireImages(CameraPtr pCam, unsigned int numImages, INodeMap& nodeMap, vec
     }
     catch (Spinnaker::Exception& e)
     {
-        cout << "Error: " << e.what() << endl;
+        cout << "(mglPrivateCameraCapture) Error: " << e.what() << endl;
         result = -1;
     }
     return result;
@@ -151,7 +151,7 @@ mxArray *RunSingleCamera(CameraPtr pCam, unsigned int numImages, unsigned int *i
     }
     catch (Spinnaker::Exception& e)
     {
-        cout << "Error: " << e.what() << endl;
+        cout << "(mglPrivateCameraCapture) Error: " << e.what() << endl;
         result = -1;
     }
     return(mxCreateDoubleScalar(32));
