@@ -151,6 +151,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       plhs[1] = mxCreateDoubleScalar(gImageWidth);
       plhs[2] = mxCreateDoubleScalar(gImageHeight);
 
+      // clear the image vector
+      gImages.clear();
+
       // unlock the mutex
       pthread_mutex_unlock(&gMutex);
     }
@@ -168,21 +171,12 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
       // lock the pthread mutex
       pthread_mutex_lock(&gMutex);
-
+ 
       // set flag to stop loop
       gCommand = QUIT;
 
-      // set flag to not installed
-      gCameraThreadInstalled = FALSE;
-
       // unlock the mutex
       pthread_mutex_unlock(&gMutex);
-
-      // destroy mutex
-      pthread_mutex_destroy(&gMutex);
-
-      // message to user
-      mexPrintf("(mglPrivateCameraThread) Ending camera thread\n");
     }
   }
 }
@@ -256,8 +250,8 @@ void* cameraThread(void *data)
       else if (gCommand == QUIT) {
 	// stop the thread
 	stopCameraThread = TRUE;
-	// unlock mutex
-	pthread_mutex_unlock(&gMutex);
+	gCommand = NOCOMMAND;
+
 	// drop out of loop
 	continue;
       }
@@ -270,20 +264,28 @@ void* cameraThread(void *data)
     }
   }
   catch (Spinnaker::Exception& e) {
-    cout << "(mglPrivateCameraCapture) Error: " << e.what() << endl;
+    cout << "(mglPrivateCameraThread) Error: " << e.what() << endl;
   }
+  
+  // Clear camera list before releasing system
+  camList.Clear();
 
   // Deinitialize camera
   pCam->DeInit();
 
-  // Clear camera list before releasing system
-  camList.Clear();
-
   // Release system
-  system->ReleaseInstance();
+  //system->ReleaseInstance();
+  mexPrintf("FIX: Why does releasing system cause crash?");
   
   mexPrintf("(mglPrivateCameraThread) Ending thread\n");
 
+  // set flag to uninstalled
+  gCameraThreadInstalled = FALSE;
+
+  // unlock mutex
+  pthread_mutex_unlock(&gMutex);
+  // destroy mutex
+  pthread_mutex_destroy(&gMutex);
   return NULL;
 }
 
@@ -334,13 +336,13 @@ int AcquireImages(CameraPtr pCam, unsigned int numImages, INodeMap& nodeMap, vec
         CEnumerationPtr ptrAcquisitionMode = nodeMap.GetNode("AcquisitionMode");
         if (!IsAvailable(ptrAcquisitionMode) || !IsWritable(ptrAcquisitionMode))
         {
-            cout << "(mglPrivateCameraCapture) Unable to set acquisition mode to continuous (node retrieval). Aborting..." << endl << endl;
+            cout << "(mglPrivateCameraThread) Unable to set acquisition mode to continuous (node retrieval). Aborting..." << endl << endl;
             return -1;
         }
         CEnumEntryPtr ptrAcquisitionModeContinuous = ptrAcquisitionMode->GetEntryByName("Continuous");
         if (!IsAvailable(ptrAcquisitionModeContinuous) || !IsReadable(ptrAcquisitionModeContinuous))
         {
-            cout << "(mglPrivateCameraCapture) Unable to set acquisition mode to continuous (entry 'continuous' retrieval). Aborting..." << endl
+            cout << "(mglPrivateCameraThread) Unable to set acquisition mode to continuous (entry 'continuous' retrieval). Aborting..." << endl
                  << endl;
             return -1;
         }
@@ -350,6 +352,8 @@ int AcquireImages(CameraPtr pCam, unsigned int numImages, INodeMap& nodeMap, vec
         // Begin acquiring images
         pCam->BeginAcquisition();
 
+
+	cout << "(mglPrivateCameraThread) Starting capture of " << numImages << " images" << endl;
         // Retrieve and convert images
         const unsigned int k_numImages = numImages;
         for (unsigned int imageCnt = 0; imageCnt < k_numImages; imageCnt++)
@@ -360,19 +364,17 @@ int AcquireImages(CameraPtr pCam, unsigned int numImages, INodeMap& nodeMap, vec
             {
                 if (pResultImage->IsIncomplete())
                 {
-                    cout << "(mglPrivateCameraCapture) Image incomplete with image status " << pResultImage->GetImageStatus() << "..." << endl
-                         << endl;
+		  cout << "(mglPrivateCameraThread) Image incomplete with image status " << pResultImage->GetImageStatus() << "..." << endl;
                 }
                 else
                 {
-		  cout << "(mglPrivateCameraCapture) Grabbed image " << imageCnt+1 << ": (" << pResultImage->GetWidth() << " x " << pResultImage->GetHeight() << ")" << endl;
-                    // Deep copy image into image vector
-                    images.push_back(pResultImage->Convert(PixelFormat_Mono8, HQ_LINEAR));
+		  // Deep copy image into image vector
+		  images.push_back(pResultImage->Convert(PixelFormat_Mono8, HQ_LINEAR));
                 }
             }
             catch (Spinnaker::Exception& e)
             {
-                cout << "(mglPrivateCameraCapture) Error: " << e.what() << endl;
+                cout << "(mglPrivateCameraThread) Error: " << e.what() << endl;
                 result = -1;
             }
             // Release image
@@ -380,10 +382,11 @@ int AcquireImages(CameraPtr pCam, unsigned int numImages, INodeMap& nodeMap, vec
         }
         // End acquisition
         pCam->EndAcquisition();
+	cout << "(mglPrivateCameraThread) Capture of " << k_numImages << " images finished" << endl;
     }
     catch (Spinnaker::Exception& e)
     {
-        cout << "(mglPrivateCameraCapture) Error: " << e.what() << endl;
+        cout << "(mglPrivateCameraThread) Error: " << e.what() << endl;
         result = -1;
     }
     return result;
