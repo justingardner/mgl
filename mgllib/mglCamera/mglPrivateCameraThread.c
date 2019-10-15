@@ -19,6 +19,9 @@
 #include <iostream>
 #include <sstream>
 #include "matrix.h"
+// used for time function
+#include <mach/mach.h>
+#include <mach/mach_time.h>
 
 ////////////////////
 //    namespace   //
@@ -46,7 +49,8 @@ using namespace std;
 void* cameraThread(void *data);
 void startCameraThread();
 void mglPrivateCameraThreadOnExit(void);
-int AcquireImages(CameraPtr pCam, unsigned int numImages, INodeMap& nodeMap, vector<ImagePtr>& images);
+int AcquireImages(CameraPtr pCam, unsigned int numImages, INodeMap& nodeMap, vector<ImagePtr>& images, vector<double>& imageTimes);
+double getCurrentTimeInSeconds();
 
 ////////////////
 //   globals  //
@@ -58,6 +62,7 @@ static mxArray *gData;
 unsigned int gImageWidth, gImageHeight;
 // Pointer for images
 vector<ImagePtr> gImages;
+vector<double> gImageTimes;
 
 //////////////
 //   main   //
@@ -131,10 +136,17 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
       unsigned int imageSize = gImageWidth * gImageHeight;
       unsigned int nImages = gImages.size();
-      mexPrintf("imageSize: %i x %i (n=%i) \n",gImageWidth,gImageHeight,nImages);
+      mexPrintf("imageSize: %i x %i (n=%i) (startTime: %7.5f endTime: %7.5f)\n",gImageWidth,gImageHeight,nImages,*(gImageTimes.begin()),*(gImageTimes.end()-1));
 
-      // allocate buffer for return array
+      // allocate buffer for return array of images
       plhs[0] = mxCreateNumericMatrix(imageSize,nImages,mxUINT8_CLASS,mxREAL);
+
+      // return size of images
+      plhs[1] = mxCreateDoubleScalar(gImageWidth);
+      plhs[2] = mxCreateDoubleScalar(gImageHeight);
+
+      // and array of image times
+      plhs[3] = mxCreateDoubleMatrix(1,nImages,mxREAL);
 
       // cycle through images and return into matrix
       // get pointer (matlab claims that this is no longer a good way to get
@@ -142,14 +154,15 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       // and also doesn't seem to allow updating the pointer, so sticking
       // to what works
       unsigned char *dataPtr = (unsigned char *)(double*)mxGetPr(plhs[0]);
+      double *timePtr = (double*)mxGetPr(plhs[3]);
 
       // fill the matlab pointer with images
-      for (unsigned int imageCnt = 0; imageCnt < nImages; imageCnt++)
+      for (unsigned int imageCnt = 0; imageCnt < nImages; imageCnt++) {
+	// copy image
       	memcpy(dataPtr+imageCnt*imageSize,gImages[imageCnt]->GetData(),imageSize);
-
-      // get pointer to data
-      plhs[1] = mxCreateDoubleScalar(gImageWidth);
-      plhs[2] = mxCreateDoubleScalar(gImageHeight);
+	// copy time stamp
+	*(timePtr+imageCnt) = *(gImageTimes.begin()+imageCnt);
+      }
 
       // clear the image vector
       gImages.clear();
@@ -241,7 +254,7 @@ void* cameraThread(void *data)
       // check commands
       if (gCommand == CAPTURE) {
 	// capture images
-	err = AcquireImages(pCam, numImages, nodeMap, gImages);
+	err = AcquireImages(pCam, numImages, nodeMap, gImages, gImageTimes);
 
 	// get image size
 	gImageWidth = gImages[0]->GetWidth();
@@ -326,7 +339,7 @@ void startCameraThread()
 ///////////////////////
 // This function acquires and saves 10 images from a device; please see
 // Acquisition example for more in-depth comments on acquiring images.
-int AcquireImages(CameraPtr pCam, unsigned int numImages, INodeMap& nodeMap, vector<ImagePtr>& images)
+int AcquireImages(CameraPtr pCam, unsigned int numImages, INodeMap& nodeMap, vector<ImagePtr>& images, vector<double>& imageTimes)
 {
     int result = 0;
 
@@ -352,13 +365,15 @@ int AcquireImages(CameraPtr pCam, unsigned int numImages, INodeMap& nodeMap, vec
         // Begin acquiring images
         pCam->BeginAcquisition();
 
-
-	cout << "(mglPrivateCameraThread) Starting capture of " << numImages << " images" << endl;
+	double currentTime = getCurrentTimeInSeconds();
+	cout.precision(10);
+	cout << "(mglPrivateCameraThread) Starting capture of " << numImages << " images: " <<  currentTime << endl;
         // Retrieve and convert images
         const unsigned int k_numImages = numImages;
         for (unsigned int imageCnt = 0; imageCnt < k_numImages; imageCnt++)
         {
             // Retrieve the next received image
+	    currentTime = getCurrentTimeInSeconds();
             ImagePtr pResultImage = pCam->GetNextImage();
             try
             {
@@ -368,6 +383,8 @@ int AcquireImages(CameraPtr pCam, unsigned int numImages, INodeMap& nodeMap, vec
                 }
                 else
                 {
+		  // record time
+		  imageTimes.push_back(currentTime);
 		  // Deep copy image into image vector
 		  images.push_back(pResultImage->Convert(PixelFormat_Mono8, HQ_LINEAR));
                 }
@@ -392,3 +409,35 @@ int AcquireImages(CameraPtr pCam, unsigned int numImages, INodeMap& nodeMap, vec
     return result;
 }
 
+////////////////////////
+//   getCurrentTime   //
+////////////////////////
+double getCurrentTimeInSeconds()
+{
+#ifdef __MAC_10_8
+  static const double kOneBillion = 1000 * 1000 * 1000; 
+  static mach_timebase_info_data_t sTimebaseInfo;
+
+  if (sTimebaseInfo.denom == 0) {
+    (void) mach_timebase_info(&sTimebaseInfo);
+  }
+  // This seems to work on Mac OS 10.9 with a Mac PRO. But note that sTimebaseInfo is hardware implementation
+  // dependent. The mach_absolute_time is ticks since the machine started and to convert it to ms you
+  // multiply by the fraction in sTimebaseInfo - worried that this could possibly overflow the
+  // 64 bit int values depending on what is actually returned. Maybe that is not a problem
+  return((double)((mach_absolute_time()*(uint64_t)(sTimebaseInfo.numer)/(uint64_t)(sTimebaseInfo.denom)))/kOneBillion);
+#else
+  // get current time
+  UnsignedWide currentTime; 
+  Microseconds(&currentTime); 
+
+  // convert microseconds to double
+  double twoPower32 = 4294967296.0; 
+  double doubleValue; 
+  
+  double upperHalf = (double)currentTime.hi; 
+  double lowerHalf = (double)currentTime.lo; 
+  doubleValue = (upperHalf * twoPower32) + lowerHalf; 
+  return(0.000001*doubleValue);
+#endif
+}

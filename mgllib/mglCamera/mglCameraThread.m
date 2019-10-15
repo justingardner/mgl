@@ -42,8 +42,9 @@ switch (lower(command))
   mglPrivateCameraThread(3,nFrames);
  case 'get'
   % get the images
-  [retval w h] = mglPrivateCameraThread(4);
-  retval = reshape(retval,w,h,size(retval,2));
+  [im w h t] = mglPrivateCameraThread(4);
+  retval.im = reshape(im,w,h,size(im,2));
+  retval.t = t;
  case 'quit'
   % quit thread
   mglPrivateCameraThread(2);
