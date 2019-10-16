@@ -54,10 +54,20 @@ switch (lower(command))
   retval.im = reshape(im,w,h,size(im,2));
   % figure out slope and offset of relationship to system time
   m = (systemEnd-systemStart)/(cameraEnd-cameraStart);
-  offset = systemStart-cameraStart*m;
+  % should be 1e-09, so check that to 3 decimal points and if it is then
+  % just use that value
+  if isequal(round(m*1e12),1e3)
+    m = 1e-9;
+  end
+  % get offset as average time difference for these two time points
+  offset = ((systemStart-cameraStart*m) + (systemEnd-cameraEnd*m))/2;
   % convert camera time to system time based on these
   retval.t = t*m+offset;
- 
+  % get camera delay setting
+  cameraDelay = mglGetParam('mglCameraDelay');
+  if ~isempty(cameraDelay)
+    retval.t = retval.t + cameraDelay;
+  end
  case 'quit'
   % quit thread
   mglPrivateCameraThread(2);
