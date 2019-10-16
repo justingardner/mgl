@@ -14,564 +14,805 @@ copyright: (c) 2019 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
 /////////////////////////
 //   include section   //
 /////////////////////////
-#include "../mgl.h"
-// Include SpinnakerC.h
-// Need to temporarily redfine Boolean because
-// it is already defined in another head
-#define Boolean BooleanMustNotBeDefinedTwice
-#include "SpinnakerC.h"
-#undef Boolean
-#include "stdio.h"
-#include "string.h"
+#include "Spinnaker.h"
+#include "SpinGenApi/SpinnakerGenApi.h"
+#include <iostream>
+#include <sstream>
+#include <mex.h>
 
-///////////////////////////////
-//   function declarations   //
-///////////////////////////////
-mxArray *getSingleCameraInfo(spinCamera, spinError *);
-mxArray *getCategoryNodeAndAllFeatures(spinNodeHandle , unsigned int, spinError *);
-
-////////////////////////
-//   define section   //
-////////////////////////
-// This macro helps with C-strings.
-#define MAX_BUFF_LEN 1024
-// This macro defines the maximum number of characters that will be printed out
-// for any information retrieved from a node.
-#define MAX_CHARS 35
-
-//////////////
-//   main   //
-//////////////
-void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
+// Define the maximum number of characters that will be printed out
+ // for any information retrieved from a node.
+const unsigned int maxChars = 35;
+using namespace Spinnaker;
+using namespace Spinnaker::GenApi;
+using namespace Spinnaker::GenICam;
+using namespace std;
+int PrintEnumerationSelector(CNodePtr node, unsigned int level);
+// Use the following enum and global constant to select whether nodes are read
+// as 'value' nodes or their individual types.
+enum readType
 {
-
-  if (nrhs > 2) {
-    usageError("mglCameraInfo");
-  }
-
-  // return variable fields
-  const char *fieldNames[] = {"spinnakerLibraryVersion","nCameras","info"};
-  const int numFields = 3;
-  const int outDims[2] = {1, 1};
-
-  // define error values
-  spinError errReturn = SPINNAKER_ERR_SUCCESS;
-  spinError err = SPINNAKER_ERR_SUCCESS;
-  unsigned int i = 0;
-
-  // Retrieve singleton reference to system object
-  spinSystem hSystem = NULL;
-
-  // Get stystems intance
-  err = spinSystemGetInstance(&hSystem);
-  if (err != SPINNAKER_ERR_SUCCESS) {
-    mexPrintf("(mglPrivateCameraInfo) Unable to retrieve system instance. Aborting with error %d\n", err);
-    return;
-  }
-
-  // Get Library version
-  spinLibraryVersion hLibraryVersion;
-  spinSystemGetLibraryVersion(hSystem, &hLibraryVersion);
-
-  // return info as a struct
-  // create the output structure
-  // return variable fields
-  plhs[0] = mxCreateStructArray(1,outDims,numFields,fieldNames);
-
-  // set fields for spinnaker library version
-  mxSetField(plhs[0],0,"spinnakerLibraryVersion",mxCreateDoubleMatrix(1,4,mxREAL));
-  *(double *)mxGetPr(mxGetField(plhs[0],0,"spinnakerLibraryVersion")) = (double)hLibraryVersion.major;
-  *((double *)mxGetPr(mxGetField(plhs[0],0,"spinnakerLibraryVersion"))+1) = (double)hLibraryVersion.minor;
-  *((double *)mxGetPr(mxGetField(plhs[0],0,"spinnakerLibraryVersion"))+2) = (double)hLibraryVersion.type;
-  *((double *)mxGetPr(mxGetField(plhs[0],0,"spinnakerLibraryVersion"))+3) = (double)hLibraryVersion.build;
-
-  // Retrieve list of cameras from the system
-  spinCameraList hCameraList = NULL;
-  err = spinCameraListCreateEmpty(&hCameraList);
-  if (err != SPINNAKER_ERR_SUCCESS) {
-    mexPrintf("(mglPrivateCameraInfo) Unable to create camera list. Aborting with error %d...\n", err);
-    return;
-  }
-
-  err = spinSystemGetCameras(hSystem, hCameraList);
-  if (err != SPINNAKER_ERR_SUCCESS) {
-    mexPrintf("(mglPrivateCameraInfo) Unable to retrieve camera list. Aborting with error %d...\n\n", err);
-    return;
-  }
-
-  // Retrieve number of cameras
-  size_t numCameras = 0;
-  err = spinCameraListGetSize(hCameraList, &numCameras);
-  if (err != SPINNAKER_ERR_SUCCESS) {
-    mexPrintf("(mglPrivateCameraInfo) Unable to retrieve number of cameras. Aborting with error %d...\n", err);
-    return;
-  }
-  
-  // set number of cameras
-  mxSetField(plhs[0],0,"nCameras",mxCreateDoubleMatrix(1,1,mxREAL));
-  *(double *)mxGetPr(mxGetField(plhs[0],0,"nCameras")) = (double)numCameras;
-
-  // Finish if there are no cameras
-  if (numCameras == 0) {
-    // Clear and destroy camera list before releasing system
-    err = spinCameraListClear(hCameraList);
-    if (err != SPINNAKER_ERR_SUCCESS) {
-      mexPrintf("(mglPrivateCameraInfo) Unable to clear camera list. Aborting with error %d...\n", err);
-      return;
-    }
-
-    err = spinCameraListDestroy(hCameraList);
-    if (err != SPINNAKER_ERR_SUCCESS) {
-      mexPrintf("(mglPrivateCameraInfo) Unable to destroy camera list. Aborting with error %d...\n", err);
-      return;
-    }
-
-    // Release system
-    err = spinSystemReleaseInstance(hSystem);
-    if (err != SPINNAKER_ERR_SUCCESS) {
-      mexPrintf("(mglPrivateCameraInfo) Unable to release system instance. Aborting with error %d...\n\n", err);
-      return;
-    }
-
-    // return when no cameras are found
-    return;
-  }
-
-  // set the output info to be a cell array of approrpriate length
-  mxSetField(plhs[0],0,"info",mxCreateCellArray(1,(const int *)&numCameras));
-
-  // Run example on each camera
-  for (i = 0; i < numCameras; i++) {
-    // Select camera
-    spinCamera hCamera = NULL;
-
-    err = spinCameraListGet(hCameraList, i, &hCamera);
-    if (err != SPINNAKER_ERR_SUCCESS) {
-      mexPrintf("(mglPrivateCameraInfo) Unable to retrieve camera from list. Aborting with error %d...\n", err);
-      errReturn = err;
-    }
-    else {
-      // Run example
-      mxSetCell(mxGetField(plhs[0],0,"info"),i,getSingleCameraInfo(hCamera,&err));;
-
-      if (err != SPINNAKER_ERR_SUCCESS) {
-	errReturn = err;
-      }
-    }
-
-    // Release camera
-    err = spinCameraRelease(hCamera);
-    if (err != SPINNAKER_ERR_SUCCESS) {
-      errReturn = err;
-    }
-
-    // Clear and destroy camera list before releasing system
-    err = spinCameraListClear(hCameraList);
-    if (err != SPINNAKER_ERR_SUCCESS) {
-      printf("(mglPrivateCameraInfo) Unable to clear camera list. Aborting with error %d...\n", err);
-      return;
-    }
-
-    err = spinCameraListDestroy(hCameraList);
-    if (err != SPINNAKER_ERR_SUCCESS) {
-      printf("(mglPrivateCameraInfo) Unable to destroy camera list. Aborting with error %d...\n\n", err);
-      return;
-    }
-
-    // Release system
-    err = spinSystemReleaseInstance(hSystem);
-    if (err != SPINNAKER_ERR_SUCCESS) {
-      printf("(mglPrivateCameraInfo) Unable to release system instance. Aborting with error %d...\n\n", err);
-      return;
-    }
-  }
-}
-
-/////////////////////////////
-//   getSingleCameraInfo   //
-/////////////////////////////
-// This function acts as the body of the example. First the TL device and
-// TL stream nodemaps are retrieved and their nodes printed. Following this,
-// the camera is initialized and then the GenICam node is retrieved
-// and its nodes printed.
-mxArray *getSingleCameraInfo(spinCamera hCam, spinError *err)
+    VALUE,
+    INDIVIDUAL
+};
+const readType chosenRead = VALUE;
+// This helper function deals with output indentation, of which there is a lot.
+void Indent(unsigned int level)
 {
-  *err = SPINNAKER_ERR_SUCCESS;
-  unsigned int level = 0;
-
-  //
-  // Retrieve TL device nodemap
-  //
-  // *** NOTES ***
-  // The TL device nodemap is available on the transport layer. As such,
-  // camera initialization is unnecessary. It provides mostly immutable
-  // information fundamental to the camera such as the serial number,
-  // vendor, and model.
-  //
-  
-  spinNodeMapHandle hNodeMapTLDevice = NULL;
-  spinNodeHandle hTLDeviceRoot = NULL;
-
-  // Retrieve nodemap from camera
-  *err = spinCameraGetTLDeviceNodeMap(hCam, &hNodeMapTLDevice);
-  if (*err != SPINNAKER_ERR_SUCCESS) {
-    mexPrintf("(mglPrivateCameraInfo) Unable to retrieve TL device nodemap (nodemap retrieval). Aborting with error %d...\n", *err);
-    return mxCreateDoubleMatrix(0,0,0);
-  }
-  mxArray *TLDeviceNodeMap = getCategoryNodeAndAllFeatures(hTLDeviceRoot, level, err);
-
-  // Retrieve root node from nodemap
-  *err = spinNodeMapGetNode(hNodeMapTLDevice, "Root", &hTLDeviceRoot);
-  if (*err != SPINNAKER_ERR_SUCCESS) {
-    mexPrintf("Unable to print TL device nodemap (root node retrieval). Aborting with error %d...\n", *err);
-    return mxCreateDoubleMatrix(0,0,0);
-  }
-
-  // Get values recursively
-  mxArray *nodeMap = getCategoryNodeAndAllFeatures(hTLDeviceRoot, level, err);
-  if (*err != SPINNAKER_ERR_SUCCESS) {
-    return mxCreateDoubleMatrix(0,0,0);
-  }
-  //
-  // Retrieve TL stream nodemap
-  //
-  // *** NOTES ***
-  // The TL stream nodemap is also available on the transport layer. Camera
-  // initialization is again unnecessary. As you can probably guess, it
-  // provides information on the camera's streaming performance at any
-  // given moment. Having this information available on the transport
-  // layer allows the information to be retrieved without affecting camera
-  // performance.
-  //
-  spinNodeMapHandle hNodeMapStream = NULL;
-  spinNodeHandle hStreamRoot = NULL;
-
-  // Retrieve nodemap from camera
-  *err = spinCameraGetTLStreamNodeMap(hCam, &hNodeMapStream);
-  if (*err != SPINNAKER_ERR_SUCCESS) {
-    mexPrintf("Unable to print TL stream nodemap (nodemap retrieval). Aborting with error %d...\n", *err);
-    return mxCreateDoubleMatrix(0,0,0);
-  }
-
-  // Retrieve root node from nodemap
-  *err = spinNodeMapGetNode(hNodeMapStream, "Root", &hStreamRoot);
-  if (*err != SPINNAKER_ERR_SUCCESS) {
-    mexPrintf("Unable to print TL stream nodemap (root node retrieval). Aborting with error %d...\n", *err);
-    return mxCreateDoubleMatrix(0,0,0);
-  }
-
-  mxArray *streamNode = getCategoryNodeAndAllFeatures(hStreamRoot, level, err);
-  if (*err != SPINNAKER_ERR_SUCCESS) {
-    return mxCreateDoubleMatrix(0,0,0);
-  }
-
-  //
-  // Initialize camera
-  //
-  // *** NOTES ***
-  // The camera becomes connected upon initialization. This provides
-  // access to configurable options and additional information, accessible
-  // through the GenICam nodemap.
-  //
-  // *** LATER ***
-  // Cameras should be deinitialized when no longer needed.
-  //
-  *err = spinCameraInit(hCam);
-  if (*err != SPINNAKER_ERR_SUCCESS) {
-    mexPrintf("Unable to initialize camera. Aborting with error %d...\n", err);
-    return mxCreateDoubleMatrix(0,0,0);
-  }
-
-  //
-  // Retrieve GenICam nodemap
-  //
-  // *** NOTES ***
-  // The GenICam nodemap is the primary gateway to customizing and
-  // configuring the camera to suit your needs. Configuration options such
-  // as image height and width, trigger mode enabling and disabling, and the
-  // sequencer are found on this nodemap.
-  //
-
-  spinNodeMapHandle hNodeMap = NULL;
-  spinNodeHandle hRoot = NULL;
-
-  // Retrieve nodemap from camera
-  *err = spinCameraGetNodeMap(hCam, &hNodeMap);
-  if (*err != SPINNAKER_ERR_SUCCESS) {
-    mexPrintf("Unable to print GenICam nodemap (nodemap retrieval). Aborting with error %d...\n", *err);
-    return mxCreateDoubleMatrix(0,0,0);
-  }
-
-  // Retrieve root node from nodemap
-  *err = spinNodeMapGetNode(hNodeMap, "Root", &hRoot);
-  if (*err != SPINNAKER_ERR_SUCCESS) {
-    mexPrintf("Unable to print GenICam nodemap (root node retrieval). Aborting with error %d...\n", *err);
-    return mxCreateDoubleMatrix(0,0,0);
-  }
-
-  //  mxArray *genICamNodeMap = getCategoryNodeAndAllFeatures(hRoot, level, err);
-  //  if (*err != SPINNAKER_ERR_SUCCESS) {
-  //    return mxCreateDoubleMatrix(0,0,0);
-  //  }
-
-  //
-  // Deinitialize camera
-  //
-  // *** NOTES ***
-  // Camera deinitialization helps ensure that devices clean up properly
-  // and do not need to be power-cycled to maintain integrity.
-  //
-  *err = spinCameraDeInit(hCam);
-  if (*err != SPINNAKER_ERR_SUCCESS) {
-    mexPrintf("Unable to deinitialize camera. Non-fatal error %d...\n", err);
-  }
-
-  // set fields for return structure
-  const char *fieldNames[] = {"TLDeviceNodeMap","nodeMap","streamNode","genICamNodeMap"};
-  const int numFields = 4;
-  const int outDims[2] = {1, 1};
-
-  // create return structure
-  mxArray *retval = mxCreateStructArray(1,outDims,numFields,fieldNames);
-  mxSetField(retval,0,"TLDeviceNodeMap",TLDeviceNodeMap);
-  mxSetField(retval,0,"nodeMap",nodeMap);
-  mxSetField(retval,0,"streamNode",streamNode);
-  //  mxSetField(retval,0,"genICamNodeMap",genICamNodeMap);
-
-  // and return it
-  return(retval);
+    for (unsigned int i = 0; i < level; i++)
+    {
+        cout << "   ";
+    }
 }
-
-///////////////////////////////////////
-//   getCategoryNodeAndAllFeatures   //
-///////////////////////////////////////
+// This function retrieves and prints the display name and value of all node
+// types as value nodes. A value node is a general node type that allows for
+// the reading and writing of any node type as a string.
+int PrintValueNode(CNodePtr node, unsigned int level)
+{
+    int result = 0;
+    try
+    {
+        // If this node is a selector and is an enumeration node print out its entries and selected features
+        if (node->IsSelector() && (node->GetPrincipalInterfaceType() == intfIEnumeration))
+        {
+            return PrintEnumerationSelector(node, level);
+        }
+      
+        // Cast as value node
+        CValuePtr ptrValueNode = static_cast<CValuePtr>(node);
+        //
+        // Retrieve display name
+        //
+        // *** NOTES ***
+        // A node's 'display name' is generally more appropriate for output and
+        // user interaction whereas its 'name' is what the camera understands.
+        // Generally, its name is the same as its display name but without
+        // spaces - for instance, the name of the node that houses a camera's
+        // serial number is 'DeviceSerialNumber' while its display name is
+        // 'Device Serial Number'.
+        //
+        gcstring displayName = ptrValueNode->GetDisplayName();
+        //
+        // Retrieve value of any node type as string
+        //
+        // *** NOTES ***
+        // Because value nodes return any node type as a string, it can be much
+        // easier to deal with nodes as value nodes rather than their actual
+        // individual types.
+        //
+        gcstring value = ptrValueNode->ToString();
+        // Ensure that the value length is not excessive for printing
+        if (value.size() > maxChars)
+        {
+            value = value.substr(0, maxChars) + "...";
+        }
+        // Print value
+        Indent(level);
+        cout << displayName << ": " << value << endl;
+    }
+    catch (Spinnaker::Exception& e)
+    {
+        cout << "Error: " << e.what() << endl;
+        result = -1;
+    }
+    return result;
+}
+// This function retrieves and prints the display name and value of a string
+// node, limiting the number of printed characters to a maximum defined by the
+// maxChars global variable. Level parameter determines the indentation level
+// for the output.
+int PrintStringNode(CNodePtr node, unsigned int level)
+{
+    int result = 0;
+    try
+    {
+        // Cast as string node
+        CStringPtr ptrStringNode = static_cast<CStringPtr>(node);
+        // Retrieve display name
+        gcstring displayName = ptrStringNode->GetDisplayName();
+        //
+        // Retrieve string node value
+        //
+        // *** NOTES ***
+        // The Spinnaker SDK includes its own wrapped string class, gcstring. As
+        // such, there is no need to import the 'string' library when using the
+        // SDK. If a standard string object is preferred, simply use a c-style
+        // or static cast on the gcstring object.
+        //
+        gcstring value = ptrStringNode->GetValue();
+        // Ensure that the value length is not excessive for printing
+        if (value.size() > maxChars)
+        {
+            value = value.substr(0, maxChars) + "...";
+        }
+        // Print value; 'level' determines the indentation level of output
+        Indent(level);
+        cout << displayName << ": " << value << endl;
+    }
+    catch (Spinnaker::Exception& e)
+    {
+        cout << "Error: " << e.what() << endl;
+        result = -1;
+    }
+    return result;
+}
+// This function retrieves and prints the display name and value of an integer
+// node.
+int PrintIntegerNode(CNodePtr node, unsigned int level)
+{
+    int result = 0;
+    try
+    {
+        // Cast node as integer node
+        CIntegerPtr ptrIntegerNode = static_cast<CIntegerPtr>(node);
+        // Retrieve display name
+        gcstring displayName = ptrIntegerNode->GetDisplayName();
+        //
+        // Retrieve integer node value
+        //
+        // *** NOTES ***
+        // Keep in mind that the data type of an integer node value is an
+        // int64_t as opposed to a standard int. While it is true that the two
+        // are often interchangeable, it is recommended to use the int64_t
+        // to avoid the introduction of bugs.
+        //
+        // All node types except for base and port nodes include a handy
+        // ToString() method which returns a value as a gcstring.
+        //
+        int64_t value = ptrIntegerNode->GetValue();
+        // Print value
+        Indent(level);
+        cout << displayName << ": " << value << endl;
+    }
+    catch (Spinnaker::Exception& e)
+    {
+        cout << "Error: " << e.what() << endl;
+        result = -1;
+    }
+    return result;
+}
+// This function retrieves and prints the display name and value of a float
+// node.
+int PrintFloatNode(CNodePtr node, unsigned int level)
+{
+    int result = 0;
+    try
+    {
+        // Cast as float node
+        CFloatPtr ptrFloatNode = static_cast<CFloatPtr>(node);
+        // Retrieve display name
+        gcstring displayName = ptrFloatNode->GetDisplayName();
+        //
+        // Retrieve float node value
+        //
+        // *** NOTES ***
+        // Please take note that floating point numbers in the Spinnaker SDK are
+        // almost always represented by the larger data type double rather than
+        // float.
+        //
+        double value = ptrFloatNode->GetValue();
+        // Print value
+        Indent(level);
+        cout << displayName << ": " << value << endl;
+    }
+    catch (Spinnaker::Exception& e)
+    {
+        cout << "Error: " << e.what() << endl;
+        result = -1;
+    }
+    return result;
+}
+// This function retrieves and prints the display name and value of a boolean,
+// printing "true" for true and "false" for false rather than the corresponding
+// integer value ('1' and '0', respectively).
+int PrintBooleanNode(CNodePtr node, unsigned int level)
+{
+    int result = 0;
+    try
+    {
+        // Cast as boolean node
+        CBooleanPtr ptrBooleanNode = static_cast<CBooleanPtr>(node);
+        // Retrieve display name
+        gcstring displayName = ptrBooleanNode->GetDisplayName();
+        //
+        // Retrieve value as a string representation
+        //
+        // *** NOTES ***
+        // Boolean node type values are represented by the standard bool data
+        // type. The boolean ToString() method returns either a '1' or '0' as
+        // a string rather than a more descriptive word like 'true' or 'false'.
+        //
+        gcstring value = (ptrBooleanNode->GetValue() ? "true" : "false");
+        // Print value
+        Indent(level);
+        cout << displayName << ": " << value << endl;
+    }
+    catch (Spinnaker::Exception& e)
+    {
+        cout << "Error: " << e.what() << endl;
+        result = -1;
+    }
+    return result;
+}
+// This function retrieves and prints the display name and tooltip of a command
+// node, limiting the number of printed characters to a defined maximum.
+// The tooltip is printed below because command nodes do not have an intelligible
+// value.
+int PrintCommandNode(CNodePtr node, unsigned int level)
+{
+    try
+    {
+        // Cast as command node
+        CCommandPtr ptrCommandNode = static_cast<CCommandPtr>(node);
+        // Retrieve display name
+        gcstring displayName = ptrCommandNode->GetDisplayName();
+        //
+        // Retrieve tooltip
+        //
+        // *** NOTES ***
+        // All node types have a tooltip available. Tooltips provide useful
+        // information about nodes. Command nodes do not have a method to
+        // retrieve values as their is no intelligible value to retrieve.
+        //
+        gcstring tooltip = ptrCommandNode->GetToolTip();
+        // Ensure that the value length is not excessive for printing
+        if (tooltip.size() > maxChars)
+        {
+            tooltip = tooltip.substr(0, maxChars) + "...";
+        }
+        // Print tooltip
+        Indent(level);
+        cout << displayName << ": " << tooltip << endl;
+        return 0;
+    }
+    catch (Spinnaker::Exception& e)
+    {
+        cout << "Error: " << e.what() << endl;
+        return -1;
+    }
+}
+// This function retrieves and prints the display names of an enumeration node
+// and its current entry (which is actually housed in another node unto itself).
+int PrintEnumerationNodeAndCurrentEntry(CNodePtr node, unsigned int level)
+{
+    try
+    {
+        // If this enumeration node is a selector, cycle through its entries and selected features
+        if (node->IsSelector())
+        {
+            return PrintEnumerationSelector(node, level);
+        }
+        // Cast as enumeration node
+        CEnumerationPtr ptrEnumerationNode = static_cast<CEnumerationPtr>(node);
+        //
+        // Retrieve current entry as enumeration node
+        //
+        // *** NOTES ***
+        // Enumeration nodes have three methods to differentiate between: first,
+        // GetIntValue() returns the integer value of the current entry node;
+        // second, GetCurrentEntry() returns the entry node itself; and third,
+        // ToString() returns the symbolic of the current entry.
+        //
+        CEnumEntryPtr ptrEnumEntryNode = ptrEnumerationNode->GetCurrentEntry();
+        // Retrieve display name
+        gcstring displayName = ptrEnumerationNode->GetDisplayName();
+        //
+        // Retrieve current symbolic
+        //
+        // *** NOTES ***
+        // Rather than retrieving the current entry node and then retrieving its
+        // symbolic, this could have been taken care of in one step by using the
+        // enumeration node's ToString() method.
+        //
+        gcstring currentEntrySymbolic = ptrEnumEntryNode->GetSymbolic();
+        // Print current entry symbolic
+        Indent(level);
+        cout << displayName << ": " << currentEntrySymbolic << endl;
+        return 0;
+    }
+    catch (Spinnaker::Exception& e)
+    {
+        cout << "Error: " << e.what() << endl;
+        return -1;
+    }
+}
+// Based on the read type specified, print the node using the correct print function.
+int PrintNode(CNodePtr node, unsigned int level)
+{
+    switch (chosenRead)
+    {
+    case VALUE:
+    {
+        return PrintValueNode(node, level);
+    }
+    case INDIVIDUAL: // Cast all non-category nodes as actual types
+    {
+        switch (node->GetPrincipalInterfaceType())
+        {
+        case intfIString:
+        {
+            return PrintStringNode(node, level);
+        }
+        case  intfIInteger:
+        {
+            return PrintIntegerNode(node, level);
+        }
+        case intfIFloat:
+        {
+            return PrintFloatNode(node, level);
+        }
+        case intfIBoolean:
+        {
+            return PrintBooleanNode(node, level);
+        }
+        case intfICommand:
+        {
+            return PrintCommandNode(node, level);
+        }
+        case intfIEnumeration:
+        {
+            return PrintEnumerationNodeAndCurrentEntry(node, level);
+        }
+        default:
+        {
+            cout << "Unexpected interface type." << endl;
+            return -1;
+        }
+        }
+    }
+    default:
+    {
+        cout << "Unexpected read type." << endl;
+        return -1;
+    }
+    }
+}
+// This function retrieves and prints the display names of enumeration selector nodes.
+// The selector will cycle through every selector entry and print out all the selected
+// features for that selector entry. It is possible for integer nodes to be selector 
+// nodes as well, but this function will only cycle through Enumeration nodes.
+int PrintEnumerationSelector(CNodePtr node, unsigned int level)
+{
+    int result = 0;
+    try
+    {
+        FeatureList_t selectedFeatures;
+        node->GetSelectedFeatures(selectedFeatures);
+        // Cast as an enumeration node
+        CEnumerationPtr ptrSelectorNode = static_cast<CEnumerationPtr>(node);
+        StringList_t entries;
+        ptrSelectorNode->GetSymbolics(entries);
+        // Note current selector node entry
+        CEnumEntryPtr ptrCurrentEntry = ptrSelectorNode->GetCurrentEntry();
+        // Retrieve display name
+        gcstring displayName = ptrSelectorNode->GetDisplayName();
+        // Retrieve current symbolic
+        gcstring currentEntrySymbolic = ptrSelectorNode->ToString();
+        // Print current entry symbolic
+        Indent(level);
+        cout << displayName << ": " << currentEntrySymbolic << endl;
+        // For every selector node entry
+        for (size_t i = 0; i < entries.size(); i++)
+        {
+            CEnumEntryPtr selectorEntry = ptrSelectorNode->GetEntryByName(entries[i]);
+            FeatureList_t::const_iterator it;
+            // Go through each enum entry of the selector node
+            if (IsWritable(ptrSelectorNode))
+            {
+                if (IsAvailable(selectorEntry) && IsReadable(selectorEntry))
+                {
+                    ptrSelectorNode->SetIntValue(selectorEntry->GetValue());
+                    Indent(level + 1);
+                    cout << displayName << ": " << ptrSelectorNode->ToString() << endl;
+                }
+            }
+            // Look at every node that is affected by the selector node
+            for (it = selectedFeatures.begin(); it != selectedFeatures.end(); ++it)
+            {
+                CNodePtr ptrFeatureNode = *it;
+                if (!IsAvailable(ptrFeatureNode) || !IsReadable(ptrFeatureNode))
+                {
+                    continue;
+                }
+                // Print the selected feature
+                else
+                {
+                    result = result | PrintNode(ptrFeatureNode, level + 2);
+                }
+            }
+        }
+        // Restore the selector to its original value
+        if (IsWritable(ptrSelectorNode))
+        {
+            ptrSelectorNode->SetIntValue(ptrCurrentEntry->GetValue());
+        }
+    }
+    catch (Spinnaker::Exception& e)
+    {
+        cout << "Error: " << e.what() << endl;
+        result = -1;
+    }
+    return result;
+}
 // This function retrieves and prints out the display name of a category node
 // before printing all child nodes. Child nodes that are also category nodes are
 // printed recursively.
-mxArray *getCategoryNodeAndAllFeatures(spinNodeHandle hCategoryNode, unsigned int level, spinError *err)
+int PrintCategoryNodeAndAllFeatures(CNodePtr node, unsigned int level)
 {
-  *err = SPINNAKER_ERR_SUCCESS;
-  unsigned int i = 0;
-  unsigned int iFeature = 0;
-
-  // Retrieve display name
-  char displayName[MAX_BUFF_LEN];
-  size_t displayNameLength = MAX_BUFF_LEN;
-
-  *err = spinNodeGetDisplayName(hCategoryNode, displayName, &displayNameLength);
-  if (*err != SPINNAKER_ERR_SUCCESS) {
-    return mxCreateDoubleMatrix(0,0,0);
-  }
-  mexPrintf("Display name: %s\n",displayName);
-  //
-  // Retrieve number of children
-  //
-  // *** NOTES ***
-  // The two nodes that typically have children are category nodes and
-  // enumeration nodes. Throughout the examples, the children of category
-  // nodes are referred to as features while the children of enumeration
-  // nodes are referred to as entries. Further, it might be important to
-  // note that enumeration nodes can be cast as category nodes, but
-  // category nodes cannot be cast as enumeration nodes.
-  //
-  size_t numberOfFeatures = 0;
-
-  *err = spinCategoryGetNumFeatures(hCategoryNode, &numberOfFeatures);
-  if (*err != SPINNAKER_ERR_SUCCESS) {
-    return mxCreateDoubleMatrix(0,0,0);
-  }
-
-  // fieldNames for output structure
-  char **fieldNames = (char **)malloc(numberOfFeatures * sizeof(char *));
-  int numFields = 0;
-  const int outDims[2] = {1, 1};
-  const int nArrayElements = numberOfFeatures;
-  mexPrintf("numFeatures: %i\n",nArrayElements);
-  mxArray *vals = mxCreateCellArray(1, &nArrayElements);
-
-  // for holding values of fields
-  int64_t integerValue = 0;
-  char stringValue[MAX_BUFF_LEN];
-  size_t stringValueLength = MAX_BUFF_LEN;
-  const unsigned int k_maxChars = MAX_CHARS;
-  double floatValue = 0.0;
-  bool8_t booleanValue = False;
-  char value[MAX_BUFF_LEN];
-  size_t valueLength = MAX_BUFF_LEN;
-  char nodeName[MAX_BUFF_LEN];
-  size_t nodeNameLength = MAX_BUFF_LEN;
-
-  // Retrieve child
-  spinNodeHandle hFeatureNode = NULL;
-  //
-  // Iterate through all children
-  //
-  // *** NOTES ***
-  // It is important to note that the children of an enumeration nodes
-  // may be of any node type.
-  //
-  for (iFeature = 0; iFeature < numberOfFeatures; iFeature++) {
-
-    *err = spinCategoryGetFeatureByIndex(hCategoryNode, iFeature, &hFeatureNode);
-    if (*err != SPINNAKER_ERR_SUCCESS) {
-      mexPrintf("(mglPrivateCameraInfo:spinCategoryGetFeatureByIndex) Error code: %i\n",*err);
-      continue;
+    int result = 0;
+    try
+    {
+        // Cast as category node
+        CCategoryPtr ptrCategoryNode = static_cast<CCategoryPtr>(node);
+        // Retrieve display name
+        gcstring displayName = ptrCategoryNode->GetDisplayName();
+        // Print display name
+        Indent(level);
+        cout << displayName << endl;
+        //
+        // Retrieve children
+        //
+        // *** NOTES ***
+        // The two nodes that typically have children are category nodes and
+        // enumeration nodes. Throughout the examples, the children of category
+        // nodes are referred to as features while the children of enumeration
+        // nodes are referred to as entries. Keep in mind that enumeration
+        // nodes can be cast as category nodes, but category nodes cannot be
+        // cast as enumerations.
+        //
+        FeatureList_t features;
+        ptrCategoryNode->GetFeatures(features);
+        //
+        // Iterate through all children
+        //
+        // *** NOTES ***
+        // If dealing with a variety of node types and their values, it may be
+        // simpler to cast them as value nodes rather than as their individual
+        // types. However, with this increased ease-of-use, functionality is
+        // sacrificed.
+        //
+        FeatureList_t::const_iterator it;
+        for (it = features.begin(); it != features.end(); ++it)
+        {
+            CNodePtr ptrFeatureNode = *it;
+            // Ensure node is available and readable
+            if (!IsAvailable(ptrFeatureNode) || !IsReadable(ptrFeatureNode))
+            {
+                continue;
+            }
+            // Category nodes must be dealt with separately in order to
+            // retrieve subnodes recursively.
+            if (ptrFeatureNode->GetPrincipalInterfaceType() == intfICategory)
+            {
+                result = result | PrintCategoryNodeAndAllFeatures(ptrFeatureNode, level + 1);
+            }
+            // Print the node
+            else
+            {
+                result = result | PrintNode(ptrFeatureNode, level + 1);
+            }
+        }
+        cout << endl;
     }
-
-    bool8_t featureNodeIsAvailable = False;
-    bool8_t featureNodeIsReadable = False;
-
-    *err = spinNodeIsAvailable(hFeatureNode, &featureNodeIsAvailable);
-    if (*err != SPINNAKER_ERR_SUCCESS) {
-      mexPrintf("(mglPrivateCameraInfo:spinNodeIsAvaialble) Error code: %i\n",*err);
-      continue;
+    catch (Spinnaker::Exception& e)
+    {
+        cout << "Error: " << e.what() << endl;
+        result = -1;
     }
-
-    *err = spinNodeIsReadable(hFeatureNode, &featureNodeIsReadable);
-    if (*err != SPINNAKER_ERR_SUCCESS) {
-      mexPrintf("(mglPrivateCameraInfo:spinNodeIsReadable) Error code: %i\n",*err);
-      continue;
-    }
-
-    if (!featureNodeIsAvailable || !featureNodeIsReadable) {
-      mexPrintf("(mglPrivateCameraInfo) Feature node unavailable or unreadable\n");
-      continue;
-    }
-
-    spinNodeType type = UnknownNode;
-
-    *err = spinNodeGetType(hFeatureNode, &type);
-    if (*err != SPINNAKER_ERR_SUCCESS) {
-      mexPrintf("(mglPrivateCameraInfo:spinNodeGetType) Error code: %i\n",*err);
-      continue;
-    }
-
-    // Category nodes must be dealt with separately in order to
-    // retrieve subnodes recursively.
-    if (type == CategoryNode) {
-      mexPrintf("%i/%i l%i: Category node\n",iFeature,numberOfFeatures,level);
-      // set the field name
-      fieldNames[numFields] = (char *)malloc(strlen(displayName)+1);
-      sprintf(fieldNames[numFields],"%s",displayName);
-      // call recursively
-      mexPrintf("%i/%i l%i: Recursive: %s level: %i\n",iFeature,numberOfFeatures,level,fieldNames[numFields],level+1);
-      mxSetCell(vals,numFields++,getCategoryNodeAndAllFeatures(hFeatureNode, level + 1, err));
-      mexPrintf("%i/%i l%i: Returned from recursive\n",iFeature,numberOfFeatures,level);
-    }
-    // Read all non-category nodes using spinNodeToString() function
-    else {
-      mexPrintf("%i/%i l%i: Non-Category node ",iFeature,numberOfFeatures,level);
-      //      *err = spinNodeGetDisplayName(hFeatureNode, nodeName, &nodeNameLength);
-      *err = spinNodeGetDisplayName(hFeatureNode, nodeName, &nodeNameLength);
-      if (*err != SPINNAKER_ERR_SUCCESS) {
-
-	mexPrintf("%i/%i l%i: ERROR spinNodeGetName ERROR: %i (%s)\n",iFeature,numberOfFeatures,level,*err,nodeName);
-	//	continue;
-      }
-      // set the field with the display name
-      mexPrintf("(%s) strlen: %i ",nodeName,strlen(nodeName));
-      fieldNames[numFields] = (char *)malloc(strlen(nodeName)+1);
-      sprintf(fieldNames[numFields++],"%s",nodeName);
-
-      switch (type){
-        case StringNode:
-	  mexPrintf("string ");
-	  // get string value
-	  // Ensure allocated buffer is large enough for storing the string
-	  *err = spinStringGetValue(hFeatureNode, NULL, &stringValueLength);
-	  if ((*err == SPINNAKER_ERR_SUCCESS) && (stringValueLength <= k_maxChars)) {
-            *err = spinNodeToString(hFeatureNode, stringValue, &stringValueLength);
-	  }
-	  mexPrintf("\"%s\"\n",stringValue);
-	  // if all was ok, then set the output val
-	  if (*err == SPINNAKER_ERR_SUCCESS) {
-	    mxSetCell(vals,numFields-1,mxCreateString(stringValue));
-	  }
-	  break;
-
-        case IntegerNode:
-	  mexPrintf("Int ");
-	  // get integer value
-	  *err = spinIntegerGetValue(hFeatureNode, &integerValue);
-	  if (*err == SPINNAKER_ERR_SUCCESS) {
-	    mxSetCell(vals,numFields-1,mxCreateDoubleScalar((double)integerValue));
-	  }
-	  mexPrintf("%i\n",(int)integerValue);
-	  break;
-
-        case FloatNode:
-	  mexPrintf("Float ");
-	  // get float value
-	  *err = spinFloatGetValue(hFeatureNode, &floatValue);
-	  if (*err == SPINNAKER_ERR_SUCCESS) {
-	    mxSetCell(vals,numFields-1,mxCreateDoubleScalar((double)floatValue));
-	  }
-	  mexPrintf("%d\n",(double)floatValue);
-	  break;
-
-        case BooleanNode:
-	  mexPrintf("Boolean ");
-	  // get boolean value
-	  *err = spinBooleanGetValue(hFeatureNode, &booleanValue);
-	  if (*err == SPINNAKER_ERR_SUCCESS) {
-	    mxSetCell(vals,numFields-1,mxCreateDoubleScalar((double)booleanValue));
-	  }
-	  mexPrintf("%i\n",(int)booleanValue);
-	  break;
-
-        case CommandNode:
-        case EnumerationNode:
-        case ValueNode:
-        case BaseNode:
-        case RegisterNode:
-        case EnumEntryNode:
-        case CategoryNode:
-        case PortNode:
-        case UnknownNode:
-
-	  mexPrintf("Other ");
-	  // Ensure allocated buffer is large enough for storing the string
-	  *err = spinNodeToString(hFeatureNode, NULL, &valueLength);
-
-	  if (*err == SPINNAKER_ERR_SUCCESS) {
-	    const unsigned int k_maxChars = MAX_CHARS;
-	    if (valueLength <= k_maxChars) {
-	      *err = spinNodeToString(hFeatureNode, value, &valueLength);
-	      mexPrintf("valueLen: %i (%s) numFields: %i\n",valueLength,value,numFields);
-	      if (*err == SPINNAKER_ERR_SUCCESS) {
-		mxSetCell(vals,numFields-1,mxCreateString(value));
-	      }
-	    }
-	  }
-	  break;
-      }
-    }
-  }
-
-  // create output structure
-  if (numFields > 0) {
-    // create return structure
-    mxArray *retval = mxCreateStructArray(1,outDims,numFields,(const char **)fieldNames);
-    mexPrintf("%i/%i l%i: Creating output structures of %i fields: ",iFeature,numberOfFeatures,level,numFields);
-    // cycle through and set values of structure
-    for (iFeature = 0; iFeature < numFields; iFeature++) {
-      mexPrintf("%s ",fieldNames[iFeature]);
-      //mxSetField(retval,0,fieldNames[iFeature],mxGetCell(vals,iFeature));
-    }
-    mexPrintf("\nFinish level: %i\n",level);
-
-    // free up string error
-    //    for (iFeature = 0;iFeature<numFields;iFeature++) {
-    //      free(fieldNames[iFeature]);
-    //    }
-    //    free(fieldNames);
-    // return the structure
-    return(mxCreateDoubleMatrix(0,0,0));
-  }
-
-  // nothing was created, return empty
-  return(mxCreateDoubleMatrix(0,0,0));
+    return result;
 }
 
+// This function configures the camera to add chunk data to each image. It does
+// this by enabling each type of chunk data before enabling chunk data mode.
+// When chunk data is turned on, the data is made available in both the nodemap
+// and each image.
+int ConfigureChunkData(INodeMap& nodeMap)
+{
+    int result = 0;
+    cout << endl << endl << "*** CONFIGURING CHUNK DATA ***" << endl << endl;
+    try
+    {
+        //
+        // Activate chunk mode
+        //
+        // *** NOTES ***
+        // Once enabled, chunk data will be available at the end of the payload
+        // of every image captured until it is disabled. Chunk data can also be
+        // retrieved from the nodemap.
+        //
+        CBooleanPtr ptrChunkModeActive = nodeMap.GetNode("ChunkModeActive");
+        if (!IsAvailable(ptrChunkModeActive) || !IsWritable(ptrChunkModeActive))
+        {
+            cout << "Unable to activate chunk mode. Aborting..." << endl << endl;
+            return -1;
+        }
+        ptrChunkModeActive->SetValue(true);
+        cout << "Chunk mode activated..." << endl;
+        //
+        // Enable all types of chunk data
+        //
+        // *** NOTES ***
+        // Enabling chunk data requires working with nodes: "ChunkSelector"
+        // is an enumeration selector node and "ChunkEnable" is a boolean. It
+        // requires retrieving the selector node (which is of enumeration node
+        // type), selecting the entry of the chunk data to be enabled, retrieving
+        // the corresponding boolean, and setting it to true.
+        //
+        // In this example, all chunk data is enabled, so these steps are
+        // performed in a loop. Once this is complete, chunk mode still needs to
+        // be activated.
+        //
+        NodeList_t entries;
+        // Retrieve the selector node
+        CEnumerationPtr ptrChunkSelector = nodeMap.GetNode("ChunkSelector");
+        if (!IsAvailable(ptrChunkSelector) || !IsReadable(ptrChunkSelector))
+        {
+            cout << "Unable to retrieve chunk selector. Aborting..." << endl << endl;
+            return -1;
+        }
+        // Retrieve entries
+        ptrChunkSelector->GetEntries(entries);
+        cout << "Enabling entries..." << endl;
+        for (size_t i = 0; i < entries.size(); i++)
+        {
+            // Select entry to be enabled
+            CEnumEntryPtr ptrChunkSelectorEntry = entries.at(i);
+            // Go to next node if problem occurs
+            if (!IsAvailable(ptrChunkSelectorEntry) || !IsReadable(ptrChunkSelectorEntry))
+            {
+                continue;
+            }
+            ptrChunkSelector->SetIntValue(ptrChunkSelectorEntry->GetValue());
+            cout << "\t" << ptrChunkSelectorEntry->GetSymbolic() << ": ";
+            // Retrieve corresponding boolean
+            CBooleanPtr ptrChunkEnable = nodeMap.GetNode("ChunkEnable");
+            // Enable the boolean, thus enabling the corresponding chunk data
+            if (!IsAvailable(ptrChunkEnable))
+            {
+                cout << "not available" << endl;
+                result = -1;
+            }
+            else if (ptrChunkEnable->GetValue())
+            {
+                cout << "enabled" << endl;
+            }
+            else if (IsWritable(ptrChunkEnable))
+            {
+                ptrChunkEnable->SetValue(true);
+                cout << "enabled" << endl;
+            }
+            else
+            {
+                cout << "not writable" << endl;
+                result = -1;
+            }
+        }
+    }
+    catch (Spinnaker::Exception& e)
+    {
+        cout << "Error: " << e.what() << endl;
+        result = -1;
+    }
+    return result;
+}
 
-
+// This function displays all available chunk data by looping through the chunk
+// data category node on the nodemap.
+int DisplayChunkData(INodeMap& nodeMap)
+{
+    int result = 0;
+    cout << "Printing chunk data from nodemap..." << endl;
+    try
+    {
+        //
+        // Retrieve chunk data information nodes
+        //
+        // *** NOTES ***
+        // As well as being written into the payload of the image, chunk data is
+        // accessible on the GenICam nodemap. Insofar as chunk data is enabled,
+        // it is available from both sources.
+        //
+        CCategoryPtr ptrChunkDataControl = nodeMap.GetNode("ChunkDataControl");
+        if (!IsAvailable(ptrChunkDataControl) || !IsReadable(ptrChunkDataControl))
+        {
+            cout << "Unable to retrieve chunk data control. Aborting..." << endl << endl;
+            return -1;
+        }
+        FeatureList_t features;
+        ptrChunkDataControl->GetFeatures(features);
+        // Iterate through children
+        FeatureList_t::const_iterator it;
+        for (it = features.begin(); it != features.end(); ++it)
+        {
+            CNodePtr pFeature = (CNodePtr)*it;
+            cout << "\t" << pFeature->GetDisplayName() << ": ";
+            if (!IsAvailable(pFeature) || !IsReadable(pFeature))
+            {
+                cout << "node not available" << endl;
+                result = result | -1;
+                continue;
+            }
+            //
+            // Print boolean node type value
+            //
+            // *** NOTES ***
+            // Boolean information is manipulated to output the more-easily
+            // identifiable 'true' and 'false' as opposed to '1' and '0'.
+            //
+            else if (pFeature->GetPrincipalInterfaceType() == intfIBoolean)
+            {
+                CBooleanPtr pBool = (CBooleanPtr)pFeature;
+                bool value = pBool->GetValue();
+                cout << (value ? "true" : "false") << endl;
+            }
+            //
+            // Print non-boolean node type value
+            //
+            // *** NOTES ***
+            // All nodes can be cast as value nodes and have their information
+            // retrieved as a string using the ToString() method. This is much
+            // easier than dealing with each node type individually.
+            //
+            else
+            {
+                CValuePtr pValue = (CValuePtr)pFeature;
+                cout << pValue->ToString() << endl;
+            }
+        }
+    }
+    catch (Spinnaker::Exception& e)
+    {
+        cout << "Error: " << e.what() << endl;
+        result = -1;
+    }
+    return result;
+}
+// This function acts as the body of the example. First nodes from the TL
+// device and TL stream nodemaps are retrieved and printed. Following this,
+// the camera is initialized and then nodes from the GenICam nodemap are
+// retrieved and printed.
+int RunSingleCamera(CameraPtr cam)
+{
+    int result = 0;
+    unsigned int level = 0;
+    try
+    {
+        //
+        // Retrieve TL device nodemap
+        //
+        // *** NOTES ***
+        // The TL device nodemap is available on the transport layer. As such,
+        // camera initialization is unnecessary. It provides mostly immutable
+        // information fundamental to the camera such as the serial number,
+        // vendor, and model.
+        //
+        cout << endl << "*** PRINTING TRANSPORT LAYER DEVICE NODEMAP ***" << endl << endl;
+        INodeMap& genTLNodeMap = cam->GetTLDeviceNodeMap();
+        result = PrintCategoryNodeAndAllFeatures(genTLNodeMap.GetNode("Root"), level);
+        //
+        // Retrieve TL stream nodemap
+        //
+        // *** NOTES ***
+        // The TL stream nodemap is also available on the transport layer. Camera
+        // initialization is again unnecessary. As you can probably guess, it
+        // provides information on the camera's streaming performance at any
+        // given moment. Having this information available on the transport
+        // layer allows the information to be retrieved without affecting camera
+        // performance.
+        //
+        cout << "*** PRINTING TL STREAM NODEMAP ***" << endl << endl;
+        INodeMap& nodeMapTLStream = cam->GetTLStreamNodeMap();
+        result = result | PrintCategoryNodeAndAllFeatures(nodeMapTLStream.GetNode("Root"), level);
+        //
+        // Initialize camera
+        //
+        // *** NOTES ***
+        // The camera becomes connected upon initialization. This provides
+        // access to configurable options and additional information, accessible
+        // through the GenICam nodemap.
+        //
+        // *** LATER ***
+        // Cameras should be deinitialized when no longer needed.
+        //
+        cout << "*** PRINTING GENICAM NODEMAP ***" << endl << endl;
+        cam->Init();
+        //
+        // Retrieve GenICam nodemap
+        //
+        // *** NOTES ***
+        // The GenICam nodemap is the primary gateway to customizing
+        // and configuring the camera to suit your needs. Configuration options
+        // such as image height and width, trigger mode enabling and disabling,
+        // and the sequencer are found on this nodemap.
+        //
+        INodeMap& appLayerNodeMap = cam->GetNodeMap();
+        result = result | PrintCategoryNodeAndAllFeatures(appLayerNodeMap.GetNode("Root"), level);
+	// Configure chunk data
+	ConfigureChunkData(appLayerNodeMap);
+	DisplayChunkData(appLayerNodeMap);
+        //
+        // Deinitialize camera
+        //
+        // *** NOTES ***
+        // Camera deinitialization helps ensure that devices clean up properly
+        // and do not need to be power-cycled to maintain integrity.
+        //
+        cam->DeInit();
+    }
+    catch (Spinnaker::Exception& e)
+    {
+        cout << "Error: " << e.what() << endl;
+        result = -1;
+    }
+    return result;
+}
+// Example entry point; please see Enumeration example for more in-depth
+// comments on preparing and cleaning up the system.
+void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
+{
+    int result = 0;
+    // Print application build information
+    cout << "Application build date: " << __DATE__ << " " << __TIME__ << endl << endl;
+    // Retrieve singleton reference to system object
+    SystemPtr system = System::GetInstance();
+    // Print out current library version
+    const LibraryVersion spinnakerLibraryVersion = system->GetLibraryVersion();
+    cout << "Spinnaker library version: "
+        << spinnakerLibraryVersion.major << "."
+        << spinnakerLibraryVersion.minor << "."
+        << spinnakerLibraryVersion.type << "."
+        << spinnakerLibraryVersion.build << endl << endl;
+    // Retrieve list of cameras from the system
+    CameraList camList = system->GetCameras();
+    unsigned int numCameras = camList.GetSize();
+    cout << "Number of cameras detected: " << numCameras << endl << endl;
+    // Finish if there are no cameras
+    if (numCameras == 0)
+    {
+        // Clear camera list before releasing system
+        camList.Clear();
+        // Release system
+        system->ReleaseInstance();
+        cout << "Not enough cameras!" << endl;
+        cout << "Done! Press Enter to exit..." << endl;
+        getchar();
+        return;
+    }
+    //
+    // Create shared pointer for camera
+    //
+    // *** NOTES ***
+    // The CameraPtr object is a shared pointer, and will generally clean itself
+    // up upon exiting its scope.
+    //
+    // *** LATER ***
+    // However, if a shared camera pointer is created in the same scope that a
+    // system object is explicitly released (i.e. this scope), the reference to
+    // the camera must be broken by manually setting the pointer to nullptr.
+    //
+    CameraPtr pCam = nullptr;
+    // Run example on each camera
+    for (unsigned int i = 0; i < numCameras; i++)
+    {
+        // Select camera
+        pCam = camList.GetByIndex(i);
+        cout << endl << "Running example for camera " << i << "..." << endl;
+        // Run example
+        result = result | RunSingleCamera(pCam);
+        cout << "Camera " << i << " example complete..." << endl << endl;
+    }
+    //
+    // Release shared pointer reference to camera before releasing system
+    //
+    // *** NOTES ***
+    // Had the CameraPtr object been created within the for-loop, it would not
+    // be necessary to manually break its reference because the shared pointer
+    // would have automatically cleaned itself up upon exiting the loop.
+    //
+    pCam = nullptr;
+    // Clear camera list before releasing system
+    camList.Clear();
+    // Release system
+    system->ReleaseInstance();
+    return;
+}

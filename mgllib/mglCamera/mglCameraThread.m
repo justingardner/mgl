@@ -23,30 +23,44 @@
 %             mglCameraThread('quit');
 % 
 %
-function retval = mglCameraThread(command,auxArg)
+function retval = mglCameraThread(command,varargin)
 
 % check arguments
-if ~any(nargin == [0 1 2])
+if nargin < 1
   help mglCameraThread
   return
 end
 
+% parse arguments
+getArgs(varargin,{'cameraNum=1','maxFrames=100000','timeToCapture=1'});
 
 switch (lower(command))
+ 
  case 'init'
+
   % init the thread
-  mglPrivateCameraThread(1);
+  mglPrivateCameraThread(1,cameraNum,maxFrames);
+  
  case 'capture'
-  if nargin < 2,nFrames = 1;else,nFrames = auxArg;end
+  currentTime = mglGetSecs;
+  dispHeader(sprintf('(mglCameraThread) Capture begin at: %5.3f',currentTime));
   % set to capture images
-  mglPrivateCameraThread(3,nFrames);
+  mglPrivateCameraThread(3,currentTime+timeToCapture);
+  
  case 'get'
   % get the images
-  [im w h t] = mglPrivateCameraThread(4);
+  [im w h t cameraStart cameraEnd systemStart systemEnd] = mglPrivateCameraThread(4);
+  % reshape and return as struct
   retval.im = reshape(im,w,h,size(im,2));
-  retval.t = t;
+  % figure out slope and offset of relationship to system time
+  m = (systemEnd-systemStart)/(cameraEnd-cameraStart);
+  offset = systemStart-cameraStart*m;
+  % convert camera time to system time based on these
+  retval.t = t*m+offset;
+ 
  case 'quit'
   % quit thread
   mglPrivateCameraThread(2);
+  
 end
 

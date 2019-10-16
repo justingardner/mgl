@@ -15,7 +15,10 @@ if ~any(nargin == [0])
 end
 
 % call private function
-retval = mglPrivateCameraInfo;
-retval.info{1}
+%retval = mglPrivateCameraInfo;
+%retval.info{1}
+
+retval = [];
+mglPrivateCameraInfo;
 
 

@@ -240,6 +240,7 @@ end
 
 
 if camera
+  mglCameraThread quit;
   % camera compilation does not like the: -Dchar16_t=uint16_T setting, so remove it
   removeOptionName = '-Dchar16_t=uint16_T';
   removeOptionLoc = findstr(optf,removeOptionName);
