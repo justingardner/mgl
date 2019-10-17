@@ -49,7 +49,7 @@ switch (lower(command))
   
  case 'get'
   % get the images
-  [im w h t cameraStart cameraEnd systemStart systemEnd] = mglPrivateCameraThread(4);
+  [im w h t cameraStart cameraEnd systemStart systemEnd exposureTimes] = mglPrivateCameraThread(4);
   % reshape and return as struct
   retval.im = reshape(im,w,h,size(im,2));
   % figure out slope and offset of relationship to system time
@@ -68,6 +68,8 @@ switch (lower(command))
   if ~isempty(cameraDelay)
     retval.t = retval.t + cameraDelay;
   end
+  % set exposure times
+  retval.exposureTimes = exposureTimes/1e9;
  case 'quit'
   % quit thread
   mglPrivateCameraThread(2);

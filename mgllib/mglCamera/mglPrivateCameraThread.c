@@ -49,7 +49,7 @@ using namespace std;
 void* cameraThread(void *data);
 void startCameraThread();
 void mglPrivateCameraThreadOnExit(void);
-int AcquireImages(CameraPtr pCam, unsigned int maxImages, double captureUntilTime, INodeMap& nodeMap, vector<ImagePtr>& images, vector<double>& imageTimes, double &startCameraTime, double &startSystemTime, double &endCameraTime, double &endSystemTime);
+int AcquireImages(CameraPtr pCam, unsigned int maxImages, double captureUntilTime, INodeMap& nodeMap, vector<ImagePtr>& images, vector<double>& imageTimes, vector<double>& imageExposureTimes, double &startCameraTime, double &startSystemTime, double &endCameraTime, double &endSystemTime);
 double getCurrentTimeInSeconds();
 int ConfigureChunkData(INodeMap& nodeMap);
 int DisplayChunkData(INodeMap& nodeMap);
@@ -69,6 +69,7 @@ double gStartCameraTime,gEndCameraTime,gStartSystemTime,gEndSystemTime;
 // Pointer for images
 vector<ImagePtr> gImages;
 vector<double> gImageTimes;
+vector<double> gImageExposureTimes;
 
 //////////////
 //   main   //
@@ -169,6 +170,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       plhs[6] = mxCreateDoubleScalar(gStartSystemTime);
       plhs[7] = mxCreateDoubleScalar(gEndSystemTime);
 
+      // and array of exposure times
+      plhs[8] = mxCreateDoubleMatrix(1,nImages,mxREAL);
+
       // cycle through images and return into matrix
       // get pointer (matlab claims that this is no longer a good way to get
       // pointers, but the function mxSetUint8s does not compile for me
@@ -176,6 +180,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       // to what works
       unsigned char *dataPtr = (unsigned char *)(double*)mxGetPr(plhs[0]);
       double *timePtr = (double*)mxGetPr(plhs[3]);
+      double *exposureTimePtr = (double*)mxGetPr(plhs[8]);
 
       // fill the matlab pointer with images
       for (unsigned int imageCnt = 0; imageCnt < nImages; imageCnt++) {
@@ -183,11 +188,14 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       	memcpy(dataPtr+imageCnt*imageSize,gImages[imageCnt]->GetData(),imageSize);
 	// copy time stamp
 	*(timePtr+imageCnt) = *(gImageTimes.begin()+imageCnt);
+	// copy time exposure time
+	*(exposureTimePtr+imageCnt) = *(gImageExposureTimes.begin()+imageCnt);
       }
 
       // clear the image and time vector
       gImages.clear();
       gImageTimes.clear();
+      gImageExposureTimes.clear();
 
       // unlock the mutex
       pthread_mutex_unlock(&gMutex);
@@ -281,7 +289,7 @@ void* cameraThread(void *data)
       // check commands
       if (gCommand == CAPTURE) {
 	// capture images
-	err = AcquireImages(pCam, gMaxImages, gCaptureUntilTime, nodeMap, gImages, gImageTimes, gStartCameraTime, gStartSystemTime, gEndCameraTime, gEndSystemTime);
+	err = AcquireImages(pCam, gMaxImages, gCaptureUntilTime, nodeMap, gImages, gImageTimes, gImageExposureTimes, gStartCameraTime, gStartSystemTime, gEndCameraTime, gEndSystemTime);
 
 	// get image size
 	gImageWidth = gImages[0]->GetWidth();
@@ -389,7 +397,7 @@ int64_t getCameraTimestamp(CameraPtr pCam)
 ///////////////////////
 // This function acquires and saves 10 images from a device; please see
 // Acquisition example for more in-depth comments on acquiring images.
-int AcquireImages(CameraPtr pCam, unsigned int maxImages, double captureUntilTime, INodeMap& nodeMap, vector<ImagePtr>& images, vector<double>& imageTimes, double &startCameraTime, double &startSystemTime, double &endCameraTime, double &endSystemTime)
+int AcquireImages(CameraPtr pCam, unsigned int maxImages, double captureUntilTime, INodeMap& nodeMap, vector<ImagePtr>& images, vector<double>& imageTimes, vector<double>& imageExposureTimes, double &startCameraTime, double &startSystemTime, double &endCameraTime, double &endSystemTime)
 {
     int result = 0;
 
@@ -452,6 +460,7 @@ int AcquireImages(CameraPtr pCam, unsigned int maxImages, double captureUntilTim
 
 		  // record time
 		  imageTimes.push_back(timestamp-exposureTime);
+		  imageExposureTimes.push_back(exposureTime);
 		  // Deep copy image into image vector
 		  images.push_back(pResultImage->Convert(PixelFormat_Mono8, HQ_LINEAR));
                 }
