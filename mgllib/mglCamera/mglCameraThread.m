@@ -10,9 +10,23 @@
 %
 %             mglCameraThread('init');
 %
-%             Then you can capture a set of frames
+%             The above will default to camera 1. If you want to specify
+%             a different camera:
 %
-%             mglCameraThread('capture',100);
+%             mglCameraThread('init','cameraNum=2');
+%
+%             You can also specify the maximum number of frames to
+%             capture which defaults to 1000000 so that you don't 
+%             make a mistake and keep the process running forever
+%             and fill up memory
+%
+%             mglCameraThread('init','maxFrames=5000');
+%
+%             Then you can capture a set of frames setting how many
+%             seconds from now you want to stop captureing (e.g.
+%             to capture images until 10 seconds from the call):
+%
+%             mglCameraThread('capture',10);
 %
 %             When that is done you can get the frames into a buffer
 %
@@ -21,6 +35,10 @@
 %             To quit the thread
 %
 %             mglCameraThread('quit');
+%
+%             For verbose output you can set at anytime
+%
+%             mglCameraThread('verbose',1);
 % 
 %
 function retval = mglCameraThread(command,varargin)
@@ -32,7 +50,9 @@ if nargin < 1
 end
 
 % parse arguments
-getArgs(varargin,{'cameraNum=1','maxFrames=100000','timeToCapture=1'});
+if ~any(strcmp(lower(command),{'verbose'}))
+  getArgs(varargin,{'cameraNum=1','maxFrames=100000','timeToCapture=1'});
+end
 
 switch (lower(command))
  
@@ -50,6 +70,7 @@ switch (lower(command))
  case 'get'
   % get the images
   [im w h t cameraStart cameraEnd systemStart systemEnd exposureTimes] = mglPrivateCameraThread(4);
+  if isempty(im),retval = [];return,end
   % reshape and return as struct
   retval.im = reshape(im,w,h,size(im,2));
   % figure out slope and offset of relationship to system time
@@ -73,6 +94,11 @@ switch (lower(command))
  case 'quit'
   % quit thread
   mglPrivateCameraThread(2);
-  
+ case 'verbose'
+  if (length(varargin) ~= 1) || ~isnumeric(varargin{1})
+    disp(sprintf('(mglCameraThread) Verbose needs a setting of either 1 or 0'));
+    return
+  end
+  mglPrivateCameraThread(5,varargin{1});
 end
 

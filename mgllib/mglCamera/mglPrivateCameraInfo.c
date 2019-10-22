@@ -23,6 +23,9 @@ copyright: (c) 2019 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
 // Define the maximum number of characters that will be printed out
  // for any information retrieved from a node.
 const unsigned int maxChars = 35;
+// global verbose variable
+unsigned int gVerbose = 0;
+unsigned int gDetailedInfo = 0;
 using namespace Spinnaker;
 using namespace Spinnaker::GenApi;
 using namespace Spinnaker::GenICam;
@@ -41,13 +44,14 @@ void Indent(unsigned int level)
 {
     for (unsigned int i = 0; i < level; i++)
     {
+      if (gVerbose)
         cout << "   ";
     }
 }
 // This function retrieves and prints the display name and value of all node
 // types as value nodes. A value node is a general node type that allows for
 // the reading and writing of any node type as a string.
-int PrintValueNode(CNodePtr node, unsigned int level)
+int PrintValueNode(CNodePtr node, unsigned int level, mxArray **retval)
 {
     int result = 0;
     try
@@ -55,7 +59,9 @@ int PrintValueNode(CNodePtr node, unsigned int level)
         // If this node is a selector and is an enumeration node print out its entries and selected features
         if (node->IsSelector() && (node->GetPrincipalInterfaceType() == intfIEnumeration))
         {
-            return PrintEnumerationSelector(node, level);
+	  if (retval != NULL)
+	    *retval = mxCreateString("enumeration note coded yet");
+	  return PrintEnumerationSelector(node, level);
         }
       
         // Cast as value node
@@ -81,6 +87,7 @@ int PrintValueNode(CNodePtr node, unsigned int level)
         // individual types.
         //
         gcstring value = ptrValueNode->ToString();
+	if (retval != NULL) *retval = mxCreateString(value);
         // Ensure that the value length is not excessive for printing
         if (value.size() > maxChars)
         {
@@ -88,7 +95,8 @@ int PrintValueNode(CNodePtr node, unsigned int level)
         }
         // Print value
         Indent(level);
-        cout << displayName << ": " << value << endl;
+	if (gVerbose)
+	  cout << displayName << ": " << value << endl;
     }
     catch (Spinnaker::Exception& e)
     {
@@ -101,7 +109,7 @@ int PrintValueNode(CNodePtr node, unsigned int level)
 // node, limiting the number of printed characters to a maximum defined by the
 // maxChars global variable. Level parameter determines the indentation level
 // for the output.
-int PrintStringNode(CNodePtr node, unsigned int level)
+int PrintStringNode(CNodePtr node, unsigned int level, mxArray **retval)
 {
     int result = 0;
     try
@@ -120,6 +128,8 @@ int PrintStringNode(CNodePtr node, unsigned int level)
         // or static cast on the gcstring object.
         //
         gcstring value = ptrStringNode->GetValue();
+	// set return value
+	if (retval != NULL) *retval = mxCreateString(value);
         // Ensure that the value length is not excessive for printing
         if (value.size() > maxChars)
         {
@@ -127,7 +137,8 @@ int PrintStringNode(CNodePtr node, unsigned int level)
         }
         // Print value; 'level' determines the indentation level of output
         Indent(level);
-        cout << displayName << ": " << value << endl;
+	if (gVerbose)
+	  cout << displayName << ": " << value << endl;
     }
     catch (Spinnaker::Exception& e)
     {
@@ -162,7 +173,8 @@ int PrintIntegerNode(CNodePtr node, unsigned int level)
         int64_t value = ptrIntegerNode->GetValue();
         // Print value
         Indent(level);
-        cout << displayName << ": " << value << endl;
+	if (gVerbose)
+	  cout << displayName << ": " << value << endl;
     }
     catch (Spinnaker::Exception& e)
     {
@@ -193,7 +205,8 @@ int PrintFloatNode(CNodePtr node, unsigned int level)
         double value = ptrFloatNode->GetValue();
         // Print value
         Indent(level);
-        cout << displayName << ": " << value << endl;
+	if (gVerbose)
+	  cout << displayName << ": " << value << endl;
     }
     catch (Spinnaker::Exception& e)
     {
@@ -225,7 +238,8 @@ int PrintBooleanNode(CNodePtr node, unsigned int level)
         gcstring value = (ptrBooleanNode->GetValue() ? "true" : "false");
         // Print value
         Indent(level);
-        cout << displayName << ": " << value << endl;
+	if (gVerbose)
+	  cout << displayName << ": " << value << endl;
     }
     catch (Spinnaker::Exception& e)
     {
@@ -262,7 +276,8 @@ int PrintCommandNode(CNodePtr node, unsigned int level)
         }
         // Print tooltip
         Indent(level);
-        cout << displayName << ": " << tooltip << endl;
+	if (gVerbose)
+	  cout << displayName << ": " << tooltip << endl;
         return 0;
     }
     catch (Spinnaker::Exception& e)
@@ -307,7 +322,8 @@ int PrintEnumerationNodeAndCurrentEntry(CNodePtr node, unsigned int level)
         gcstring currentEntrySymbolic = ptrEnumEntryNode->GetSymbolic();
         // Print current entry symbolic
         Indent(level);
-        cout << displayName << ": " << currentEntrySymbolic << endl;
+	if (gVerbose)
+	  cout << displayName << ": " << currentEntrySymbolic << endl;
         return 0;
     }
     catch (Spinnaker::Exception& e)
@@ -317,13 +333,13 @@ int PrintEnumerationNodeAndCurrentEntry(CNodePtr node, unsigned int level)
     }
 }
 // Based on the read type specified, print the node using the correct print function.
-int PrintNode(CNodePtr node, unsigned int level)
+int PrintNode(CNodePtr node, unsigned int level, mxArray **retval)
 {
     switch (chosenRead)
     {
     case VALUE:
     {
-        return PrintValueNode(node, level);
+      return PrintValueNode(node, level, retval);
     }
     case INDIVIDUAL: // Cast all non-category nodes as actual types
     {
@@ -331,31 +347,37 @@ int PrintNode(CNodePtr node, unsigned int level)
         {
         case intfIString:
         {
-            return PrintStringNode(node, level);
+	  return PrintStringNode(node, level, retval);
         }
         case  intfIInteger:
         {
-            return PrintIntegerNode(node, level);
+	  if (retval != NULL) *retval = mxCreateDoubleMatrix(0,0,mxREAL);
+	  return PrintIntegerNode(node, level);
         }
         case intfIFloat:
         {
-            return PrintFloatNode(node, level);
+	  if (retval != NULL) *retval = mxCreateDoubleMatrix(0,0,mxREAL);
+	  return PrintFloatNode(node, level);
         }
         case intfIBoolean:
         {
-            return PrintBooleanNode(node, level);
+	  if (retval != NULL) *retval = mxCreateDoubleMatrix(0,0,mxREAL);
+	  return PrintBooleanNode(node, level);
         }
         case intfICommand:
         {
-            return PrintCommandNode(node, level);
+	  if (retval != NULL) *retval = mxCreateDoubleMatrix(0,0,mxREAL);
+	  return PrintCommandNode(node, level);
         }
         case intfIEnumeration:
         {
-            return PrintEnumerationNodeAndCurrentEntry(node, level);
+	  if (retval != NULL) *retval = mxCreateDoubleMatrix(0,0,mxREAL);
+	  return PrintEnumerationNodeAndCurrentEntry(node, level);
         }
         default:
         {
-            cout << "Unexpected interface type." << endl;
+	  if (retval != NULL) *retval = mxCreateDoubleMatrix(0,0,mxREAL);
+	  cout << "Unexpected interface type." << endl;
             return -1;
         }
         }
@@ -390,7 +412,8 @@ int PrintEnumerationSelector(CNodePtr node, unsigned int level)
         gcstring currentEntrySymbolic = ptrSelectorNode->ToString();
         // Print current entry symbolic
         Indent(level);
-        cout << displayName << ": " << currentEntrySymbolic << endl;
+	if (gVerbose)
+	  cout << displayName << ": " << currentEntrySymbolic << endl;
         // For every selector node entry
         for (size_t i = 0; i < entries.size(); i++)
         {
@@ -403,7 +426,8 @@ int PrintEnumerationSelector(CNodePtr node, unsigned int level)
                 {
                     ptrSelectorNode->SetIntValue(selectorEntry->GetValue());
                     Indent(level + 1);
-                    cout << displayName << ": " << ptrSelectorNode->ToString() << endl;
+		    if (gVerbose)
+		      cout << displayName << ": " << ptrSelectorNode->ToString() << endl;
                 }
             }
             // Look at every node that is affected by the selector node
@@ -417,7 +441,7 @@ int PrintEnumerationSelector(CNodePtr node, unsigned int level)
                 // Print the selected feature
                 else
                 {
-                    result = result | PrintNode(ptrFeatureNode, level + 2);
+		  result = result | PrintNode(ptrFeatureNode, level + 2, NULL);
                 }
             }
         }
@@ -437,7 +461,7 @@ int PrintEnumerationSelector(CNodePtr node, unsigned int level)
 // This function retrieves and prints out the display name of a category node
 // before printing all child nodes. Child nodes that are also category nodes are
 // printed recursively.
-int PrintCategoryNodeAndAllFeatures(CNodePtr node, unsigned int level)
+int PrintCategoryNodeAndAllFeatures(CNodePtr node, unsigned int level, mxArray **retval)
 {
     int result = 0;
     try
@@ -448,7 +472,8 @@ int PrintCategoryNodeAndAllFeatures(CNodePtr node, unsigned int level)
         gcstring displayName = ptrCategoryNode->GetDisplayName();
         // Print display name
         Indent(level);
-        cout << displayName << endl;
+	if (gVerbose)
+	  cout << displayName << endl;
         //
         // Retrieve children
         //
@@ -472,9 +497,43 @@ int PrintCategoryNodeAndAllFeatures(CNodePtr node, unsigned int level)
         // sacrificed.
         //
         FeatureList_t::const_iterator it;
+
+	// create output structure
+	const int structDims[2] = {1, 1};
+
+	// count features 
+	int featureCount = 0;
+        for (it = features.begin(); it != features.end(); ++it)
+	  featureCount++;
+
+	// now create a string array for holding all the feature names
+	char **fieldNames = (char **)malloc(featureCount * sizeof(char *));
+
+	// get names of features into that array
+	int fieldNum = 0;
+        for (it = features.begin(); it != features.end(); ++it){
+	  // fet feature name
+	  CNodePtr ptrFeatureNode = *it;
+	  const char *name = ptrFeatureNode->GetName();
+	  // allocate space for the name
+	  fieldNames[fieldNum] = (char *)malloc(sizeof(char)*(strlen(name)+1));
+	  // copy into our string array
+	  strcpy(fieldNames[fieldNum++],name);
+	}
+
+	// make output sturcture
+	if (retval != NULL)
+	  retval[0] = mxCreateStructArray(1,structDims,featureCount,(const char**)fieldNames);
+
+	// free up string array
+        for (fieldNum = 0; fieldNum < featureCount; fieldNum++)
+	  free(fieldNames[fieldNum]);
+	free(fieldNames);
+
         for (it = features.begin(); it != features.end(); ++it)
         {
             CNodePtr ptrFeatureNode = *it;
+
             // Ensure node is available and readable
             if (!IsAvailable(ptrFeatureNode) || !IsReadable(ptrFeatureNode))
             {
@@ -484,15 +543,30 @@ int PrintCategoryNodeAndAllFeatures(CNodePtr node, unsigned int level)
             // retrieve subnodes recursively.
             if (ptrFeatureNode->GetPrincipalInterfaceType() == intfICategory)
             {
-                result = result | PrintCategoryNodeAndAllFeatures(ptrFeatureNode, level + 1);
+	      // get the field corresponding to this feature
+	      if (retval != NULL) {
+		mxArray *featureField;
+		result = result | PrintCategoryNodeAndAllFeatures(ptrFeatureNode, level + 1, &featureField);
+		mxSetField(retval[0],0,ptrFeatureNode->GetName(),featureField);
+	      }
+	      else
+		result = result | PrintCategoryNodeAndAllFeatures(ptrFeatureNode, level + 1, NULL);
             }
             // Print the node
             else
             {
-                result = result | PrintNode(ptrFeatureNode, level + 1);
+	      if (retval != NULL) {
+		// get the string value of the node
+		mxArray *featureValue;
+		result = result | PrintNode(ptrFeatureNode, level + 1, &featureValue);
+		mxSetField(retval[0],0,ptrFeatureNode->GetName(),featureValue);
+	      }
+	      else
+		result = result | PrintNode(ptrFeatureNode, level + 1, NULL);
             }
         }
-        cout << endl;
+	if (gVerbose)
+	  cout << endl;
     }
     catch (Spinnaker::Exception& e)
     {
@@ -509,7 +583,8 @@ int PrintCategoryNodeAndAllFeatures(CNodePtr node, unsigned int level)
 int ConfigureChunkData(INodeMap& nodeMap)
 {
     int result = 0;
-    cout << endl << endl << "*** CONFIGURING CHUNK DATA ***" << endl << endl;
+    if (gVerbose)
+      cout << endl << endl << "*** CONFIGURING CHUNK DATA ***" << endl << endl;
     try
     {
         //
@@ -527,7 +602,8 @@ int ConfigureChunkData(INodeMap& nodeMap)
             return -1;
         }
         ptrChunkModeActive->SetValue(true);
-        cout << "Chunk mode activated..." << endl;
+	if (gVerbose)
+	  cout << "Chunk mode activated..." << endl;
         //
         // Enable all types of chunk data
         //
@@ -552,7 +628,8 @@ int ConfigureChunkData(INodeMap& nodeMap)
         }
         // Retrieve entries
         ptrChunkSelector->GetEntries(entries);
-        cout << "Enabling entries..." << endl;
+	if (gVerbose)
+	  cout << "Enabling entries..." << endl;
         for (size_t i = 0; i < entries.size(); i++)
         {
             // Select entry to be enabled
@@ -563,26 +640,31 @@ int ConfigureChunkData(INodeMap& nodeMap)
                 continue;
             }
             ptrChunkSelector->SetIntValue(ptrChunkSelectorEntry->GetValue());
-            cout << "\t" << ptrChunkSelectorEntry->GetSymbolic() << ": ";
+	    if (gVerbose)
+	      cout << "\t" << ptrChunkSelectorEntry->GetSymbolic() << ": ";
             // Retrieve corresponding boolean
             CBooleanPtr ptrChunkEnable = nodeMap.GetNode("ChunkEnable");
             // Enable the boolean, thus enabling the corresponding chunk data
             if (!IsAvailable(ptrChunkEnable))
             {
-                cout << "not available" << endl;
+	      if (gVerbose)
+		cout << "not available" << endl;
                 result = -1;
             }
             else if (ptrChunkEnable->GetValue())
             {
+	      if (gVerbose)
                 cout << "enabled" << endl;
             }
             else if (IsWritable(ptrChunkEnable))
             {
                 ptrChunkEnable->SetValue(true);
-                cout << "enabled" << endl;
+		if (gVerbose)
+		  cout << "enabled" << endl;
             }
             else
             {
+	      if (gVerbose)
                 cout << "not writable" << endl;
                 result = -1;
             }
@@ -601,7 +683,8 @@ int ConfigureChunkData(INodeMap& nodeMap)
 int DisplayChunkData(INodeMap& nodeMap)
 {
     int result = 0;
-    cout << "Printing chunk data from nodemap..." << endl;
+    if (gVerbose)
+      cout << "Printing chunk data from nodemap..." << endl;
     try
     {
         //
@@ -625,10 +708,12 @@ int DisplayChunkData(INodeMap& nodeMap)
         for (it = features.begin(); it != features.end(); ++it)
         {
             CNodePtr pFeature = (CNodePtr)*it;
-            cout << "\t" << pFeature->GetDisplayName() << ": ";
+	    if (gVerbose)
+	      cout << "\t" << pFeature->GetDisplayName() << ": ";
             if (!IsAvailable(pFeature) || !IsReadable(pFeature))
             {
-                cout << "node not available" << endl;
+                if (gVerbose)
+		  cout << "node not available" << endl;
                 result = result | -1;
                 continue;
             }
@@ -643,7 +728,8 @@ int DisplayChunkData(INodeMap& nodeMap)
             {
                 CBooleanPtr pBool = (CBooleanPtr)pFeature;
                 bool value = pBool->GetValue();
-                cout << (value ? "true" : "false") << endl;
+		if (gVerbose)
+		  cout << (value ? "true" : "false") << endl;
             }
             //
             // Print non-boolean node type value
@@ -656,7 +742,8 @@ int DisplayChunkData(INodeMap& nodeMap)
             else
             {
                 CValuePtr pValue = (CValuePtr)pFeature;
-                cout << pValue->ToString() << endl;
+		if (gVerbose)
+		  cout << pValue->ToString() << endl;
             }
         }
     }
@@ -671,7 +758,7 @@ int DisplayChunkData(INodeMap& nodeMap)
 // device and TL stream nodemaps are retrieved and printed. Following this,
 // the camera is initialized and then nodes from the GenICam nodemap are
 // retrieved and printed.
-int RunSingleCamera(CameraPtr cam)
+int RunSingleCamera(CameraPtr cam, mxArray **retval)
 {
     int result = 0;
     unsigned int level = 0;
@@ -686,9 +773,13 @@ int RunSingleCamera(CameraPtr cam)
         // information fundamental to the camera such as the serial number,
         // vendor, and model.
         //
-        cout << endl << "*** PRINTING TRANSPORT LAYER DEVICE NODEMAP ***" << endl << endl;
+        if (gVerbose)
+	  cout << endl << "*** PRINTING TRANSPORT LAYER DEVICE NODEMAP ***" << endl << endl;
         INodeMap& genTLNodeMap = cam->GetTLDeviceNodeMap();
-        result = PrintCategoryNodeAndAllFeatures(genTLNodeMap.GetNode("Root"), level);
+	// get the output field
+	mxArray *nodeStruct;
+	result = PrintCategoryNodeAndAllFeatures(genTLNodeMap.GetNode("Root"), level, &nodeStruct);
+	mxSetField(*retval,0,"device",nodeStruct);
         //
         // Retrieve TL stream nodemap
         //
@@ -700,9 +791,15 @@ int RunSingleCamera(CameraPtr cam)
         // layer allows the information to be retrieved without affecting camera
         // performance.
         //
-        cout << "*** PRINTING TL STREAM NODEMAP ***" << endl << endl;
+	if (gVerbose)
+	  cout << "*** PRINTING TL STREAM NODEMAP ***" << endl << endl;
         INodeMap& nodeMapTLStream = cam->GetTLStreamNodeMap();
-        result = result | PrintCategoryNodeAndAllFeatures(nodeMapTLStream.GetNode("Root"), level);
+	result = result | PrintCategoryNodeAndAllFeatures(nodeMapTLStream.GetNode("Root"), level, &nodeStruct);
+	mxSetField(*retval,0,"stream",nodeStruct);
+
+	// this is all we need to do unless asked for more
+	if (!gDetailedInfo) return result;
+
         //
         // Initialize camera
         //
@@ -714,7 +811,8 @@ int RunSingleCamera(CameraPtr cam)
         // *** LATER ***
         // Cameras should be deinitialized when no longer needed.
         //
-        cout << "*** PRINTING GENICAM NODEMAP ***" << endl << endl;
+	if (gVerbose)
+	  cout << "*** PRINTING GENICAM NODEMAP ***" << endl << endl;
         cam->Init();
         //
         // Retrieve GenICam nodemap
@@ -726,7 +824,8 @@ int RunSingleCamera(CameraPtr cam)
         // and the sequencer are found on this nodemap.
         //
         INodeMap& appLayerNodeMap = cam->GetNodeMap();
-        result = result | PrintCategoryNodeAndAllFeatures(appLayerNodeMap.GetNode("Root"), level);
+	result = result | PrintCategoryNodeAndAllFeatures(appLayerNodeMap.GetNode("Root"), level, &nodeStruct);
+	mxSetField(*retval,0,"GenICam",nodeStruct);
 	// Configure chunk data
 	ConfigureChunkData(appLayerNodeMap);
 	DisplayChunkData(appLayerNodeMap);
@@ -751,21 +850,31 @@ int RunSingleCamera(CameraPtr cam)
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
     int result = 0;
+
+    // set verbose setting
+    gVerbose = (int)mxGetScalar(prhs[0]);
+
+    // set get all information
+    gDetailedInfo = (int)mxGetScalar(prhs[1]);
+
     // Print application build information
-    cout << "Application build date: " << __DATE__ << " " << __TIME__ << endl << endl;
+    if (gVerbose)
+      cout << "Application build date: " << __DATE__ << " " << __TIME__ << endl << endl;
     // Retrieve singleton reference to system object
     SystemPtr system = System::GetInstance();
     // Print out current library version
     const LibraryVersion spinnakerLibraryVersion = system->GetLibraryVersion();
-    cout << "Spinnaker library version: "
-        << spinnakerLibraryVersion.major << "."
-        << spinnakerLibraryVersion.minor << "."
-        << spinnakerLibraryVersion.type << "."
-        << spinnakerLibraryVersion.build << endl << endl;
+    if (gVerbose)
+      cout << "Spinnaker library version: "
+	   << spinnakerLibraryVersion.major << "."
+	   << spinnakerLibraryVersion.minor << "."
+	   << spinnakerLibraryVersion.type << "."
+	   << spinnakerLibraryVersion.build << endl << endl;
     // Retrieve list of cameras from the system
     CameraList camList = system->GetCameras();
     unsigned int numCameras = camList.GetSize();
-    cout << "Number of cameras detected: " << numCameras << endl << endl;
+    if (gVerbose)
+      cout << "Number of cameras detected: " << numCameras << endl << endl;
     // Finish if there are no cameras
     if (numCameras == 0)
     {
@@ -773,9 +882,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         camList.Clear();
         // Release system
         system->ReleaseInstance();
-        cout << "Not enough cameras!" << endl;
-        cout << "Done! Press Enter to exit..." << endl;
-        getchar();
+	if (gVerbose)
+	  cout << "Not enough cameras!" << endl;
         return;
     }
     //
@@ -791,15 +899,31 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     // the camera must be broken by manually setting the pointer to nullptr.
     //
     CameraPtr pCam = nullptr;
+    // create the camera structure
+    const int structDims[2] = {1, 1};
+    if (gDetailedInfo) {
+      const char *nodeNames[] = {"device","stream","GenICam"};
+      plhs[0] = mxCreateStructArray(1,structDims,3,nodeNames);
+    }
+    else {
+      const char *nodeNames[] = {"device","stream"};
+      plhs[0] = mxCreateStructArray(1,structDims,2,nodeNames);
+    }
+
+    if (numCameras > 1)
+      mexPrintf("(mglPrivateCameraInfo) !!! Code does not handle more than one camera. !!!\n");
+
     // Run example on each camera
     for (unsigned int i = 0; i < numCameras; i++)
     {
         // Select camera
         pCam = camList.GetByIndex(i);
-        cout << endl << "Running example for camera " << i << "..." << endl;
+	if (gVerbose)
+	  cout << endl << "Running example for camera " << i << "..." << endl;
         // Run example
-        result = result | RunSingleCamera(pCam);
-        cout << "Camera " << i << " example complete..." << endl << endl;
+        result = result | RunSingleCamera(pCam, plhs);
+	if (gVerbose)
+	  cout << "Camera " << i << " example complete..." << endl << endl;
     }
     //
     // Release shared pointer reference to camera before releasing system

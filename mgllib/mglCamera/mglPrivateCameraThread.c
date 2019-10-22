@@ -42,6 +42,7 @@ using namespace std;
 #define QUIT 2
 #define CAPTURE 3
 #define GETDATA 4
+#define VERBOSE 5
 
 ///////////////////////////////
 //   function declarations   //
@@ -70,6 +71,7 @@ double gStartCameraTime,gEndCameraTime,gStartSystemTime,gEndSystemTime;
 vector<ImagePtr> gImages;
 vector<double> gImageTimes;
 vector<double> gImageExposureTimes;
+unsigned int gVerbose = FALSE;
 
 //////////////
 //   main   //
@@ -143,6 +145,12 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     // return 1
     plhs[0] = mxCreateDoubleScalar(1);
   }
+  // Set verbose command -----------------------------------------------------------------
+  else if (command == VERBOSE) {
+    gVerbose = (int)mxGetScalar(prhs[1]);
+    if (gVerbose)
+      mexPrintf("(mglPrivateCameraThread) Setting verbose to: %i\n",gVerbose);
+  }
   // Get data command -----------------------------------------------------------------
   else if (command == GETDATA) {
     if (gCameraThreadInstalled) {
@@ -152,46 +160,55 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
       unsigned int imageSize = gImageWidth * gImageHeight;
       unsigned int nImages = gImages.size();
-      mexPrintf("imageSize: %i x %i (n=%i) (startTime: %7.5f endTime: %7.5f)\n",gImageWidth,gImageHeight,nImages,*(gImageTimes.begin()),*(gImageTimes.end()-1));
-
-      // allocate buffer for return array of images
-      plhs[0] = mxCreateNumericMatrix(imageSize,nImages,mxUINT8_CLASS,mxREAL);
-
-      // return size of images
-      plhs[1] = mxCreateDoubleScalar(gImageWidth);
-      plhs[2] = mxCreateDoubleScalar(gImageHeight);
-
-      // and array of image times
-      plhs[3] = mxCreateDoubleMatrix(1,nImages,mxREAL);
-
-      // camera start and end time
-      plhs[4] = mxCreateDoubleScalar(gStartCameraTime);
-      plhs[5] = mxCreateDoubleScalar(gEndCameraTime);
-      plhs[6] = mxCreateDoubleScalar(gStartSystemTime);
-      plhs[7] = mxCreateDoubleScalar(gEndSystemTime);
-
-      // and array of exposure times
-      plhs[8] = mxCreateDoubleMatrix(1,nImages,mxREAL);
-
-      // cycle through images and return into matrix
-      // get pointer (matlab claims that this is no longer a good way to get
-      // pointers, but the function mxSetUint8s does not compile for me
-      // and also doesn't seem to allow updating the pointer, so sticking
-      // to what works
-      unsigned char *dataPtr = (unsigned char *)(double*)mxGetPr(plhs[0]);
-      double *timePtr = (double*)mxGetPr(plhs[3]);
-      double *exposureTimePtr = (double*)mxGetPr(plhs[8]);
-
-      // fill the matlab pointer with images
-      for (unsigned int imageCnt = 0; imageCnt < nImages; imageCnt++) {
-	// copy image
-      	memcpy(dataPtr+imageCnt*imageSize,gImages[imageCnt]->GetData(),imageSize);
-	// copy time stamp
-	*(timePtr+imageCnt) = *(gImageTimes.begin()+imageCnt);
-	// copy time exposure time
-	*(exposureTimePtr+imageCnt) = *(gImageExposureTimes.begin()+imageCnt);
+      if (nImages == 0) {
+	// report no images 
+	mexPrintf("(mglPrivateCameraThread) No images to get\n");
+	// set all output arguments to empty
+	for (int iOutput = 0; iOutput <= 9; iOutput++) 
+	  plhs[iOutput] = mxCreateDoubleMatrix(0,0,mxREAL);
       }
+      else {
+	// report how many images
+	mexPrintf("(mglPrivateCameraThread) Received %i images (%i x %i)\n",nImages,gImageWidth,gImageHeight);
 
+	// allocate buffer for return array of images
+	plhs[0] = mxCreateNumericMatrix(imageSize,nImages,mxUINT8_CLASS,mxREAL);
+
+	// return size of images
+	plhs[1] = mxCreateDoubleScalar(gImageWidth);
+	plhs[2] = mxCreateDoubleScalar(gImageHeight);
+
+	// and array of image times
+	plhs[3] = mxCreateDoubleMatrix(1,nImages,mxREAL);
+
+	// camera start and end time
+	plhs[4] = mxCreateDoubleScalar(gStartCameraTime);
+	plhs[5] = mxCreateDoubleScalar(gEndCameraTime);
+	plhs[6] = mxCreateDoubleScalar(gStartSystemTime);
+	plhs[7] = mxCreateDoubleScalar(gEndSystemTime);
+
+	// and array of exposure times
+	plhs[8] = mxCreateDoubleMatrix(1,nImages,mxREAL);
+
+	// cycle through images and return into matrix
+	// get pointer (matlab claims that this is no longer a good way to get
+	// pointers, but the function mxSetUint8s does not compile for me
+	// and also doesn't seem to allow updating the pointer, so sticking
+	// to what works
+	unsigned char *dataPtr = (unsigned char *)(double*)mxGetPr(plhs[0]);
+	double *timePtr = (double*)mxGetPr(plhs[3]);
+	double *exposureTimePtr = (double*)mxGetPr(plhs[8]);
+
+	// fill the matlab pointer with images
+	for (unsigned int imageCnt = 0; imageCnt < nImages; imageCnt++) {
+	  // copy image
+	  memcpy(dataPtr+imageCnt*imageSize,gImages[imageCnt]->GetData(),imageSize);
+	  // copy time stamp
+	  *(timePtr+imageCnt) = *(gImageTimes.begin()+imageCnt);
+	  // copy time exposure time
+	  *(exposureTimePtr+imageCnt) = *(gImageExposureTimes.begin()+imageCnt);
+	}
+      }
       // clear the image and time vector
       gImages.clear();
       gImageTimes.clear();
@@ -261,7 +278,7 @@ void* cameraThread(void *data)
   }
 
   // display what we are doing
-  cout << "(mglPriavateCameraCapture) Found " << numCameras << " cameras: Initializing " << gCameraNum << endl;
+  cout << "(mglPriavateCameraCapture) Found " << numCameras << " cameras: Initializing camera " << gCameraNum << endl;
 
   // Set up pointer to camera
   CameraPtr pCam = camList.GetByIndex(gCameraNum-1);
@@ -275,6 +292,9 @@ void* cameraThread(void *data)
   
     // Configure chunk data
     ConfigureChunkData(nodeMap);
+
+    // display what we are doing
+    cout << "(mglPriavateCameraCapture) Ready and waiting for commands" << endl;
 
     // image info pointers
     unsigned int stopCameraThread = FALSE;
@@ -291,17 +311,21 @@ void* cameraThread(void *data)
 	// capture images
 	err = AcquireImages(pCam, gMaxImages, gCaptureUntilTime, nodeMap, gImages, gImageTimes, gImageExposureTimes, gStartCameraTime, gStartSystemTime, gEndCameraTime, gEndSystemTime);
 
-	// get image size
-	gImageWidth = gImages[0]->GetWidth();
-	gImageHeight = gImages[0]->GetHeight();
+	// if error then act as if there are no images in buffer
+	if (err == -1) {
+	  // clear the gImages buffer
+	  gImages.clear();
+	}
+	else {
+	  // get image size
+	  gImageWidth = gImages[0]->GetWidth();
+	  gImageHeight = gImages[0]->GetHeight();
+	}
+
       }
       else if (gCommand == QUIT) {
 	// stop the thread
 	stopCameraThread = TRUE;
-	gCommand = NOCOMMAND;
-
-	// drop out of loop
-	continue;
       }
 
       // set command back to NOCOMMAND
@@ -315,16 +339,20 @@ void* cameraThread(void *data)
     cout << "(mglPrivateCameraThread) Error: " << e.what() << endl;
   }
   
+  // lock mutex
+  pthread_mutex_lock(&gMutex);
+
   // Clear camera list before releasing system
   camList.Clear();
 
   // Deinitialize camera
   pCam->DeInit();
+  pCam = nullptr;
 
   // Release system
-  //system->ReleaseInstance();
-  mexPrintf("FIX: Why does releasing system cause crash?");
+  system->ReleaseInstance();
   
+  // say that wer are ending
   mexPrintf("(mglPrivateCameraThread) Ending thread\n");
 
   // set flag to uninstalled
@@ -334,6 +362,7 @@ void* cameraThread(void *data)
   pthread_mutex_unlock(&gMutex);
   // destroy mutex
   pthread_mutex_destroy(&gMutex);
+
   return NULL;
 }
 
@@ -423,21 +452,17 @@ int AcquireImages(CameraPtr pCam, unsigned int maxImages, double captureUntilTim
         // Begin acquiring images
         pCam->BeginAcquisition();
 
-
-	// display timestamp of device
-	cout << " Timestamp = " << getCameraTimestamp(pCam) << endl;
-
+	// get current time
 	double currentTime = getCurrentTimeInSeconds();
 
 	// log beginning camera and system time
 	startCameraTime = getCameraTimestamp(pCam);
 	startSystemTime = getCurrentTimeInSeconds();
 	// averaging time from before and after getting system time to try to be more accurate
-	startCameraTime = getCameraTimestamp(pCam);
-	//	startCameraTime = (getCameraTimestamp(pCam)+startCameraTime)/2;
+	startCameraTime = (getCameraTimestamp(pCam)+startCameraTime)/2;
 
 	cout.precision(12);
-	cout << "(mglPrivateCameraThread) Starting capture for " << captureUntilTime-currentTime << "s or until " << maxImages << " are acquired (Current time:  " <<  currentTime << ")" << endl;
+	cout << "(mglPrivateCameraThread) Starting capture for " << captureUntilTime-currentTime << "s or until " << maxImages << " images are acquired." << endl;
 
         // Retrieve and convert images
 	while((currentTime < captureUntilTime) && (images.size() < maxImages))
@@ -446,42 +471,39 @@ int AcquireImages(CameraPtr pCam, unsigned int maxImages, double captureUntilTim
 	    currentTime = getCurrentTimeInSeconds();
 
             ImagePtr pResultImage = pCam->GetNextImage();
-            try
-            {
-                if (pResultImage->IsIncomplete())
-                {
-		  cout << "(mglPrivateCameraThread) Image incomplete with image status " << pResultImage->GetImageStatus() << "..." << endl;
-                }
-                else
-                {
-		  ChunkData  chunkData = pResultImage->GetChunkData();
-		  double timestamp = static_cast<double>(chunkData.GetTimestamp());
-		  double exposureTime = static_cast<double>(chunkData.GetExposureTime());
+            try {
+	      if (pResultImage->IsIncomplete()) {
+		cout << "(mglPrivateCameraThread) Image incomplete with image status " << pResultImage->GetImageStatus() << "..." << endl;
+	      }
+	      else {
+		// get fields from chunk data
+		ChunkData  chunkData = pResultImage->GetChunkData();
+		double timestamp = static_cast<double>(chunkData.GetTimestamp());
+		double exposureTime = static_cast<double>(chunkData.GetExposureTime());
+		// record time
+		imageTimes.push_back(timestamp-exposureTime);
 
-		  // record time
-		  imageTimes.push_back(timestamp-exposureTime);
-		  imageExposureTimes.push_back(exposureTime);
-		  // Deep copy image into image vector
-		  images.push_back(pResultImage->Convert(PixelFormat_Mono8, HQ_LINEAR));
-                }
+		// record exposure
+		imageExposureTimes.push_back(exposureTime);
+		// Deep copy image into image vector
+		images.push_back(pResultImage->Convert(PixelFormat_Mono8, HQ_LINEAR));
+	      }
             }
-            catch (Spinnaker::Exception& e)
-            {
-                cout << "(mglPrivateCameraThread) Error: " << e.what() << endl;
-                result = -1;
+            catch (Spinnaker::Exception& e) {
+	      cout << "(mglPrivateCameraThread) Error: " << e.what() << endl;
+	      result = -1;
             }
             // Release image
             pResultImage->Release();
         }
         // End acquisition
         pCam->EndAcquisition();
-	cout  << "(mglPrivateCameraThread) Capture of " << images.size() << " images finished: " << currentTime << endl;
+	cout  << "(mglPrivateCameraThread) Capture of " << images.size() << " images finished." << endl;
 	// log end camera and system time
 	endCameraTime = getCameraTimestamp(pCam);
 	endSystemTime = getCurrentTimeInSeconds();
 	// averaging time from before and after getting system time to try to be more accurate
-	//	endCameraTime = (getCameraTimestamp(pCam)+endCameraTime)/2;
-	endCameraTime = getCameraTimestamp(pCam);
+	endCameraTime = (getCameraTimestamp(pCam)+endCameraTime)/2;
     }
     catch (Spinnaker::Exception& e)
     {
@@ -531,7 +553,9 @@ double getCurrentTimeInSeconds()
 int ConfigureChunkData(INodeMap& nodeMap)
 {
     int result = 0;
-    cout << endl << endl << "*** CONFIGURING CHUNK DATA ***" << endl << endl;
+    if (gVerbose)
+      cout << endl << endl << "*** CONFIGURING CHUNK DATA ***" << endl << endl;
+
     try
     {
         //
@@ -549,7 +573,8 @@ int ConfigureChunkData(INodeMap& nodeMap)
             return -1;
         }
         ptrChunkModeActive->SetValue(true);
-        cout << "Chunk mode activated..." << endl;
+	if (gVerbose)
+	  cout << "Chunk mode activated..." << endl;
         //
         // Enable all types of chunk data
         //
@@ -574,7 +599,8 @@ int ConfigureChunkData(INodeMap& nodeMap)
         }
         // Retrieve entries
         ptrChunkSelector->GetEntries(entries);
-        cout << "Enabling entries..." << endl;
+	if (gVerbose)
+	  cout << "Enabling entries..." << endl;
         for (size_t i = 0; i < entries.size(); i++)
         {
             // Select entry to be enabled
@@ -585,26 +611,31 @@ int ConfigureChunkData(INodeMap& nodeMap)
                 continue;
             }
             ptrChunkSelector->SetIntValue(ptrChunkSelectorEntry->GetValue());
-            cout << "\t" << ptrChunkSelectorEntry->GetSymbolic() << ": ";
+	    if (gVerbose)
+	      cout << "\t" << ptrChunkSelectorEntry->GetSymbolic() << ": ";
             // Retrieve corresponding boolean
             CBooleanPtr ptrChunkEnable = nodeMap.GetNode("ChunkEnable");
             // Enable the boolean, thus enabling the corresponding chunk data
             if (!IsAvailable(ptrChunkEnable))
             {
+	      if (gVerbose)
                 cout << "not available" << endl;
                 result = -1;
             }
             else if (ptrChunkEnable->GetValue())
             {
+	      if (gVerbose)
                 cout << "enabled" << endl;
             }
             else if (IsWritable(ptrChunkEnable))
             {
                 ptrChunkEnable->SetValue(true);
-                cout << "enabled" << endl;
+		if (gVerbose)
+		  cout << "enabled" << endl;
             }
             else
             {
+	      if (gVerbose)
                 cout << "not writable" << endl;
                 result = -1;
             }
