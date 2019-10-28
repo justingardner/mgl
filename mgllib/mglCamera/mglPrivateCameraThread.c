@@ -18,6 +18,7 @@
 #include "SpinGenApi/SpinnakerGenApi.h"
 #include <iostream>
 #include <sstream>
+#include "SpinVideo.h"
 #include "matrix.h"
 // used for time function
 #include <mach/mach.h>
@@ -29,6 +30,7 @@
 using namespace Spinnaker;
 using namespace Spinnaker::GenApi;
 using namespace Spinnaker::GenICam;
+using namespace Spinnaker::Video;
 using namespace std;
 
 ////////////////////////
@@ -43,6 +45,7 @@ using namespace std;
 #define CAPTURE 3
 #define GETDATA 4
 #define VERBOSE 5
+#define SAVEDATA 6
 
 ///////////////////////////////
 //   function declarations   //
@@ -54,6 +57,7 @@ int AcquireImages(CameraPtr pCam, unsigned int maxImages, double captureUntilTim
 double getCurrentTimeInSeconds();
 int ConfigureChunkData(INodeMap& nodeMap);
 int DisplayChunkData(INodeMap& nodeMap);
+int SaveVectorToVideo(vector<ImagePtr>& images);
 
 ////////////////
 //   globals  //
@@ -72,6 +76,15 @@ vector<ImagePtr> gImages;
 vector<double> gImageTimes;
 vector<double> gImageExposureTimes;
 unsigned int gVerbose = FALSE;
+
+// Video types
+enum videoType
+{
+    UNCOMPRESSED,
+    MJPG,
+    H264
+};
+const videoType chosenVideoType = UNCOMPRESSED;
 
 //////////////
 //   main   //
@@ -208,6 +221,36 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 	  // copy time exposure time
 	  *(exposureTimePtr+imageCnt) = *(gImageExposureTimes.begin()+imageCnt);
 	}
+      }
+      // clear the image and time vector
+      gImages.clear();
+      gImageTimes.clear();
+      gImageExposureTimes.clear();
+
+      // unlock the mutex
+      pthread_mutex_unlock(&gMutex);
+    }
+  }
+  // Get data command -----------------------------------------------------------------
+  else if (command == SAVEDATA) {
+    if (gCameraThreadInstalled) {
+      
+      // lock the pthread mutex
+      pthread_mutex_lock(&gMutex);
+
+      unsigned int imageSize = gImageWidth * gImageHeight;
+      unsigned int nImages = gImages.size();
+      if (nImages == 0) {
+	// report no images 
+	mexPrintf("(mglPrivateCameraThread) No images to save\n");
+	// set output to empty
+	plhs[0] = mxCreateDoubleMatrix(0,0,mxREAL);
+      }
+      else {
+	// report how many images
+	mexPrintf("(mglPrivateCameraThread) Received %i images (%i x %i)\n",nImages,gImageWidth,gImageHeight);
+
+	SaveVectorToVideo(gImages);
       }
       // clear the image and time vector
       gImages.clear();
@@ -712,6 +755,115 @@ int DisplayChunkData(INodeMap& nodeMap)
                 cout << pValue->ToString() << endl;
             }
         }
+    }
+    catch (Spinnaker::Exception& e)
+    {
+        cout << "Error: " << e.what() << endl;
+        result = -1;
+    }
+    return result;
+}
+
+///////////////////////////
+//   SaveVectorToVideo   //
+///////////////////////////
+// This function prepares, saves, and cleans up an video from a vector of images.
+int SaveVectorToVideo(vector<ImagePtr>& images)
+{
+    int result = 0;
+    cout << endl << endl << "*** CREATING VIDEO ***" << endl << endl;
+    try
+    {
+        // Create a unique filename
+        //
+        // *** NOTES ***
+        // This example creates filenames according to the type of video
+        // being created. Notice that '.avi' does not need to be appended to the
+        // name of the file. This is because the SpinVideo object takes care
+        // of the file extension automatically.
+        //
+        string videoFilename;
+        switch (chosenVideoType)
+        {
+        case UNCOMPRESSED:
+            videoFilename = "SaveToAvi-Uncompressed";
+            break;
+        case MJPG:
+            videoFilename = "SaveToAvi-MJPG";
+            break;
+        case H264:
+            videoFilename = "SaveToAvi-H264";
+        }
+        //
+        // Select option and open video file type
+        //
+        // *** NOTES ***
+        // Depending on the file type, a number of settings need to be set in
+        // an object called an option. An uncompressed option only needs to
+        // have the video frame rate set whereas videos with MJPG or H264
+        // compressions should have more values set.
+        //
+        // Once the desired option object is configured, open the video file
+        // with the option in order to create the video file.
+        //
+        // *** LATER ***
+        // Once all images have been added, it is important to close the file -
+        // this is similar to many other standard file streams.
+        //
+        SpinVideo video;
+	unsigned int frameRateToSet = 20;
+        // Set maximum video file size to 2GB.
+        // A new video file is generated when 2GB
+        // limit is reached. Setting maximum file
+        // size to 0 indicates no limit.
+        const unsigned int k_videoFileSize = 2048;
+        video.SetMaximumFileSize(k_videoFileSize);
+        if (chosenVideoType == UNCOMPRESSED)
+        {
+            Video::AVIOption option;
+            option.frameRate = frameRateToSet;
+            video.Open(videoFilename.c_str(), option);
+        }
+        else if (chosenVideoType == MJPG)
+        {
+            Video::MJPGOption option;
+            option.frameRate = frameRateToSet;
+            option.quality = 75;
+            video.Open(videoFilename.c_str(), option);
+        }
+        else if (chosenVideoType == H264)
+        {
+            Video::H264Option option;
+            option.frameRate = frameRateToSet;
+            option.bitrate = 1000000;
+            option.height = static_cast<unsigned int>(images[0]->GetHeight());
+            option.width = static_cast<unsigned int>(images[0]->GetWidth());
+            video.Open(videoFilename.c_str(), option);
+        }
+        //
+        // Construct and save video
+        //
+        // *** NOTES ***
+        // Although the video file has been opened, images must be individually
+        // appended in order to construct the video.
+        //
+        cout << "Appending " << images.size() << " images to video file: " << videoFilename << ".avi... " << endl
+             << endl;
+        for (unsigned int imageCnt = 0; imageCnt < images.size(); imageCnt++)
+        {
+            video.Append(images[imageCnt]);
+            cout << "\tAppended image " << imageCnt << "..." << endl;
+        }
+        //
+        // Close video file
+        //
+        // *** NOTES ***
+        // Once all images have been appended, it is important to close the
+        // video file. Notice that once an video file has been closed, no more
+        // images can be added.
+        //
+        video.Close();
+        cout << endl << "Video saved at " << videoFilename << ".avi" << endl << endl;
     }
     catch (Spinnaker::Exception& e)
     {

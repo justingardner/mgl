@@ -93,7 +93,10 @@ switch (lower(command))
   retval.exposureTimes = exposureTimes/1e9;
  case 'quit'
   % quit thread
-  mglPrivateCameraThread(2);
+  try
+    mglPrivateCameraThread(2);
+  catch
+  end
  case 'verbose'
   if (length(varargin) ~= 1) || ~isnumeric(varargin{1})
     disp(sprintf('(mglCameraThread) Verbose needs a setting of either 1 or 0'));
