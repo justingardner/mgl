@@ -51,7 +51,7 @@ end
 
 % parse arguments
 if ~any(strcmp(lower(command),{'verbose'}))
-  getArgs(varargin,{'cameraNum=1','maxFrames=100000','timeToCapture=1'});
+  getArgs(varargin,{'cameraNum=1','maxFrames=100000','timeToCapture=1','videoType=MPEG-4','videoFilename=~/Desktop/mglCameraVideo.avi'});
 end
 
 switch (lower(command))
@@ -91,6 +91,38 @@ switch (lower(command))
   end
   % set exposure times
   retval.exposureTimes = exposureTimes/1e9;
+  % set size
+  retval.size = size(retval.im);
+ case 'save'
+  % FIX, ideally the save would be done in mglPrivateCameraThread but there seems
+  % to be some library linkage problem with libfreetype see in c file for more details
+  % so, for now, we load here and save in matlab
+  retval = mglCameraThread('get');
+  if strcmp(videoType,'raw')
+    % write out as a simple mat file
+    videoFilename = setext(videoFilename,'mat');
+    fid = fopen(videoFilename,'w');
+    fwrite(fid,retval.im,'uint8');
+    fclose(fid);
+    videoFilename = setext(videoFilename,'mat');
+  else
+    % open a video object
+    v = VideoWriter(videoFilename,videoType);
+    % set approximate framerate
+    retval.approxFrameRate = size(retval.im,3)/(max(retval.t)-min(retval.t));
+    set(v,'FrameRate',retval.approxFrameRate);
+    % open the file
+    open(v);
+    % write out frames
+    writeVideo(v,reshape(retval.im,retval.size(1),retval.size(2),1,retval.size(3)));
+    % close the file
+    close(v);
+    % save filename
+    videoFilename = setext(videoFilename,get(v,'FileFormat'));
+  end
+  % remove the frames from return object and substitute the filename
+  retval.im = [];
+  retval.filename = videoFilename;
  case 'quit'
   % quit thread
   try

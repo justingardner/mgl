@@ -16,9 +16,9 @@
 #include <pthread.h>
 #include "Spinnaker.h"
 #include "SpinGenApi/SpinnakerGenApi.h"
+#include "SpinVideo.h"
 #include <iostream>
 #include <sstream>
-#include "SpinVideo.h"
 #include "matrix.h"
 // used for time function
 #include <mach/mach.h>
@@ -57,6 +57,11 @@ int AcquireImages(CameraPtr pCam, unsigned int maxImages, double captureUntilTim
 double getCurrentTimeInSeconds();
 int ConfigureChunkData(INodeMap& nodeMap);
 int DisplayChunkData(INodeMap& nodeMap);
+
+// FIX: This seems to cause a linkage problem with freetype where ffmpeg wants version 24 but 
+// only 18 is available. Not sure what the deal is, so am commenting out the vital code inside
+// this function so that it can still complie and run. JG 2019/10/28. To test it, add the following define
+//#define TESTVIDEOCODE 1
 int SaveVectorToVideo(vector<ImagePtr>& images);
 
 ////////////////
@@ -250,6 +255,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 	// report how many images
 	mexPrintf("(mglPrivateCameraThread) Received %i images (%i x %i)\n",nImages,gImageWidth,gImageHeight);
 
+	// JG: FIX, Not tested yet - linkage problem see above
 	SaveVectorToVideo(gImages);
       }
       // clear the image and time vector
@@ -771,6 +777,8 @@ int DisplayChunkData(INodeMap& nodeMap)
 int SaveVectorToVideo(vector<ImagePtr>& images)
 {
     int result = 0;
+
+#ifdef TESTVIDEOCODE
     cout << endl << endl << "*** CREATING VIDEO ***" << endl << endl;
     try
     {
@@ -870,5 +878,6 @@ int SaveVectorToVideo(vector<ImagePtr>& images)
         cout << "Error: " << e.what() << endl;
         result = -1;
     }
+#endif
     return result;
 }
