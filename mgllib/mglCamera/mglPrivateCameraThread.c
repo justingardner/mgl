@@ -16,9 +16,9 @@
 #include <pthread.h>
 #include "Spinnaker.h"
 #include "SpinGenApi/SpinnakerGenApi.h"
-#include "SpinVideo.h"
 #include <iostream>
 #include <sstream>
+#include <stdio.h>
 #include "matrix.h"
 // used for time function
 #include <mach/mach.h>
@@ -30,7 +30,6 @@
 using namespace Spinnaker;
 using namespace Spinnaker::GenApi;
 using namespace Spinnaker::GenICam;
-using namespace Spinnaker::Video;
 using namespace std;
 
 ////////////////////////
@@ -46,6 +45,9 @@ using namespace std;
 #define GETDATA 4
 #define VERBOSE 5
 #define SAVEDATA 6
+#define BLOCKTILLDONE 7
+#define CAPTUREONE 8
+#define STRLEN 2048
 
 ///////////////////////////////
 //   function declarations   //
@@ -57,12 +59,8 @@ int AcquireImages(CameraPtr pCam, unsigned int maxImages, double captureUntilTim
 double getCurrentTimeInSeconds();
 int ConfigureChunkData(INodeMap& nodeMap);
 int DisplayChunkData(INodeMap& nodeMap);
-
-// FIX: This seems to cause a linkage problem with freetype where ffmpeg wants version 24 but 
-// only 18 is available. Not sure what the deal is, so am commenting out the vital code inside
-// this function so that it can still complie and run. JG 2019/10/28. To test it, add the following define
-//#define TESTVIDEOCODE 1
-int SaveVectorToVideo(vector<ImagePtr>& images);
+int saveImages();
+void returnImageInfo(mxArray *plhs[]);
 
 ////////////////
 //   globals  //
@@ -81,6 +79,7 @@ vector<ImagePtr> gImages;
 vector<double> gImageTimes;
 vector<double> gImageExposureTimes;
 unsigned int gVerbose = FALSE;
+char gSaveName[STRLEN];
 
 // Video types
 enum videoType
@@ -148,11 +147,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   else if (command == CAPTURE) {
     if (gCameraThreadInstalled) {
 
-      // get the time to capture until
-      gCaptureUntilTime = (double)mxGetScalar(prhs[1]);
-
       // lock the pthread mutex
       pthread_mutex_lock(&gMutex);
+
+      // get the time to capture until
+      gCaptureUntilTime = (double)mxGetScalar(prhs[1]);
 
       // set flag to capture
       gCommand = CAPTURE;
@@ -163,11 +162,90 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     // return 1
     plhs[0] = mxCreateDoubleScalar(1);
   }
+  // Capture one command -----------------------------------------------------------------
+  else if (command == CAPTUREONE) {
+    if (gCameraThreadInstalled) {
+
+      // lock the pthread mutex
+      pthread_mutex_lock(&gMutex);
+
+      // set the capture until time so that we definitely can capture one image
+      gCaptureUntilTime = getCurrentTimeInSeconds()+1000;
+
+      // transiently set the max images to one
+      unsigned int maxImages = gMaxImages;
+      gMaxImages = 1;
+
+      // set flag to capture
+      gCommand = CAPTURE;
+
+      // unlock the mutex
+      pthread_mutex_unlock(&gMutex);
+      
+      // wait till done
+      unsigned int waitTillDone = 1;
+      while (waitTillDone) {
+	//lock the mutex
+	pthread_mutex_lock(&gMutex);
+	if (gCommand != CAPTURE) waitTillDone = 0;
+	// unlock the mutex
+	pthread_mutex_unlock(&gMutex);
+      }
+      
+      //lock the mutex
+      pthread_mutex_lock(&gMutex);
+      
+      // get image info
+      unsigned int imageSize = gImageWidth * gImageHeight;
+      unsigned int nImages = gImages.size();
+
+      // set other output arguments
+      returnImageInfo(plhs);
+
+      // check number of images
+      if (nImages == 0) {
+	// set return argument to empty
+	plhs[0] = mxCreateNumericMatrix(0,0,mxUINT8_CLASS,mxREAL);
+      }
+      else {
+	// allocate buffer for return array of images
+	plhs[0] = mxCreateNumericMatrix(imageSize,nImages,mxUINT8_CLASS,mxREAL);
+
+	// cycle through images and return into matrix
+	// get pointer (matlab claims that this is no longer a good way to get
+	// pointers, but the function mxSetUint8s does not compile for me
+	// and also doesn't seem to allow updating the pointer, so sticking
+	// to what works
+	unsigned char *dataPtr = (unsigned char *)(double*)mxGetPr(plhs[0]);
+
+	// fill the matlab pointer with images
+	for (unsigned int imageCnt = 0; imageCnt < nImages; imageCnt++) {
+	  // copy image
+	  memcpy(dataPtr+imageCnt*imageSize,gImages[imageCnt]->GetData(),imageSize);
+	}
+	// clear the images
+	gImages.clear();
+      }
+
+      // set max images back to what it was set to
+      gMaxImages = maxImages;
+      
+      //lock the mutex
+      pthread_mutex_unlock(&gMutex);
+    } 
+  }
   // Set verbose command -----------------------------------------------------------------
   else if (command == VERBOSE) {
+    // lock the pthread mutex
+    pthread_mutex_lock(&gMutex);
+
+    // set verbose
     gVerbose = (int)mxGetScalar(prhs[1]);
     if (gVerbose)
       mexPrintf("(mglPrivateCameraThread) Setting verbose to: %i\n",gVerbose);
+
+    // unlock the mutex
+    pthread_mutex_unlock(&gMutex);
   }
   // Get data command -----------------------------------------------------------------
   else if (command == GETDATA) {
@@ -178,12 +256,14 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
       unsigned int imageSize = gImageWidth * gImageHeight;
       unsigned int nImages = gImages.size();
+
+      // set other output arguments
+      returnImageInfo(plhs);
+
+      // check number of images
       if (nImages == 0) {
-	// report no images 
-	mexPrintf("(mglPrivateCameraThread) No images to get\n");
-	// set all output arguments to empty
-	for (int iOutput = 0; iOutput <= 9; iOutput++) 
-	  plhs[iOutput] = mxCreateDoubleMatrix(0,0,mxREAL);
+	// set return argument to empty
+	plhs[0] = mxCreateNumericMatrix(0,0,mxUINT8_CLASS,mxREAL);
       }
       else {
 	// report how many images
@@ -192,80 +272,74 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 	// allocate buffer for return array of images
 	plhs[0] = mxCreateNumericMatrix(imageSize,nImages,mxUINT8_CLASS,mxREAL);
 
-	// return size of images
-	plhs[1] = mxCreateDoubleScalar(gImageWidth);
-	plhs[2] = mxCreateDoubleScalar(gImageHeight);
-
-	// and array of image times
-	plhs[3] = mxCreateDoubleMatrix(1,nImages,mxREAL);
-
-	// camera start and end time
-	plhs[4] = mxCreateDoubleScalar(gStartCameraTime);
-	plhs[5] = mxCreateDoubleScalar(gEndCameraTime);
-	plhs[6] = mxCreateDoubleScalar(gStartSystemTime);
-	plhs[7] = mxCreateDoubleScalar(gEndSystemTime);
-
-	// and array of exposure times
-	plhs[8] = mxCreateDoubleMatrix(1,nImages,mxREAL);
-
 	// cycle through images and return into matrix
 	// get pointer (matlab claims that this is no longer a good way to get
 	// pointers, but the function mxSetUint8s does not compile for me
 	// and also doesn't seem to allow updating the pointer, so sticking
 	// to what works
 	unsigned char *dataPtr = (unsigned char *)(double*)mxGetPr(plhs[0]);
-	double *timePtr = (double*)mxGetPr(plhs[3]);
-	double *exposureTimePtr = (double*)mxGetPr(plhs[8]);
 
 	// fill the matlab pointer with images
 	for (unsigned int imageCnt = 0; imageCnt < nImages; imageCnt++) {
 	  // copy image
 	  memcpy(dataPtr+imageCnt*imageSize,gImages[imageCnt]->GetData(),imageSize);
-	  // copy time stamp
-	  *(timePtr+imageCnt) = *(gImageTimes.begin()+imageCnt);
-	  // copy time exposure time
-	  *(exposureTimePtr+imageCnt) = *(gImageExposureTimes.begin()+imageCnt);
 	}
+	// clear the images
+	gImages.clear();
       }
-      // clear the image and time vector
-      gImages.clear();
-      gImageTimes.clear();
-      gImageExposureTimes.clear();
 
       // unlock the mutex
       pthread_mutex_unlock(&gMutex);
     }
   }
-  // Get data command -----------------------------------------------------------------
+  // Save data command -----------------------------------------------------------------
   else if (command == SAVEDATA) {
     if (gCameraThreadInstalled) {
       
       // lock the pthread mutex
       pthread_mutex_lock(&gMutex);
 
-      unsigned int imageSize = gImageWidth * gImageHeight;
       unsigned int nImages = gImages.size();
+
+      // set other output arguments
+      returnImageInfo(plhs);
+
+      // check number of images
       if (nImages == 0) {
-	// report no images 
-	mexPrintf("(mglPrivateCameraThread) No images to save\n");
-	// set output to empty
-	plhs[0] = mxCreateDoubleMatrix(0,0,mxREAL);
+	// set return argument to empty
+	plhs[0] = mxCreateNumericMatrix(0,0,mxUINT8_CLASS,mxREAL);
       }
       else {
-	// report how many images
-	mexPrintf("(mglPrivateCameraThread) Received %i images (%i x %i)\n",nImages,gImageWidth,gImageHeight);
+	// set save name
+	mxGetString(prhs[1],gSaveName,STRLEN-1);
 
-	// JG: FIX, Not tested yet - linkage problem see above
-	SaveVectorToVideo(gImages);
+	// set flag to capture
+	gCommand = SAVEDATA;
+
+	// set output arguments
+	plhs[0] = mxCreateString((const char *)gSaveName);
       }
-      // clear the image and time vector
-      gImages.clear();
-      gImageTimes.clear();
-      gImageExposureTimes.clear();
 
       // unlock the mutex
       pthread_mutex_unlock(&gMutex);
     }
+    else {
+      plhs[0] = mxCreateDoubleScalar(1);
+    }
+  }
+  // Block till done command -----------------------------------------------------------------
+  else if (command == BLOCKTILLDONE) {
+    if (gCameraThreadInstalled) {
+      
+      // lock the pthread mutex
+      pthread_mutex_lock(&gMutex);
+
+      // unlock the mutex
+      pthread_mutex_unlock(&gMutex);
+    }
+    // return 1
+    plhs[0] = mxCreateDoubleScalar(1);
+
   }
   // QUIT command -----------------------------------------------------------------
   else if (command == QUIT) {
@@ -318,16 +392,16 @@ void* cameraThread(void *data)
 
     // Print out error
     if (numCameras == 0)
-      cout << "(mglPriavateCameraCapture) No cameras found." << endl;
+      cout << "(mglPrivateCameraThread) No cameras found." << endl;
     else
-      cout << "(mglPriavateCameraCapture) Found " << numCameras << " cameras: Camera " << gCameraNum << " out of range." << endl;
+      cout << "(mglPrivateCameraThread) Found " << numCameras << " cameras: Camera " << gCameraNum << " out of range." << endl;
 
     // return empty
     return NULL;
   }
 
   // display what we are doing
-  cout << "(mglPriavateCameraCapture) Found " << numCameras << " cameras: Initializing camera " << gCameraNum << endl;
+  cout << "(mglPrivateCameraThread) Found " << numCameras << " cameras: Initializing camera " << gCameraNum << endl;
 
   // Set up pointer to camera
   CameraPtr pCam = camList.GetByIndex(gCameraNum-1);
@@ -343,7 +417,7 @@ void* cameraThread(void *data)
     ConfigureChunkData(nodeMap);
 
     // display what we are doing
-    cout << "(mglPriavateCameraCapture) Ready and waiting for commands" << endl;
+    cout << "(mglPrivateCameraThread) Ready and waiting for commands" << endl;
 
     // image info pointers
     unsigned int stopCameraThread = FALSE;
@@ -371,6 +445,10 @@ void* cameraThread(void *data)
 	  gImageHeight = gImages[0]->GetHeight();
 	}
 
+      }
+      else if (gCommand == SAVEDATA) {
+	// save the data
+	saveImages();
       }
       else if (gCommand == QUIT) {
 	// stop the thread
@@ -770,114 +848,99 @@ int DisplayChunkData(INodeMap& nodeMap)
     return result;
 }
 
-///////////////////////////
-//   SaveVectorToVideo   //
-///////////////////////////
-// This function prepares, saves, and cleans up an video from a vector of images.
-int SaveVectorToVideo(vector<ImagePtr>& images)
+////////////////////
+//   saveImages   //
+////////////////////
+int saveImages()
 {
-    int result = 0;
+  // open file
+  FILE *fid = fopen(gSaveName,"w");
+  
+  // display what we are doing
+  mexPrintf("(mglPrivateCameraThread:saveImages) Saving %i images to %s\n",gImages.size(),gSaveName);
 
-#ifdef TESTVIDEOCODE
-    cout << endl << endl << "*** CREATING VIDEO ***" << endl << endl;
-    try
-    {
-        // Create a unique filename
-        //
-        // *** NOTES ***
-        // This example creates filenames according to the type of video
-        // being created. Notice that '.avi' does not need to be appended to the
-        // name of the file. This is because the SpinVideo object takes care
-        // of the file extension automatically.
-        //
-        string videoFilename;
-        switch (chosenVideoType)
-        {
-        case UNCOMPRESSED:
-            videoFilename = "SaveToAvi-Uncompressed";
-            break;
-        case MJPG:
-            videoFilename = "SaveToAvi-MJPG";
-            break;
-        case H264:
-            videoFilename = "SaveToAvi-H264";
-        }
-        //
-        // Select option and open video file type
-        //
-        // *** NOTES ***
-        // Depending on the file type, a number of settings need to be set in
-        // an object called an option. An uncompressed option only needs to
-        // have the video frame rate set whereas videos with MJPG or H264
-        // compressions should have more values set.
-        //
-        // Once the desired option object is configured, open the video file
-        // with the option in order to create the video file.
-        //
-        // *** LATER ***
-        // Once all images have been added, it is important to close the file -
-        // this is similar to many other standard file streams.
-        //
-        SpinVideo video;
-	unsigned int frameRateToSet = 20;
-        // Set maximum video file size to 2GB.
-        // A new video file is generated when 2GB
-        // limit is reached. Setting maximum file
-        // size to 0 indicates no limit.
-        const unsigned int k_videoFileSize = 2048;
-        video.SetMaximumFileSize(k_videoFileSize);
-        if (chosenVideoType == UNCOMPRESSED)
-        {
-            Video::AVIOption option;
-            option.frameRate = frameRateToSet;
-            video.Open(videoFilename.c_str(), option);
-        }
-        else if (chosenVideoType == MJPG)
-        {
-            Video::MJPGOption option;
-            option.frameRate = frameRateToSet;
-            option.quality = 75;
-            video.Open(videoFilename.c_str(), option);
-        }
-        else if (chosenVideoType == H264)
-        {
-            Video::H264Option option;
-            option.frameRate = frameRateToSet;
-            option.bitrate = 1000000;
-            option.height = static_cast<unsigned int>(images[0]->GetHeight());
-            option.width = static_cast<unsigned int>(images[0]->GetWidth());
-            video.Open(videoFilename.c_str(), option);
-        }
-        //
-        // Construct and save video
-        //
-        // *** NOTES ***
-        // Although the video file has been opened, images must be individually
-        // appended in order to construct the video.
-        //
-        cout << "Appending " << images.size() << " images to video file: " << videoFilename << ".avi... " << endl
-             << endl;
-        for (unsigned int imageCnt = 0; imageCnt < images.size(); imageCnt++)
-        {
-            video.Append(images[imageCnt]);
-            cout << "\tAppended image " << imageCnt << "..." << endl;
-        }
-        //
-        // Close video file
-        //
-        // *** NOTES ***
-        // Once all images have been appended, it is important to close the
-        // video file. Notice that once an video file has been closed, no more
-        // images can be added.
-        //
-        video.Close();
-        cout << endl << "Video saved at " << videoFilename << ".avi" << endl << endl;
-    }
-    catch (Spinnaker::Exception& e)
-    {
-        cout << "Error: " << e.what() << endl;
-        result = -1;
-    }
-#endif
-    return result;
+  // check open
+  if (fid == NULL) {
+    mexPrintf("(mglPrivateCameraThread:saveImages) Could not open file %s for writing\n",gSaveName);
+    return -1;
+  }
+
+  // write a header composed of one byte that signifies how many bytes the header is
+  // and another byte which indicates the version of the header
+  unsigned char headerBuffer[] = { 2+3*sizeof(unsigned int), 1};
+  // followed by unsinged int of the width, height and number of images
+  unsigned int imageInfoBuffer[] = { gImageWidth, gImageHeight, (unsigned int)gImages.size() };
+  
+  // write the header to file
+  fwrite((const void *)headerBuffer, 2, 1, fid);
+  fwrite((const void *)imageInfoBuffer, sizeof(unsigned int), 3, fid);
+
+  // get image size
+  unsigned int imageSize = gImageWidth * gImageHeight;
+
+  // cycle through images and write to file
+  for (unsigned int imageCnt = 0; imageCnt < gImages.size(); imageCnt++)
+    // copy image
+    fwrite((const void *)gImages[imageCnt]->GetData(),imageSize,1,fid);
+  
+  // close file
+  fclose(fid);
+
+  // clear the image and time vector
+  gImages.clear();
+
+  // return no error
+  return 0;
 }
+
+/////////////////////////
+//   returnImageInfo   //
+/////////////////////////
+void returnImageInfo(mxArray *plhs[])
+{
+  // get number of images
+  int nImages = gImageTimes.size();
+
+  if (nImages == 0) {
+    // report no images 
+    mexPrintf("(mglPrivateCameraThread) No images to get\n");
+
+    // set all output arguments to empty
+    for (int iOutput = 0; iOutput <= 9; iOutput++) 
+      plhs[iOutput] = mxCreateDoubleMatrix(0,0,mxREAL);
+  }
+  else {
+    // return size of images
+    plhs[1] = mxCreateDoubleScalar(gImageWidth);
+    plhs[2] = mxCreateDoubleScalar(gImageHeight);
+
+    // and array of image times
+    plhs[3] = mxCreateDoubleMatrix(1,nImages,mxREAL);
+
+    // camera start and end time
+    plhs[4] = mxCreateDoubleScalar(gStartCameraTime);
+    plhs[5] = mxCreateDoubleScalar(gEndCameraTime);
+    plhs[6] = mxCreateDoubleScalar(gStartSystemTime);
+    plhs[7] = mxCreateDoubleScalar(gEndSystemTime);
+
+    // and array of exposure times
+    plhs[8] = mxCreateDoubleMatrix(1,nImages,mxREAL);
+
+    // get pointers to time and exposure outputs
+    double *timePtr = (double*)mxGetPr(plhs[3]);
+    double *exposureTimePtr = (double*)mxGetPr(plhs[8]);
+
+    // fill the matlab pointer with image info
+    for (unsigned int imageCnt = 0; imageCnt < nImages; imageCnt++) {
+      // copy time stamp
+      *(timePtr+imageCnt) = *(gImageTimes.begin()+imageCnt);
+      // copy time exposure time
+      *(exposureTimePtr+imageCnt) = *(gImageExposureTimes.begin()+imageCnt);
+    }
+
+    // clear the time and exposure vectors
+    gImageTimes.clear();
+    gImageExposureTimes.clear();
+  }
+}
+
