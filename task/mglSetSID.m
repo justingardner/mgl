@@ -87,6 +87,19 @@
 % 
 %             mglSetSID('somebody','private=_all_');
 %             mglSetSID('somebody','edit','private=_all_');
+%
+%             You can make a backup of the current database by doing
+%             mglSetSID('backup')
+%
+%             You can merge information from an old backup with the current
+%             databse as follows - note it will ask you for confirmation
+%             before saving and also make a backup
+%             mglSetSID('merge');
+%
+%             To list a backup you can do the following which will bring up
+%             a drop-down listbox of backups to choose from:
+%             mglSetSID('list','listBackup');
+%
 function retval = mglSetSID(sid,varargin)
 
 % check arguments
@@ -100,9 +113,10 @@ force = false;
 edit  = false;
 remove = false;
 private = [];
+listBackup = false;
 listStartDate = [];
 if (nargin > 1) && mglIsMrToolsLoaded
-  getArgs(varargin,{'force=0','edit=0','private=[]','remove=0','listStartDate=[]'});
+  getArgs(varargin,{'force=0','edit=0','private=[]','remove=0','listStartDate=[]','listBackup=0'});
 end
 
 % FIX, FIX, FIX
@@ -137,7 +151,9 @@ racialCategories = {'Decline','American Indian or Alaska Native','Asian','Black 
 racialCategoriesHelp = 'Race as specified by NIH requirements. You may enter more than one. You are not required to specify any race if you do not wish to';
 
 % set race/ethnicity fields if asked for
-if mglGetParam('sidRaceEthnicity')
+% setting this to always set race and ethnicity
+%if mglGetParam('sidRaceEthnicity')
+if 1
   requiredFields = {requiredFields{:},...
 		    {'ethnicity',ethnicCategories,ethnicCategoriesHelp,1},...
 		    {'race',racialCategories,racialCategoriesHelp,1},...
@@ -188,7 +204,17 @@ elseif isequal(sid,'add')
 % list all entries
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 elseif isequal(sid,'list')
-  listSID(private,listStartDate);
+  listSID(private,listStartDate,listBackup);
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% merge with a backup
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+elseif isequal(sid,'merge')
+  mergeSID(private,listStartDate);
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% make a backup
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+elseif isequal(sid,'backup')
+  backupSID(private,listStartDate);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % see if it is a subject name
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -480,7 +506,7 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%
 %    loadSIDDatabase    %
 %%%%%%%%%%%%%%%%%%%%%%%%%
-function sidDatabase = loadSIDDatabase
+function sidDatabase = loadSIDDatabase(sidDatabaseFilename)
 
 global ethnicCategories;
 global racialCategories;
@@ -490,11 +516,13 @@ sidDatabase = [];
 % need mrTools
 if ~mglIsMrToolsLoaded,return,end
 
-% get filename for SID database
-sidDatabaseFilename = mlrReplaceTilde(mglGetParam('sidDatabaseFilename'));
-if isempty(sidDatabaseFilename)
-  disp(sprintf('(mglSetSID) !!! Can not load SID Database because filename has not been set: use mglSetParam(''sidDatabaseFilename'',''filename''); !!!'));
-  return
+if nargin < 1
+  % get filename for SID database
+  sidDatabaseFilename = mlrReplaceTilde(mglGetParam('sidDatabaseFilename'));
+  if isempty(sidDatabaseFilename)
+    disp(sprintf('(mglSetSID) !!! Can not load SID Database because filename has not been set: use mglSetParam(''sidDatabaseFilename'',''filename''); !!!'));
+    return
+  end
 end
 
 % decrypt file name
@@ -597,24 +625,32 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%
 %    saveSIDDatabase    %
 %%%%%%%%%%%%%%%%%%%%%%%%%
-function saveSIDDatabase(sidDatabase)
+function saveSIDDatabase(sidDatabase,sidDatabaseFilename)
 
 % check for mrTools
 if ~mglIsMrToolsLoaded,return,end
 
 % get filename for SID s
-sidDatabaseFilename = mlrReplaceTilde(mglGetParam('sidDatabaseFilename'));
-if isempty(sidDatabaseFilename)
-  disp(sprintf('(mglSetSID) Can not look up sid because filename has not been set: use mglSetParam(''sidDatabaseFilename'',''filename'');'));
-  return
+if nargin < 2
+  sidDatabaseFilename = mlrReplaceTilde(mglGetParam('sidDatabaseFilename'));
+  if isempty(sidDatabaseFilename)
+    disp(sprintf('(mglSetSID) Can not look up sid because filename has not been set: use mglSetParam(''sidDatabaseFilename'',''filename'');'));
+    return
+  end
+  % ask to create
+  askToCreateNew = true;
+else
+  % don't ask to create
+  askToCreateNew = false;
 end
 
 % check if data base exists
 if ~mglIsFile(sidDatabaseFilename)
-  disp(sprintf('(mglSetSID) Could not find SID database file %s',sidDatabaseFilename));
-  
-  if (~askuser(sprintf('(mglSetSID) Create SID database file: %s',sidDatabaseFilename)))
-    return
+  if askToCreateNew
+    disp(sprintf('(mglSetSID) Could not find SID database file %s',sidDatabaseFilename));
+    if (~askuser(sprintf('(mglSetSID) Create SID database file: %s',sidDatabaseFilename)))
+      return
+    end
   end
 end
 
@@ -823,9 +859,9 @@ else
 end
 
 %%%%%%%%%%%%%%%%
-%    listSID   %
+%    backupSID   %
 %%%%%%%%%%%%%%%%
-function listSID(private,listStartDate)
+function backupSID(private,listStartDate)
 
 global gMaxSID;
 
@@ -835,8 +871,322 @@ if ~mglIsMrToolsLoaded,return,end
 % get the lock
 if ~getLock return,end
 
+% get database path
+sidDatabasePath = fileparts(mlrReplaceTilde(mglGetParam('sidDatabaseFilename')));
+if ~isdir(sidDatabasePath)
+  disp(sprintf('(mglSetSID) Could not find datbase path: %s',sidDatabasePath));
+  releaseLock;
+  return
+end
+
+sidDatabaseFilename = getLastDir(mlrReplaceTilde(mglGetParam('sidDatabaseFilename')));
 % open the SID database
 sidDatabase = loadSIDDatabase;
+if isempty(sidDatabase)
+  releaseLock;
+  return
+end
+disp(sprintf('(mglSetSID:backup) Found %i subject listings in current database',length(sidDatabase.sid)));
+
+% get backup name
+backupName = sprintf('backup%s',datestr(now,'YYYYMMDD'));
+backupNameStem = sprintf('backup%s',datestr(now,'YYYYMMDD'));iBackup = 1;
+% look for one that is not taken already
+while isdir(fullfile(sidDatabasePath,backupName))
+  backupName = sprintf('%s_%i',backupNameStem,iBackup);
+end
+
+if askuser(sprintf('(mglSetSID:backup) Make backup: %s',fullfile(sidDatabasePath,backupName)))
+  % make the directory
+  mkdir(fullfile(sidDatabasePath,backupName));
+
+  % save the backup
+  backupName = fullfile(sidDatabasePath,backupName,sidDatabaseFilename);
+  dispHeader(sprintf('(mglSetSID) Saving backup: %s',backupName));
+  saveSIDDatabase(sidDatabase,backupName);
+end
+
+% now check for fields that need to be updated
+% release lock
+releaseLock;
+
+%%%%%%%%%%%%%%%%%%%%%%%
+%    getBackupName    %
+%%%%%%%%%%%%%%%%%%%%%%%
+function [backupName sidDatabasePath sidDatabaseFilename] = getBackupName
+
+% default return arguments
+backupName = [];
+sidDatabasePath = [];
+sidDatabseFilename = [];
+
+% get database path
+sidDatabasePath = fileparts(mlrReplaceTilde(mglGetParam('sidDatabaseFilename')));
+if ~isdir(sidDatabasePath)
+  disp(sprintf('(mglSetSID) Could not find datbase path: %s',sidDatabasePath));
+  return
+end
+sidDatabaseFilename = getLastDir(mlrReplaceTilde(mglGetParam('sidDatabaseFilename')));
+
+% look for all backups
+backupDir = dir(fullfile(sidDatabasePath,'backup*'));
+
+% make sure they all have datbases in them
+backupNames = {};
+for iDir = 1:length(backupDir)
+  if isfile(fullfile(sidDatabasePath,backupDir(iDir).name,sidDatabaseFilename))
+    backupNames{end+1} = backupDir(iDir).name;
+  else
+    disp(sprintf('(mglSetSID) Backup dir: %s does not have file: %s',backupDir(iDir).name,sidDatabaseFilename));
+  end
+end
+
+% check for empty
+if isempty(backupNames)
+  disp(sprintf('(mglSetSID) No backups found in: %s',sidDatabasePath));
+  return
+end
+
+% put them in reverse chronological order
+backupNames = fliplr(sort(backupNames));
+
+% give user option to chose
+paramsInfo = {{'backupDir',backupNames}};
+params = mrParamsDialog(paramsInfo);
+if isempty(params)
+  return
+end
+
+% return the chosen backup dir
+backupName = params.backupDir;
+
+
+%%%%%%%%%%%%%%%%
+%    mergeSID   %
+%%%%%%%%%%%%%%%%
+function mergeSID(private,listStartDate)
+
+global gMaxSID;
+
+% check for mrTools
+if ~mglIsMrToolsLoaded,return,end
+
+% get the lock
+if ~getLock return,end
+
+% get the backup name
+[backupName sidDatabasePath sidDatabaseFilename] = getBackupName;
+
+% try to load the backup
+backupDatabase = loadSIDDatabase(fullfile(sidDatabasePath,backupName,sidDatabaseFilename));
+if isempty(backupDatabase)
+  releaseLock;
+  return
+end
+disp(sprintf('(mglSetSID:merge) Found %i subject listings in backup: %s',length(backupDatabase.sid),backupName));
+
+% open the SID database
+sidDatabase = loadSIDDatabase;
+if isempty(sidDatabase)
+  releaseLock;
+  return
+end
+disp(sprintf('(mglSetSID:merge) Found %i subject listings in current database',length(sidDatabase.sid)));
+
+% check to see if they are equal
+if isequal(backupDatabase,sidDatabase)
+  disp(sprintf('(mglSetSID:merge) Backup %s is identical to current database. Nothing to do',backupName));
+  releaseLock;
+  return
+end
+
+% if not, go through each one of the backup database information and
+% see if it is in the current databse and if so whether it has new fields
+backupFields = fieldnames(backupDatabase);backupFields = setdiff(backupFields,'sid');
+sidFields = fieldnames(sidDatabase);sidFields = setdiff(sidFields,'sid');
+somethingToDo = false;
+for iSID = 1:length(backupDatabase.sid)
+  % look it up
+  s.currentSID(iSID) = find(strcmp(backupDatabase.sid{iSID},sidDatabase.sid));
+  % if not there then we will propose to add
+  if isempty(s.currentSID(iSID))
+    s.newSID(iSID) = true;
+    somethingToDo = true;
+  else
+    % if it is there, see if it has any information that
+    % is in conflict or filled in that the old one does not
+    s.newSID(iSID) = false;
+    for iField = 1:length(backupFields)
+      % see if the field is non-existent or empty in the current database
+      if ~isfield(sidDatabase,backupFields{iField})
+	% does not exist in current
+	s.(backupFields{iField})(iSID) = 1;
+	somethingToDo = true;
+      elseif isempty(sidDatabase.(backupFields{iField}){s.currentSID(iSID)})
+	% is empty in current, and also empty in backup
+	if isempty(backupDatabase.(backupFields{iField}){iSID})
+	  s.(backupFields{iField})(iSID) = 0;
+	else
+	  % not empty in backup, so offer to copy
+	  s.(backupFields{iField})(iSID) = 1;
+	  somethingToDo = true;p
+	end
+      elseif ~isequal(sidDatabase.(backupFields{iField}){s.currentSID(iSID)},backupDatabase.(backupFields{iField}){iSID})
+	% is different in current
+	s.(backupFields{iField})(iSID) = 2;
+	somethingToDo = true;
+      else
+	% otherwise the same
+	s.(backupFields{iField})(iSID) = 0;
+      end
+    end
+  end
+end
+
+% check to see if we have anything to do
+if ~somethingToDo
+  disp(sprintf('(mglSetSID:merge) Backup %s has no information that is not in current database.',backupName));
+  releaseLock;
+  return
+end
+
+% keep original database for printing out
+originalDatabase = sidDatabase;
+
+% now print out all the new subjects ask to merge
+if any(s.newSID)
+  % get the list
+  newSID = find(s.newSID);
+  dispHeader;
+  dispHeader(sprintf('SIDs found in %s that are not in current',backupName));
+  dispHeader;
+  % display them
+  for iSID = 1:length(newSID)
+    dispSID(backupDatabase,newSID(iSID));
+  end
+  if askuser('(mglSetSID) Add the above to the current SID database (you will have another chance to confirm this before it actually gets saved)')
+    for iSID = 1:length(newSID)
+      % add the SID
+      sidDatabase.sid{end+1} = backupDatabase.sid{newSID(iSID)};
+      for iField = 1:length(sidFields)
+	% if the field exists in the backupDatabase
+	if isfield(backupDatabase,sidFields{iField})
+	  % then copy it
+	  sidDatabase.(sidFields{iField}){end+1} = backupDatabase.(sidFields{iField}){newSID(iSID)};
+	else
+	  % otherwise set it to empty
+	  sidDatabase.(sidFields{iField}){end+1} = [];
+	end
+      end
+    end
+  end
+end
+  
+% now look at each field and see if there is something to update  
+for iField = 1:length(backupFields)
+  % get which subjects need to be updated
+  updateSID = find(s.(backupFields{iField}));
+  if ~isempty(updateSID)
+    dispHeader;
+    dispHeader(sprintf('(mglSetSID:merge) Field %s is different in backup',backupFields{iField}));
+    dispHeader;
+    for iSID = 1:length(updateSID)
+      % display the SID
+      dispSID(backupDatabase,updateSID(iSID));
+      % display the change
+      if isfield(sidDatabase,backupFields{iField})
+	% if it is a field that exist in the current database
+	disp(sprintf('Change from: %s to: %s',sidDatabase.(backupFields{iField}){s.currentSID(updateSID(iSID))},backupDatabase.(backupFields{iField}){updateSID(iSID)}));
+      else	
+	% if it is completely new
+	disp(sprintf('Make into: %s',backupDatabase.(backupFields{iField}){updateSID(iSID)}));
+      end
+    end
+    % see if the user wants to do the above changes
+    if askuser('(mglSetSID) Make above changes to current SID database (you will have another chance to confirm this before it actually gets saved)')
+      for iSID = 1:length(updateSID)
+	sidDatabase.(backupFields{iField}){s.currentSID(updateSID(iSID))} = backupDatabase.(backupFields{iField}){updateSID(iSID)};
+      end
+    end
+  end
+end
+
+% now ask for a final confirmation, first show original database
+dispHeader
+dispHeader('(mglSetSID:merge) Original SID database');
+dispHeader;
+for iSID = 1:length(originalDatabase.sid)
+  dispSID(originalDatabase,iSID);
+end
+
+% now show proposed new database
+dispHeader
+dispHeader('(mglSetSID:merge) Proposed merged SID database');
+dispHeader;
+for iSID = 1:length(sidDatabase.sid)
+  dispSID(sidDatabase,iSID);
+end
+dispHeader('(mglSetSID:merge) Original and proposed merged database are above');
+if ~askuser('(mglSetSID:merge) Confirm changes (If you say yes this will save changes and a backup of the original will be made)');
+  releaseLock;
+  return
+end
+
+% ok first make a backup
+backupName = sprintf('backup%s',datestr(now,'YYYYMMDD'));
+backupNameStem = sprintf('backup%s',datestr(now,'YYYYMMDD'));iBackup = 1;
+% look for one that is not taken already
+while isdir(fullfile(sidDatabasePath,backupName))
+  backupName = sprintf('%s_%i',backupNameStem,iBackup);
+end
+
+% make the directory
+mkdir(fullfile(sidDatabasePath,backupName));
+
+% save the backup
+backupName = fullfile(sidDatabasePath,backupName,sidDatabaseFilename);
+dispHeader(sprintf('(mglSetSID) Saving backup: %s',backupName));
+saveSIDDatabase(sidDatabase,backupName);
+
+% save the updated version
+dispHeader(sprintf('(mglSetSID) Saving merged database: %s',fullfile(sidDatabasePath,sidDatabaseFilename)));
+saveSIDDatabase(sidDatabase);
+
+% now check for fields that need to be updated
+% release lock
+releaseLock;
+
+%%%%%%%%%%%%%%%%
+%    listSID   %
+%%%%%%%%%%%%%%%%
+function listSID(private,listStartDate,listBackup)
+
+global gMaxSID;
+
+% check for mrTools
+if ~mglIsMrToolsLoaded,return,end
+
+% get the lock
+if ~getLock return,end
+
+if listBackup
+  % get the backup name
+  [backupName sidDatabasePath sidDatabaseFilename] = getBackupName;
+  if isempty(backupName)
+    releaseLock;
+    return
+  end
+  backupFullFilename = fullfile(sidDatabasePath,backupName,sidDatabaseFilename);
+
+  % print name
+  dispHeader(sprintf('(mglSetSID) Loading: %s',backupFullFilename));
+
+  % load the backup database
+  sidDatabase = loadSIDDatabase(backupFullFilename);
+else
+  % open the SID database
+  sidDatabase = loadSIDDatabase;
+end
 
 % release lock
 releaseLock;
@@ -1726,6 +2076,9 @@ if (fLock == -1)
   if askuser(sprintf('(mglSetSID) You may not have permissions to write the SID database. Ignore and try to edit sid database anyway?'))
     tf = true;
     return;
+  else
+    tf = false;
+    return
   end
 end
 % set the attributes of the lock file to allow write by anyone
