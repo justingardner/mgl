@@ -4,8 +4,17 @@
 %         by: justin gardner
 %       date: 10/29/19
 %    purpose: Post-processing of camera files to task. This will load images up,
-%             align the images to task times and then save out as a lossless compressed AVI file
+%             align the images to task times and then save out as an MPEG-4 file
 %
+%             Default location to save files into is current directory, this
+%             can be changed by doing:
+%
+%             mglCameraPostProcess(stimfilename,'savePath=~/Desktop/wmface');
+%
+%             Video format can be changed with the videoFormat argument
+%             do a help on VideoWriter to see available formats
+%             mglCameraPostProcess(stimfilename,'videoFormat=Archival');
+% 
 %             Works with stimfile and stimulus structure that is returned from wmface
 %             Requires a cameraInfo field in stimulus that containes the camera images per trial
 %
@@ -18,7 +27,7 @@ if nargin < 1
 end
 
 % get arguments
-getArgs(varargin,{'dispTiming=1','videoFormat=Archival','savePath=[]'});
+getArgs(varargin,{'dispTiming=1','videoFormat=MPEG-4','savePath=[]'});
 
 % load the stimfile
 s = loadStimfile(stimfilename);
@@ -173,16 +182,16 @@ for iTrial = 1:length(c)
       v = VideoWriter(fullfile(savePath,saveName),videoFormat);
       % open it
       open(v);
-      % write valid images
-      writeVideo(v,reshape(d(:,:,validImages),c{iTrial}.size(1),c{iTrial}.size(2),1,c{iTrial}.size(3)));
+      % write valid imagee (reshape to have WxHx1xnImages)
+      writeVideo(v,reshape(d(:,:,validImages),c{iTrial}.size(1),c{iTrial}.size(2),1,length(validImages)));
       % close video writer
       close(v);
       % change filename to this one
       c{iTrial}.filename = fullfile(v.Path,v.Filename);
       % grab the exptName from the filename
-      bracketLoc = regexp(v.Filename,'\]','once');
-      if ~isempty(bracketLoc)
-	exptName = v.Filename(2:bracketLoc-1);
+      exptNameLoc = regexp(v.Filename,'\-','once');
+      if ~isempty(exptNameLoc)
+	exptName = v.Filename(1:exptNameLoc-1);
       end
     else
       c{iTrial}.filename = '';
