@@ -128,7 +128,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       mexPrintf("(mglPrivateCameraThread) Starting camera thread. End with mglCameraThread('quit').\n");
 
       // tell matlab to call this function to cleanup properly
-      //mexAtExit(mglPrivateCameraThreadOnExit);
+      mexAtExit(mglPrivateCameraThreadOnExit);
+
+      // clear any images
+      gImages.clear();
 
       // unlock the mutex
       pthread_mutex_unlock(&gMutex);
@@ -564,18 +567,6 @@ void* cameraThread(void *data)
 
   return NULL;
 }
-
-//////////////////////////////////////
-//   mglPrivateCameraThreadOnExit   //
-//////////////////////////////////////
-void mglPrivateCameraThreadOnExit()
-{
-  // call mglSwitchDisplay with -1 to close all open screens
-  //  mxArray *callInput =  mxCreateDoubleMatrix(1,1,mxREAL);
-  //  *(double*)mxGetPr(callInput) = 0;
-  //  mexCallMATLAB(0,NULL,1,&callInput,"mglListener");
-}
-
 
 //////////////////////////
 //   startCameraThread  //
@@ -1019,3 +1010,13 @@ void returnImageInfo(mxArray *plhs[], int returnEmpty)
   }
 }
 
+/////////////////////////////////////
+//   mglPrivatCameraThreadOnExit   //
+/////////////////////////////////////
+void mglPrivateCameraThreadOnExit()
+{
+  // call mglSwitchDisplay with -1 to close all open screens
+  mxArray *callInput = mxCreateString("exit");
+  mexPrintf("(mglPrivateCameraThread) Shutting down camera thread\n");
+  mexCallMATLAB(0,NULL,1,&callInput,"mglCameraThread");
+}
