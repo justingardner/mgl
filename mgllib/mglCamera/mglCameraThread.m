@@ -59,13 +59,15 @@ switch (lower(command))
  case 'init'
 
   % init the thread
-  mglPrivateCameraThread(1,cameraNum,maxFrames);
+  retval = mglPrivateCameraThread(1,cameraNum,maxFrames);
   
  case 'capture'
   currentTime = mglGetSecs;
-  dispHeader(sprintf('(mglCameraThread) Capture begin at: %5.3f',currentTime));
   % set to capture images
-  mglPrivateCameraThread(3,currentTime+timeToCapture);
+  retval = mglPrivateCameraThread(3,currentTime+timeToCapture);
+  if retval
+    dispHeader(sprintf('(mglCameraThread) Capture begin at: %5.3f',currentTime));
+  end
   
  case 'captureone'
   % set to capture single image and return

@@ -60,7 +60,7 @@ double getCurrentTimeInSeconds();
 int ConfigureChunkData(INodeMap& nodeMap);
 int DisplayChunkData(INodeMap& nodeMap);
 int saveImages();
-void returnImageInfo(mxArray *plhs[]);
+void returnImageInfo(mxArray *plhs[],int returnEmpty = 0);
 
 ////////////////
 //   globals  //
@@ -80,6 +80,7 @@ vector<double> gImageTimes;
 vector<double> gImageExposureTimes;
 unsigned int gVerbose = FALSE;
 char gSaveName[STRLEN];
+int gCameraFound = -1;
 
 // Video types
 enum videoType
@@ -110,6 +111,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       // get the maximum number of images to buffer
       gMaxImages = (int)mxGetScalar(prhs[2]);
 
+      // set that global to indicate that we are initializing
+      gCameraFound = -1;
+
       // init pthread_mutex
       pthread_mutex_init(&gMutex,NULL);
       pthread_mutex_lock(&gMutex);
@@ -129,8 +133,26 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       // unlock the mutex
       pthread_mutex_unlock(&gMutex);
 
-      // started running, return 1
-      plhs[0] = mxCreateDoubleScalar(1);
+      // now wait till we either have found a camera or not
+      unsigned int waitTillDone = 1;
+      while (waitTillDone) {
+	// lock the mutex
+	pthread_mutex_lock(&gMutex);
+	if (gCameraFound != -1) waitTillDone = 0;
+	// unlock the mutex
+	pthread_mutex_unlock(&gMutex);
+      }
+      
+      // now return whether we found something or not
+      if (gCameraFound)
+	// started running, return 1
+	plhs[0] = mxCreateDoubleScalar(1);
+      else { 
+	// no cameras
+	gCameraThreadInstalled = FALSE;
+	// return 0
+	plhs[0] = mxCreateDoubleScalar(0);
+      }
     }
     else {
 
@@ -158,9 +180,17 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
       // unlock the mutex
       pthread_mutex_unlock(&gMutex);
+
+      // return 1
+      plhs[0] = mxCreateDoubleScalar(1);
     }
-    // return 1
-    plhs[0] = mxCreateDoubleScalar(1);
+    else {
+      // report failure
+      mexPrintf("(mglPrivateCameraThread) Camera thread has not been initialized\n");
+
+      // return 0
+      plhs[0] = mxCreateDoubleScalar(0);
+    }
   }
   // Capture one command -----------------------------------------------------------------
   else if (command == CAPTUREONE) {
@@ -232,7 +262,17 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       
       //lock the mutex
       pthread_mutex_unlock(&gMutex);
+
+      // return 1
+      plhs[0] = mxCreateDoubleScalar(1);
     } 
+    else {
+      // report failure
+      mexPrintf("(mglPrivateCameraThread) Camera thread has not been initialized\n");
+
+      // set output arguments
+      returnImageInfo(plhs, TRUE);
+    }
   }
   // Set verbose command -----------------------------------------------------------------
   else if (command == VERBOSE) {
@@ -291,6 +331,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       // unlock the mutex
       pthread_mutex_unlock(&gMutex);
     }
+    else {
+      // report failure
+      mexPrintf("(mglPrivateCameraThread) Camera thread has not been initialized\n");
+
+      // set output arguments
+      returnImageInfo(plhs, TRUE);
+    }
   }
   // Save data command -----------------------------------------------------------------
   else if (command == SAVEDATA) {
@@ -324,7 +371,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       pthread_mutex_unlock(&gMutex);
     }
     else {
-      plhs[0] = mxCreateDoubleScalar(1);
+      // report failure
+      mexPrintf("(mglPrivateCameraThread) Camera thread has not been initialized\n");
+
+      // set output output arguments
+      returnImageInfo(plhs, TRUE);
     }
   }
   // Block till done command -----------------------------------------------------------------
@@ -343,9 +394,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   }
   // QUIT command -----------------------------------------------------------------
   else if (command == QUIT) {
-    // return argument set to 0
-    plhs[0] = mxCreateDoubleScalar(0);
-
     // disable the thread
     if (gCameraThreadInstalled) {
 
@@ -360,6 +408,15 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
       // unlock the mutex
       pthread_mutex_unlock(&gMutex);
+
+      // return argument set to 1
+      plhs[0] = mxCreateDoubleScalar(1);
+    }
+    else {
+      // report failure
+      mexPrintf("(mglPrivateCameraThread) Camera thread has not been initialized\n");
+      // return argument set to 0
+      plhs[0] = mxCreateDoubleScalar(0);
     }
   }
 }
@@ -381,6 +438,9 @@ void* cameraThread(void *data)
   CameraList camList = system->GetCameras();
   unsigned int numCameras = camList.GetSize();
 
+  // lock mutex
+  pthread_mutex_lock(&gMutex);
+
   // Finish if there are no cameras
   if ((numCameras == 0) || (numCameras < gCameraNum)) {
 
@@ -396,6 +456,12 @@ void* cameraThread(void *data)
     else
       cout << "(mglPrivateCameraThread) Found " << numCameras << " cameras: Camera " << gCameraNum << " out of range." << endl;
 
+    // set that no camera was found
+    gCameraFound = 0;
+
+    // unlock mutex
+    pthread_mutex_unlock(&gMutex);
+
     // return empty
     return NULL;
   }
@@ -405,6 +471,12 @@ void* cameraThread(void *data)
 
   // Set up pointer to camera
   CameraPtr pCam = camList.GetByIndex(gCameraNum-1);
+
+  // set that we found a camera
+  gCameraFound = 1;
+
+  // unlock mutex
+  pthread_mutex_unlock(&gMutex);
 
   // nodeMap
   try{
@@ -896,10 +968,13 @@ int saveImages()
 /////////////////////////
 //   returnImageInfo   //
 /////////////////////////
-void returnImageInfo(mxArray *plhs[])
+void returnImageInfo(mxArray *plhs[], int returnEmpty)
 {
-  // get number of images
-  int nImages = gImageTimes.size();
+  int nImages = 0;
+
+  // get the number of images, or keep at 0 if this is
+  // just a call to set output arguments
+  if (!returnEmpty) nImages = gImageTimes.size();
 
   if (nImages == 0) {
     // report no images 

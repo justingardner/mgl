@@ -884,6 +884,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         system->ReleaseInstance();
 	if (gVerbose)
 	  cout << "Not enough cameras!" << endl;
+	// Set output argument to NULL
+	plhs[0] = mxCreateNumericMatrix(0,0,mxUINT8_CLASS,mxREAL);
         return;
     }
     //
