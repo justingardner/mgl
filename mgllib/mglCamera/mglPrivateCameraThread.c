@@ -1,3 +1,4 @@
+matlab
 #ifdef documentation
 =========================================================================
 
@@ -132,6 +133,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
       // clear any images
       gImages.clear();
+      gImageTimes.clear();
+      gImageExposureTimes.clear();
 
       // unlock the mutex
       pthread_mutex_unlock(&gMutex);
