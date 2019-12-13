@@ -167,6 +167,9 @@ unsigned long installSound(char *filename)
 ///////////////////////////////////
 unsigned long installSoundFromData(int *d, unsigned int nChannels, unsigned int nSamples, unsigned int sampleRate)
 {
+  // verbose information
+  int verbose = (int)mglGetGlobalDouble("verbose");
+
   // index variable
   int i;
 
@@ -198,7 +201,11 @@ unsigned long installSoundFromData(int *d, unsigned int nChannels, unsigned int 
   const unsigned int bytesPerFrame = nChannels * sizeof(unsigned int);
   const unsigned int dataSize = nSamples * bytesPerFrame;
   const unsigned int totalSize = dataSize + sizeof(struct aiffFile);
-        
+
+  // say what we are doing
+  if (verbose)
+    mexPrintf("(mglPrivateInstallSound:installSoundFromData) Installing sound with %i channels, %i samples, %i sampleRate: total data size: %i\n",nChannels,nSamples,sampleRate,dataSize);
+
   // allocate memory for aiff file
   struct aiffFile* aiff = malloc(totalSize);
 
@@ -243,6 +250,9 @@ unsigned long installSoundFromData(int *d, unsigned int nChannels, unsigned int 
   
   // and sound structure
   NSSound* sound = [[NSSound alloc] initWithData:data];
+
+  if (verbose)
+    mexPrintf("(mglPrivateInstallSound:installSoundFromData) Sound pointer: %i\n",(unsigned int)sound);
 
   // data is no longer needed. 
   [data release];

@@ -69,9 +69,20 @@ if isnumeric(soundName)
   if nargin < 2,samplesPerSecond = 8192;end
   % install the sound (convert to int32 with swapbytes)
   soundNum = mglPrivateInstallSound(swapbytes(int32(soundName)),samplesPerSecond);
-  if isempty(soundName)
-    disp(sprintf('(mglInstallSound) Unable to install sound waveform'));
-    keyboard
+  % JG: some race condition seems to be happening in which sometimes this fails
+  % to install a sound, so check here and if it does continue to try again until it succeeds
+  if isempty(soundNum)
+    % get current time
+    startTime = mglGetSecs;
+    % keep trying for 1 second
+    while isempty(soundNum) && (mglGetSecs(startTime) < 1)
+      soundNum = mglPrivateInstallSound(swapbytes(int32(soundName)),samplesPerSecond);
+    end
+    % if still failed then give an error message
+    if isempty(soundNum)
+      disp(sprintf('(mglInstallSound) Failure to install sound waveform - giving up'));
+      keyboard
+    end
   end
   % set a name for the sound
   soundNames = mglGetParam('soundNames');
