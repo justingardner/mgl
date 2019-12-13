@@ -69,6 +69,10 @@ if isnumeric(soundName)
   if nargin < 2,samplesPerSecond = 8192;end
   % install the sound (convert to int32 with swapbytes)
   soundNum = mglPrivateInstallSound(swapbytes(int32(soundName)),samplesPerSecond);
+  if isempty(soundName)
+    disp(sprintf('(mglInstallSound) Unable to install sound waveform'));
+    keyboard
+  end
   % set a name for the sound
   soundNames = mglGetParam('soundNames');
   soundNames{soundNum} = '_userdefined_';
