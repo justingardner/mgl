@@ -39,13 +39,11 @@ typedef NS_ENUM(NSInteger, mglDataType) {
 @protocol mglCommProtocol
 -(BOOL) open:(NSString *)connectionName error:(NSError **)error;
 -(void) close;
+-(void) writeDataDouble:(double)data;
 -(BOOL) dataWaiting;
-//FIX this should return a mglCommCommands - but how to get swift to recognize enum?
--(int) readCommand;
+-(int) readCommand;//FIX this should return a mglCommCommands - but how to get swift to recognize enum?
 -(NSData *) readData:(int)nBytes dataType: (mglDataType)dataType;
 -(int) readUINT32;
--(void) writeDouble:(double)data;
--(void) writeDoubleHuh;
 @end
 
 // a class which implements the above protocol using

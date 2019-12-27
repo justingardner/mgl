@@ -179,21 +179,12 @@ int socketDescriptor = -1;
     return(*(int *)[d bytes]);
 }
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
-// implementation: writeDouble
+// implementation: writeData
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
--(void) writeDouble:(double)data
+-(void) writeDataDouble:(double)data
 {
+    printf("Double: %i\n",sizeof(double));
     if (write(socketDescriptor,&data,sizeof(double)) < sizeof(double))
         printf("(mglComm:writeDouble) Unable to write data\n");
 }
-//\/\/\/\/\/\/\/\/\/\/\/\/\/\/
-// implementation: writeDouble
-//\/\/\/\/\/\/\/\/\/\/\/\/\/\/
--(void) writeDoubleHuh
-{
-    double data = 13.0;
-    if (write(socketDescriptor,&data,sizeof(double)) < sizeof(double))
-        printf("(mglComm:writeDouble) Unable to write data\n");
-}
-
 @end

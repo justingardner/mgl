@@ -57,13 +57,15 @@ class mglController {
                     print("(mglController:update) Receive UINT8 data");
                     let len = comm.readUINT32()
                     let data = comm.readData(len,dataType: mglDataType.kUINT32)
+                    let dataArray = data.withUnsafeBytes { $0.load(as: UInt32.self) }
                     //var dataArray: [UInt32] = [] data.withUnsafeBytes
                     //var dataArray: NSInteger;
                     //data.getBytes(&dataArray, 4);
                     
                     print(len)
                     print("\(data)")
-                    comm.writeDoubleHuh
+                    //print("\(dataArray[5])")
+                    comm.writeDataDouble(13.0)
                     profileMode = false;
                 default:
                     //print("(mglComm:readCommand) Unknown command %i",command);

@@ -18,7 +18,7 @@ class mglDisplay
 {
     var metalView : MTKView!
     var device : MTLDevice!
-
+    var renderer: Renderer?
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     // init
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
@@ -30,6 +30,9 @@ class mglDisplay
         let frame = CGRect(x:0, y:0, width: 480, height:300)
         metalView = MTKView(frame: frame, device: device)
         metalView.clearColor = MTLClearColor(red: 0, green: 1, blue: 0.8, alpha: 1)
+        // FIX: This does not do anything - how to make renderer the delegate?
+        renderer = Renderer(metalView: metalView)
+        metalView.delegate = renderer
     }
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     // draw
