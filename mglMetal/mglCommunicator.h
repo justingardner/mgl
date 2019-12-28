@@ -12,15 +12,6 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
-// emnumeration for meaning of numeric commands
-typedef NS_ENUM(NSInteger, mglCommunicatorCommands) {
-    kPing,
-    kClose,
-    kAck,
-    kClearScreen,
-    kFlush
-};
-
 // emnumeration for types of data
 typedef NS_ENUM(NSInteger, mglDataType) {
     kUINT8,

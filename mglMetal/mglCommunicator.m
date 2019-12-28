@@ -148,7 +148,7 @@ int socketDescriptor = -1;
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
 // implementation: readCommand
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
--(mglCommunicatorCommands) readCommand
+-(int) readCommand
 {
     // declare variables
     ssize_t readCount;
