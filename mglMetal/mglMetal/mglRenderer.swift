@@ -15,6 +15,13 @@ import Foundation
 import MetalKit
 
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
+// Enum of command codes
+//\/\/\/\/\/\/\/\/\/\/\/\/\/\/
+enum mglCommands : Int32 {
+    case ping = 0
+    case clearScreen = 1
+}
+//\/\/\/\/\/\/\/\/\/\/\/\/\/\/
 // mglRenderer: Class does most of the work
 // handles initializing of the GPU, pipeline states etc
 // handles the frame updates and drawing as well as resizing
@@ -32,6 +39,10 @@ class mglRenderer: NSObject {
     // that define the pipeline of the GPU renderer
     var pipelineState: MTLRenderPipelineState!
     
+    // variable to hold mglCommunicator which
+    // communicates with matlab
+    var mglCommunicator : mglCommunicatorSocket
+    
     // A timer for testing - this is used to update
     // a square moving across the screen
     var timer: Float = 0
@@ -40,6 +51,15 @@ class mglRenderer: NSObject {
     // init
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     init(metalView: MTKView) {
+        
+        // Setup communication with matlab
+        mglCommunicator = mglCommunicatorSocket()
+        do {
+            try mglCommunicator.open("testsocket")
+        }
+        catch let error as NSError {
+            fatalError("Error: \(error.domain) \(error.localizedDescription)")
+        }
         
         // Initialize the GPU device
         guard let device = MTLCreateSystemDefaultDevice() else {
@@ -112,6 +132,16 @@ extension mglRenderer: MTKViewDelegate {
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     func draw(in view: MTKView) {
         
+        // check matlab command queue
+        if mglCommunicator.dataWaiting() {
+            let command = mglCommunicator.readCommand()
+            switch command {
+                case mglCommands.ping.rawValue: print("ping")
+                case mglCommands.clearScreen.rawValue: clearScreen(view : view)
+                default: print("(mglRenderer:draw) Unknown command \(command)")
+            }
+        }
+        
         // Get the commandBuffer and renderEncoder
         guard let descriptor = view.currentRenderPassDescriptor,
         let commandBuffer = mglRenderer.commandQueue.makeCommandBuffer(),
@@ -140,5 +170,14 @@ extension mglRenderer: MTKViewDelegate {
         }
         commandBuffer.present(drawable)
         commandBuffer.commit()
+    }
+    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
+    // clearScreen
+    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
+    func clearScreen(view: MTKView) {
+        // Set the clear color for the view
+        view.clearColor = MTLClearColor(red: 0.5, green: 0.4,
+                                              blue: 0.8, alpha: 1)
+
     }
 }
