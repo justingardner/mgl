@@ -5,7 +5,8 @@
        by: justin gardner
      date: 12/26/2019
 copyright: (c) 2019 Justin Gardner (GPL see mgl/COPYING)
-  purpose: mex function to read from a posix socket				  usage: [s data] = mglSocketRead(s)
+  purpose: mex function to read from a posix socket
+   usage: [s data] = mglSocketRead(s)
 		  
 =========================================================================
 #endif
@@ -97,7 +98,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
  plhs[1] = mxCreateNumericArray(1,dims,mxDOUBLE_CLASS,mxREAL);
 
  // write data
- if ((readCount=recv(connectionDescriptor,mxGetPr(plhs[1]),buflen,0)) != buflen) {
+ if ((readCount=recv(socketDescriptor,mxGetPr(prhs[1]),buflen,0)) != buflen) {
      mexPrintf("(mglSocketRead) ERROR Only read %i of %i bytes across socket- data might be corrupted\n",readCount,buflen);
  }
 
