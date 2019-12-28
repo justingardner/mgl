@@ -88,13 +88,14 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
  if (verbose) mexPrintf("(mglSocketWrite) Using connectionDescriptor %i\n",connectionDescriptor);
 
  int sentSize;
- // check type of input
- if (mxIsClass(prhs[1],"uint16") && ((mxGetN(prhs[1])*mxGetM(prhs[1]))==1)) {
-   // uint16 scalar - this is a command
-   if ((sentSize = write(connectionDescriptor,mxGetPr(prhs[1]),sizeof(uint16))) < sizeof(uint16)) {
-     printf("(mglSocketWrite) ERROR Only sent %i of %i bytes across socket- data might be corrupted\n",sentSize,sizeof(uint16));
-   }
- }
+ size_t len = (size_t)(mxGetN(prhs[1])*mxGetM(prhs[1]));
+ size_t dataSize = 0;
+ if (mxIsClass(prhs[1],"uint16"))
+   dataSize = sizeof(uint16);
+ else if (mxIsClass(prhs[1],"uint32"))
+   dataSize = sizeof(uint32);
+ else if (mxIsClass(prhs[1],"double"))
+   dataSize = sizeof(double);
  else {
    mexPrintf("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n");
    mexPrintf("(mglSocketWrite) Data input is not in a recogonized format\n");
@@ -107,11 +108,17 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
    plhs[0] = mxDuplicateArray(prhs[0]);
    return;
  }
+ size_t sendSize = dataSize * len;
+ 
+ // write data
+ if ((sentSize = write(connectionDescriptor,mxGetPr(prhs[1]),sendSize)) < sendSize) {
+     mexPrintf("(mglSocketWrite) ERROR Only sent %i of %i bytes across socket- data might be corrupted\n",sentSize,sendSize);
+ }
 
-   if (verbose) mexPrintf("(mglSocketWrite) Wrote %i bytes\n",sentSize);
+ if (verbose) mexPrintf("(mglSocketWrite) Wrote %i bytes\n",sentSize);
  // return structure, set connection descriptor
-  plhs[0] = mxDuplicateArray(prhs[0]);
-  mxSetField(plhs[0],0,"connectionDescriptor",mxCreateDoubleMatrix(1,1,mxREAL));
+ plhs[0] = mxDuplicateArray(prhs[0]);
+ mxSetField(plhs[0],0,"connectionDescriptor",mxCreateDoubleMatrix(1,1,mxREAL));
   *(double *)mxGetPr(mxGetField(plhs[0],0,"connectionDescriptor")) = (double)connectionDescriptor;
 }
 
