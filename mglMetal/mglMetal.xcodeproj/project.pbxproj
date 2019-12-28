@@ -1,0 +1,602 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 50;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		D0F6B96E23B6D9E700B45409 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0F6B96D23B6D9E700B45409 /* AppDelegate.swift */; };
+		D0F6B97023B6D9E700B45409 /* mglViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0F6B96F23B6D9E700B45409 /* mglViewController.swift */; };
+		D0F6B97223B6D9E800B45409 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D0F6B97123B6D9E800B45409 /* Assets.xcassets */; };
+		D0F6B97523B6D9E800B45409 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = D0F6B97323B6D9E800B45409 /* Main.storyboard */; };
+		D0F6B98123B6D9E800B45409 /* mglMetalTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0F6B98023B6D9E800B45409 /* mglMetalTests.swift */; };
+		D0F6B98C23B6D9E800B45409 /* mglMetalUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0F6B98B23B6D9E800B45409 /* mglMetalUITests.swift */; };
+		D0F6B99A23B6DAD600B45409 /* mglRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0F6B99923B6DAD600B45409 /* mglRenderer.swift */; };
+		D0F6B9A023B6DB3A00B45409 /* mglCommunicator.m in Sources */ = {isa = PBXBuildFile; fileRef = D0F6B99F23B6DB3A00B45409 /* mglCommunicator.m */; };
+		D0F6B9A223B6ED4300B45409 /* mglPrimitives.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0F6B9A123B6ED4300B45409 /* mglPrimitives.swift */; };
+		D0F6B9A423B6EDE600B45409 /* mglShaders.metal in Sources */ = {isa = PBXBuildFile; fileRef = D0F6B9A323B6EDE600B45409 /* mglShaders.metal */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		D0F6B97D23B6D9E800B45409 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = D0F6B96223B6D9E700B45409 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = D0F6B96923B6D9E700B45409;
+			remoteInfo = mglMetal;
+		};
+		D0F6B98823B6D9E800B45409 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = D0F6B96223B6D9E700B45409 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = D0F6B96923B6D9E700B45409;
+			remoteInfo = mglMetal;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		D0F6B96A23B6D9E700B45409 /* mglMetal.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = mglMetal.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		D0F6B96D23B6D9E700B45409 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		D0F6B96F23B6D9E700B45409 /* mglViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglViewController.swift; sourceTree = "<group>"; };
+		D0F6B97123B6D9E800B45409 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		D0F6B97423B6D9E800B45409 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
+		D0F6B97623B6D9E800B45409 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		D0F6B97723B6D9E800B45409 /* mglMetal.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = mglMetal.entitlements; sourceTree = "<group>"; };
+		D0F6B97C23B6D9E800B45409 /* mglMetalTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = mglMetalTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		D0F6B98023B6D9E800B45409 /* mglMetalTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglMetalTests.swift; sourceTree = "<group>"; };
+		D0F6B98223B6D9E800B45409 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		D0F6B98723B6D9E800B45409 /* mglMetalUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = mglMetalUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		D0F6B98B23B6D9E800B45409 /* mglMetalUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglMetalUITests.swift; sourceTree = "<group>"; };
+		D0F6B98D23B6D9E800B45409 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		D0F6B99923B6DAD600B45409 /* mglRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglRenderer.swift; sourceTree = "<group>"; };
+		D0F6B99D23B6DB3A00B45409 /* mglMetal-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "mglMetal-Bridging-Header.h"; sourceTree = "<group>"; };
+		D0F6B99E23B6DB3A00B45409 /* mglCommunicator.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = mglCommunicator.h; sourceTree = "<group>"; };
+		D0F6B99F23B6DB3A00B45409 /* mglCommunicator.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = mglCommunicator.m; sourceTree = "<group>"; };
+		D0F6B9A123B6ED4300B45409 /* mglPrimitives.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglPrimitives.swift; sourceTree = "<group>"; };
+		D0F6B9A323B6EDE600B45409 /* mglShaders.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = mglShaders.metal; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		D0F6B96723B6D9E700B45409 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D0F6B97923B6D9E800B45409 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D0F6B98423B6D9E800B45409 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		D0F6B96123B6D9E700B45409 = {
+			isa = PBXGroup;
+			children = (
+				D0F6B99E23B6DB3A00B45409 /* mglCommunicator.h */,
+				D0F6B99F23B6DB3A00B45409 /* mglCommunicator.m */,
+				D0F6B96C23B6D9E700B45409 /* mglMetal */,
+				D0F6B97F23B6D9E800B45409 /* mglMetalTests */,
+				D0F6B98A23B6D9E800B45409 /* mglMetalUITests */,
+				D0F6B96B23B6D9E700B45409 /* Products */,
+				D0F6B99D23B6DB3A00B45409 /* mglMetal-Bridging-Header.h */,
+			);
+			sourceTree = "<group>";
+		};
+		D0F6B96B23B6D9E700B45409 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				D0F6B96A23B6D9E700B45409 /* mglMetal.app */,
+				D0F6B97C23B6D9E800B45409 /* mglMetalTests.xctest */,
+				D0F6B98723B6D9E800B45409 /* mglMetalUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		D0F6B96C23B6D9E700B45409 /* mglMetal */ = {
+			isa = PBXGroup;
+			children = (
+				D0F6B96D23B6D9E700B45409 /* AppDelegate.swift */,
+				D0F6B96F23B6D9E700B45409 /* mglViewController.swift */,
+				D0F6B99923B6DAD600B45409 /* mglRenderer.swift */,
+				D0F6B9A123B6ED4300B45409 /* mglPrimitives.swift */,
+				D0F6B9A323B6EDE600B45409 /* mglShaders.metal */,
+				D0F6B97123B6D9E800B45409 /* Assets.xcassets */,
+				D0F6B97323B6D9E800B45409 /* Main.storyboard */,
+				D0F6B97623B6D9E800B45409 /* Info.plist */,
+				D0F6B97723B6D9E800B45409 /* mglMetal.entitlements */,
+			);
+			path = mglMetal;
+			sourceTree = "<group>";
+		};
+		D0F6B97F23B6D9E800B45409 /* mglMetalTests */ = {
+			isa = PBXGroup;
+			children = (
+				D0F6B98023B6D9E800B45409 /* mglMetalTests.swift */,
+				D0F6B98223B6D9E800B45409 /* Info.plist */,
+			);
+			path = mglMetalTests;
+			sourceTree = "<group>";
+		};
+		D0F6B98A23B6D9E800B45409 /* mglMetalUITests */ = {
+			isa = PBXGroup;
+			children = (
+				D0F6B98B23B6D9E800B45409 /* mglMetalUITests.swift */,
+				D0F6B98D23B6D9E800B45409 /* Info.plist */,
+			);
+			path = mglMetalUITests;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		D0F6B96923B6D9E700B45409 /* mglMetal */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = D0F6B99023B6D9E800B45409 /* Build configuration list for PBXNativeTarget "mglMetal" */;
+			buildPhases = (
+				D0F6B96623B6D9E700B45409 /* Sources */,
+				D0F6B96723B6D9E700B45409 /* Frameworks */,
+				D0F6B96823B6D9E700B45409 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = mglMetal;
+			productName = mglMetal;
+			productReference = D0F6B96A23B6D9E700B45409 /* mglMetal.app */;
+			productType = "com.apple.product-type.application";
+		};
+		D0F6B97B23B6D9E800B45409 /* mglMetalTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = D0F6B99323B6D9E800B45409 /* Build configuration list for PBXNativeTarget "mglMetalTests" */;
+			buildPhases = (
+				D0F6B97823B6D9E800B45409 /* Sources */,
+				D0F6B97923B6D9E800B45409 /* Frameworks */,
+				D0F6B97A23B6D9E800B45409 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				D0F6B97E23B6D9E800B45409 /* PBXTargetDependency */,
+			);
+			name = mglMetalTests;
+			productName = mglMetalTests;
+			productReference = D0F6B97C23B6D9E800B45409 /* mglMetalTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		D0F6B98623B6D9E800B45409 /* mglMetalUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = D0F6B99623B6D9E800B45409 /* Build configuration list for PBXNativeTarget "mglMetalUITests" */;
+			buildPhases = (
+				D0F6B98323B6D9E800B45409 /* Sources */,
+				D0F6B98423B6D9E800B45409 /* Frameworks */,
+				D0F6B98523B6D9E800B45409 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				D0F6B98923B6D9E800B45409 /* PBXTargetDependency */,
+			);
+			name = mglMetalUITests;
+			productName = mglMetalUITests;
+			productReference = D0F6B98723B6D9E800B45409 /* mglMetalUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		D0F6B96223B6D9E700B45409 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastSwiftUpdateCheck = 1120;
+				LastUpgradeCheck = 1120;
+				ORGANIZATIONNAME = GRU;
+				TargetAttributes = {
+					D0F6B96923B6D9E700B45409 = {
+						CreatedOnToolsVersion = 11.2.1;
+						LastSwiftMigration = 1120;
+					};
+					D0F6B97B23B6D9E800B45409 = {
+						CreatedOnToolsVersion = 11.2.1;
+						TestTargetID = D0F6B96923B6D9E700B45409;
+					};
+					D0F6B98623B6D9E800B45409 = {
+						CreatedOnToolsVersion = 11.2.1;
+						TestTargetID = D0F6B96923B6D9E700B45409;
+					};
+				};
+			};
+			buildConfigurationList = D0F6B96523B6D9E700B45409 /* Build configuration list for PBXProject "mglMetal" */;
+			compatibilityVersion = "Xcode 9.3";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = D0F6B96123B6D9E700B45409;
+			productRefGroup = D0F6B96B23B6D9E700B45409 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				D0F6B96923B6D9E700B45409 /* mglMetal */,
+				D0F6B97B23B6D9E800B45409 /* mglMetalTests */,
+				D0F6B98623B6D9E800B45409 /* mglMetalUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		D0F6B96823B6D9E700B45409 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D0F6B97223B6D9E800B45409 /* Assets.xcassets in Resources */,
+				D0F6B97523B6D9E800B45409 /* Main.storyboard in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D0F6B97A23B6D9E800B45409 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D0F6B98523B6D9E800B45409 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		D0F6B96623B6D9E700B45409 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D0F6B97023B6D9E700B45409 /* mglViewController.swift in Sources */,
+				D0F6B9A023B6DB3A00B45409 /* mglCommunicator.m in Sources */,
+				D0F6B99A23B6DAD600B45409 /* mglRenderer.swift in Sources */,
+				D0F6B9A223B6ED4300B45409 /* mglPrimitives.swift in Sources */,
+				D0F6B96E23B6D9E700B45409 /* AppDelegate.swift in Sources */,
+				D0F6B9A423B6EDE600B45409 /* mglShaders.metal in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D0F6B97823B6D9E800B45409 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D0F6B98123B6D9E800B45409 /* mglMetalTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D0F6B98323B6D9E800B45409 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D0F6B98C23B6D9E800B45409 /* mglMetalUITests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		D0F6B97E23B6D9E800B45409 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = D0F6B96923B6D9E700B45409 /* mglMetal */;
+			targetProxy = D0F6B97D23B6D9E800B45409 /* PBXContainerItemProxy */;
+		};
+		D0F6B98923B6D9E800B45409 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = D0F6B96923B6D9E700B45409 /* mglMetal */;
+			targetProxy = D0F6B98823B6D9E800B45409 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin PBXVariantGroup section */
+		D0F6B97323B6D9E800B45409 /* Main.storyboard */ = {
+			isa = PBXVariantGroup;
+			children = (
+				D0F6B97423B6D9E800B45409 /* Base */,
+			);
+			name = Main.storyboard;
+			sourceTree = "<group>";
+		};
+/* End PBXVariantGroup section */
+
+/* Begin XCBuildConfiguration section */
+		D0F6B98E23B6D9E800B45409 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 10.15;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		D0F6B98F23B6D9E800B45409 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 10.15;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+			};
+			name = Release;
+		};
+		D0F6B99123B6D9E800B45409 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_ENTITLEMENTS = mglMetal/mglMetal.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				INFOPLIST_FILE = mglMetal/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = gru.mglMetal;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_OBJC_BRIDGING_HEADER = "mglMetal-Bridging-Header.h";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		D0F6B99223B6D9E800B45409 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_ENTITLEMENTS = mglMetal/mglMetal.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				INFOPLIST_FILE = mglMetal/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = gru.mglMetal;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_OBJC_BRIDGING_HEADER = "mglMetal-Bridging-Header.h";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		D0F6B99423B6D9E800B45409 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				INFOPLIST_FILE = mglMetalTests/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 10.15;
+				PRODUCT_BUNDLE_IDENTIFIER = gru.mglMetalTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/mglMetal.app/Contents/MacOS/mglMetal";
+			};
+			name = Debug;
+		};
+		D0F6B99523B6D9E800B45409 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				INFOPLIST_FILE = mglMetalTests/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 10.15;
+				PRODUCT_BUNDLE_IDENTIFIER = gru.mglMetalTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/mglMetal.app/Contents/MacOS/mglMetal";
+			};
+			name = Release;
+		};
+		D0F6B99723B6D9E800B45409 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				INFOPLIST_FILE = mglMetalUITests/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = gru.mglMetalUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+				TEST_TARGET_NAME = mglMetal;
+			};
+			name = Debug;
+		};
+		D0F6B99823B6D9E800B45409 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				INFOPLIST_FILE = mglMetalUITests/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = gru.mglMetalUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+				TEST_TARGET_NAME = mglMetal;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		D0F6B96523B6D9E700B45409 /* Build configuration list for PBXProject "mglMetal" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D0F6B98E23B6D9E800B45409 /* Debug */,
+				D0F6B98F23B6D9E800B45409 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		D0F6B99023B6D9E800B45409 /* Build configuration list for PBXNativeTarget "mglMetal" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D0F6B99123B6D9E800B45409 /* Debug */,
+				D0F6B99223B6D9E800B45409 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		D0F6B99323B6D9E800B45409 /* Build configuration list for PBXNativeTarget "mglMetalTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D0F6B99423B6D9E800B45409 /* Debug */,
+				D0F6B99523B6D9E800B45409 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		D0F6B99623B6D9E800B45409 /* Build configuration list for PBXNativeTarget "mglMetalUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D0F6B99723B6D9E800B45409 /* Debug */,
+				D0F6B99823B6D9E800B45409 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = D0F6B96223B6D9E700B45409 /* Project object */;
+}
