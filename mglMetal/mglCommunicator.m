@@ -111,32 +111,21 @@ int socketDescriptor = -1;
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
 // implementation: readData
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
--(void *) readData:(int)nBytes
+-(void)readData:(int)byteCount buf:(void *)buf
 {
     // declare variables
     ssize_t readCount;
 
-    // buffer to receive commands and size
-    unsigned char *buf;
-    
-    // allocate space for buffer
-    buf = (unsigned char *)malloc(nBytes);
-    
     // read buffer
-    readCount = recv(socketDescriptor,buf,nBytes,0);
-    if (readCount < nBytes) {
+    readCount = recv(socketDescriptor,buf,byteCount,0);
+    if (readCount < byteCount) {
         // error on read, assume that connection was closed.
         if (errno != EAGAIN) {
             close(socketDescriptor);
             socketDescriptor = -1;
         }
-        // FIX: This should probably throw an error rather
-        // than return NULL
-        return (NULL);
+        // FIX: This should probably throw an error if we got here
     }
-//    NSData *data = [[NSData alloc] initWithBytesNoCopy:buf length:nBytes];
-//    return(data);
-    return((void *)buf);
 }
 
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/

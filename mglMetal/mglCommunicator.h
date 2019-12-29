@@ -25,8 +25,7 @@ NS_ASSUME_NONNULL_BEGIN
 -(BOOL) open:(NSString *)connectionName error:(NSError **)error;
 -(void) close;
 -(BOOL) dataWaiting;
-//-(NSData *) readData:(int)nBytes;
--(void *) readData:(int)nBytes;
+-(void) readData:(int)byteCount buf:(void *)buf;
 -(void) writeDataDouble:(double)data;
 @end
 

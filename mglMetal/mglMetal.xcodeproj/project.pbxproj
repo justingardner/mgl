@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		D08D4BBE23B8834C00A27C79 /* mglCommandInterface.swift in Sources */ = {isa = PBXBuildFile; fileRef = D08D4BBD23B8834C00A27C79 /* mglCommandInterface.swift */; };
 		D0F6B96E23B6D9E700B45409 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0F6B96D23B6D9E700B45409 /* AppDelegate.swift */; };
 		D0F6B97023B6D9E700B45409 /* mglViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0F6B96F23B6D9E700B45409 /* mglViewController.swift */; };
 		D0F6B97223B6D9E800B45409 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D0F6B97123B6D9E800B45409 /* Assets.xcassets */; };
@@ -37,6 +38,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		D08D4BBD23B8834C00A27C79 /* mglCommandInterface.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglCommandInterface.swift; sourceTree = "<group>"; };
 		D0F6B96A23B6D9E700B45409 /* mglMetal.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = mglMetal.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		D0F6B96D23B6D9E700B45409 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		D0F6B96F23B6D9E700B45409 /* mglViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglViewController.swift; sourceTree = "<group>"; };
@@ -114,6 +116,7 @@
 				D0F6B99923B6DAD600B45409 /* mglRenderer.swift */,
 				D0F6B9A123B6ED4300B45409 /* mglPrimitives.swift */,
 				D0F6B9A323B6EDE600B45409 /* mglShaders.metal */,
+				D08D4BBD23B8834C00A27C79 /* mglCommandInterface.swift */,
 				D0F6B97123B6D9E800B45409 /* Assets.xcassets */,
 				D0F6B97323B6D9E800B45409 /* Main.storyboard */,
 				D0F6B97623B6D9E800B45409 /* Info.plist */,
@@ -271,6 +274,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				D08D4BBE23B8834C00A27C79 /* mglCommandInterface.swift in Sources */,
 				D0F6B97023B6D9E700B45409 /* mglViewController.swift in Sources */,
 				D0F6B9A023B6DB3A00B45409 /* mglCommunicator.m in Sources */,
 				D0F6B99A23B6DAD600B45409 /* mglRenderer.swift in Sources */,

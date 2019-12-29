@@ -20,7 +20,8 @@ import MetalKit
 enum mglCommands : UInt16 {
     case ping = 0
     case clearScreen = 1
-    case points = 2
+    case readData = 2
+    case points = 3
 }
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
 // mglRenderer: Class does most of the work
@@ -132,7 +133,9 @@ extension mglRenderer: MTKViewDelegate {
             switch command {
                 case mglCommands.ping: print("ping")
                 case mglCommands.clearScreen: clearScreen(view : view)
-                default: print("(mglRenderer:draw) Unknown command \(command)")
+//                case mglCommands.readData:
+                
+                default: print("(mglRenderer:draw) Unknown command")
             }
         }
         

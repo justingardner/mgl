@@ -49,12 +49,15 @@ class mglCommandInterface {
     // readCommand
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     func readCommand() -> mglCommands {
+        // allocate data
+        let command = UnsafeMutablePointer<mglCommands>.allocate(capacity: 1)
+        defer {
+          command.deallocate()
+        }
         // read 2 bytes of raw data
-        let rawData = communicator.readData(2);
-        // convert to mglCommands
-        let convertedData = rawData.bindMemory(to: mglCommands.self, capacity: 1)
+        communicator.readData(2, buf: command);
         // return what it points to
-        return(convertedData.pointee)
+        return(command.pointee)
     }
 
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
@@ -68,11 +71,17 @@ class mglCommandInterface {
     // readUINT32
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     func readUINT32() -> UInt32 {
-        // read 2 bytes of raw data
-        let rawData = communicator.readData(4);
-        // convert to UInt32
-        let convertedData = rawData.bindMemory(to: UInt32.self, capacity: 1)
+        // allocate data
+        let data = UnsafeMutablePointer<UInt32>.allocate(capacity: 1)
+        defer {
+          data.deallocate()
+        }
+        // read 4 bytes of raw data
+        communicator.readData(4,buf:data);
         // return what it points to
-        return(convertedData.pointee)
+        return(data.pointee)
     }
+    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
+    // readFloat
+    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
 }
