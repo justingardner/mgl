@@ -104,7 +104,7 @@ class mglRenderer: NSObject {
         vertexDescriptor.attributes[0].bufferIndex = 0
         vertexDescriptor.layouts[0].stride = MemoryLayout<SIMD3<Float>>.stride
         pipelineDescriptor.vertexDescriptor = vertexDescriptor
-        pipelineDescriptor.fragmentFunction = library?.makeFunction(name: "fragment_dots")
+        //pipelineDescriptor.fragmentFunction = library?.makeFunction(name: "fragment_dots")
         // Setup the pipeline with the device
         do {
             pipelineStateDots = try device.makeRenderPipelineState(descriptor: pipelineDescriptor)
@@ -144,17 +144,6 @@ extension mglRenderer: MTKViewDelegate {
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     func draw(in view: MTKView) {
         
-        // check matlab command queue
-        if commandInterface.dataWaiting() {
-            let command = commandInterface.readCommand()
-            switch command {
-                case mglCommands.ping: print("ping")
-                case mglCommands.clearScreen: clearScreen(view : view)
-                case mglCommands.dots: dots(view: view)
-                default: print("(mglRenderer:draw) Unknown command")
-            }
-        }
-        
         // Get the commandBuffer and renderEncoder
         guard let descriptor = view.currentRenderPassDescriptor,
         let commandBuffer = mglRenderer.commandQueue.makeCommandBuffer(),
@@ -163,15 +152,28 @@ extension mglRenderer: MTKViewDelegate {
         }
         
         // set the renderEncoder pipeline state
-        renderEncoder.setRenderPipelineState(pipelineState)
+        //renderEncoder.setRenderPipelineState(pipelineState)
         
         // Give it our vertices
-        renderEncoder.setVertexBuffer(vertexBuffer, offset: 0, index: 0)
-        for submesh in mesh.submeshes {renderEncoder.drawIndexedPrimitives(type: .triangle,indexCount: submesh.indexCount,indexType: submesh.indexType, indexBuffer: submesh.indexBuffer.buffer, indexBufferOffset: submesh.indexBuffer.offset)
-        }
+        //renderEncoder.setVertexBuffer(vertexBuffer, offset: 0, index: 0)
+        //for submesh in mesh.submeshes {renderEncoder.drawIndexedPrimitives(type: .triangle,indexCount: submesh.indexCount,indexType: submesh.indexType, indexBuffer: submesh.indexBuffer.buffer, indexBufferOffset: submesh.indexBuffer.offset)
+        //}
         // done
-        renderEncoder.endEncoding()
+        //renderEncoder.endEncoding()
+
+        // check matlab command queue
+        if commandInterface.dataWaiting() {
+            let command = commandInterface.readCommand()
+            switch command {
+                case mglCommands.ping: print("ping")
+                case mglCommands.clearScreen: clearScreen(view : view)
+                case mglCommands.dots: dots(view: view, renderEncoder: renderEncoder)
+            }
+        }
         
+        // end encoding
+        renderEncoder.endEncoding()
+
         // set the drawable, present and commit - should draw after this
         guard let drawable = view.currentDrawable else {
              return
@@ -192,7 +194,7 @@ extension mglRenderer: MTKViewDelegate {
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     // dots
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
-    func dots(view: MTKView) {
+    func dots(view: MTKView, renderEncoder: MTLRenderCommandEncoder) {
         // Set the clear color for the view
         view.clearColor = MTLClearColor(red: 0.5, green: 0.4,
                                               blue: 0.8, alpha: 1)
@@ -225,5 +227,16 @@ extension mglRenderer: MTKViewDelegate {
                 print("Index value: \(index): \(value)")
             }
         }
+        // set the renderEncoder pipeline state
+        renderEncoder.setRenderPipelineState(pipelineStateDots)
+        
+        // Give it our vertices and indexes
+        renderEncoder.setVertexBuffer(vertexBufferDots, offset: 0, index: 0)
+        renderEncoder.drawIndexedPrimitives(type: .triangle,indexCount: indexCount,indexType:        MTLIndexType.uint16, indexBuffer: indexBufferDots, indexBufferOffset: 0)
+
+        //renderEncoder.setRenderPipelineState(pipelineState)
+        //renderEncoder.setVertexBuffer(vertexBuffer, offset: 0, index: 0)
+        //for submesh in mesh.submeshes {renderEncoder.drawIndexedPrimitives(type: .triangle,indexCount: submesh.indexCount,indexType: submesh.indexType, indexBuffer: submesh.indexBuffer.buffer, indexBufferOffset: submesh.indexBuffer.offset)
+       // }
     }
 }
