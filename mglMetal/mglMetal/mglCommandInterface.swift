@@ -82,6 +82,17 @@ class mglCommandInterface {
         return(data.pointee)
     }
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
-    // readFloat
+    // readFloats
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
+    func readFloats(count: Int) -> UnsafeBufferPointer<Float> {
+        // allocate data
+        let data = UnsafeMutablePointer<Float>.allocate(capacity: count)
+        defer {
+          data.deallocate()
+        }
+        // read 4 bytes of raw data
+        communicator.readData(Int32(count*MemoryLayout<Float>.stride),buf:data);
+        // return what it points to
+        return(UnsafeBufferPointer(start: data, count: count))
+    }
 }

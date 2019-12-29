@@ -133,8 +133,11 @@ extension mglRenderer: MTKViewDelegate {
             switch command {
                 case mglCommands.ping: print("ping")
                 case mglCommands.clearScreen: clearScreen(view : view)
-//                case mglCommands.readData:
-                
+                case mglCommands.readData:
+                    let data = commandInterface.readFloats(count: 10)
+                    for (index, value) in data.enumerated() {
+                      print("value \(index): \(value)")
+                    }
                 default: print("(mglRenderer:draw) Unknown command")
             }
         }

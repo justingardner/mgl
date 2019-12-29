@@ -128,31 +128,6 @@ int socketDescriptor = -1;
     }
 }
 
-//\/\/\/\/\/\/\/\/\/\/\/\/\/\/
-// implementation: readCommand
-//\/\/\/\/\/\/\/\/\/\/\/\/\/\/
--(int) readCommand
-{
-    // declare variables
-    ssize_t readCount;
-    
-    // buffer to receive commands and size
-    static uint16 commandBuffer;
-    static size_t commandBufferLen = sizeof(uint16);
-
-    // clear command buffer
-    memset(&commandBuffer,0,commandBufferLen);
-
-    // read command
-    if ((readCount=recv(socketDescriptor,&commandBuffer,commandBufferLen,0)) != commandBufferLen) {
-        // FIX: error on read, assume that connection was closed.
-        if (errno != EAGAIN) {
-            close(socketDescriptor);
-            socketDescriptor = -1;
-        }
-    }
-    return(commandBuffer);
-}
 
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
 // implementation: writeDataDouble
