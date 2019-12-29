@@ -21,6 +21,7 @@ enum mglCommands : UInt16 {
     case ping = 0
     case clearScreen = 1
     case dots = 2
+    case flush = 3
 }
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
 // mglRenderer: Class does most of the work
@@ -162,12 +163,16 @@ extension mglRenderer: MTKViewDelegate {
         //renderEncoder.endEncoding()
 
         // check matlab command queue
-        if commandInterface.dataWaiting() {
-            let command = commandInterface.readCommand()
-            switch command {
-                case mglCommands.ping: print("ping")
-                case mglCommands.clearScreen: clearScreen(view : view)
-                case mglCommands.dots: dots(view: view, renderEncoder: renderEncoder)
+        var readCommands = true
+        while readCommands {
+            if commandInterface.dataWaiting() {
+                let command = commandInterface.readCommand()
+                switch command {
+                    case mglCommands.ping: print("ping")
+                    case mglCommands.clearScreen: clearScreen(view : view)
+                    case mglCommands.dots: dots(view: view, renderEncoder: renderEncoder)
+                    case mglCommands.flush: readCommands = false
+                }
             }
         }
         
@@ -234,9 +239,9 @@ extension mglRenderer: MTKViewDelegate {
         renderEncoder.setVertexBuffer(vertexBufferDots, offset: 0, index: 0)
         renderEncoder.drawIndexedPrimitives(type: .triangle,indexCount: indexCount,indexType:        MTLIndexType.uint16, indexBuffer: indexBufferDots, indexBufferOffset: 0)
 
-        //renderEncoder.setRenderPipelineState(pipelineState)
-        //renderEncoder.setVertexBuffer(vertexBuffer, offset: 0, index: 0)
-        //for submesh in mesh.submeshes {renderEncoder.drawIndexedPrimitives(type: .triangle,indexCount: submesh.indexCount,indexType: submesh.indexType, indexBuffer: submesh.indexBuffer.buffer, indexBufferOffset: submesh.indexBuffer.offset)
-       // }
+        renderEncoder.setRenderPipelineState(pipelineState)
+        renderEncoder.setVertexBuffer(vertexBuffer, offset: 0, index: 0)
+        for submesh in mesh.submeshes {renderEncoder.drawIndexedPrimitives(type: .triangle,indexCount: submesh.indexCount,indexType: submesh.indexType, indexBuffer: submesh.indexBuffer.buffer, indexBufferOffset: submesh.indexBuffer.offset)
+        }
     }
 }
