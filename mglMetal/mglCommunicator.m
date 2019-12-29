@@ -58,7 +58,7 @@ int socketDescriptor = -1;
     // create socket and check for error
     if ((socketDescriptor = socket(AF_UNIX, SOCK_STREAM, 0)) == -1) {
         // Set error description
-        [errorDetails setValue:@"Could not create socket to communicate between matlab and mglMetalDisplay" forKey:NSLocalizedDescriptionKey];
+        [errorDetails setValue:@"Could not create socket to communicate between matlab and mglMetal" forKey:NSLocalizedDescriptionKey];
         // set the error
         *error = [NSError errorWithDomain:errorDomain code:-101 userInfo:errorDetails];
         return(FALSE);
@@ -71,14 +71,14 @@ int socketDescriptor = -1;
     strncpy(socketAddress.sun_path, [connectionName UTF8String], sizeof(socketAddress.sun_path)-1);
     if (connect(socketDescriptor, (struct sockaddr*)&socketAddress, sizeof(socketAddress)) == -1) {
         // Set error description
-        [errorDetails setValue:[NSString stringWithFormat:@"(mglCommunicator:open) Could not connect to socket name %s This prevents communication between matlab and mglMetal. This might have happened because matlab has not yet created the socket (need to run mglSocketOpen)",[connectionName UTF8String]] forKey:NSLocalizedDescriptionKey];
+        [errorDetails setValue:[NSString stringWithFormat:@"(mglCommunicatorSocket:open) Could not connect to socket name %s This prevents communication between matlab and mglMetal. This might have happened because matlab has not yet created the socket (need to run mglSocketOpen)",[connectionName UTF8String]] forKey:NSLocalizedDescriptionKey];
         // set the error
         *error = [NSError errorWithDomain:errorDomain code:-103 userInfo:errorDetails];
 
       return(FALSE);
     }
 
-    printf("(mglCommunicator:open) Opened socket %s\n",[connectionName UTF8String]);
+    printf("(mglCommunicatorSocket:open) Opened socket %s\n",[connectionName UTF8String]);
     return(TRUE);
 }
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
@@ -95,11 +95,14 @@ int socketDescriptor = -1;
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
 -(BOOL) dataWaiting
 {
+    // use poll function to return whether there is data waiting
     struct pollfd pfd;
     pfd.fd = socketDescriptor;
     pfd.events = POLLIN;
     pfd.revents = 0;
     poll(&pfd,1,0);
+    
+    // return true or false
     if (pfd.revents == POLLIN)
         return true;
     else
@@ -108,7 +111,7 @@ int socketDescriptor = -1;
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
 // implementation: readData
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
--(NSData *) readData:(int)nBytes dataType: (mglDataType)dataType
+-(void *) readData:(int)nBytes
 {
     // declare variables
     ssize_t readCount;
@@ -116,22 +119,12 @@ int socketDescriptor = -1;
     // buffer to receive commands and size
     unsigned char *buf;
     
-    // get sizd of buffer
-    unsigned int nBytesPer;
-    switch (dataType) {
-        case kUINT8: nBytesPer = 1;
-        case kUINT16: nBytesPer = 2;
-        case kUINT32: nBytesPer = 4;
-        case kDOUBLE: nBytesPer = 4;
-    }
-    size_t buflen = nBytesPer*nBytes;
-
     // allocate space for buffer
-    buf = (unsigned char *)malloc(buflen);
+    buf = (unsigned char *)malloc(nBytes);
     
     // read buffer
-    readCount = recv(socketDescriptor,buf,buflen,0);
-    if (readCount < buflen) {
+    readCount = recv(socketDescriptor,buf,nBytes,0);
+    if (readCount < nBytes) {
         // error on read, assume that connection was closed.
         if (errno != EAGAIN) {
             close(socketDescriptor);
@@ -141,8 +134,9 @@ int socketDescriptor = -1;
         // than return NULL
         return (NULL);
     }
-    NSData *data = [[NSData alloc] initWithBytesNoCopy:buf length:buflen];
-    return(data);
+//    NSData *data = [[NSData alloc] initWithBytesNoCopy:buf length:nBytes];
+//    return(data);
+    return((void *)buf);
 }
 
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
@@ -170,21 +164,13 @@ int socketDescriptor = -1;
     }
     return(commandBuffer);
 }
+
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
-// implementation: readUInt32
-//\/\/\/\/\/\/\/\/\/\/\/\/\/\/
--(int) readUINT32
-{
-    NSData *d = [self readData:1 dataType:kUINT32];
-    return(*(int *)[d bytes]);
-}
-//\/\/\/\/\/\/\/\/\/\/\/\/\/\/
-// implementation: writeData
+// implementation: writeDataDouble
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
 -(void) writeDataDouble:(double)data
 {
-    printf("Double: %i\n",sizeof(double));
     if (write(socketDescriptor,&data,sizeof(double)) < sizeof(double))
-        printf("(mglCommunicator:writeDouble) Unable to write data\n");
+        printf("(mglCommunicatorSocket:writeDouble) Unable to write data\n");
 }
 @end

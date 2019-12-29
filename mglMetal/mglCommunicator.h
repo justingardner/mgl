@@ -12,14 +12,7 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
-// emnumeration for types of data
-typedef NS_ENUM(NSInteger, mglDataType) {
-    kUINT8,
-    kUINT16,
-    kUINT32,
-    kDOUBLE,
-};
-
+//\/\/\/\/\/\/\/\/\/\/\/\/\/\/
 // Protocol for communication classes with matlab.
 // This defines a set of methods that can be used
 // by mglController to open/close and read/write
@@ -27,18 +20,20 @@ typedef NS_ENUM(NSInteger, mglDataType) {
 // future versions of the code need simply conform
 // to this protocol and can replace the underlying
 // communication strucutre
+//\/\/\/\/\/\/\/\/\/\/\/\/\/\/
 @protocol mglCommunicatorProtocol
 -(BOOL) open:(NSString *)connectionName error:(NSError **)error;
 -(void) close;
--(void) writeDataDouble:(double)data;
 -(BOOL) dataWaiting;
--(int) readCommand;//FIX this should return a mglCommunicatorCommands - but how to get swift to recognize enum?
--(NSData *) readData:(int)nBytes dataType: (mglDataType)dataType;
--(int) readUINT32;
+//-(NSData *) readData:(int)nBytes;
+-(void *) readData:(int)nBytes;
+-(void) writeDataDouble:(double)data;
 @end
 
+//\/\/\/\/\/\/\/\/\/\/\/\/\/\/
 // a class which implements the above protocol using
 // POSIX sockets.
+//\/\/\/\/\/\/\/\/\/\/\/\/\/\/
 @interface mglCommunicatorSocket : NSObject <mglCommunicatorProtocol> {
     // set to true if you want the object to provide verbose info
     BOOL verbose;
