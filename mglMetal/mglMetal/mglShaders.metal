@@ -24,10 +24,8 @@ struct VertexIn {
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
 // Vertex shader
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
-vertex float4 vertex_main(const VertexIn vertexIn [[ stage_in ]],
-                          constant float &timer [[ buffer(1) ]]) {
+vertex float4 vertex_main(const VertexIn vertexIn [[ stage_in ]]) {
   float4 position = vertexIn.position;
-  position.y += timer;
   return position;
 }
 
@@ -36,5 +34,12 @@ vertex float4 vertex_main(const VertexIn vertexIn [[ stage_in ]],
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
 fragment float4 fragment_main() {
   return float4(1, 0, 0, 1);
+}
+
+//\/\/\/\/\/\/\/\/\/\/\/\/\/\/
+// Fragment shader for rendering dots
+//\/\/\/\/\/\/\/\/\/\/\/\/\/\/
+fragment float4 fragment_dots() {
+  return float4(0, 1, 0, 1);
 }
 

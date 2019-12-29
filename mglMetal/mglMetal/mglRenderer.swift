@@ -20,8 +20,7 @@ import MetalKit
 enum mglCommands : UInt16 {
     case ping = 0
     case clearScreen = 1
-    case readData = 2
-    case points = 3
+    case dots = 2
 }
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
 // mglRenderer: Class does most of the work
@@ -41,14 +40,17 @@ class mglRenderer: NSObject {
     // that define the pipeline of the GPU renderer
     var pipelineState: MTLRenderPipelineState!
     
+    // Pipeline state for rendering dots
+    var pipelineStateDots: MTLRenderPipelineState!
+    // vertex buffer for dots - will be allocated from device
+    var vertexBufferDots: MTLBuffer!
+    // index buffer for dots
+    var indexBufferDots: MTLBuffer!
+    
     // variable to hold mglCommunicator which
     // communicates with matlab
     var commandInterface : mglCommandInterface
     
-    // A timer for testing - this is used to update
-    // a square moving across the screen
-    var timer: Float = 0
-                                                                                               
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     // init
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
@@ -95,19 +97,34 @@ class mglRenderer: NSObject {
            fatalError(error.localizedDescription)
         }
         
+        // Set up a pipelineState for rendering dots
+        let vertexDescriptor = MTLVertexDescriptor()
+        vertexDescriptor.attributes[0].format = .float3
+        vertexDescriptor.attributes[0].offset = 0
+        vertexDescriptor.attributes[0].bufferIndex = 0
+        vertexDescriptor.layouts[0].stride = MemoryLayout<SIMD3<Float>>.stride
+        pipelineDescriptor.vertexDescriptor = vertexDescriptor
+        pipelineDescriptor.fragmentFunction = library?.makeFunction(name: "fragment_dots")
+        // Setup the pipeline with the device
+        do {
+            pipelineStateDots = try device.makeRenderPipelineState(descriptor: pipelineDescriptor)
+        } catch let error {
+           fatalError(error.localizedDescription)
+        }
+        
         // init the super class
         super.init()
         
         // Set the clear color for the view
-        metalView.clearColor = MTLClearColor(red: 1.0, green: 1.0,
-                                              blue: 0.8, alpha: 1)
+        metalView.clearColor = MTLClearColor(red: 0.5, green: 0.5,
+                                              blue: 0.5, alpha: 1)
         // Tell the view that this class will be used as the
         // delegate - this makes it so that the view will call
         // the draw function each frame update and the resize function
         metalView.delegate = self
         
         // Done. Print out that we did something.
-        print("(mglMetal:mglRenderer) init mglRenderer")
+        print("(mglMetal:mglRenderer) Init mglRenderer")
      }
  }
 
@@ -133,11 +150,7 @@ extension mglRenderer: MTKViewDelegate {
             switch command {
                 case mglCommands.ping: print("ping")
                 case mglCommands.clearScreen: clearScreen(view : view)
-                case mglCommands.readData:
-                    let data = commandInterface.readFloats(count: 10)
-                    for (index, value) in data.enumerated() {
-                      print("value \(index): \(value)")
-                    }
+                case mglCommands.dots: dots(view: view)
                 default: print("(mglRenderer:draw) Unknown command")
             }
         }
@@ -148,11 +161,6 @@ extension mglRenderer: MTKViewDelegate {
         let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: descriptor) else {
             return
         }
-        
-        // Set up a timer for making the cube go up and donw
-        timer += 0.05
-        var currentTime: Float = sin(timer)
-        renderEncoder.setVertexBytes(&currentTime, length: MemoryLayout<Float>.stride, index:1)
         
         // set the renderEncoder pipeline state
         renderEncoder.setRenderPipelineState(pipelineState)
@@ -179,5 +187,43 @@ extension mglRenderer: MTKViewDelegate {
         view.clearColor = MTLClearColor(red: 0.5, green: 0.4,
                                               blue: 0.8, alpha: 1)
 
+    }
+    
+    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
+    // dots
+    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
+    func dots(view: MTKView) {
+        // Set the clear color for the view
+        view.clearColor = MTLClearColor(red: 0.5, green: 0.4,
+                                              blue: 0.8, alpha: 1)
+        // get vertices
+        let vertexCount = 3
+        let indexCount = 1
+        // get an MTLBuffer for holding the vertices
+        vertexBufferDots = mglRenderer.device.makeBuffer(length: vertexCount * 3 * MemoryLayout<Float>.stride)
+        // read the vertex data from the command interface
+        commandInterface.readData(count: vertexCount * 3 * MemoryLayout<Float>.stride, buf: vertexBufferDots.contents())
+        // print vertices out (for debugging)
+        do {
+            let rawPointer = vertexBufferDots.contents()
+            let typedPointer = rawPointer.bindMemory(to: Float.self, capacity: vertexCount * 3)
+            let bufferPointer = UnsafeBufferPointer<Float>(start: typedPointer, count: vertexCount * 3)
+            for (index, value) in bufferPointer.enumerated() {
+                print("Vertex value: \(index): \(value)")
+            }
+        }
+        // get an MTLBuffer for holding the indexes
+        indexBufferDots = mglRenderer.device.makeBuffer(length: indexCount*3)
+        // read the index data from the command interface
+        commandInterface.readData(count: indexCount * 3 * MemoryLayout<UInt16>.stride, buf: indexBufferDots.contents())
+        do {
+            // print indexes out (for debugging)
+            let rawPointer = indexBufferDots.contents()
+            let typedPointer = rawPointer.bindMemory(to: UInt16.self, capacity: indexCount * 3)
+            let bufferPointer = UnsafeBufferPointer<UInt16>(start: typedPointer, count: indexCount * 3)
+            for (index, value) in bufferPointer.enumerated() {
+                print("Index value: \(index): \(value)")
+            }
+        }
     }
 }
