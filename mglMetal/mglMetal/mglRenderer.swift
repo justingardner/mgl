@@ -17,9 +17,10 @@ import MetalKit
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
 // Enum of command codes
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
-enum mglCommands : Int32 {
+enum mglCommands : UInt16 {
     case ping = 0
     case clearScreen = 1
+    case points = 2
 }
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
 // mglRenderer: Class does most of the work
@@ -41,7 +42,7 @@ class mglRenderer: NSObject {
     
     // variable to hold mglCommunicator which
     // communicates with matlab
-    var mglCommunicator : mglCommunicatorSocket
+    var commandInterface : mglCommandInterface
     
     // A timer for testing - this is used to update
     // a square moving across the screen
@@ -51,15 +52,8 @@ class mglRenderer: NSObject {
     // init
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     init(metalView: MTKView) {
-        
-        // Setup communication with matlab
-        mglCommunicator = mglCommunicatorSocket()
-        do {
-            try mglCommunicator.open("testsocket")
-        }
-        catch let error as NSError {
-            fatalError("Error: \(error.domain) \(error.localizedDescription)")
-        }
+        // init mglCommunicator
+        commandInterface = mglCommandInterface()
         
         // Initialize the GPU device
         guard let device = MTLCreateSystemDefaultDevice() else {
@@ -133,11 +127,11 @@ extension mglRenderer: MTKViewDelegate {
     func draw(in view: MTKView) {
         
         // check matlab command queue
-        if mglCommunicator.dataWaiting() {
-            let command = mglCommunicator.readCommand()
+        if commandInterface.dataWaiting() {
+            let command = commandInterface.readCommand()
             switch command {
-                case mglCommands.ping.rawValue: print("ping")
-                case mglCommands.clearScreen.rawValue: clearScreen(view : view)
+                case mglCommands.ping: print("ping")
+                case mglCommands.clearScreen: clearScreen(view : view)
                 default: print("(mglRenderer:draw) Unknown command \(command)")
             }
         }

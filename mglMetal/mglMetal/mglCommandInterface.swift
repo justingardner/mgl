@@ -1,6 +1,6 @@
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/
 //
-//  mglCommunicator.swift
+//  mglCommandInterface.swift
 //  mglMetal
 //
 //  Created by justin gardner on 12/29/2019.
@@ -19,7 +19,7 @@ import Foundation
 // the future. This class then provides a programmatically
 // easy way to access data from matlab
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
-class mglCommunicator {
+class mglCommandInterface {
     // variable to hold mglCommunicator which
     // communicates with matlab
     var communicator : mglCommunicatorSocket
@@ -67,7 +67,12 @@ class mglCommunicator {
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     // readUINT32
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
-    func readUINT32() -> Int {
-        return 0
+    func readUINT32() -> UInt32 {
+        // read 2 bytes of raw data
+        let rawData = communicator.readData(4);
+        // convert to UInt32
+        let convertedData = rawData.bindMemory(to: UInt32.self, capacity: 1)
+        // return what it points to
+        return(convertedData.pointee)
     }
 }
