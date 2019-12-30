@@ -37,9 +37,16 @@ fragment float4 fragment_main() {
 }
 
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
+// Vertex shader for dots
+//\/\/\/\/\/\/\/\/\/\/\/\/\/\/
+vertex float4 vertex_dots(const device packed_float3* vertex_array [[ buffer(0) ]], unsigned int vid [[ vertex_id ]]) {
+    return float4(vertex_array[vid], 1.0);
+}
+
+//\/\/\/\/\/\/\/\/\/\/\/\/\/\/
 // Fragment shader for rendering dots
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
 fragment float4 fragment_dots() {
-  return float4(0, 1, 0, 1);
+  return float4(1, 1, 1, 1);
 }
 

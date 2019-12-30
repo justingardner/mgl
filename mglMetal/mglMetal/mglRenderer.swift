@@ -22,6 +22,7 @@ enum mglCommands : UInt16 {
     case clearScreen = 1
     case dots = 2
     case flush = 3
+    case test = 4
 }
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
 // mglRenderer: Class does most of the work
@@ -79,7 +80,7 @@ class mglRenderer: NSObject {
         let library = device.makeDefaultLibrary()
         let vertexFunction = library?.makeFunction(name: "vertex_main")
         let fragmentFunction = library?.makeFunction(name: "fragment_main")
-        
+
         // create the pripeline descriptor which describes
         // the shaders and other things necessary for defining
         // the drawing state of the GPU
@@ -105,7 +106,8 @@ class mglRenderer: NSObject {
         vertexDescriptor.attributes[0].bufferIndex = 0
         vertexDescriptor.layouts[0].stride = MemoryLayout<SIMD3<Float>>.stride
         pipelineDescriptor.vertexDescriptor = vertexDescriptor
-        //pipelineDescriptor.fragmentFunction = library?.makeFunction(name: "fragment_dots")
+        pipelineDescriptor.vertexFunction = library?.makeFunction(name: "vertex_dots")
+        pipelineDescriptor.fragmentFunction = library?.makeFunction(name: "fragment_dots")
         // Setup the pipeline with the device
         do {
             pipelineStateDots = try device.makeRenderPipelineState(descriptor: pipelineDescriptor)
@@ -171,6 +173,7 @@ extension mglRenderer: MTKViewDelegate {
                     case mglCommands.ping: print("ping")
                     case mglCommands.clearScreen: clearScreen(view : view)
                     case mglCommands.dots: dots(view: view, renderEncoder: renderEncoder)
+                    case mglCommands.test: test(view: view, renderEncoder: renderEncoder)
                     case mglCommands.flush: readCommands = false
                 }
             }
@@ -244,4 +247,34 @@ extension mglRenderer: MTKViewDelegate {
         for submesh in mesh.submeshes {renderEncoder.drawIndexedPrimitives(type: .triangle,indexCount: submesh.indexCount,indexType: submesh.indexType, indexBuffer: submesh.indexBuffer.buffer, indexBufferOffset: submesh.indexBuffer.offset)
         }
     }
+    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
+    // test
+    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
+    func test(view: MTKView, renderEncoder: MTLRenderCommandEncoder) {
+        print("Testing")
+        // Set the clear color for the view
+        view.clearColor = MTLClearColor(red: 0.8, green: 0.4,
+                                              blue: 0.9, alpha: 1)
+        
+        renderEncoder.setRenderPipelineState(pipelineStateDots)
+        // get an MTLBuffer for holding the vertices
+        let vertexCount = 3
+        vertexBufferDots = mglRenderer.device.makeBuffer(length: vertexCount * 3 * MemoryLayout<Float>.stride)
+        // read the vertex data from the command interface
+        commandInterface.readData(count: vertexCount * 3 * MemoryLayout<Float>.stride, buf: vertexBufferDots.contents())
+        // print vertices out (for debugging)
+        do {
+            let rawPointer = vertexBufferDots.contents()
+            let typedPointer = rawPointer.bindMemory(to: Float.self, capacity: vertexCount * 3)
+            let bufferPointer = UnsafeBufferPointer<Float>(start: typedPointer, count: vertexCount * 3)
+            for (index, value) in bufferPointer.enumerated() {
+                print("Vertex value: \(index): \(value)")
+            }
+        }
+        renderEncoder.setVertexBuffer(vertexBufferDots, offset: 0, index: 0)
+        renderEncoder.drawPrimitives(type: .point,
+                                     vertexStart: 0,
+                                     vertexCount: 3)
+    }
+
 }
