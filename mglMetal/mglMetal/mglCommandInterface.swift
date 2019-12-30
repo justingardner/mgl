@@ -9,6 +9,7 @@
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/
 
 import Foundation
+import MetalKit
 
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
 // A class which abstracts the mglCommunicatorProtocol
@@ -23,7 +24,7 @@ class mglCommandInterface {
     // variable to hold mglCommunicator which
     // communicates with matlab
     var communicator : mglCommunicatorSocket
-
+    
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     // init
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
@@ -70,7 +71,7 @@ class mglCommandInterface {
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     // readUINT32
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
-    func readUINT32() -> UInt32 {
+    func readUInt32() -> UInt32 {
         // allocate data
         let data = UnsafeMutablePointer<UInt32>.allocate(capacity: 1)
         defer {
@@ -87,5 +88,19 @@ class mglCommandInterface {
     func readData(count: Int, buf: UnsafeMutableRawPointer) {
         // read data
         communicator.readData(Int32(count),buf:buf);
+    }
+    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
+    // readVertices
+    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
+    func readVertices(device: MTLDevice) -> MTLBuffer {
+        // Get the number of vertices
+        let vertexCount = Int(readUInt32())
+        print("(commandInterface:readVertices) VertexCount: \(vertexCount)")
+        let vertexBuffer = device.makeBuffer(length: vertexCount * 3 * MemoryLayout<Float>.stride)
+        // read the vertex data from the command interface
+        // FIX do proper error checking here
+        readData(count: vertexCount * 3 * MemoryLayout<Float>.stride, buf: vertexBuffer!.contents())
+        // return the buffer
+        return(vertexBuffer!)
     }
 }

@@ -258,23 +258,15 @@ extension mglRenderer: MTKViewDelegate {
         
         renderEncoder.setRenderPipelineState(pipelineStateDots)
         // get an MTLBuffer for holding the vertices
-        let vertexCount = 3
+        let vertexCount = Int(commandInterface.readUInt32())
+        print("VertexCount: \(vertexCount)")
         vertexBufferDots = mglRenderer.device.makeBuffer(length: vertexCount * 3 * MemoryLayout<Float>.stride)
         // read the vertex data from the command interface
         commandInterface.readData(count: vertexCount * 3 * MemoryLayout<Float>.stride, buf: vertexBufferDots.contents())
-        // print vertices out (for debugging)
-        do {
-            let rawPointer = vertexBufferDots.contents()
-            let typedPointer = rawPointer.bindMemory(to: Float.self, capacity: vertexCount * 3)
-            let bufferPointer = UnsafeBufferPointer<Float>(start: typedPointer, count: vertexCount * 3)
-            for (index, value) in bufferPointer.enumerated() {
-                print("Vertex value: \(index): \(value)")
-            }
-        }
         renderEncoder.setVertexBuffer(vertexBufferDots, offset: 0, index: 0)
         renderEncoder.drawPrimitives(type: .point,
                                      vertexStart: 0,
-                                     vertexCount: 3)
+                                     vertexCount: vertexCount)
     }
 
 }

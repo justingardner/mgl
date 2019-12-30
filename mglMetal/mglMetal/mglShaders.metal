@@ -20,7 +20,12 @@ using namespace metal;
 struct VertexIn {
   float4 position [[ attribute(0) ]];
 };
-                                                                                          
+
+struct VertexOut {
+    float4 position [[position]];
+    float point_size [[point_size]];
+};
+
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
 // Vertex shader
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
@@ -39,8 +44,14 @@ fragment float4 fragment_main() {
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
 // Vertex shader for dots
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
-vertex float4 vertex_dots(const device packed_float3* vertex_array [[ buffer(0) ]], unsigned int vid [[ vertex_id ]]) {
-    return float4(vertex_array[vid], 1.0);
+//vertex VertexOut vertex_dots2(constant float3 *vertices [[buffer(0)]],uint id [[vertex_id]])
+vertex VertexOut vertex_dots(const device packed_float3* vertex_array [[ buffer(0) ]], unsigned int vid [[ vertex_id ]])
+{
+    VertexOut vertex_out {
+        .position = float4(vertex_array[vid], 1),
+        .point_size = 4.0
+    };
+    return(vertex_out);
 }
 
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
