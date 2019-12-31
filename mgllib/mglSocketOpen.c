@@ -73,7 +73,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   }
 
   // make socket non-blocking
-  if (fcntl(socketDescriptor, F_SETFL, O_NONBLOCK) < 0) {
+  if (fcntl(socketDescriptor, F_SETFL, O_BLOCK) < 0) {
     mexPrintf("(mglSocketOpen) Could not set socket to non-blocking. This will not record io events until a connection is made.\n");
     // return
     plhs[0] = mxCreateDoubleMatrix(0,0,mxREAL);

@@ -96,6 +96,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
    dataSize = sizeof(uint32);
  else if (mxIsClass(prhs[1],"double"))
    dataSize = sizeof(double);
+ else if (mxIsClass(prhs[1],"single"))
+   dataSize = sizeof(float);
  else {
    mexPrintf("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n");
    mexPrintf("(mglSocketWrite) Data input is not in a recogonized format\n");
