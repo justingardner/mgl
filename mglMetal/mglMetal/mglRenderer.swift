@@ -53,6 +53,9 @@ class mglRenderer: NSObject {
     // communicates with matlab
     var commandInterface : mglCommandInterface
     
+    // sets whether to send a flush confirm back to matlab
+    var acknowledgeFlush = false
+    
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     // init
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
@@ -147,6 +150,13 @@ extension mglRenderer: MTKViewDelegate {
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     func draw(in view: MTKView) {
         
+        if acknowledgeFlush {
+            // send flush acknowledge
+            commandInterface.writeDouble(data:0)
+            acknowledgeFlush = false
+            print("(mglRenderer:draw) Sending flush acknowledge")
+        }
+        
         // Get the commandBuffer and renderEncoder
         guard let descriptor = view.currentRenderPassDescriptor,
         let commandBuffer = mglRenderer.commandQueue.makeCommandBuffer(),
@@ -174,7 +184,9 @@ extension mglRenderer: MTKViewDelegate {
                     case mglCommands.clearScreen: clearScreen(view : view)
                     case mglCommands.dots: dots(view: view, renderEncoder: renderEncoder)
                     case mglCommands.test: test(view: view, renderEncoder: renderEncoder)
-                    case mglCommands.flush: readCommands = false
+                    case mglCommands.flush:
+                        readCommands = false
+                        acknowledgeFlush = true
                 }
             }
         }

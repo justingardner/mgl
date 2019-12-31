@@ -82,6 +82,7 @@ class mglCommandInterface {
         // return what it points to
         return(data.pointee)
     }
+    
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     // readData
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
@@ -89,6 +90,7 @@ class mglCommandInterface {
         // read data
         communicator.readData(Int32(count),buf:buf);
     }
+    
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     // readVertices
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
@@ -103,4 +105,12 @@ class mglCommandInterface {
         // return the buffer
         return(vertexBuffer!)
     }
+    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
+    // writeDouble
+    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
+    func writeDouble(data: Double) {
+        // pass on to communicator
+        communicator.writeDataDouble(data);
+    }
+
 }

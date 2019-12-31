@@ -114,13 +114,13 @@
 				D0F6B96D23B6D9E700B45409 /* AppDelegate.swift */,
 				D0F6B96F23B6D9E700B45409 /* mglViewController.swift */,
 				D0F6B99923B6DAD600B45409 /* mglRenderer.swift */,
-				D0F6B9A123B6ED4300B45409 /* mglPrimitives.swift */,
-				D0F6B9A323B6EDE600B45409 /* mglShaders.metal */,
 				D08D4BBD23B8834C00A27C79 /* mglCommandInterface.swift */,
+				D0F6B9A323B6EDE600B45409 /* mglShaders.metal */,
 				D0F6B97123B6D9E800B45409 /* Assets.xcassets */,
 				D0F6B97323B6D9E800B45409 /* Main.storyboard */,
 				D0F6B97623B6D9E800B45409 /* Info.plist */,
 				D0F6B97723B6D9E800B45409 /* mglMetal.entitlements */,
+				D0F6B9A123B6ED4300B45409 /* mglPrimitives.swift */,
 			);
 			path = mglMetal;
 			sourceTree = "<group>";
