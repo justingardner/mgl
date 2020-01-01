@@ -94,16 +94,90 @@ class mglCommandInterface {
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     // readVertices
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
-    func readVertices(device: MTLDevice) -> MTLBuffer {
+    func readVertices(device: MTLDevice) -> (buffer: MTLBuffer, vertexCount: Int) {
         // Get the number of vertices
         let vertexCount = Int(readUInt32())
         print("(commandInterface:readVertices) VertexCount: \(vertexCount)")
-        let vertexBuffer = device.makeBuffer(length: vertexCount * 3 * MemoryLayout<Float>.stride)
-        // read the vertex data from the command interface
-        // FIX do proper error checking here
-        readData(count: vertexCount * 3 * MemoryLayout<Float>.stride, buf: vertexBuffer!.contents())
-        // return the buffer
-        return(vertexBuffer!)
+        
+        // get an MTLBuffer from the GPU
+        guard let vertexBuffer = device.makeBuffer(length: vertexCount * 3 * MemoryLayout<Float>.stride) else {
+            fatalError("(mglMetal:mglCommandInterface) Could not make vertex buffer of size \(vertexCount) * 3 * \(MemoryLayout<Float>.stride)")
+        }
+        
+        // Read the data into the MTLBuffer
+        readData(count: vertexCount * 3 * MemoryLayout<Float>.stride, buf: vertexBuffer.contents())
+        
+        // return the MTLBuffer
+        return(vertexBuffer, vertexCount)
+    }
+    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
+    // readVerticesWithTextureCoordinates
+    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
+    func readVerticesWithTextureCoordinates(device: MTLDevice) -> (buffer: MTLBuffer, vertexCount: Int) {
+        // Get the number of vertices
+        let vertexCount = Int(readUInt32())
+        print("(commandInterface:readVertices) VertexCount: \(vertexCount)")
+        
+        // get an MTLBuffer from the GPU
+        guard let vertexBuffer = device.makeBuffer(length: vertexCount * 5 * MemoryLayout<Float>.stride) else {
+            fatalError("(mglMetal:mglCommandInterface) Could not make vertex buffer of size \(vertexCount) * 5 * \(MemoryLayout<Float>.stride)")
+        }
+        
+        // Read the data into the MTLBuffer
+        readData(count: vertexCount * 5 * MemoryLayout<Float>.stride, buf: vertexBuffer.contents())
+        
+        // return the MTLBuffer
+        return(vertexBuffer, vertexCount)
+    }
+
+    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
+    // readTexture
+    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
+    func readTexture(device: MTLDevice) -> MTLTexture {
+        // Read the texture width and height
+        let textureWidth = Int(readUInt32())
+        let textureHeight = Int(readUInt32())
+        print("(commandInterface:readTexture) textureWidth: \(textureWidth) textureHeight: \(textureHeight)")
+        
+        // set the texture descriptor
+        let textureDescriptor = MTLTextureDescriptor.texture2DDescriptor(
+                pixelFormat: .rgba32Float, //.rgba8Unorm, FIX
+                width: Int(textureWidth),
+                height: Int(textureHeight),
+                mipmapped: false)
+        
+        // compute size of texture in bytes (4 is for RGBA)
+        let textureSize = textureWidth * textureHeight * 4 * 4 // FIX
+        
+        // get an MTLBuffer from the GPU to store image data in
+        guard let textureBuffer = device.makeBuffer(length: textureSize, options: .storageModeManaged) else {
+            fatalError("(mglMetal:mglCommandInterface) Could not make texture buffer of size:  \(textureWidth) * \(textureHeight)")
+        }
+        
+        // Read the data into the MTLBuffer
+        readData(count: textureSize, buf: textureBuffer.contents())
+        print("\(MemoryLayout<Float>.stride)")
+        
+        // debugging print out texture to make sure we are getting it correctly
+        do {
+            let rawPointer = textureBuffer.contents()
+            let typedPointer = rawPointer.bindMemory(to: Float.self, capacity: textureSize)
+            let bufferPointer = UnsafeBufferPointer<Float>(start: typedPointer, count: textureSize/4)
+            for (index, value) in bufferPointer.enumerated() {
+                if index < 4 {
+                    print("Texture value: \(index): \(value)")
+                }
+            }
+        }
+
+
+        // Now make the buffer into a texture
+        guard let texture = textureBuffer.makeTexture(descriptor: textureDescriptor, offset: 0, bytesPerRow: textureWidth * 4 * 4) else {
+            fatalError("(mglMetal:mglCommandInterface) Could not make texture from texture buffer of size:  \(textureWidth) * \(textureHeight)")
+        }
+        print("mglMetal:mglCommandInterface) Created texture: \(textureWidth) x \(textureHeight)")
+        // return the texture
+        return(texture)
     }
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     // writeDouble

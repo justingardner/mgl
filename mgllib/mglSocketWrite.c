@@ -22,6 +22,7 @@ copyright: (c) 2019 Justin Gardner (GPL see mgl/COPYING)
 #include <errno.h>
 #include <unistd.h>
 #include <CoreServices/CoreServices.h>
+#include <poll.h>
 
 //////////////
 //   main   //
@@ -87,13 +88,14 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
  if (verbose) mexPrintf("(mglSocketWrite) Using connectionDescriptor %i\n",connectionDescriptor);
 
- int sentSize;
  size_t len = (size_t)(mxGetN(prhs[1])*mxGetM(prhs[1]));
  size_t dataSize = 0;
  if (mxIsClass(prhs[1],"uint16"))
    dataSize = sizeof(uint16);
  else if (mxIsClass(prhs[1],"uint32"))
    dataSize = sizeof(uint32);
+ else if (mxIsClass(prhs[1],"uint8"))
+   dataSize = sizeof(uint8);
  else if (mxIsClass(prhs[1],"double"))
    dataSize = sizeof(double);
  else if (mxIsClass(prhs[1],"single"))
@@ -111,13 +113,32 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
    return;
  }
  size_t sendSize = dataSize * len;
+ int sentSize = 0;
  
- // write data
- if ((sentSize = write(connectionDescriptor,mxGetPr(prhs[1]),sendSize)) < sendSize) {
-     mexPrintf("(mglSocketWrite) ERROR Only sent %i of %i bytes across socket- data might be corrupted\n",sentSize,sendSize);
+ // use poll function to return whether there socket is writeable
+ struct pollfd pfd;
+ pfd.fd = connectionDescriptor;
+ pfd.events = POLLOUT;
+
+ // check for writeability
+ pfd.revents = 0;
+ poll(&pfd,1,0);
+ if (pfd.revents == POLLOUT)
+   // write data
+   sentSize = write(connectionDescriptor,mxGetPr(prhs[1]),sendSize);
+ 
+ while (sentSize  < sendSize) {
+   // check for writeability
+   pfd.revents = 0;
+   poll(&pfd,1,0);
+   if (pfd.revents == POLLOUT) {
+     // send another banch until we have sent it all
+     sentSize += write(connectionDescriptor,(void *)((unsigned char *)mxGetPr(prhs[1])+sentSize),sendSize-sentSize);
+   }
  }
 
- if (verbose) mexPrintf("(mglSocketWrite) Wrote %i bytes\n",sentSize);
+ if (verbose) mexPrintf("(mglSocketWrite) Wrote %i of %i bytes (Len: %i (%i x %i), dataSize: %i)\n",sentSize,sendSize,len,mxGetN(prhs[1]),mxGetM(prhs[1]),dataSize);
+ 
  // return structure, set connection descriptor
  plhs[0] = mxDuplicateArray(prhs[0]);
  mxSetField(plhs[0],0,"connectionDescriptor",mxCreateDoubleMatrix(1,1,mxREAL));

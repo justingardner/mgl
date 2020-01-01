@@ -114,18 +114,27 @@ int socketDescriptor = -1;
 -(void)readData:(int)byteCount buf:(void *)buf
 {
     // declare variables
-    ssize_t readCount;
+    ssize_t totalCount;
 
     // read buffer
-    readCount = recv(socketDescriptor,buf,byteCount,0);
-    if (readCount < byteCount) {
-        // error on read, assume that connection was closed.
-        if (errno != EAGAIN) {
+    totalCount = recv(socketDescriptor,buf,byteCount,0);
+    while (totalCount < byteCount) {
+        // error on read other than EAGAIN close socket
+        if (0) {//terrno != EAGAIN) {
+            // FIX: This should probably throw an error if we got here
+            printf("(mglCommunicator:readData) Error on receive: %i\n",errno);
             close(socketDescriptor);
             socketDescriptor = -1;
         }
-        // FIX: This should probably throw an error if we got here
+        else {
+            printf("(mglCommunicator:readData) Total read: %zi/%i\n",totalCount,byteCount);
+            if (self.dataWaiting==true) {
+                // try to receive the rest
+                totalCount += recv(socketDescriptor,(void *)((unsigned char *)buf+totalCount),byteCount-totalCount,0);
+            }
+        }
     }
+    printf("(mglCommunicator:readData) Total read: %i/%i\n",totalCount,byteCount);
 }
 
 

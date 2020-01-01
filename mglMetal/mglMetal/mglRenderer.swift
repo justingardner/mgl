@@ -42,13 +42,10 @@ class mglRenderer: NSObject {
     // that define the pipeline of the GPU renderer
     var pipelineState: MTLRenderPipelineState!
     
-    // Pipeline state for rendering dots
+    // Pipeline states for rendering different things
     var pipelineStateDots: MTLRenderPipelineState!
-    // vertex buffer for dots - will be allocated from device
-    var vertexBufferDots: MTLBuffer!
-    // index buffer for dots
-    var indexBufferDots: MTLBuffer!
-    
+    var pipelineStateTextures: MTLRenderPipelineState!
+
     // variable to hold mglCommunicator which
     // communicates with matlab
     var commandInterface : mglCommandInterface
@@ -107,7 +104,7 @@ class mglRenderer: NSObject {
         vertexDescriptor.attributes[0].format = .float3
         vertexDescriptor.attributes[0].offset = 0
         vertexDescriptor.attributes[0].bufferIndex = 0
-        vertexDescriptor.layouts[0].stride = MemoryLayout<SIMD3<Float>>.stride
+        vertexDescriptor.layouts[0].stride = MemoryLayout<SIMD3<Float>>.size
         pipelineDescriptor.vertexDescriptor = vertexDescriptor
         pipelineDescriptor.vertexFunction = library?.makeFunction(name: "vertex_dots")
         pipelineDescriptor.fragmentFunction = library?.makeFunction(name: "fragment_dots")
@@ -117,7 +114,24 @@ class mglRenderer: NSObject {
         } catch let error {
            fatalError(error.localizedDescription)
         }
-        
+
+        // Set up a pipelineState for rendering textures
+        // add attribute for texture coordinates
+        vertexDescriptor.attributes[1].format = .float2
+        vertexDescriptor.attributes[1].offset = 3 * MemoryLayout<Float>.size
+        vertexDescriptor.attributes[1].bufferIndex = 0
+        vertexDescriptor.layouts[0].stride = 5 * MemoryLayout<Float>.size
+
+        pipelineDescriptor.vertexDescriptor = vertexDescriptor
+        pipelineDescriptor.vertexFunction = library?.makeFunction(name: "vertex_textures")
+        pipelineDescriptor.fragmentFunction = library?.makeFunction(name: "fragment_textures")
+        // Setup the pipeline with the device
+        do {
+            pipelineStateTextures = try device.makeRenderPipelineState(descriptor: pipelineDescriptor)
+        } catch let error {
+           fatalError(error.localizedDescription)
+        }
+
         // init the super class
         super.init()
         
@@ -164,16 +178,6 @@ extension mglRenderer: MTKViewDelegate {
             return
         }
         
-        // set the renderEncoder pipeline state
-        //renderEncoder.setRenderPipelineState(pipelineState)
-        
-        // Give it our vertices
-        //renderEncoder.setVertexBuffer(vertexBuffer, offset: 0, index: 0)
-        //for submesh in mesh.submeshes {renderEncoder.drawIndexedPrimitives(type: .triangle,indexCount: submesh.indexCount,indexType: submesh.indexType, indexBuffer: submesh.indexBuffer.buffer, indexBufferOffset: submesh.indexBuffer.offset)
-        //}
-        // done
-        //renderEncoder.endEncoding()
-
         // check matlab command queue
         var readCommands = true
         while readCommands {
@@ -216,69 +220,87 @@ extension mglRenderer: MTKViewDelegate {
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     func dots(view: MTKView, renderEncoder: MTLRenderCommandEncoder) {
         // Set the clear color for the view
-        view.clearColor = MTLClearColor(red: 0.5, green: 0.4,
-                                              blue: 0.8, alpha: 1)
-        // get vertices
-        let vertexCount = 3
-        let indexCount = 1
-        // get an MTLBuffer for holding the vertices
-        vertexBufferDots = mglRenderer.device.makeBuffer(length: vertexCount * 3 * MemoryLayout<Float>.stride)
-        // read the vertex data from the command interface
-        commandInterface.readData(count: vertexCount * 3 * MemoryLayout<Float>.stride, buf: vertexBufferDots.contents())
-        // print vertices out (for debugging)
-        do {
-            let rawPointer = vertexBufferDots.contents()
-            let typedPointer = rawPointer.bindMemory(to: Float.self, capacity: vertexCount * 3)
-            let bufferPointer = UnsafeBufferPointer<Float>(start: typedPointer, count: vertexCount * 3)
-            for (index, value) in bufferPointer.enumerated() {
-                print("Vertex value: \(index): \(value)")
-            }
-        }
-        // get an MTLBuffer for holding the indexes
-        indexBufferDots = mglRenderer.device.makeBuffer(length: indexCount*3)
-        // read the index data from the command interface
-        commandInterface.readData(count: indexCount * 3 * MemoryLayout<UInt16>.stride, buf: indexBufferDots.contents())
-        do {
-            // print indexes out (for debugging)
-            let rawPointer = indexBufferDots.contents()
-            let typedPointer = rawPointer.bindMemory(to: UInt16.self, capacity: indexCount * 3)
-            let bufferPointer = UnsafeBufferPointer<UInt16>(start: typedPointer, count: indexCount * 3)
-            for (index, value) in bufferPointer.enumerated() {
-                print("Index value: \(index): \(value)")
-            }
-        }
-        // set the renderEncoder pipeline state
+        view.clearColor = MTLClearColor(red: 0.8, green: 0.4, blue: 0.9, alpha: 1)
+        // set the pipeline state
         renderEncoder.setRenderPipelineState(pipelineStateDots)
-        
-        // Give it our vertices and indexes
+        // read the vertices
+        let (vertexBufferDots, vertexCount) = commandInterface.readVertices(device: mglRenderer.device)
+        print("VertexCount: \(vertexCount)")
+        // set the vertices in the renderEncoder
         renderEncoder.setVertexBuffer(vertexBufferDots, offset: 0, index: 0)
-        renderEncoder.drawIndexedPrimitives(type: .triangle,indexCount: indexCount,indexType:        MTLIndexType.uint16, indexBuffer: indexBufferDots, indexBufferOffset: 0)
-
-        renderEncoder.setRenderPipelineState(pipelineState)
-        renderEncoder.setVertexBuffer(vertexBuffer, offset: 0, index: 0)
-        for submesh in mesh.submeshes {renderEncoder.drawIndexedPrimitives(type: .triangle,indexCount: submesh.indexCount,indexType: submesh.indexType, indexBuffer: submesh.indexBuffer.buffer, indexBufferOffset: submesh.indexBuffer.offset)
-        }
+        // and draw them as points
+        renderEncoder.drawPrimitives(type: .point, vertexStart: 0, vertexCount: vertexCount)
     }
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     // test
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     func test(view: MTKView, renderEncoder: MTLRenderCommandEncoder) {
         print("Testing")
-        // Set the clear color for the view
-        view.clearColor = MTLClearColor(red: 0.8, green: 0.4,
-                                              blue: 0.9, alpha: 1)
-        
-        renderEncoder.setRenderPipelineState(pipelineStateDots)
-        // get an MTLBuffer for holding the vertices
-        let vertexCount = Int(commandInterface.readUInt32())
+        // set the pipeline state
+        renderEncoder.setRenderPipelineState(pipelineStateTextures)
+
+        // set up sampler
+        let samplerDescriptor = MTLSamplerDescriptor()
+        samplerDescriptor.minFilter = .linear
+        samplerDescriptor.magFilter = .linear
+        let samplerState = mglRenderer.device.makeSamplerState(descriptor:samplerDescriptor)
+    
+        // add the sampler to the renderEncoder
+        renderEncoder.setFragmentSamplerState(samplerState, index: 0)
+
+        // read the vertices
+        let (vertexBufferTexture, vertexCount) = commandInterface.readVerticesWithTextureCoordinates(device: mglRenderer.device)
         print("VertexCount: \(vertexCount)")
-        vertexBufferDots = mglRenderer.device.makeBuffer(length: vertexCount * 3 * MemoryLayout<Float>.stride)
-        // read the vertex data from the command interface
-        commandInterface.readData(count: vertexCount * 3 * MemoryLayout<Float>.stride, buf: vertexBufferDots.contents())
-        renderEncoder.setVertexBuffer(vertexBufferDots, offset: 0, index: 0)
-        renderEncoder.drawPrimitives(type: .point,
-                                     vertexStart: 0,
-                                     vertexCount: vertexCount)
-    }
+        // set the vertices in the renderEncoder
+        renderEncoder.setVertexBuffer(vertexBufferTexture, offset: 0, index: 0)
+        // and draw them as a triangle
+        renderEncoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: vertexCount)
+        
+        // read in the texture and set it into the renderEncoder
+        let texture = commandInterface.readTexture(device: mglRenderer.device)
+        renderEncoder.setFragmentTexture(texture, index:0)
+        
+        if commandInterface.dataWaiting() {
+            print("(mglRendere:test) Uhoh data waiting")
+        }
+        
+        var diffuseTexture : MTLTexture!
+        let fileLocation = "test.png"
+        if let textureUrl = NSURL(string: fileLocation) {
+            let textureLoader = MTKTextureLoader(device: mglRenderer.device)
+            do {
+               diffuseTexture =
+                try textureLoader.newTexture(
+                    URL: textureUrl as URL,
+                       options: nil)
+                  } catch _ {
+                       print("diffuseTexture assignment failed")
+                    }
+                }
+
+                
+                // TODO: Setup vertex and fragment shaders
+       
+        
+        // set the renderEncoder pipeline state
+       //renderEncoder.setRenderPipelineState(pipelineState)
+       
+       // Give it our vertices
+       //renderEncoder.setVertexBuffer(vertexBuffer, offset: 0, index: 0)
+       //for submesh in mesh.submeshes {renderEncoder.drawIndexedPrimitives(type: .triangle,indexCount: submesh.indexCount,indexType: submesh.indexType, indexBuffer: submesh.indexBuffer.buffer, indexBufferOffset: submesh.indexBuffer.offset)
+       //}
+       // done
+       //renderEncoder.endEncoding()
+        // print vertices out (for debugging)
+        //do {
+        //    let rawPointer = vertexBufferDots.contents()
+        //    let typedPointer = rawPointer.bindMemory(to: Float.self, capacity: vertexCount * 3)
+        //    let bufferPointer = UnsafeBufferPointer<Float>(start: typedPointer, count: vertexCount * 3)
+        //    for (index, value) in bufferPointer.enumerated() {
+        //        print("Vertex value: \(index): \(value)")
+         //   }
+        //}
+
+   }
 
 }

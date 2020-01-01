@@ -26,6 +26,16 @@ struct VertexOut {
     float point_size [[point_size]];
 };
 
+struct VertexTextureIn {
+  float4 position [[ attribute(0) ]];
+  float2 texCoords [[ attribute(1) ]];
+};
+
+struct VertexTextureOut {
+    float4 position [[position]];
+    float2 texCoords;
+};
+
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
 // Vertex shader
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
@@ -44,7 +54,6 @@ fragment float4 fragment_main() {
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
 // Vertex shader for dots
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
-//vertex VertexOut vertex_dots2(constant float3 *vertices [[buffer(0)]],uint id [[vertex_id]])
 vertex VertexOut vertex_dots(const device packed_float3* vertex_array [[ buffer(0) ]], unsigned int vid [[ vertex_id ]])
 {
     VertexOut vertex_out {
@@ -59,5 +68,33 @@ vertex VertexOut vertex_dots(const device packed_float3* vertex_array [[ buffer(
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
 fragment float4 fragment_dots() {
   return float4(1, 1, 1, 1);
+}
+
+//\/\/\/\/\/\/\/\/\/\/\/\/\/\/
+// Vertex shader for textures
+//\/\/\/\/\/\/\/\/\/\/\/\/\/\/
+vertex VertexTextureOut vertex_textures(const VertexTextureIn vertexIn [[ stage_in ]]) {
+
+  VertexTextureOut vertex_out {
+      .position = vertexIn.position,
+      .texCoords = vertexIn.texCoords
+  };
+  return(vertex_out);
+//  float4 position = vertexIn.position;
+//  return position;
+}
+
+//\/\/\/\/\/\/\/\/\/\/\/\/\/\/
+// Fragment shader for rendering textures
+//\/\/\/\/\/\/\/\/\/\/\/\/\/\/
+fragment float4 fragment_textures(VertexTextureOut in [[stage_in]],
+                                  texture2d<float, access::sample> myTexture [[texture(0)]],
+                                  sampler samplr [[sampler(0)]]) {
+    constexpr sampler s(coord::normalized,address::repeat,filter::linear);
+    float4 c = myTexture.sample(s, in.texCoords);
+ //   float4 c = myTexture.sample(s, float2(0.5,0.5));
+  //  return(c);
+    //return float4(texturedColor,1);
+    return float4(0.5,c.g,c.b,1);
 }
 
