@@ -141,13 +141,13 @@ class mglCommandInterface {
         
         // set the texture descriptor
         let textureDescriptor = MTLTextureDescriptor.texture2DDescriptor(
-                pixelFormat: .rgba32Float, //.rgba8Unorm, FIX
+                pixelFormat: .rgba32Float,
                 width: Int(textureWidth),
                 height: Int(textureHeight),
                 mipmapped: false)
         
         // compute size of texture in bytes (4 is for RGBA)
-        let textureSize = textureWidth * textureHeight * 4 * 4 // FIX
+        let textureSize = textureWidth * textureHeight * 4 * MemoryLayout<Float>.size
         
         // get an MTLBuffer from the GPU to store image data in
         guard let textureBuffer = device.makeBuffer(length: textureSize, options: .storageModeManaged) else {
@@ -156,26 +156,13 @@ class mglCommandInterface {
         
         // Read the data into the MTLBuffer
         readData(count: textureSize, buf: textureBuffer.contents())
-        print("\(MemoryLayout<Float>.stride)")
         
-        // debugging print out texture to make sure we are getting it correctly
-        do {
-            let rawPointer = textureBuffer.contents()
-            let typedPointer = rawPointer.bindMemory(to: Float.self, capacity: textureSize)
-            let bufferPointer = UnsafeBufferPointer<Float>(start: typedPointer, count: textureSize/4)
-            for (index, value) in bufferPointer.enumerated() {
-                if index < 4 {
-                    print("Texture value: \(index): \(value)")
-                }
-            }
-        }
-
-
         // Now make the buffer into a texture
-        guard let texture = textureBuffer.makeTexture(descriptor: textureDescriptor, offset: 0, bytesPerRow: textureWidth * 4 * 4) else {
+        guard let texture = textureBuffer.makeTexture(descriptor: textureDescriptor, offset: 0, bytesPerRow: textureWidth * 4 * MemoryLayout<Float>.size) else {
             fatalError("(mglMetal:mglCommandInterface) Could not make texture from texture buffer of size:  \(textureWidth) * \(textureHeight)")
         }
         print("mglMetal:mglCommandInterface) Created texture: \(textureWidth) x \(textureHeight)")
+
         // return the texture
         return(texture)
     }

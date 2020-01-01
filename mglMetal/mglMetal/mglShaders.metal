@@ -80,8 +80,6 @@ vertex VertexTextureOut vertex_textures(const VertexTextureIn vertexIn [[ stage_
       .texCoords = vertexIn.texCoords
   };
   return(vertex_out);
-//  float4 position = vertexIn.position;
-//  return position;
 }
 
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
@@ -89,16 +87,7 @@ vertex VertexTextureOut vertex_textures(const VertexTextureIn vertexIn [[ stage_
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
 fragment float4 fragment_textures(VertexTextureOut in [[stage_in]],
                                   texture2d<float> myTexture [[texture(0)]],
-                                  sampler samplr [[sampler(0)]]) {
-    //constexpr sampler s(coord::normalized,address::repeat,filter::linear);
-    constexpr sampler textureSampler;
-//    float4 c = myTexture.sample(samplr, in.texCoords);
-    float4 c = myTexture.sample(samplr, in.texCoords);
-    //float4 c1 = myTexture.read(in.texCoords)
-    //float4 c = myTexture.sample(s, float2(0.5,0.5));
-    return(c);
-    //return float4(texturedColor,1);
-    //return float4(0.5,c.g,c.b,1);
-    //return float4(in.texCoords[0],in.texCoords[1],c.b,1);
+                                  sampler mySampler [[sampler(0)]]) {
+    return(myTexture.sample(mySampler, in.texCoords));
 }
 

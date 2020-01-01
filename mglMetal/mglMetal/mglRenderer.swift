@@ -22,7 +22,8 @@ enum mglCommands : UInt16 {
     case clearScreen = 1
     case dots = 2
     case flush = 3
-    case test = 4
+    case texture = 4
+    case test = 256
 }
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
 // mglRenderer: Class does most of the work
@@ -187,6 +188,7 @@ extension mglRenderer: MTKViewDelegate {
                     case mglCommands.ping: print("ping")
                     case mglCommands.clearScreen: clearScreen(view : view)
                     case mglCommands.dots: dots(view: view, renderEncoder: renderEncoder)
+                    case mglCommands.texture: texture(view: view, renderEncoder: renderEncoder)
                     case mglCommands.test: test(view: view, renderEncoder: renderEncoder)
                     case mglCommands.flush:
                         readCommands = false
@@ -232,10 +234,13 @@ extension mglRenderer: MTKViewDelegate {
         renderEncoder.drawPrimitives(type: .point, vertexStart: 0, vertexCount: vertexCount)
     }
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
-    // test
+    // texture
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
-    func test(view: MTKView, renderEncoder: MTLRenderCommandEncoder) {
-        print("Testing")
+    func texture(view: MTKView, renderEncoder: MTLRenderCommandEncoder) {
+        // Set the clear color for the view
+        view.clearColor = MTLClearColor(red: 0.5, green: 0.5,
+                                              blue: 0.5, alpha: 1)
+
         // set the pipeline state
         renderEncoder.setRenderPipelineState(pipelineStateTextures)
 
@@ -245,21 +250,28 @@ extension mglRenderer: MTKViewDelegate {
         samplerDescriptor.magFilter = .linear
         samplerDescriptor.mipFilter = .linear
         let samplerState = mglRenderer.device.makeSamplerState(descriptor:samplerDescriptor)
-    
+        
         // add the sampler to the renderEncoder
         renderEncoder.setFragmentSamplerState(samplerState, index: 0)
 
         // read the vertices
         let (vertexBufferTexture, vertexCount) = commandInterface.readVerticesWithTextureCoordinates(device: mglRenderer.device)
-        print("VertexCount: \(vertexCount)")
+
         // set the vertices in the renderEncoder
         renderEncoder.setVertexBuffer(vertexBufferTexture, offset: 0, index: 0)
-        
+            
         // read in the texture and set it into the renderEncoder
         let texture = commandInterface.readTexture(device: mglRenderer.device)
         renderEncoder.setFragmentTexture(texture, index:0)
+            
         // and draw them as a triangle
         renderEncoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: vertexCount)
+    }
+    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
+    // test
+    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
+    func test(view: MTKView, renderEncoder: MTLRenderCommandEncoder) {
+        print("Testing")
 
         if commandInterface.dataWaiting() {
             print("(mglRendere:test) Uhoh data waiting")
@@ -281,11 +293,13 @@ extension mglRenderer: MTKViewDelegate {
          renderEncoder.setFragmentTexture(diffuseTexture, index:1)
         print(diffuseTexture)
 */
+        /*
         let options: [MTKTextureLoader.Option : Any] = [.generateMipmaps : true, .SRGB : true]
         let textureLoader = MTKTextureLoader(device: mglRenderer.device)
         let baseColorTexture = try? textureLoader.newTexture(name: "texture", scaleFactor: 1.0, bundle: nil, options: options)
         print(baseColorTexture!)
         renderEncoder.setFragmentTexture(baseColorTexture, index:2)
+ */
         /*
                 struct SkySettings {
                 var turbidity: Float = 0.28
