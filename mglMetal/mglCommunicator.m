@@ -127,14 +127,14 @@ int socketDescriptor = -1;
             socketDescriptor = -1;
         }
         else {
-            printf("(mglCommunicator:readData) Total read: %zi/%i\n",totalCount,byteCount);
+            //printf("(mglCommunicator:readData) Total read: %zi/%i\n",totalCount,byteCount);
             if (self.dataWaiting==true) {
                 // try to receive the rest
                 totalCount += recv(socketDescriptor,(void *)((unsigned char *)buf+totalCount),byteCount-totalCount,0);
             }
         }
     }
-    printf("(mglCommunicator:readData) Total read: %i/%i\n",totalCount,byteCount);
+    //printf("(mglCommunicator:readData) Total read: %i/%i\n",totalCount,byteCount);
 }
 
 

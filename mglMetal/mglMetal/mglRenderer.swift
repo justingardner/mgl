@@ -243,6 +243,7 @@ extension mglRenderer: MTKViewDelegate {
         let samplerDescriptor = MTLSamplerDescriptor()
         samplerDescriptor.minFilter = .linear
         samplerDescriptor.magFilter = .linear
+        samplerDescriptor.mipFilter = .linear
         let samplerState = mglRenderer.device.makeSamplerState(descriptor:samplerDescriptor)
     
         // add the sampler to the renderEncoder
@@ -253,19 +254,19 @@ extension mglRenderer: MTKViewDelegate {
         print("VertexCount: \(vertexCount)")
         // set the vertices in the renderEncoder
         renderEncoder.setVertexBuffer(vertexBufferTexture, offset: 0, index: 0)
-        // and draw them as a triangle
-        renderEncoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: vertexCount)
         
         // read in the texture and set it into the renderEncoder
         let texture = commandInterface.readTexture(device: mglRenderer.device)
         renderEncoder.setFragmentTexture(texture, index:0)
-        
+        // and draw them as a triangle
+        renderEncoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: vertexCount)
+
         if commandInterface.dataWaiting() {
             print("(mglRendere:test) Uhoh data waiting")
         }
-        
+/*
         var diffuseTexture : MTLTexture!
-        let fileLocation = "test.png"
+        let fileLocation = "file://Users/justin/Library/Containers/gru.mglMetal/Data/texture.png"
         if let textureUrl = NSURL(string: fileLocation) {
             let textureLoader = MTKTextureLoader(device: mglRenderer.device)
             do {
@@ -277,11 +278,39 @@ extension mglRenderer: MTKViewDelegate {
                        print("diffuseTexture assignment failed")
                     }
                 }
+         renderEncoder.setFragmentTexture(diffuseTexture, index:1)
+        print(diffuseTexture)
+*/
+        let options: [MTKTextureLoader.Option : Any] = [.generateMipmaps : true, .SRGB : true]
+        let textureLoader = MTKTextureLoader(device: mglRenderer.device)
+        let baseColorTexture = try? textureLoader.newTexture(name: "texture", scaleFactor: 1.0, bundle: nil, options: options)
+        print(baseColorTexture!)
+        renderEncoder.setFragmentTexture(baseColorTexture, index:2)
+        /*
+                struct SkySettings {
+                var turbidity: Float = 0.28
+                var sunElevation: Float = 0.6
+                var upperAtmosphereScattering: Float = 0.1
+                var groundAlbedo: Float = 4
+                }
+                var skySettings = SkySettings()
+          var theskytexture: MTLTexture?
+          var dimensions = [256, 256]
+          let skyTexture = MDLSkyCubeTexture(name: "sky",channelEncoding: .uInt8, textureDimensions: [256, 256], turbidity: skySettings.turbidity, sunElevation: skySettings.sunElevation, upperAtmosphereScattering:skySettings.upperAtmosphereScattering, groundAlbedo: skySettings.groundAlbedo)
+        do {
+          let textureLoader =
+        MTKTextureLoader(device: mglRenderer.device)
+        theskytexture = try textureLoader.newTexture(texture: skyTexture, options: nil)
 
-                
-                // TODO: Setup vertex and fragment shaders
-       
-        
+        }
+        catch {
+            print(error.localizedDescription)
+        }
+        print(theskytexture)
+        */
+  /*              // TODO: Setup vertex and fragment shaders
+       renderEncoder.setFragmentTexture(theskytexture, index:1)
+  */
         // set the renderEncoder pipeline state
        //renderEncoder.setRenderPipelineState(pipelineState)
        
