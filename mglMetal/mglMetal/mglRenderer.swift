@@ -24,6 +24,8 @@ enum mglCommands : UInt16 {
     case flush = 3
     case texture = 4
     case setXform = 5
+    case line = 6
+    case quad = 7
     case test = 256
 }
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
@@ -46,6 +48,7 @@ class mglRenderer: NSObject {
     
     // Pipeline states for rendering different things
     var pipelineStateDots: MTLRenderPipelineState!
+    var pipelineStateVertexWithColor: MTLRenderPipelineState!
     var pipelineStateTextures: MTLRenderPipelineState!
 
     // variable to hold mglCommunicator which
@@ -137,6 +140,22 @@ class mglRenderer: NSObject {
            fatalError(error.localizedDescription)
         }
 
+        // add attribute for color
+        vertexDescriptor.attributes[1].format = .float3
+        vertexDescriptor.attributes[1].offset = 3 * MemoryLayout<Float>.size
+        vertexDescriptor.attributes[1].bufferIndex = 0
+        vertexDescriptor.layouts[0].stride = 6 * MemoryLayout<Float>.size
+
+        pipelineDescriptor.vertexDescriptor = vertexDescriptor
+        pipelineDescriptor.vertexFunction = library?.makeFunction(name: "vertex_with_color")
+        pipelineDescriptor.fragmentFunction = library?.makeFunction(name: "fragment_with_color")
+        // Setup the pipeline with the device
+        do {
+            pipelineStateVertexWithColor = try device.makeRenderPipelineState(descriptor: pipelineDescriptor)
+        } catch let error {
+           fatalError(error.localizedDescription)
+        }
+
         // init the super class
         super.init()
         
@@ -197,6 +216,8 @@ extension mglRenderer: MTKViewDelegate {
                     case mglCommands.dots: dots(view: view, renderEncoder: renderEncoder)
                     case mglCommands.texture: texture(view: view, renderEncoder: renderEncoder)
                     case mglCommands.setXform: setXform(renderEncoder: renderEncoder)
+                    case mglCommands.line: drawVerticesWithColor(view: view, renderEncoder: renderEncoder, primitiveType: .line)
+                    case mglCommands.quad: drawVerticesWithColor(view: view, renderEncoder: renderEncoder, primitiveType: .triangle)
                     case mglCommands.test: test(view: view, renderEncoder: renderEncoder)
                     case mglCommands.flush:
                         readCommands = false
@@ -219,18 +240,20 @@ extension mglRenderer: MTKViewDelegate {
     // clearScreen
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     func clearScreen(view: MTKView) {
+        // get the color
+        let color = commandInterface.readColor()
+        print(color)
+        print(color[0])
+        print(color[1])
+        print(color[2])
         // Set the clear color for the view
-        view.clearColor = MTLClearColor(red: 0.5, green: 0.4,
-                                              blue: 0.8, alpha: 1)
-
+        view.clearColor = MTLClearColor(red: Double(color[0]), green: Double(color[1]), blue: Double(color[2]), alpha: 1)
     }
     
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     // dots
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     func dots(view: MTKView, renderEncoder: MTLRenderCommandEncoder) {
-        // Set the clear color for the view
-        view.clearColor = MTLClearColor(red: 0.8, green: 0.4, blue: 0.9, alpha: 1)
         // set the pipeline state
         renderEncoder.setRenderPipelineState(pipelineStateDots)
         // read the vertices
@@ -245,10 +268,6 @@ extension mglRenderer: MTKViewDelegate {
     // texture
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     func texture(view: MTKView, renderEncoder: MTLRenderCommandEncoder) {
-        // Set the clear color for the view
-        view.clearColor = MTLClearColor(red: 0.5, green: 0.5,
-                                              blue: 0.5, alpha: 1)
-
         // set the pipeline state
         renderEncoder.setRenderPipelineState(pipelineStateTextures)
 
@@ -262,8 +281,8 @@ extension mglRenderer: MTKViewDelegate {
         // add the sampler to the renderEncoder
         renderEncoder.setFragmentSamplerState(samplerState, index: 0)
 
-        // read the vertices
-        let (vertexBufferTexture, vertexCount) = commandInterface.readVerticesWithTextureCoordinates(device: mglRenderer.device)
+        // read the vertices with 2 extra vals for the texture coordinates
+        let (vertexBufferTexture, vertexCount) = commandInterface.readVertices(device: mglRenderer.device, extraVals: 2)
 
         // set the vertices in the renderEncoder
         renderEncoder.setVertexBuffer(vertexBufferTexture, offset: 0, index: 0)
@@ -287,6 +306,28 @@ extension mglRenderer: MTKViewDelegate {
         
         // set deg2metal in renderEncoder
         renderEncoder.setVertexBytes(&deg2metal, length: MemoryLayout<float4x4>.stride, index: 1)
+    }
+
+    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
+    // line
+    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
+    func line(view: MTKView, renderEncoder: MTLRenderCommandEncoder) {
+    }
+
+    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
+    // drawVerticesWithColor
+    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
+    func drawVerticesWithColor(view: MTKView, renderEncoder: MTLRenderCommandEncoder, primitiveType: MTLPrimitiveType) {
+        // set the pipeline state
+        renderEncoder.setRenderPipelineState(pipelineStateVertexWithColor)
+        // read the vertices with 3 extra values for color
+        let (vertexBufferWithColors, vertexCount) = commandInterface.readVertices(device: mglRenderer.device, extraVals: 3)
+        print("VertexCount: \(vertexCount)")
+        // set the vertices in the renderEncoder
+        renderEncoder.setVertexBuffer(vertexBufferWithColors, offset: 0, index: 0)
+        // and draw them as triangles
+        renderEncoder.drawPrimitives(type: primitiveType, vertexStart: 0, vertexCount: vertexCount)
+
     }
 
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/

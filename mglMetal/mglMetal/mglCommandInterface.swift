@@ -92,39 +92,41 @@ class mglCommandInterface {
     }
     
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
+    // readColor
+    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
+    func readColor() -> simd_float3 {
+        // allocate data
+        let data = UnsafeMutablePointer<simd_float3>.allocate(capacity: 1)
+        defer {
+          data.deallocate()
+        }
+
+        // read 12 bytes of raw data
+        communicator.readData(4*3,buf:data);
+
+        // return what it points to
+        return(data.pointee)
+    }
+    
+    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     // readVertices
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
-    func readVertices(device: MTLDevice) -> (buffer: MTLBuffer, vertexCount: Int) {
+    func readVertices(device: MTLDevice, extraVals: Int = 0) -> (buffer: MTLBuffer, vertexCount: Int) {
         // Get the number of vertices
         let vertexCount = Int(readUInt32())
-        print("(commandInterface:readVertices) VertexCount: \(vertexCount)")
+        print("(commandInterface:readVerticesWithColor) VertexCount: \(vertexCount)")
+        
+        // calculate how many floats we have per vertex. ExtraVals can be used
+        // for things like color or texture coordinates
+        let valsPerVertex = 3 + extraVals
         
         // get an MTLBuffer from the GPU
-        guard let vertexBuffer = device.makeBuffer(length: vertexCount * 3 * MemoryLayout<Float>.stride) else {
-            fatalError("(mglMetal:mglCommandInterface) Could not make vertex buffer of size \(vertexCount) * 3 * \(MemoryLayout<Float>.stride)")
+        guard let vertexBuffer = device.makeBuffer(length: vertexCount * valsPerVertex * MemoryLayout<Float>.stride) else {
+            fatalError("(mglMetal:mglCommandInterface) Could not make vertex buffer of size \(vertexCount) * \(valsPerVertex) * \(MemoryLayout<Float>.stride)")
         }
         
         // Read the data into the MTLBuffer
-        readData(count: vertexCount * 3 * MemoryLayout<Float>.stride, buf: vertexBuffer.contents())
-        
-        // return the MTLBuffer
-        return(vertexBuffer, vertexCount)
-    }
-    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
-    // readVerticesWithTextureCoordinates
-    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
-    func readVerticesWithTextureCoordinates(device: MTLDevice) -> (buffer: MTLBuffer, vertexCount: Int) {
-        // Get the number of vertices
-        let vertexCount = Int(readUInt32())
-        print("(commandInterface:readVertices) VertexCount: \(vertexCount)")
-        
-        // get an MTLBuffer from the GPU
-        guard let vertexBuffer = device.makeBuffer(length: vertexCount * 5 * MemoryLayout<Float>.stride) else {
-            fatalError("(mglMetal:mglCommandInterface) Could not make vertex buffer of size \(vertexCount) * 5 * \(MemoryLayout<Float>.stride)")
-        }
-        
-        // Read the data into the MTLBuffer
-        readData(count: vertexCount * 5 * MemoryLayout<Float>.stride, buf: vertexBuffer.contents())
+        readData(count: vertexCount * valsPerVertex * MemoryLayout<Float>.stride, buf: vertexBuffer.contents())
         
         // return the MTLBuffer
         return(vertexBuffer, vertexCount)
