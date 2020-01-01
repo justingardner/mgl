@@ -23,6 +23,7 @@ enum mglCommands : UInt16 {
     case dots = 2
     case flush = 3
     case texture = 4
+    case setXform = 5
     case test = 256
 }
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
@@ -53,6 +54,9 @@ class mglRenderer: NSObject {
     
     // sets whether to send a flush confirm back to matlab
     var acknowledgeFlush = false
+    
+    // keeps coordinate xform
+    var deg2metal = matrix_identity_float4x4
     
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     // init
@@ -179,6 +183,9 @@ extension mglRenderer: MTKViewDelegate {
             return
         }
         
+        // set deg2metal in renderEncoder
+        renderEncoder.setVertexBytes(&deg2metal, length: MemoryLayout<float4x4>.stride, index: 1)
+
         // check matlab command queue
         var readCommands = true
         while readCommands {
@@ -189,6 +196,7 @@ extension mglRenderer: MTKViewDelegate {
                     case mglCommands.clearScreen: clearScreen(view : view)
                     case mglCommands.dots: dots(view: view, renderEncoder: renderEncoder)
                     case mglCommands.texture: texture(view: view, renderEncoder: renderEncoder)
+                    case mglCommands.setXform: setXform(renderEncoder: renderEncoder)
                     case mglCommands.test: test(view: view, renderEncoder: renderEncoder)
                     case mglCommands.flush:
                         readCommands = false
@@ -196,7 +204,7 @@ extension mglRenderer: MTKViewDelegate {
                 }
             }
         }
-        
+
         // end encoding
         renderEncoder.endEncoding()
 
@@ -267,6 +275,20 @@ extension mglRenderer: MTKViewDelegate {
         // and draw them as a triangle
         renderEncoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: vertexCount)
     }
+
+    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
+    // setXform
+    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
+    func setXform(renderEncoder: MTLRenderCommandEncoder) {
+
+        // read the new xform
+        deg2metal = commandInterface.readXform();
+        print(deg2metal)
+        
+        // set deg2metal in renderEncoder
+        renderEncoder.setVertexBytes(&deg2metal, length: MemoryLayout<float4x4>.stride, index: 1)
+    }
+
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     // test
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/

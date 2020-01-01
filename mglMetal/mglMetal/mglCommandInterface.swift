@@ -166,7 +166,25 @@ class mglCommandInterface {
         // return the texture
         return(texture)
     }
+    
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
+    // readXform
+    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
+    func readXform() -> simd_float4x4 {
+        // allocate data
+        let data = UnsafeMutablePointer<simd_float4x4>.allocate(capacity: 1)
+        defer {
+          data.deallocate()
+        }
+
+        // read 4 bytes of raw data
+        communicator.readData(4*4*4,buf:data);
+
+        // return what it points to
+        return(data.pointee)
+    }
+    
+//\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     // writeDouble
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     func writeDouble(data: Double) {

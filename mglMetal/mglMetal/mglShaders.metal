@@ -54,10 +54,12 @@ fragment float4 fragment_main() {
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
 // Vertex shader for dots
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
-vertex VertexOut vertex_dots(const device packed_float3* vertex_array [[ buffer(0) ]], unsigned int vid [[ vertex_id ]])
+vertex VertexOut vertex_dots(const device packed_float3* vertex_array [[ buffer(0) ]],
+                             constant float4x4 &deg2metal [[buffer(1)]],
+                             unsigned int vid [[ vertex_id ]])
 {
     VertexOut vertex_out {
-        .position = float4(vertex_array[vid], 1),
+        .position = deg2metal * float4(vertex_array[vid], 1),
         .point_size = 4.0
     };
     return(vertex_out);
@@ -73,10 +75,10 @@ fragment float4 fragment_dots() {
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
 // Vertex shader for textures
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
-vertex VertexTextureOut vertex_textures(const VertexTextureIn vertexIn [[ stage_in ]]) {
-
+vertex VertexTextureOut vertex_textures(const VertexTextureIn vertexIn [[ stage_in ]],
+                             constant float4x4 &deg2metal [[buffer(1)]]) {
   VertexTextureOut vertex_out {
-      .position = vertexIn.position,
+      .position = deg2metal * vertexIn.position,
       .texCoords = vertexIn.texCoords
   };
   return(vertex_out);
