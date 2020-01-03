@@ -84,6 +84,20 @@ class mglCommandInterface {
     }
     
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
+    // readFloat
+    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
+    func readFloat() -> Float {
+        // allocate data
+        let data = UnsafeMutablePointer<Float>.allocate(capacity: 1)
+        defer {
+          data.deallocate()
+        }
+        // read a bytes of raw data
+        communicator.readData(4,buf:data);
+        // return what it points to
+        return(data.pointee)
+    }
+    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     // readData
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     func readData(count: Int, buf: UnsafeMutableRawPointer) {

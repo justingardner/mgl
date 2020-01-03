@@ -100,8 +100,12 @@ vertex VertexTextureOut vertex_textures(const VertexTextureIn vertexIn [[ stage_
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
 fragment float4 fragment_textures(VertexTextureOut in [[stage_in]],
                                   texture2d<float> myTexture [[texture(0)]],
-                                  sampler mySampler [[sampler(0)]]) {
-    return(myTexture.sample(mySampler, in.texCoords));
+                                  sampler mySampler [[sampler(0)]] ,
+                                  constant float &phase [[buffer(2)]]) {
+//    return(myTexture.sample(mySampler, in.texCoords));
+    float4 c = myTexture.sample(mySampler, in.texCoords+phase);
+    float4 calpha = myTexture.sample(mySampler, in.texCoords);
+    return(float4(c[0], c[1], c[2], calpha[3]));
 }
 
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/

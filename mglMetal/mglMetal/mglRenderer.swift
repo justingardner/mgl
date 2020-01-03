@@ -22,11 +22,14 @@ enum mglCommands : UInt16 {
     case clearScreen = 1
     case dots = 2
     case flush = 3
-    case texture = 4
-    case setXform = 5
-    case line = 6
-    case quad = 7
-    case test = 256
+    case setXform = 4
+    case line = 5
+    case quad = 6
+    case createTexture = 7
+    case bltTexture = 8
+    case test = 9
+    case fullscreen = 10
+    case windowed = 11
 }
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
 // mglRenderer: Class does most of the work
@@ -60,6 +63,8 @@ class mglRenderer: NSObject {
     
     // keeps coordinate xform
     var deg2metal = matrix_identity_float4x4
+    
+    var texture : MTLTexture!
     
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     // init
@@ -99,6 +104,15 @@ class mglRenderer: NSObject {
         pipelineDescriptor.vertexDescriptor = MTKMetalVertexDescriptorFromModelIO(mdlMesh.vertexDescriptor)
         // this describes the pixel format that will be used
         pipelineDescriptor.colorAttachments[0].pixelFormat = metalView.colorPixelFormat
+        // Turn on alpha blending
+        pipelineDescriptor.colorAttachments[0].isBlendingEnabled             = true;
+        pipelineDescriptor.colorAttachments[0].rgbBlendOperation           = MTLBlendOperation.add;
+        pipelineDescriptor.colorAttachments[0].alphaBlendOperation         = MTLBlendOperation.add;
+        pipelineDescriptor.colorAttachments[0].sourceRGBBlendFactor        = MTLBlendFactor.sourceAlpha;
+        pipelineDescriptor.colorAttachments[0].sourceAlphaBlendFactor      = MTLBlendFactor.sourceAlpha;
+        pipelineDescriptor.colorAttachments[0].destinationRGBBlendFactor   = MTLBlendFactor.oneMinusSourceAlpha;
+        pipelineDescriptor.colorAttachments[0].destinationAlphaBlendFactor = MTLBlendFactor.oneMinusSourceAlpha;
+        
         // Ok. Now tell the GPU about this to make a pipeline state
         // which can be used for rendering
         do {
@@ -182,7 +196,9 @@ extension mglRenderer: MTKViewDelegate {
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {
        print("(mglMetal:mglRenderer) drawableSizeWillChange \(size)")
+
     }
+    
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     // darw delegate which does all the work! Run every frame buffer update
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
@@ -212,12 +228,19 @@ extension mglRenderer: MTKViewDelegate {
                 let command = commandInterface.readCommand()
                 switch command {
                     case mglCommands.ping: print("ping")
-                    case mglCommands.clearScreen: clearScreen(view : view)
+                    case mglCommands.clearScreen: clearScreen(view : view, renderEncoder: renderEncoder)
                     case mglCommands.dots: dots(view: view, renderEncoder: renderEncoder)
-                    case mglCommands.texture: texture(view: view, renderEncoder: renderEncoder)
+                    case mglCommands.createTexture: createTexture(view: view, renderEncoder: renderEncoder)
+                    case mglCommands.bltTexture: bltTexture(view: view, renderEncoder: renderEncoder)
                     case mglCommands.setXform: setXform(renderEncoder: renderEncoder)
                     case mglCommands.line: drawVerticesWithColor(view: view, renderEncoder: renderEncoder, primitiveType: .line)
                     case mglCommands.quad: drawVerticesWithColor(view: view, renderEncoder: renderEncoder, primitiveType: .triangle)
+                    case mglCommands.fullscreen:
+                        fullscreen(view: view, renderEncoder: renderEncoder)
+                        readCommands = false
+                    case mglCommands.windowed:
+                        windowed(view: view, renderEncoder: renderEncoder)
+                        readCommands = false
                     case mglCommands.test: test(view: view, renderEncoder: renderEncoder)
                     case mglCommands.flush:
                         readCommands = false
@@ -239,7 +262,7 @@ extension mglRenderer: MTKViewDelegate {
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     // clearScreen
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
-    func clearScreen(view: MTKView) {
+    func clearScreen(view: MTKView, renderEncoder: MTLRenderCommandEncoder) {
         // get the color
         let color = commandInterface.readColor()
         print(color)
@@ -248,6 +271,8 @@ extension mglRenderer: MTKViewDelegate {
         print(color[2])
         // Set the clear color for the view
         view.clearColor = MTLClearColor(red: Double(color[0]), green: Double(color[1]), blue: Double(color[2]), alpha: 1)
+        // set the pipeline state
+        renderEncoder.setRenderPipelineState(pipelineState)
     }
     
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
@@ -264,18 +289,22 @@ extension mglRenderer: MTKViewDelegate {
         // and draw them as points
         renderEncoder.drawPrimitives(type: .point, vertexStart: 0, vertexCount: vertexCount)
     }
+    
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
-    // texture
+    // bltTexture
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
-    func texture(view: MTKView, renderEncoder: MTLRenderCommandEncoder) {
+    func bltTexture(view: MTKView, renderEncoder: MTLRenderCommandEncoder) {
         // set the pipeline state
         renderEncoder.setRenderPipelineState(pipelineStateTextures)
 
-        // set up sampler
+        // set up texture sampler
         let samplerDescriptor = MTLSamplerDescriptor()
         samplerDescriptor.minFilter = .linear
         samplerDescriptor.magFilter = .linear
         samplerDescriptor.mipFilter = .linear
+        samplerDescriptor.sAddressMode = MTLSamplerAddressMode.repeat
+        samplerDescriptor.tAddressMode = MTLSamplerAddressMode.repeat
+        samplerDescriptor.rAddressMode = MTLSamplerAddressMode.repeat
         let samplerState = mglRenderer.device.makeSamplerState(descriptor:samplerDescriptor)
         
         // add the sampler to the renderEncoder
@@ -287,14 +316,28 @@ extension mglRenderer: MTKViewDelegate {
         // set the vertices in the renderEncoder
         renderEncoder.setVertexBuffer(vertexBufferTexture, offset: 0, index: 0)
             
-        // read in the texture and set it into the renderEncoder
-        let texture = commandInterface.readTexture(device: mglRenderer.device)
+        // send the texture to the renderEncoder
         renderEncoder.setFragmentTexture(texture, index:0)
-            
+
+        // set phase
+        var phase = commandInterface.readFloat()
+        print("Read phase: \(phase)")
+        renderEncoder.setFragmentBytes(&phase, length: MemoryLayout<Float>.stride, index: 2)
+
         // and draw them as a triangle
         renderEncoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: vertexCount)
     }
 
+    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
+    // createTexture
+    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
+    func createTexture(view: MTKView, renderEncoder: MTLRenderCommandEncoder) {
+        // set the pipeline state
+        renderEncoder.setRenderPipelineState(pipelineStateTextures)
+
+        // read in the texture
+        texture = commandInterface.readTexture(device: mglRenderer.device)
+    }
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     // setXform
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
@@ -331,6 +374,52 @@ extension mglRenderer: MTKViewDelegate {
     }
 
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
+    // windowed
+    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
+    func windowed(view: MTKView, renderEncoder: MTLRenderCommandEncoder) {
+        print("windowed")
+        // get window variable (if available)
+        guard let window = view.window else {
+            print("(mglRenderer:windowed) Could not retrieve window")
+            return
+        }
+        // check if already full screen
+        if !window.styleMask.contains(.fullScreen) {
+            print("(mglRenderer:windowed) Is already windowed")
+        }
+        else {
+            // toggle to windowed
+            window.toggleFullScreen(nil)
+            var windowFrame = window.frame
+            print(windowFrame)
+            windowFrame.size = NSMakeSize(400, 400)
+            window.setFrame(windowFrame, display: true)
+        }
+        // set the pipeline state
+        renderEncoder.setRenderPipelineState(pipelineState)
+    }
+
+    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
+    // fullscreen
+    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
+    func fullscreen(view: MTKView, renderEncoder: MTLRenderCommandEncoder) {
+        // get window variable (if available)
+        guard let window = view.window else {
+            print("(mglRenderer:fullscreen) Could not retrieve window")
+            return
+        }
+        // check if already full screen
+        if window.styleMask.contains(.fullScreen) {
+            print("(mglRenderer:fullscreen) Is already full screen")
+        }
+        else {
+            // toggle to full screen
+            window.toggleFullScreen(nil)
+        }
+        // set the pipeline state
+        renderEncoder.setRenderPipelineState(pipelineState)
+    }
+    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     // test
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     func test(view: MTKView, renderEncoder: MTLRenderCommandEncoder) {
@@ -339,6 +428,24 @@ extension mglRenderer: MTKViewDelegate {
         if commandInterface.dataWaiting() {
             print("(mglRendere:test) Uhoh data waiting")
         }
+        
+        guard let window = view.window else {return}
+        print(window.styleMask.contains(.fullScreen))
+        if window.styleMask.contains(.fullScreen) {
+            print("Is full screen")
+        }else {
+            print("Is not full screen")
+        }
+        view.window?.toggleFullScreen(nil)
+        if window.styleMask.contains(.fullScreen) {
+            print("Is full screen")
+        }else {
+            print("Is not full screen")
+        }
+
+        //view.window?.toggleFullScreen(nil)
+        //view.window?.alphaValue(0.5)
+        //view.window?.isOpage(false)
 /*
         var diffuseTexture : MTLTexture!
         let fileLocation = "file://Users/justin/Library/Containers/gru.mglMetal/Data/texture.png"

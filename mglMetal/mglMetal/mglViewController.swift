@@ -31,12 +31,20 @@ class ViewController: NSViewController {
         }
         // run the super class function
         super.viewDidLoad()
-        
+
         // Initialize our renderer - this is the function
         // that handles drawing and where all the action is.
         renderer = mglRenderer(metalView: metalView)
+        
     }
 
+    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
+    // viewDidLoad
+    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
+    override func viewDidAppear() {
+        super.viewDidAppear()
+        self.view.window?.title = "mglMetal"
+    }
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     // representedObject
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/

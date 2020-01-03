@@ -57,7 +57,7 @@
 		D0F6B99E23B6DB3A00B45409 /* mglCommunicator.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = mglCommunicator.h; sourceTree = "<group>"; };
 		D0F6B99F23B6DB3A00B45409 /* mglCommunicator.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = mglCommunicator.m; sourceTree = "<group>"; };
 		D0F6B9A123B6ED4300B45409 /* mglPrimitives.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglPrimitives.swift; sourceTree = "<group>"; };
-		D0F6B9A323B6EDE600B45409 /* mglShaders.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = mglShaders.metal; sourceTree = "<group>"; };
+		D0F6B9A323B6EDE600B45409 /* mglShaders.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; lineEnding = 0; path = mglShaders.metal; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
