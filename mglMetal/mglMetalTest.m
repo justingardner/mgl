@@ -20,11 +20,14 @@ if nargin < 1
   % send ping to check communication
   myinput('Hit ENTER to ping: ');
   mgl.s = mglSocketWrite(mgl.s,uint16(mgl.command.ping));
+  mglFullscreen(0);
 
   % clear screen
   myinput('Hit ENTER to clear screen: ');
   mglClearScreen([1 0 0]);
   mglFlush;
+  
+  
 elseif isequal(varargin{1},2)
   % go full screen
   mglFullscreen;
@@ -38,18 +41,39 @@ end
 % turn off verbose
 mglSetParam('verbose',0);
 
+% check profile
+%input('Hit ENTER to turn profiling on: ');
+%disp(sprintf('setting profile on'));
+%mglProfile(true);
+
+% now have command loop read commands until there is a fulsh
+mglFullscreen(0);
+
+testLines;
+testQuads;
+testCoords;
+testTexture;
+testDots;
+
 %%%%%%%%%%%%%%%%%%%%%
 % Test lines
 %%%%%%%%%%%%%%%%%%%%%
+function testLines
+
 myinput('Hit ENTER to test lines: ');
+mglFlush;
 mglLines2([-0.1 0], [0 -0.1], [0.1 0], [0 0.1], 5, [0.8 0.8 0.8]);
 mglFlush;
 
 %%%%%%%%%%%%%%%%%%%%%
 % Test quads
 %%%%%%%%%%%%%%%%%%%%%
+function testQuads
+
+global mgl
+
 myinput('Hit ENTER to test quads: ');
-mgl.s = mglSocketWrite(mgl.s,uint16(mgl.command.quad));
+
 % make a checkerboard
 xWidth = 0.1;yWidth = 0.1;iQuad = 1;
 
@@ -67,56 +91,78 @@ for xStart = -1:xWidth:(1-xWidth)
 end
 
 % draw the quads
+mglProfile(true);
 mglQuad(x,y,color);
+mglProfile(false);
 mglFlush;
 
-if 0
 %%%%%%%%%%%%%%%%%%%%%
 % Make flicker
 %%%%%%%%%%%%%%%%%%%%%
 myinput('Hit ENTER to flicker: ');
-nFlicker = 10;nFlush = 2;
+nFlicker = 10;nFlush = 10;
 for iFlicker = 1:nFlicker
-  % draw the quads
-  mglQuad(x,y,color);
-  % flush
   for iFlush = 1:nFlush
+    % draw the quads
+    mglQuad(x,y,color);
     mglFlush;
   end
-  keyboard
-  % draw the quads
-  mglQuad(x,y,inverseColor);
   % flush
   for iFlush = 1:nFlush
+    % draw the quads
+    mglQuad(x,y,inverseColor);
     mglFlush;
   end
 end
-end
+
 
 %%%%%%%%%%%%%%%%%%%%%
 % Test coord xform
 %%%%%%%%%%%%%%%%%%%%%
+function testCoords
+
+global mgl
 myinput('Hit ENTER to test coordinate xform: ');
+
+% write command to send coords
+mglProfileStart;
 mgl.s = mglSocketWrite(mgl.s,uint16(mgl.command.xform));
+
+% send xform
 xform = eye(4);
 xform(:,4) = [-0.2 0.2 0 1];
 mgl.s = mglSocketWrite(mgl.s,single(xform(:)));
+mglProfileEnd('testCoords');
 
+% draw traingle points
 x = [0 -0.5 0.5];
 y = [0.5 -0.5 -0.5];
 mglPoints2(x,y,10,[1 1 1])
 mglFlush;
 
+% wait for input
 myinput('Hit ENTER to test coordinate xform: ');
+
+% write command to send coordinates
+mglProfileStart;
 mgl.s = mglSocketWrite(mgl.s,uint16(mgl.command.xform));
+
+% set xform back to identity
 xform = eye(4);
 mgl.s = mglSocketWrite(mgl.s,single(xform(:)));
+mglProfileEnd('testCoords');
+
+% draw traingle points
 mglPoints2(x,y,10,[1 1 1])
 mglFlush;
 
 %%%%%%%%%%%%%%%%%%%%%
 % Test texture
 %%%%%%%%%%%%%%%%%%%%%
+function testTexture
+
+global mgl
+
 myinput('Hit ENTER to test texture: ');
 mglClearScreen(0.5);mglFlush;mglFlush;
 
@@ -134,11 +180,17 @@ texture(:,:,2) = maxVal*(cos(sf*ty+pi/4)+1)/2;
 texture(:,:,3) = maxVal*(cos(sf*ty+pi/4)+1)/2;
 texture(:,:,4) = maxVal*(exp(-((ex.^2+ey.^2)/sigma^2)));
 
+% turn on profiling
+mglProfile(true);
+
 % create the texture
 tex = mglCreateTexture(texture);
 
 % blt the texture
 mglBltTexture(tex);
+
+% turn off profiling
+mglProfile(false);
 
 % flush and wait
 mglFlush;
@@ -192,45 +244,75 @@ if ~mgl.noask,mglFullscreen(0);end
 %%%%%%%%%%%%%%%%%%%%%
 % Test dots
 %%%%%%%%%%%%%%%%%%%%%
-myinput('Hit ENTER to test dots: ');
-x = [0 -0.5 0.5];
-y = [0.5 -0.5 -0.5];
-mglPoints2(x,y,10,[1 1 1])
+function testDots
 
+global mgl
+
+myinput('Hit ENTER to test dots: ');
+
+% turn on profiling
+mglProfile(true);
+
+% make a glass pattern
+nDots = 1000;
+r = rand(1,nDots);
+theta = rand(1,nDots)*2*pi;
+x = r.*cos(theta);
+y = r.*sin(theta);
+
+deltaTheta = pi*(2/180);
+x(end+1:end+nDots) = r.*cos(theta+deltaTheta);
+y(end+1:end+nDots) = r.*sin(theta+deltaTheta);
+
+mglFlush;
+mglPoints2(x,y,1,[1 1 1])
+mglProfile(false);
 mglFlush;
 
 myinput('Hit ENTER to test dots: ');
+mglClearScreen(0.5);
 mglFullscreen;
 
-nVertices = 500;
+nVertices = 1000;
 deltaX = 0.005;
-deltaR = 0.05;
-nFrames = 500;
+deltaR = 0.005;
+deltaTheta = 0.03;
+nFrames = 1000;
 vertices = [];
-r = 0.75*rand(1,nVertices);
+r = 0.25*rand(1,nVertices)+0.01;
 theta = rand(1,nVertices)*2*pi;
 x = cos(theta).*r;
 y = sin(theta).*r;
+coherence = 0.8;
 
 for iFrame = 1:nFrames
   frameStart = mglGetSecs;
-  mglPoints2(x,y,10,[1 1 1])
+  mglPoints2(x,y,5,[1 1 1])
   mglFlush;
   r = r + deltaR;
-  r(r>0.75) = deltaR*rand(1,sum(r>0.75));
+  theta = theta + deltaTheta;
+  badpoints = find(r>0.75);
+  r(badpoints) = 0.74*rand(1,length(badpoints))+0.01;
   x = cos(theta).*r;
   y = sin(theta).*r;
   frameTime(iFrame) = mglGetSecs(frameStart);
 end
+
 dispFrameTimes(frameTime);
 
 mglFullscreen(0);
+
+% send non-blocking command
+mglProfileStart;
+mgl.s = mglSocketWrite(mgl.s,uint16(mgl.command.nonblocking));
+mglProfileEnd('non-blocking');
 
 %%%%%%%%%%%%%%%%%%%%%%%%
 %    dispFrameTimes    %
 %%%%%%%%%%%%%%%%%%%%%%%%
 function dispFrameTimes(frameTime)
 
+frameTime = frameTime(30:end);
 expectedFrameTime = 1/60;
 nFrames = length(frameTime);
 disp(sprintf('(mglMetalTest) Median frame time: %0.4f',median(frameTime)));
@@ -247,11 +329,17 @@ function mglFlush
 
 global mgl
 
-% write
+% write flush comnand
+mglProfileStart
 mgl.s = mglSocketWrite(mgl.s,uint16(mgl.command.flush));
+
+% wait for return 
 [dataWaiting mgl.s] = mglSocketDataWaiting(mgl.s);
 while ~dataWaiting, [dataWaiting mgl.s] = mglSocketDataWaiting(mgl.s);end
+
+% and read value 
 [val mgl.s] = mglSocketRead(mgl.s);
+
 
 %%%%%%%%%%%%%%%%%
 %    mglOpen    %
@@ -261,6 +349,7 @@ function mglOpen
 global mgl
 
 mgl.noask = false;
+mgl.profile = false;
 
 % set command numbers
 mgl.command.ping = 0;
@@ -275,6 +364,10 @@ mgl.command.bltTexture = 8;
 mgl.command.test = 9;
 mgl.command.fullscreen = 10;
 mgl.command.windowed = 11;
+mgl.command.blocking = 12;
+mgl.command.nonblocking = 13;
+mgl.command.profileon = 14;
+mgl.command.profileoff = 15;
 
 if isfield(mgl,'s') mglSocketClose(mgl.s); end
 !rm -f testsocket
@@ -292,8 +385,13 @@ if length(color) == 1
 end
 color = color(:);
 
+% write clear screen command
+mglProfileStart;
 mgl.s = mglSocketWrite(mgl.s,uint16(mgl.command.clearScreen));
+
+% write color
 mgl.s = mglSocketWrite(mgl.s,single(color));
+mglProfileEnd('mglClearScreen');
 
 %%%%%%%%%%%%%%%%%%%
 %    mglLInes2    %
@@ -314,11 +412,13 @@ for iLine = 1:length(x0)
 end
 
 % send line command
+mglProfileStart;
 mgl.s = mglSocketWrite(mgl.s,uint16(mgl.command.line));
 
 % send vertices
 mgl.s = mglSocketWrite(mgl.s,uint32(2*iLine));
 mgl.s = mglSocketWrite(mgl.s,single(v));
+mglProfileEnd('mglLines2');
 
 %%%%%%%%%%%%%%%%%
 %    mglQuad    %
@@ -349,14 +449,19 @@ for iQuad = 1:size(vX,1)
 
 end
 
+% send quad command
+mglProfileStart;
+mgl.s = mglSocketWrite(mgl.s,uint16(mgl.command.quad));
+
 % number of vertices
 nVertices = length(v)/6;
-disp(sprintf('(mglQuad) nVertices: %i len: %i',nVertices,length(v)));
 
 % send them
 mgl.s = mglSocketWrite(mgl.s,uint32(nVertices));
 mgl.s = mglSocketWrite(mgl.s,single(v));
 
+% end profiling
+mglProfileEnd('mglQuad');
 
 %%%%%%%%%%%%%%%%%%%%
 %    mglPoints2    %
@@ -371,12 +476,18 @@ v(:,3) = 0;
 v = v';
 
 % write dots command
+mglProfileStart;
 mgl.s = mglSocketWrite(mgl.s,uint16(mgl.command.dots));
+
 % send number of vertices
 nVertices = length(x);
 mgl.s = mglSocketWrite(mgl.s,uint32(nVertices));
+
 % send vertices
 mgl.s = mglSocketWrite(mgl.s,single(v(:)));
+
+% end profiling
+mglProfileEnd('mglPoints2');
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 %    mglCreateTexture    %
@@ -389,12 +500,21 @@ global mgl
 [tex.width tex.height tex.colorDim] = size(im);
 im = shiftdim(im,2);
 
+% send texture command
+mglProfileStart;
 mgl.s = mglSocketWrite(mgl.s,uint16(mgl.command.createTexture));
+
+% sent texture dimensions
 mgl.s = mglSocketWrite(mgl.s,uint32(tex.width));
 mgl.s = mglSocketWrite(mgl.s,uint32(tex.height));
+
+% sent texture
 mglSetParam('verbose',1);
 mgl.s = mglSocketWrite(mgl.s,single(im(:)));
 mglSetParam('verbose',0);
+
+% end profiling
+mglProfileEnd('mglCreateTexture');
 
 % set the texture 
 tex.id = 1;
@@ -465,6 +585,7 @@ verticesWithTextureCoordinates = [...
 nVertices = 6;
 
 % send blt command
+mglProfileStart;
 mgl.s = mglSocketWrite(mgl.s,uint16(mgl.command.bltTexture));
 
 % send vertices
@@ -474,15 +595,21 @@ mgl.s = mglSocketWrite(mgl.s,single(verticesWithTextureCoordinates));
 % send the phase
 mgl.s = mglSocketWrite(mgl.s,single(phase));
 
+% end profiling
+mglProfileEnd('mglBltTexture');
+
 %%%%%%%%%%%%%%%%%
 %    myinput    %
 %%%%%%%%%%%%%%%%%
 function myinput(str)
 
 global mgl
+
+
 if ~mgl.noask
   input(str);
 end
+
 
 %%%%%%%%%%%%%%%%%%%%%%%
 %    mglFullscreen    %
@@ -495,12 +622,62 @@ global mgl;
 
 if tf
   % go full screen
+  mglProfileStart;
   mgl.s = mglSocketWrite(mgl.s,uint16(mgl.command.fullscreen));
+  mglProfileEnd('mglFullscreen');
 else
+  mglProfileStart;
   mgl.s = mglSocketWrite(mgl.s,uint16(mgl.command.windowed));
+  mglProfileEnd('mglWindowed');
 end
 
 % do a few flushes to make sure that the screen is actually updated correctly
 mglFlush;mglFlush;mglFlush;mglFlush;
 mglFlush;mglFlush;mglFlush;mglFlush;
 
+%%%%%%%%%%%%%%%%%%%%
+%    mglProfile    %
+%%%%%%%%%%%%%%%%%%%%
+function mglProfile(tf)
+
+global mgl
+
+if tf
+  % turn profiling on
+  mglProfileStart;
+  mgl.s = mglSocketWrite(mgl.s,uint16(mgl.command.profileon));
+  mgl.profile = true;
+  mglProfileEnd('mglProfileOn');
+else
+  % turn profiling off
+  mgl.s = mglSocketWrite(mgl.s,uint16(mgl.command.profileoff));
+  mgl.profile = false;
+end
+  
+%%%%%%%%%%%%%%%%%%%%%%%%%
+%    mglProfileStart    %
+%%%%%%%%%%%%%%%%%%%%%%%%%
+function mglProfileStart
+
+global mgl
+
+mgl.profileStartTime = mglGetSecs;
+
+%%%%%%%%%%%%%%%%%%%%%%%
+%    mglProfileEnd    %
+%%%%%%%%%%%%%%%%%%%%%%%
+function mglProfileEnd(profileName)
+
+global mgl
+
+if ~mgl.profile, return, end
+
+% wait for the return data
+[dataWaiting mgl.s] = mglSocketDataWaiting(mgl.s);
+while ~dataWaiting, [dataWaiting mgl.s] = mglSocketDataWaiting(mgl.s);end
+
+% get the end time
+[profileEndTime mgl.s] = mglSocketRead(mgl.s);
+
+% and display it
+disp(sprintf('(mglMetalTest:mglProfile) Profile time for %s is: %f ms',profileName,(profileEndTime-mgl.profileStartTime)*1000));

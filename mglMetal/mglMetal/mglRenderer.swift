@@ -13,6 +13,7 @@
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
 import Foundation
 import MetalKit
+import AppKit
 
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
 // Enum of command codes
@@ -30,6 +31,10 @@ enum mglCommands : UInt16 {
     case test = 9
     case fullscreen = 10
     case windowed = 11
+    case blocking = 12
+    case nonblocking = 13
+    case profileon = 14
+    case profileoff = 15
 }
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
 // mglRenderer: Class does most of the work
@@ -60,11 +65,18 @@ class mglRenderer: NSObject {
     
     // sets whether to send a flush confirm back to matlab
     var acknowledgeFlush = false
-    
+
+    // sets whether to wait each flush for commands from matlab
+    var blocking = false
+
     // keeps coordinate xform
     var deg2metal = matrix_identity_float4x4
     
     var texture : MTLTexture!
+    
+    // Set to not provide profiling information
+    var profile = false
+    var secs = mglSecs()
     
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     // init
@@ -242,9 +254,39 @@ extension mglRenderer: MTKViewDelegate {
                         windowed(view: view, renderEncoder: renderEncoder)
                         readCommands = false
                     case mglCommands.test: test(view: view, renderEncoder: renderEncoder)
+                    case mglCommands.blocking:
+                        blocking = true
+                        print("(mglRenderer) Blocking")
+                    case mglCommands.nonblocking:
+                        blocking = false
+                        print("(mglRenderer) Non-blocking")
+                    case mglCommands.profileon:
+                        profile = true
+                    case mglCommands.profileoff:
+                        profile = false
                     case mglCommands.flush:
                         readCommands = false
                         acknowledgeFlush = true
+                }
+                // if we have received any command then kick into blocking wait mode
+                blocking = true;
+                // if we are in profile mode, then return profiling time
+                if profile && (command != mglCommands.flush) {
+                    // write current time in mglSecs
+                    commandInterface.writeDouble(data: secs.get())
+                }
+            }
+            else {
+                if !blocking {
+                    // check for important events
+                    guard let window = view.window else {return}
+                    // if an event is pending, then drop out of this loop
+                    //let nextEvent = window.nextEvent(matching: [.mouseEntered, .keyDown, .keyUp, .leftMouseDown, .leftMouseDragged, .leftMouseUp, .appKitDefined, .systemDefined, .applicationDefined])
+                    let nextEvent = window.nextEvent(matching: .any)
+                    if !(nextEvent == nil) {
+                        print("(mglRenderer) Processing OS events")
+                        readCommands = false
+                    }
                 }
             }
         }
@@ -352,12 +394,6 @@ extension mglRenderer: MTKViewDelegate {
     }
 
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
-    // line
-    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
-    func line(view: MTKView, renderEncoder: MTLRenderCommandEncoder) {
-    }
-
-    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     // drawVerticesWithColor
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     func drawVerticesWithColor(view: MTKView, renderEncoder: MTLRenderCommandEncoder, primitiveType: MTLPrimitiveType) {
@@ -394,6 +430,8 @@ extension mglRenderer: MTKViewDelegate {
             print(windowFrame)
             windowFrame.size = NSMakeSize(400, 400)
             window.setFrame(windowFrame, display: true)
+            // unhide curser
+            NSCursor.unhide()
         }
         // set the pipeline state
         renderEncoder.setRenderPipelineState(pipelineState)
@@ -415,6 +453,7 @@ extension mglRenderer: MTKViewDelegate {
         else {
             // toggle to full screen
             window.toggleFullScreen(nil)
+            NSCursor.hide()
         }
         // set the pipeline state
         renderEncoder.setRenderPipelineState(pipelineState)

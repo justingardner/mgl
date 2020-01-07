@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		D08D4BBE23B8834C00A27C79 /* mglCommandInterface.swift in Sources */ = {isa = PBXBuildFile; fileRef = D08D4BBD23B8834C00A27C79 /* mglCommandInterface.swift */; };
+		D0A59C7A23C2E41900D3AE93 /* mglSecs.m in Sources */ = {isa = PBXBuildFile; fileRef = D0A59C7923C2E41900D3AE93 /* mglSecs.m */; };
 		D0F6B96E23B6D9E700B45409 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0F6B96D23B6D9E700B45409 /* AppDelegate.swift */; };
 		D0F6B97023B6D9E700B45409 /* mglViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0F6B96F23B6D9E700B45409 /* mglViewController.swift */; };
 		D0F6B97223B6D9E800B45409 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D0F6B97123B6D9E800B45409 /* Assets.xcassets */; };
@@ -39,6 +40,8 @@
 
 /* Begin PBXFileReference section */
 		D08D4BBD23B8834C00A27C79 /* mglCommandInterface.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglCommandInterface.swift; sourceTree = "<group>"; };
+		D0A59C7823C2E41900D3AE93 /* mglSecs.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = mglSecs.h; sourceTree = "<group>"; };
+		D0A59C7923C2E41900D3AE93 /* mglSecs.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = mglSecs.m; sourceTree = "<group>"; };
 		D0F6B96A23B6D9E700B45409 /* mglMetal.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = mglMetal.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		D0F6B96D23B6D9E700B45409 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		D0F6B96F23B6D9E700B45409 /* mglViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglViewController.swift; sourceTree = "<group>"; };
@@ -90,6 +93,8 @@
 			children = (
 				D0F6B99E23B6DB3A00B45409 /* mglCommunicator.h */,
 				D0F6B99F23B6DB3A00B45409 /* mglCommunicator.m */,
+				D0A59C7823C2E41900D3AE93 /* mglSecs.h */,
+				D0A59C7923C2E41900D3AE93 /* mglSecs.m */,
 				D0F6B96C23B6D9E700B45409 /* mglMetal */,
 				D0F6B97F23B6D9E800B45409 /* mglMetalTests */,
 				D0F6B98A23B6D9E800B45409 /* mglMetalUITests */,
@@ -279,6 +284,7 @@
 				D0F6B9A023B6DB3A00B45409 /* mglCommunicator.m in Sources */,
 				D0F6B99A23B6DAD600B45409 /* mglRenderer.swift in Sources */,
 				D0F6B9A223B6ED4300B45409 /* mglPrimitives.swift in Sources */,
+				D0A59C7A23C2E41900D3AE93 /* mglSecs.m in Sources */,
 				D0F6B96E23B6D9E700B45409 /* AppDelegate.swift in Sources */,
 				D0F6B9A423B6EDE600B45409 /* mglShaders.metal in Sources */,
 			);
