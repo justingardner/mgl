@@ -46,7 +46,7 @@ for iColor = 1:stimulus.colors.nReservedColors
   rectX = -(myscreen.imageWidth/2) + rectWidth * (iColor-1)+rectWidth/2;
   mglFillRect(rectX,rectY,[rectWidth rectHeight],colorIndex);
   % draw text
-  mglTextDraw(sprintf('Color: %i',iColor),[rectX,rectY]);
+  mglTextDraw(sprintf('Color: %i [%0.1f %0.1f %0.1f]',iColor,stimulus.colors.reservedColors(iColor,1),stimulus.colors.reservedColors(iColor,2),stimulus.colors.reservedColors(iColor,3)),[rectX,rectY]);
 end
 
 disp(sprintf('(mglTestGammaTable:testGammaTable) Top row should be %i reserved colors',stimulus.colors.nReservedColors));
