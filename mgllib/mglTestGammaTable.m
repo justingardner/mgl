@@ -49,7 +49,7 @@ for iColor = 1:stimulus.colors.nReservedColors
   mglTextDraw(sprintf('Color: %i',iColor),[rectX,rectY]);
 end
 
-disp(sprintf('(mglTestGammaTable:testGammaTable) Top row should be reserved colors'));
+disp(sprintf('(mglTestGammaTable:testGammaTable) Top row should be %i reserved colors',stimulus.colors.nReservedColors));
 
 % setup rect dimensions
 rectHeight = myscreen.imageHeight/2;
@@ -65,7 +65,7 @@ for iColor = stimulus.colors.nReservedColors:255
   mglFillRect(rectX,rectY,[rectWidth rectHeight],colorIndex);
 end
 
-disp(sprintf('(mglTestGammaTable:testGammaTable) Bottom row should be stimulus colors'));
+disp(sprintf('(mglTestGammaTable:testGammaTable) Bottom row should be a gradient from black to white'));
 mglFlush;
 
 % wait and close
