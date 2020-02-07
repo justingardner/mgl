@@ -6,7 +6,7 @@
 %    purpose: Should display 5 solid colors on top (white, gray, greeen, red and cyan)
 %             And on the bottom should have a black to white gradient going from left to right
 %
-function retval = mglTestGammaTable()
+function retval = mglTestGammaTable(varargin)
 
 % check arguments
 if ~any(nargin == [0])
@@ -70,9 +70,14 @@ mglFlush;
 
 % wait and close
 if isequal(mglGetParam('displayNumber'),1) && (length(mglDescribeDisplays) == 1)
-  mglWaitSecs(3);
+  waitTime = 3;
+  mglWaitSecs(waitTime);
+  disp(sprintf('(mglTestGammaTable) Closing screen automatically after %i delay',waitTime));
   mglClose;
+else
+  disp(sprintf('(mglTestGammaTable) To close the screen type: mglClose<ENTER>'));
 end
+
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
