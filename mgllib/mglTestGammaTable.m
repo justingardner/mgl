@@ -72,7 +72,7 @@ mglFlush;
 if isequal(mglGetParam('displayNumber'),1) && (length(mglDescribeDisplays) == 1)
   waitTime = 3;
   mglWaitSecs(waitTime);
-  disp(sprintf('(mglTestGammaTable) Closing screen automatically after %i delay',waitTime));
+  disp(sprintf('(mglTestGammaTable) Closing screen automatically after %is delay',waitTime));
   mglClose;
 else
   disp(sprintf('(mglTestGammaTable) To close the screen type: mglClose<ENTER>'));
