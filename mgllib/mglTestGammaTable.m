@@ -3,7 +3,8 @@
 %      usage: mglTestGammaTable()
 %         by: justin gardner
 %       date: 02/07/20
-%    purpose: 
+%    purpose: Should display 5 solid colors on top (white, gray, greeen, red and cyan)
+%             And on the bottom should have a black to white gradient going from left to right
 %
 function retval = mglTestGammaTable()
 
