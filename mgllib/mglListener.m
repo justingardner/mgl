@@ -39,6 +39,10 @@
 %                         will still be available from 'getKeyEvent'. This is useful, if
 %                         you don't want a lot of backtick key presses going into your
 %                         command window for instance
+%             8:'getScrollEvent' Returns a scroll event
+%             9:'getScrollEvent' Same as getAllKeyEvents but for scroll events
+%             10: 'eatScroll' eat scroll events (similar to eat Keys), if you want to stop
+%                 eating scroll events, pass the second argument as 0
 %             0:'quit' Quits the listener, after this you won't be able to run other commands
 %
 %
@@ -51,7 +55,7 @@ if ~any(nargin == [1 2])
 end
 
 if isstr(command)
-  commandNum = find(strcmp(lower(command),{'quit','init','getkeyevent','getmouseevent','getkeys','getallkeyevents','getallmouseevents','eatkeys'}))-1;
+  commandNum = find(strcmp(lower(command),{'quit','init','getkeyevent','getmouseevent','getkeys','getallkeyevents','getallmouseevents','eatkeys','getscrollevent','getallscrollevents','eatscroll'}))-1;
   if isempty(commandNum)
     disp(sprintf('(mglListener) Unknown command %s',command));
     return
@@ -63,11 +67,12 @@ else
   return
 end
 
-% eat keys is treated specially
-if commandNum ~= 7
+% eat keys and scroll are treated specially
+if all(commandNum ~= [7 10])
   % run the mex command
   retval = mglPrivateListener(commandNum);
-else
+% eat keys
+elseif commandNum == 7
   % see if we are passed character array or a keyNum array
   if isstr(arg1)
     for i = 1:length(arg1)
@@ -81,6 +86,13 @@ else
     return
   end
   retval = mglPrivateListener(commandNum,keyCodes);
+% eat scroll
+elseif commandNum == 10
+  if nargin == 1
+    retval = mglPrivateListener(commandNum,1);
+  else
+    retval = mglPrivateListener(commandNum,arg1);
+  end
 end
   
 

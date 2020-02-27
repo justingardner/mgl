@@ -40,6 +40,9 @@
 #define GETALLKEYEVENTS 5
 #define GETALLMOUSEEVENTS 6
 #define EATKEYS 7
+#define GETSCROLLEVENT 8
+#define GETALLSCROLLEVENTS 9
+#define EATSCROLL 10									   
 #define MAXEATKEYS 256
 #define MAXKEYCODES 128
 
@@ -61,6 +64,8 @@
 - (int)buttonNumber;
 - (CGPoint)mouseLocation;
 - (void)dealloc;
+- (int)scrollHorizontal;
+- (int)scrollVertical;
 @end
 
 ///////////////////////////////
@@ -81,8 +86,10 @@ static int eventTapInstalled = FALSE;
 static NSAutoreleasePool *gListenerPool;
 static NSMutableArray *gKeyboardEventQueue;
 static NSMutableArray *gMouseEventQueue;
+static NSMutableArray *gScrollEventQueue;
 static double gKeyStatus[MAXKEYCODES];
 static unsigned char gEatKeys[MAXEATKEYS];
+static unsigned char gEatScroll = FALSE;
 static int gavewarning = 0;
 
 //////////////
@@ -132,6 +139,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 	gListenerPool = [[NSAutoreleasePool alloc] init];
 	gKeyboardEventQueue = [[NSMutableArray alloc] init];
 	gMouseEventQueue = [[NSMutableArray alloc] init];
+	gScrollEventQueue = [[NSMutableArray alloc] init];
 	// default to no keys to eat
 	gEatKeys[0] = 0;
 	// set up the event tap
@@ -356,6 +364,100 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     }
 
   }
+  // GETSCROLLEVENT command --------------------------------------------------------
+  else if (command == GETSCROLLEVENT) {
+    if (eventTapInstalled) {
+      // get the last event.
+      pthread_mutex_lock(&mut);
+      // see how many events we have
+      unsigned count = [gScrollEventQueue count];
+      // if we have more than one,
+      if (count >= 1) {
+        queueEvent *qEvent;
+        // get the last event
+        qEvent = [gScrollEventQueue objectAtIndex:0];
+        // and get the clickState, buttonNumber, timestamp and location
+        int scrollHorizontal = [qEvent scrollHorizontal];
+        int scrollVertical = [qEvent scrollVertical];
+        timestamp = [qEvent timestamp];
+        // remove it from the queue
+        [gScrollEventQueue removeObjectAtIndex:0];
+        // release the mutex
+        pthread_mutex_unlock(&mut);
+
+        // return event as a matlab structure
+        const char *fieldNames[] =  {"when","scrollHorizontal","scrollVertical"};
+        int outDims[2] = {1, 1};
+        plhs[0] = mxCreateStructArray(1,outDims,3,fieldNames);
+	
+        mxSetField(plhs[0],0,"when",mxCreateDoubleMatrix(1,1,mxREAL));
+        *(double*)mxGetPr(mxGetField(plhs[0],0,"when")) = timestamp;
+        mxSetField(plhs[0],0,"scrollHorizontal",mxCreateDoubleMatrix(1,1,mxREAL));
+        *(double*)mxGetPr(mxGetField(plhs[0],0,"scrollHorizontal")) = (double)scrollHorizontal;
+        mxSetField(plhs[0],0,"scrollVertical",mxCreateDoubleMatrix(1,1,mxREAL));
+        *(double*)mxGetPr(mxGetField(plhs[0],0,"scrollVertical")) = (double)scrollVertical;
+      }
+      else {
+        // no event found, unlock mutex and return empty
+        pthread_mutex_unlock(&mut);
+        plhs[0] = mxCreateDoubleMatrix(0,0,mxREAL);
+      }
+    }
+    else {
+      mexPrintf("(mglPrivateListener) mglPrivateListener must be initialized before extracting mouse events\n");
+      plhs[0] = mxCreateDoubleMatrix(0,0,mxREAL);
+    }
+
+  }
+  // GETALLSCROLLEVENTS command --------------------------------------------------------
+  else if (command == GETALLSCROLLEVENTS) {
+    if (eventTapInstalled) {
+      // get all pending events
+      pthread_mutex_lock(&mut);
+      // see how many events we have
+      unsigned count = [gScrollEventQueue count];
+      // if we have more than one,
+      if (count > 0) {
+        int i = 0;
+	// return event as a matlab structure
+        const char *fieldNames[] =  {"when","scrollHorizontal","scrollVertical"};
+        int outDims[2] = {1, 1};
+        plhs[0] = mxCreateStructArray(1,outDims,3,fieldNames);
+
+        mxSetField(plhs[0],0,"when",mxCreateDoubleMatrix(1,count,mxREAL));
+        double *when = (double*)mxGetPr(mxGetField(plhs[0],0,"when"));
+        mxSetField(plhs[0],0,"scrollHorizontal",mxCreateDoubleMatrix(1,count,mxREAL));
+        double *scrollHorizontal = (double*)mxGetPr(mxGetField(plhs[0],0,"scrollHorizontal"));
+        mxSetField(plhs[0],0,"scrollVertical",mxCreateDoubleMatrix(1,count,mxREAL));
+        double *scrollVertical = (double*)mxGetPr(mxGetField(plhs[0],0,"scrollVertical"));
+
+	// if we have more than one,
+        while (count--) {
+          queueEvent *qEvent;
+	  // get the last event
+          qEvent = [gScrollEventQueue objectAtIndex:0];
+	  // and get the timestamp and scroll
+          scrollHorizontal[i] = [qEvent scrollHorizontal];
+          scrollVertical[i] = [qEvent scrollVertical];
+          when[i++] = [qEvent timestamp];
+	  // remove it from the queue
+          [gScrollEventQueue removeObjectAtIndex:0];
+        }
+	// release the mutex
+        pthread_mutex_unlock(&mut);
+      }
+      else {
+	// no event found, unlock mutex and return empty
+        pthread_mutex_unlock(&mut);
+        plhs[0] = mxCreateDoubleMatrix(0,0,mxREAL);
+      }
+    }
+    else {
+      mexPrintf("(mglPrivateListener) mglPrivateListener must be initialized before extracting mouse events\n");
+      plhs[0] = mxCreateDoubleMatrix(0,0,mxREAL);
+    }
+
+  }
   // GETKEYS command --------------------------------------------------------
   else if (command == GETKEYS) {
     plhs[0] = mxCreateDoubleMatrix(1,MAXKEYCODES,mxREAL);
@@ -389,6 +491,28 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     }
     else {
       mexPrintf("(mglPrivateListener) Cannot eat keys if listener is not installed\n");
+      // return argument set to 0
+      *mxGetPr(plhs[0]) = 0;
+    }
+  }
+  // EATSCROLL command ----------------------------------------------------------
+  else if (command == EATSCROLL) {
+    // return argument
+    plhs[0] = mxCreateDoubleMatrix(1,1,mxREAL);
+    // check if eventTap is installed
+    if (eventTapInstalled) {
+      // get the mutex
+      pthread_mutex_lock(&mut);
+      // get whether to eat scroll or not
+      gEatScroll = (int)(double)*mxGetPr(prhs[1]);
+      mexPrintf("(mglPrivateListener) Eating scroll\n");
+      // release the mutex
+      pthread_mutex_unlock(&mut);
+      // return argument set to 1
+      *mxGetPr(plhs[0]) = 1;
+    }
+    else {
+      mexPrintf("(mglPrivateListener) Cannot eat scroll if listener is not installed\n");
       // return argument set to 0
       *mxGetPr(plhs[0]) = 0;
     }
@@ -444,6 +568,8 @@ void* setupEventTap(void *data)
 
   // Create an event tap. We are interested in key presses and mouse presses
   eventMask = ((1 << kCGEventKeyDown) | (1 << kCGEventKeyUp) | (1 << kCGEventLeftMouseDown) | (1 << kCGEventRightMouseDown));
+  // and in scroll events
+  eventMask = eventMask | (1 << kCGEventScrollWheel);
   gEventTap = CGEventTapCreate(kCGSessionEventTap, kCGHeadInsertEventTap, kCGEventTapOptionDefault, eventMask, myCGEventCallback, NULL);
 
   // see if it was created properly
@@ -513,6 +639,14 @@ CGEventRef myCGEventCallback(CGEventTapProxy proxy, CGEventType type, CGEventRef
     queueEvent *qEvent;
     qEvent = [[queueEvent alloc] initWithEventAndType:event :type];
     [gMouseEventQueue addObject:qEvent];
+  }
+  else if (type == kCGEventScrollWheel) {
+    // create scroll event and save in queue
+    queueEvent *qEvent;
+    qEvent = [[queueEvent alloc] initWithEventAndType:event :type];
+    [gScrollEventQueue addObject:qEvent];
+    // check if we want to eat the scrolling commands so no to pass on
+    if (gEatScroll) event = NULL;
   }
 
   // unlock mutex
@@ -611,6 +745,14 @@ void launchSetupEventTapAsThread()
 - (int)buttonNumber
 {
   return CGEventGetIntegerValueField(event, kCGMouseEventButtonNumber)+1;
+}
+- (int)scrollVertical
+{
+  return CGEventGetIntegerValueField(event, kCGScrollWheelEventDeltaAxis1);
+}
+- (int)scrollHorizontal
+{
+  return CGEventGetIntegerValueField(event, kCGScrollWheelEventDeltaAxis2);
 }
 - (CGPoint)mouseLocation
 {
