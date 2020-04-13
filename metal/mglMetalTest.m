@@ -8,6 +8,13 @@
 %
 function retval = mglMetalTest(varargin)
 
+metalDir = '~/Library/Containers/gru.mglMetal/Data';
+if ~isdir(metalDir)
+    disp(sprintf('(mglMetalTest) Please compile the mglMetal app which should create the dir: %s',metalDir));
+    while ~isdir(metalDir)
+    end
+end
+
 cd('~/Library/Containers/gru.mglMetal/Data');
 
 global mgl
