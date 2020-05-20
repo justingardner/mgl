@@ -508,7 +508,7 @@ if ~mglIsFile(sidDatabaseFilename)
   if askuser(sprintf('(mglSetSID) Could not find SID Database file %s, create one from scratch?',sidDatabaseFilename))
     for iField = 1:length(requiredFields)
       % check if default is a cell
-      if iscell(reqiredFields{iField}{2})
+      if iscell(requiredFields{iField}{2})
 	% then use first element in cell
 	sidDatabase.(requiredFields{iField}{1}) = requiredFields{iField}{2}{1};
       else
