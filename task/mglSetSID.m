@@ -786,7 +786,7 @@ while ~validated
 end
 
 % save the database
-if ~isempty(params) && ~isempy(sidDatabase.sid)
+if ~isempty(params) && ~isempty(sidDatabase.sid)
   % check for repeat by first/last name
   firstIdx = cellfun(@(x) strcmp(x,params.firstName),sidDatabase.firstName);
   lastIdx = cellfun(@(x) strcmp(x,params.lastName),sidDatabase.lastName);
