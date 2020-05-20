@@ -507,13 +507,8 @@ global requiredFields;
 if ~mglIsFile(sidDatabaseFilename)
   if askuser(sprintf('(mglSetSID) Could not find SID Database file %s, create one from scratch?',sidDatabaseFilename))
     for iField = 1:length(requiredFields)
-      % check if default is a cell
-      if iscell(requiredFields{iField}{2})
-	% then use first element in cell
-	sidDatabase.(requiredFields{iField}{1}) = requiredFields{iField}{2}{1};
-      else
-	sidDatabase.(requiredFields{iField}{1}) = requiredFields{iField}{2};
-      end
+      % then use first element in cell
+      sidDatabase.(requiredFields{iField}{1}) = {};
     end
     % set column names
     columnNames = fieldnames(sidDatabase);
@@ -786,7 +781,7 @@ while ~validated
 end
 
 % save the database
-if ~isempty(params) && ~isempty(sidDatabase.sid)
+if ~isempty(params)
   % check for repeat by first/last name
   firstIdx = cellfun(@(x) strcmp(x,params.firstName),sidDatabase.firstName);
   lastIdx = cellfun(@(x) strcmp(x,params.lastName),sidDatabase.lastName);
