@@ -87,6 +87,14 @@
 % 
 %             mglSetSID('somebody','private=_all_');
 %             mglSetSID('somebody','edit','private=_all_');
+%
+%             backup and restore
+%             mglSetSID('backup') will make a backup of the current database
+%             mglSetSID('restore') will try to resolve missing information from a backup. For example,
+%                older versions of mglSetSID did not save ethnicity data. This can be recovered
+%                and merged from a backup. Running this will make a backup of the current state and
+%                will give prompts for saving before changing anything in the database
+%
 function retval = mglSetSID(sid,varargin)
 
 % check arguments
@@ -190,6 +198,16 @@ elseif isequal(sid,'add')
 elseif isequal(sid,'list')
   listSID(private,listStartDate);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% make a backup
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+elseif isequal(sid,'backup')
+  backupSID();
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% restore from a baackup
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+elseif isequal(sid,'restore')
+  restoreSID();
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % see if it is a subject name
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 elseif (isstr(sid))
@@ -205,6 +223,157 @@ elseif (isstr(sid))
 else
   disp(sprintf('(mglSetSID) SID should either be a number [-1 or 1-%i] or a valid string snnn',gMaxSID));
 end
+
+%%%%%%%%%%%%%%%%%%%
+%    backupSID    %
+%%%%%%%%%%%%%%%%%%%
+function backupSID
+
+% check for mrTools
+if ~mglIsMrToolsLoaded,return,end
+
+% get where sid database lives
+sidDatabasePath = fileparts(mglGetParam('sidDatabaseFilename'));
+
+% create proposed name for backup
+backupName = sprintf('backup%s',datestr(now,'yyyymmdd'));
+
+% check for existing backup
+if isdir(fullfile(sidDatabasePath,backupName))
+  if ~askuser(sprintf('(mglSetSID) Backup %s already exists, do you want to make another one?',backupName))
+    return
+  end
+  backupName = sprintf('%s_%s',backupName,datestr(now,'HHMMSS'));
+end
+
+% create the full path of backup
+backupName = fullfile(sidDatabasePath,backupName);
+
+% display what we are doing
+if ~askuser(sprintf('(mglSetSID:backupSID) Making a backup copy in: %s. Ok to continue?',backupName))
+  return
+end
+
+% make the directory
+mkdir(backupName);
+
+% copy the files into direcotyr
+filesToCopy = {'sidDatabase','sidDatabase.mat'};
+for iFile = 1:length(filesToCopy)
+  retval = copyfile(fullfile(sidDatabasePath,filesToCopy{iFile}),fullfile(backupName,filesToCopy{iFile}));
+  if ~retval
+    disp(sprintf('(mglSetSID:backupSID) Could not copy file %s into %s',filesToCopy{iFile},backupName));
+  end
+end
+
+%%%%%%%%%%%%%%%%%%%
+%    restoreSID    %
+%%%%%%%%%%%%%%%%%%%
+function restoreSID
+
+% check for mrTools
+if ~mglIsMrToolsLoaded,return,end
+
+% get list of all backups
+[sidDatabasePath sidDatabaseFilename] = fileparts(mglGetParam('sidDatabaseFilename'));
+backupDir = dir(fullfile(sidDatabasePath,'backup*'));
+if isempty(backupDir)
+  disp(sprintf('(mglSetSID:restoreSID) No backups found in %s',sidDatabasePath));
+  return
+end
+backupNames = flip({backupDir(:).name});
+
+% put up choice for which 
+paramsInfo = {{'backupName',backupNames}};
+params = mrParamsDialog(paramsInfo,'Choose which backup to restore information from');
+if isempty(params),return,end
+
+% attempt to load backup
+backupDatabase = loadSIDDatabase(fullfile(sidDatabasePath,params.backupName,sidDatabaseFilename));
+if isempty(backupDatabase),return,end
+disp(sprintf('(mglSetSID:restoreSID) Found %i subjectIDs in backup %s',length(backupDatabase.sid),params.backupName));
+
+% get the lock
+if ~getLock return, end
+
+% load existing database
+sidDatabase = loadSIDDatabase;
+if isempty(sidDatabase),releaseLock;return;,end
+
+% generate a new proposed database
+newDatabase = sidDatabase;
+global requiredFields;
+
+% check for any sids that have any race, ethnicity information that is missing in the datbase
+fieldsToCopyIfNA = {'ethnicity','race','otherRace1','otherRace2','otherRace3','otherRace4'};
+dispHeader(sprintf('Analyzing %s',params.backupName));
+changedDatabase = false;
+for iSID = 1:length(backupDatabase.sid)
+  % find in original
+  matchingSID = find(strcmp(backupDatabase.sid{iSID},newDatabase.sid));
+  % if there is no matching, then simply add
+  if isempty(matchingSID)
+    disp(sprintf('(mglSetSID:restoreSID) Following SID found in backup, but not current database. Will add:'));
+    dispSID(backupDatabase,iSID);
+    changedDatabase = true;
+    % copy over required fields
+    for iField = 1:length(requiredFields)
+      newDatabase.(requiredFields{iField}{1}){end+1} = backupDatabase.(requiredFields{iField}{1}){iSID};
+    end
+  else
+    % cycle over fields
+    changedEntry = false;
+    for iField = 1:length(fieldsToCopyIfNA)
+      % see if we have a field that is not n/a in the backup
+      if strcmp(lower(newDatabase.(fieldsToCopyIfNA{iField}){matchingSID}),'n/a') && ~strcmp(lower(backupDatabase.(fieldsToCopyIfNA{iField}){iSID}),'n/a')
+	% copy it
+	newDatabase.(fieldsToCopyIfNA{iField}){matchingSID} = backupDatabase.(fieldsToCopyIfNA{iField}){matchingSID};
+	% and remember that we did
+	changedEntry = true;
+      end
+    end
+    % show what happened
+    if changedEntry
+      changedDatabase = true;
+      disp(sprintf('(mglSetSID:restoreSID) Changing entry for %s next lines are before and after',newDatabase.sid{matchingSID}));
+      dispSID(sidDatabase,matchingSID);
+      dispSID(newDatabase,matchingSID);
+    end
+  end
+end
+
+% if no changes then release lock
+if ~changedDatabase
+  disp(sprintf('(mglSetSID:restoreSID) No difference found'));
+  dispHeader;
+  % release lock
+  releaseLock(true);
+  return
+end
+
+% ask to see changes
+dispHeader;
+if ~askuser('(mglSetSID:restoreSID) Changes found. Click OK to display new proposed database')
+  return
+end
+
+% display the new database
+clc;
+for iSID = 1:length(newDatabase.sid)
+  dispSID(newDatabase,iSID);
+end
+  
+if ~askuser('(mglSetSID:restoreSID) Save changes? This will create a backup.')
+  return
+end
+
+% make a backup
+backupSID;
+
+% save the new database
+saveSIDDatabase(newDatabase);
+% release lock
+releaseLock(true);
 
 %%%%%%%%%%%%%%%%%
 %    editSID    %
@@ -292,7 +461,7 @@ if ~isempty(params)
   end
   % set the dateAdded
   sidDatabase.dateAdded{end+1} = datestr(now);
-  keyboard
+
   % save it back
   saveSIDDatabase(sidDatabase);
   % release lock
@@ -480,7 +649,7 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%
 %    loadSIDDatabase    %
 %%%%%%%%%%%%%%%%%%%%%%%%%
-function sidDatabase = loadSIDDatabase
+function sidDatabase = loadSIDDatabase(sidDatabaseFilename)
 
 global ethnicCategories;
 global racialCategories;
@@ -490,11 +659,13 @@ sidDatabase = [];
 % need mrTools
 if ~mglIsMrToolsLoaded,return,end
 
-% get filename for SID database
-sidDatabaseFilename = mlrReplaceTilde(mglGetParam('sidDatabaseFilename'));
-if isempty(sidDatabaseFilename)
-  disp(sprintf('(mglSetSID) !!! Can not load SID Database because filename has not been set: use mglSetParam(''sidDatabaseFilename'',''filename''); !!!'));
-  return
+% get filename for SID database if not passed in
+if nargin == 0
+  sidDatabaseFilename = mlrReplaceTilde(mglGetParam('sidDatabaseFilename'));
+  if isempty(sidDatabaseFilename)
+    disp(sprintf('(mglSetSID) !!! Can not load SID Database because filename has not been set: use mglSetParam(''sidDatabaseFilename'',''filename''); !!!'));
+    return
+  end
 end
 
 % decrypt file name
@@ -505,10 +676,20 @@ global requiredFields;
 
 % check if data base exists
 if ~mglIsFile(sidDatabaseFilename)
+  % if we are asked to load a specific one, report the error and return
+  if nargin ~= 0
+    disp(sprintf('(mglSetSID) Could not find SID Database file %s',sidDatabaseFilename));
+    return
+  end
   if askuser(sprintf('(mglSetSID) Could not find SID Database file %s, create one from scratch?',sidDatabaseFilename))
     for iField = 1:length(requiredFields)
-      % then use first element in cell
-      sidDatabase.(requiredFields{iField}{1}) = {};
+      % check if default is a cell
+      if iscell(reqiredFields{iField}{2})
+	% then use first element in cell
+	sidDatabase.(requiredFields{iField}{1}) = requiredFields{iField}{2}{1};
+      else
+	sidDatabase.(requiredFields{iField}{1}) = requiredFields{iField}{2};
+      end
     end
     % set column names
     columnNames = fieldnames(sidDatabase);
@@ -519,7 +700,7 @@ end
 % load unencrypted part of database that does not contain
 % any personal identifiers
 sidDatabaseFilenameUnencrypted = mlrReplaceTilde(setext(mglGetParam('sidDatabaseFilename'),'mat',0));
-if ~mglIsFile(sidDatabaseFilenameUnencrypted)
+if ~mglIsFile(sidDatabaseFilenameUnencrypted) && (nargin == 0)
   disp(sprintf('(mglSetSID) !!! Could not find unencrypted dataabase that contains info devoid of personal identifiers. Will try to load from encrypted database'));
 else
   unencrypted = load(sidDatabaseFilenameUnencrypted);
@@ -555,7 +736,9 @@ if isfield(unencrypted,'sid') && isfield(sidDatabase,'sid') && isequal(unencrypt
     sidDatabase.(unencryptedFieldnames{iField}) = unencrypted.(unencryptedFieldnames{iField});
   end
 else
-  disp(sprintf('(mglSetSID) !!! Unencrypted database file %s does not have matching information with sidDatabase file %s, so ignoring unencrypted file !!!',sidDatabaseFilenameUnencrypted,sidDatabaseFilename));
+  if nargin == 0
+    disp(sprintf('(mglSetSID) !!! Unencrypted database file %s does not have matching information with sidDatabase file %s, so ignoring unencrypted file !!!',sidDatabaseFilenameUnencrypted,sidDatabaseFilename));
+  end
 end
 
 % set column names
