@@ -1,29 +1,20 @@
 % mglMetalTest.m
 %
-%        $Id:$ 
+%        $Id:$
 %      usage: mglMetalTest()
 %         by: justin gardner
 %       date: 12/30/19
-%    purpose: 
+%    purpose:
 %
 function retval = mglMetalTest(varargin)
-
-metalDir = '~/Library/Containers/gru.mglMetal/Data';
-if ~isdir(metalDir)
-    disp(sprintf('(mglMetalTest) Please compile the mglMetal app which should create the dir: %s',metalDir));
-    while ~isdir(metalDir)
-    end
-end
-
-cd('~/Library/Containers/gru.mglMetal/Data');
 
 global mgl
 
 % run only on initial setup
 if nargin < 1
   mglSetParam('verbose',1);
-  mglOpen;
-  
+  mglMetalOpen;
+
   % send ping to check communication
   myinput('Hit ENTER to ping: ');
   mgl.s = mglSocketWrite(mgl.s,uint16(mgl.command.ping));
@@ -33,8 +24,8 @@ if nargin < 1
   myinput('Hit ENTER to clear screen: ');
   mglClearScreen([1 0 0]);
   mglFlush;
-  
-  
+
+
 elseif isequal(varargin{1},2)
   % go full screen
   mglFullscreen;
@@ -62,6 +53,7 @@ testCoords;
 testTexture;
 testDots;
 
+mglMetalShutdown;
 %%%%%%%%%%%%%%%%%%%%%
 % Test lines
 %%%%%%%%%%%%%%%%%%%%%
@@ -98,9 +90,9 @@ for xStart = -1:xWidth:(1-xWidth)
 end
 
 % draw the quads
-mglProfile(true);
+mglProfile('on');
 mglQuad(x,y,color);
-mglProfile(false);
+mglProfile('off');
 mglFlush;
 
 %%%%%%%%%%%%%%%%%%%%%
@@ -132,14 +124,14 @@ global mgl
 myinput('Hit ENTER to test coordinate xform: ');
 
 % write command to send coords
-mglProfileStart;
+mglProfile('start');
 mgl.s = mglSocketWrite(mgl.s,uint16(mgl.command.xform));
 
 % send xform
 xform = eye(4);
 xform(:,4) = [-0.2 0.2 0 1];
 mgl.s = mglSocketWrite(mgl.s,single(xform(:)));
-mglProfileEnd('testCoords');
+mglProfile('end','testCoords');
 
 % draw traingle points
 x = [0 -0.5 0.5];
@@ -151,13 +143,13 @@ mglFlush;
 myinput('Hit ENTER to test coordinate xform: ');
 
 % write command to send coordinates
-mglProfileStart;
+mglProfile('start');
 mgl.s = mglSocketWrite(mgl.s,uint16(mgl.command.xform));
 
 % set xform back to identity
 xform = eye(4);
 mgl.s = mglSocketWrite(mgl.s,single(xform(:)));
-mglProfileEnd('testCoords');
+mglProfile('end','testCoords');
 
 % draw traingle points
 mglPoints2(x,y,10,[1 1 1])
@@ -188,7 +180,7 @@ texture(:,:,3) = maxVal*(cos(sf*ty+pi/4)+1)/2;
 texture(:,:,4) = maxVal*(exp(-((ex.^2+ey.^2)/sigma^2)));
 
 % turn on profiling
-mglProfile(true);
+mglProfile('on');
 
 % create the texture
 tex = mglCreateTexture(texture);
@@ -197,7 +189,7 @@ tex = mglCreateTexture(texture);
 mglBltTexture(tex);
 
 % turn off profiling
-mglProfile(false);
+mglProfile('off');
 
 % flush and wait
 mglFlush;
@@ -238,7 +230,7 @@ for iFrame = 1:nFrames
   mglBltTexture(tex,[0 0],1,1,rotation,phase,width,height);
   mglBltTexture(tex,[0 0],-1,-1,rotation,phase,width,height);
   mglBltTexture(tex,[0 0],-1,1,rotation,phase,width,height);
-  
+
   phase = phase + (1/60)/4;
   rotation = rotation+360/nFrames;
   % flush and wait
@@ -258,7 +250,7 @@ global mgl
 myinput('Hit ENTER to test dots: ');
 
 % turn on profiling
-mglProfile(true);
+mglProfile('on');
 
 % make a glass pattern
 nDots = 1000;
@@ -273,7 +265,7 @@ y(end+1:end+nDots) = r.*sin(theta+deltaTheta);
 
 mglFlush;
 mglPoints2(x,y,1,[1 1 1])
-mglProfile(false);
+mglProfile('off');
 mglFlush;
 
 myinput('Hit ENTER to test dots: ');
@@ -310,9 +302,9 @@ dispFrameTimes(frameTime);
 mglFullscreen(0);
 
 % send non-blocking command
-mglProfileStart;
+mglProfile('start');
 mgl.s = mglSocketWrite(mgl.s,uint16(mgl.command.nonblocking));
-mglProfileEnd('non-blocking');
+mglProfile('end','non-blocking');
 
 %%%%%%%%%%%%%%%%%%%%%%%%
 %    dispFrameTimes    %
@@ -329,79 +321,8 @@ disp(sprintf('(mglMetalTest) Number of frames 5%% over %0.4f: %i/%i',expectedFra
 disp(sprintf('(mglMetalTest) Number of frames 10%% over %0.4f: %i/%i',expectedFrameTime,sum(frameTime>(expectedFrameTime*1.1)),nFrames));
 disp(sprintf('(mglMetalTest) Number of frames 20%% over %0.4f: %i/%i',expectedFrameTime,sum(frameTime>(expectedFrameTime*1.2)),nFrames));
 
-%%%%%%%%%%%%%%%%%%
-%    mglFlush    %
-%%%%%%%%%%%%%%%%%%
-function mglFlush
-
-global mgl
-
-% write flush comnand
-mglProfileStart
-mgl.s = mglSocketWrite(mgl.s,uint16(mgl.command.flush));
-
-% wait for return 
-[dataWaiting mgl.s] = mglSocketDataWaiting(mgl.s);
-while ~dataWaiting, [dataWaiting mgl.s] = mglSocketDataWaiting(mgl.s);end
-
-% and read value 
-[val mgl.s] = mglSocketRead(mgl.s);
-
-
-%%%%%%%%%%%%%%%%%
-%    mglOpen    %
-%%%%%%%%%%%%%%%%%
-function mglOpen
-
-global mgl
-
-mgl.noask = false;
-mgl.profile = false;
-
-% set command numbers
-mgl.command.ping = 0;
-mgl.command.clearScreen = 1;
-mgl.command.dots = 2;
-mgl.command.flush = 3;
-mgl.command.xform = 4;
-mgl.command.line = 5;
-mgl.command.quad = 6;
-mgl.command.createTexture = 7;
-mgl.command.bltTexture = 8;
-mgl.command.test = 9;
-mgl.command.fullscreen = 10;
-mgl.command.windowed = 11;
-mgl.command.blocking = 12;
-mgl.command.nonblocking = 13;
-mgl.command.profileon = 14;
-mgl.command.profileoff = 15;
-
-if isfield(mgl,'s') mglSocketClose(mgl.s); end
-!rm -f testsocket
-mgl.s = mglSocketOpen('testsocket');
-
-%%%%%%%%%%%%%%%%%%%%%%%%
-%    mglClearScreen    %
-%%%%%%%%%%%%%%%%%%%%%%%%
-function mglClearScreen(color)
-
-global mgl
-
-if length(color) == 1
-  color = [color color color];
-end
-color = color(:);
-
-% write clear screen command
-mglProfileStart;
-mgl.s = mglSocketWrite(mgl.s,uint16(mgl.command.clearScreen));
-
-% write color
-mgl.s = mglSocketWrite(mgl.s,single(color));
-mglProfileEnd('mglClearScreen');
-
 %%%%%%%%%%%%%%%%%%%
-%    mglLInes2    %
+%    mglLines2    %
 %%%%%%%%%%%%%%%%%%%
 function mglLines2(x0, y0, x1, y1, size, color)
 
@@ -419,13 +340,13 @@ for iLine = 1:length(x0)
 end
 
 % send line command
-mglProfileStart;
+mglProfile('start');
 mgl.s = mglSocketWrite(mgl.s,uint16(mgl.command.line));
 
 % send vertices
 mgl.s = mglSocketWrite(mgl.s,uint32(2*iLine));
 mgl.s = mglSocketWrite(mgl.s,single(v));
-mglProfileEnd('mglLines2');
+mglProfile('end','mglLines2');
 
 %%%%%%%%%%%%%%%%%
 %    mglQuad    %
@@ -437,7 +358,7 @@ global mgl;
 % convert x and y into vertices
 v = [];
 for iQuad = 1:size(vX,1)
-  
+
   % one triangle of the quad
   v(end+1:end+3) = [vX(iQuad,1) vY(iQuad,1) 0];
   v(end+1:end+3) = rgbColor(iQuad,:);
@@ -457,7 +378,7 @@ for iQuad = 1:size(vX,1)
 end
 
 % send quad command
-mglProfileStart;
+mglProfile('start');
 mgl.s = mglSocketWrite(mgl.s,uint16(mgl.command.quad));
 
 % number of vertices
@@ -468,7 +389,7 @@ mgl.s = mglSocketWrite(mgl.s,uint32(nVertices));
 mgl.s = mglSocketWrite(mgl.s,single(v));
 
 % end profiling
-mglProfileEnd('mglQuad');
+mglProfile('end','mglQuad');
 
 %%%%%%%%%%%%%%%%%%%%
 %    mglPoints2    %
@@ -483,7 +404,7 @@ v(:,3) = 0;
 v = v';
 
 % write dots command
-mglProfileStart;
+mglProfile('start');
 mgl.s = mglSocketWrite(mgl.s,uint16(mgl.command.dots));
 
 % send number of vertices
@@ -494,7 +415,7 @@ mgl.s = mglSocketWrite(mgl.s,uint32(nVertices));
 mgl.s = mglSocketWrite(mgl.s,single(v(:)));
 
 % end profiling
-mglProfileEnd('mglPoints2');
+mglProfile('end','mglPoints2');
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 %    mglCreateTexture    %
@@ -508,7 +429,7 @@ global mgl
 im = shiftdim(im,2);
 
 % send texture command
-mglProfileStart;
+mglProfile('start');
 mgl.s = mglSocketWrite(mgl.s,uint16(mgl.command.createTexture));
 
 % sent texture dimensions
@@ -521,9 +442,9 @@ mgl.s = mglSocketWrite(mgl.s,single(im(:)));
 mglSetParam('verbose',0);
 
 % end profiling
-mglProfileEnd('mglCreateTexture');
+mglProfile('end','mglCreateTexture');
 
-% set the texture 
+% set the texture
 tex.id = 1;
 
 %%%%%%%%%%%%%%%%%%%%%%%
@@ -570,7 +491,7 @@ switch(vAlignment)
  case {-1}
   position(2) = position(2)-height/2;
 end
-  
+
 % set translation
 coords(1,:) = coords(1,:)+position(1);
 coords(2,:) = coords(2,:)+position(2);
@@ -592,7 +513,7 @@ verticesWithTextureCoordinates = [...
 nVertices = 6;
 
 % send blt command
-mglProfileStart;
+mglProfile('start');
 mgl.s = mglSocketWrite(mgl.s,uint16(mgl.command.bltTexture));
 
 % send vertices
@@ -603,7 +524,7 @@ mgl.s = mglSocketWrite(mgl.s,single(verticesWithTextureCoordinates));
 mgl.s = mglSocketWrite(mgl.s,single(phase));
 
 % end profiling
-mglProfileEnd('mglBltTexture');
+mglProfile('end','mglBltTexture');
 
 %%%%%%%%%%%%%%%%%
 %    myinput    %
@@ -611,7 +532,6 @@ mglProfileEnd('mglBltTexture');
 function myinput(str)
 
 global mgl
-
 
 if ~mgl.noask
   input(str);
@@ -629,62 +549,15 @@ global mgl;
 
 if tf
   % go full screen
-  mglProfileStart;
+  mglProfile('start');
   mgl.s = mglSocketWrite(mgl.s,uint16(mgl.command.fullscreen));
-  mglProfileEnd('mglFullscreen');
+  mglProfile('end','mglFullscreen');
 else
-  mglProfileStart;
+  mglProfile('start');
   mgl.s = mglSocketWrite(mgl.s,uint16(mgl.command.windowed));
-  mglProfileEnd('mglWindowed');
+  mglProfile('end','mglWindowed');
 end
 
 % do a few flushes to make sure that the screen is actually updated correctly
 mglFlush;mglFlush;mglFlush;mglFlush;
 mglFlush;mglFlush;mglFlush;mglFlush;
-
-%%%%%%%%%%%%%%%%%%%%
-%    mglProfile    %
-%%%%%%%%%%%%%%%%%%%%
-function mglProfile(tf)
-
-global mgl
-
-if tf
-  % turn profiling on
-  mglProfileStart;
-  mgl.s = mglSocketWrite(mgl.s,uint16(mgl.command.profileon));
-  mgl.profile = true;
-  mglProfileEnd('mglProfileOn');
-else
-  % turn profiling off
-  mgl.s = mglSocketWrite(mgl.s,uint16(mgl.command.profileoff));
-  mgl.profile = false;
-end
-  
-%%%%%%%%%%%%%%%%%%%%%%%%%
-%    mglProfileStart    %
-%%%%%%%%%%%%%%%%%%%%%%%%%
-function mglProfileStart
-
-global mgl
-
-mgl.profileStartTime = mglGetSecs;
-
-%%%%%%%%%%%%%%%%%%%%%%%
-%    mglProfileEnd    %
-%%%%%%%%%%%%%%%%%%%%%%%
-function mglProfileEnd(profileName)
-
-global mgl
-
-if ~mgl.profile, return, end
-
-% wait for the return data
-[dataWaiting mgl.s] = mglSocketDataWaiting(mgl.s);
-while ~dataWaiting, [dataWaiting mgl.s] = mglSocketDataWaiting(mgl.s);end
-
-% get the end time
-[profileEndTime mgl.s] = mglSocketRead(mgl.s);
-
-% and display it
-disp(sprintf('(mglMetalTest:mglProfile) Profile time for %s is: %f ms',profileName,(profileEndTime-mgl.profileStartTime)*1000));
