@@ -188,7 +188,9 @@ if ismac
   end
 
   % use different options depending on version
-  if sdkVersion == 10.11
+  if sdkVersion == 11.3
+      optf = '';
+  elseif sdkVersion == 10.11
     optf = sprintf('-f %s',fullfile(fileparts(which('mglOpen')),'clang_maci64.xml'));
   elseif sdkVersion == 10.9
     % note this idiotic seting of char16_t is some
@@ -496,7 +498,7 @@ pathNames = {'/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platfo
 for iPathName = 1:length(pathNames);
   if isdir(pathNames{iPathName})
     % check the directory
-    d = dir(fullfile(pathNames{iPathName},'MacOSX10.*.sdk'));
+    d = dir(fullfile(pathNames{iPathName},'MacOSX1*.*.sdk'));
 
     % pull out the version numbers of available sdks from the directory names
     for i = 1:length(d)

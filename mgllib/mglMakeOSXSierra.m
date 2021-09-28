@@ -443,7 +443,7 @@ pathNames = {'/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platfo
 for iPathName = 1:length(pathNames);
   if isdir(pathNames{iPathName})
     % check the directory
-    d = dir(fullfile(pathNames{iPathName},'MacOSX10.*.sdk'));
+    d = dir(fullfile(pathNames{iPathName},'MacOSX11.*.sdk'));
 
     % pull out the version numbers of available sdks from the directory names
     for i = 1:length(d)
