@@ -13,14 +13,14 @@ function retval  = mglGetParam(paramName)
 retval = [];
 
 % get the global
-global MGL
+global mgl
 
 % load the permanent params if they haven't been loaded
-if ~isfield(MGL,'persistentParamsLoaded')
+if ~isfield(mgl,'persistentParamsLoaded')
   % set the field to say that we have tried to load the
   % persistentParams, after this we will no longer keep
   % trying to load the persistent params
-  MGL.persistentParamsLoaded = 0;
+  mgl.persistentParamsLoaded = 0;
   % filenames of persistent params file (one is local, one is shared)
   persistentParamsFilenames = {'~/.mglParams.mat','/Users/Shared/.mglParams.mat'};
   for i = 1:length(persistentParamsFilenames)
@@ -30,9 +30,9 @@ if ~isfield(MGL,'persistentParamsLoaded')
       if exist('persistentParams','var')
 	persistentParamNames = fieldnames(persistentParams);
 	for i = 1:length(persistentParamNames)
-	  MGL.(persistentParamNames{i}) = persistentParams.(persistentParamNames{i});
+	  mgl.(persistentParamNames{i}) = persistentParams.(persistentParamNames{i});
 	  % set to remember that we have succeeded
-	  MGL.persistentParamsLoaded = 1;
+	  mgl.persistentParamsLoaded = 1;
 	end
       end
     end
@@ -42,13 +42,13 @@ end
 if (nargin ~= 1)
   help mglGetParam;
   disp(sprintf('(mglGetParam) List of all mgl global parameters'));
-  MGL
+  mgl
   return
 end
 
 % and grab the field if it exist
-if isfield(MGL,paramName)
-  retval = MGL.(paramName);
+if isfield(mgl,paramName)
+  retval = mgl.(paramName);
 else
   % special case for displayNumber -- if none exists, return
   % -1 to signal that the display is closed

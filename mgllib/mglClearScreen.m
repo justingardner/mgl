@@ -2,9 +2,9 @@
 %
 %        $Id$
 %      usage: mglClearScreen([clearColor], [clearBits])
-%         by: Jonas Larsson
-%       date: 04/10/06
-%  copyright: (c) 2006 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
+%         by: Justin Gardner
+%       date: 09/27/2021
+%  copyright: (c) 2021 Justin Gardner (GPL see mgl/COPYING)
 %    purpose: Sets the background color and clears the buffer.  'clearBits'
 %             is an optional parameter that lets you specify which buffers
 %             are cleared.  The buffers are specifed by a 1x4 array of 1's
@@ -13,19 +13,40 @@
 %             By default the color buffer is cleared if 'clearBits' isn't
 %             specified.
 %      usage: sets to whatever previous background color was set
-%             mglClearScreen()     
+%             mglClearScreen()
 %
 %             set to the level of gray (0-1)
-%             mglClearScreen(gray) 
+%             mglClearScreen(gray)
 %
 %             set to the given [r g b]
-%             mglClearScreen([r g b]) 
-%  
+%             mglClearScreen([r g b])
+%
 %             set the clear color and clear the color and depth buffers.
 %             mglClearScreen([r g b], [1 1 0 0]);
-%       e.g.: 
+%       e.g.:
 %
 % mglOpen();
 % mglClearScreen([0.7 0.2 0.5]);
 % mglFlush();
 %
+function mglClearScreen(clearColor, clearBits)
+
+if nargin == 2
+  disp(sprintf('(mglClearScreen) clearBits not implemented in mgl 3.0'));
+  keyboard
+end
+
+global mgl
+
+if length(clearColor) == 1
+  clearColor = [clearColor clearColor clearColor];
+end
+clearColor = clearColor(:);
+
+% write clear screen command
+mglProfile('start');
+mgl.s = mglSocketWrite(mgl.s,uint16(mgl.command.clearScreen));
+
+% write color
+mgl.s = mglSocketWrite(mgl.s,single(clearColor));
+mglProfile('end','mglClearScreen');

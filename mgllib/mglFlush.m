@@ -1,15 +1,29 @@
-% mglFlush.m
+% mglFLush: Swaps front and back buffer
 %
-%        $Id$
-%      usage: mglFlush()
-%         by: justin gardner; X support by Jonas Larsson
-%       date: 04/10/06
-%  copyright: (c) 2006 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
-%    purpose: swap front and back buffer (waits for one frame tick)
-%
-%    Warning: if using mglFlush to keep timing, keep in mind that
-%             Matlab checks for license every 30s, screwing up
-%             timing at this interval. Installing a local copy
-%             of the license manager appears to solve problem, mostly.
-%
+%      usage: mglFlush
+%         by: justin gardner
+%       date: 09/27/2021
+%  copyright: (c) 2021 Justin Gardner (GPL see mgl/COPYING)
+%    purpose: Swaps front and back buffer of screen
+%      usage: mglFlush;
+%       e.g.: mglOpen;
+%             mglClearScreen([1 0 0]);
+%             mglFlush;
+%             mglClearScreen([0 1 0]);
+%             mglFlush;
+%             mglFlush;
+%             mglFlush;
+function mglFlush
 
+global mgl
+
+% write flush comnand
+mglProfile('start');
+mgl.s = mglSocketWrite(mgl.s,uint16(mgl.command.flush));
+
+% wait for return
+[dataWaiting mgl.s] = mglSocketDataWaiting(mgl.s);
+while ~dataWaiting, [dataWaiting mgl.s] = mglSocketDataWaiting(mgl.s);end
+
+% and read value
+[val mgl.s] = mglSocketRead(mgl.s);

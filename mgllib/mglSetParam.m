@@ -19,8 +19,8 @@ if ~any(nargin == [2 3])
   return
 end
 
-global MGL
-MGL.(paramName) = paramValue;
+global mgl
+mgl.(paramName) = paramValue;
 
 if (nargin >= 3) && (isequal(makePersistent,1) || isequal(makePersistent,2))
   persistentParams = [];
@@ -41,11 +41,10 @@ if (nargin >= 3) && (isequal(makePersistent,1) || isequal(makePersistent,2))
   eval(sprintf('save %s persistentParams',persistentParamsFilename));
   % if persistent then make sure that we give write permission to everyone
   if isequal(makePersistent,2)
-    try 
+    try
       fileattrib(persistentParamsFilename,'+w');
     catch
       disp(sprintf('(mglSetParam) Unable to set permissions ond %s',persistentParamsFilename));
     end
   end
 end
-

@@ -8,7 +8,7 @@
 %    purpose: Opens an openGL window
 %      usage: open last monitor in list wwith current window settings
 %             mglOpen
-% 
+%
 %             Open with resolution 800x600 60Hz 32bit fullscreen
 %             mglOpen(1,800,600,60,32);
 %
@@ -36,17 +36,6 @@ if nargin <= 1, setResolution = 0; else setResolution = 1; end
 % set whether the desktop is running
 if usejava('desktop')
   mglSetParam('matlabDesktop',1);
-  mglSetParam('useCGL',1);
-else
-  if isempty(mglGetParam('useCGL'))
-    mglSetParam('useCGL',1);
-  end
-end
-
-% in matlab version R2016a CGL stopped working (deprecated?)
-% so forcing use of cocoa window
-if ~verLessThan('matlab','9.0')
-  mglSetParam('useCGL',0);
 end
 
 % set verbose off
@@ -84,29 +73,30 @@ end
 
 % see if we are running for movie mode
 if mglGetParam('movieMode')
+  disp('(mglOpen) movieMode not implemented in mgl 3.0');
+  keyboard
   % in this case, always use a windowed context
   % full screen mode is spoofed by making a windowed context that
   % is the same size as the screen and closing the task and menu
   % bar
-  mglSetParam('transparentBackground',1);
-  if isempty(whichScreen)
-    res = mglResolution;
-    mglSetParam('spoofFullScreen',res.displayNumber);
-  else
-    mglSetParam('spoofFullScreen',whichScreen);
-  end
+  %%mglSetParam('transparentBackground',1);
+  %%if isempty(whichScreen)
+  %%  res = mglResolution;
+  %%  mglSetParam('spoofFullScreen',res.displayNumber);
+  %%else
+  %%  mglSetParam('spoofFullScreen',whichScreen);
+  %%end
 
-  % close an open window if it is not a windowed context
-  if openDisplay && ~isequal(mglGetParam('displayNumber'),0)
-    disp(sprintf('(mglOpen) Closing currently open mgl window which is not compatible with movie mode'));
-    mglClose;
-    openDisplay = 0;
-  end
-  whichScreen = 0;
+  %%% close an open window if it is not a windowed context
+  %%if openDisplay && ~isequal(mglGetParam('displayNumber'),0)
+  %%  disp(sprintf('(mglOpen) Closing currently open mgl window which is not compatible with movie mode'));
+  %%  mglClose;
+  %%  openDisplay = 0;
+  %%end
+  %%whichScreen = 0;
 end
 
-% set version of matlab, for mglPrivateOpen.c to check - this is to handle
-% deprecated functions which cause the screen not to work in version 8.1
+% set version of matlab
 vInfo = ver('MATLAB');
 [majorVersion theRest] = strtok(vInfo.Version,'.');
 [minorVersion theRest] = strtok(theRest,'.');
@@ -116,10 +106,6 @@ mglSetParam('matlabMinorVersion',str2num(minorVersion));
 
 %mglSetParam('verbose',1);
 if ~openDisplay
-  % default to showing that cocoa is not running
-  % mglPrivateOpen will later reset this if a 
-  % cocoa window has been opened
-  mglSetParam('isCocoaWindow',0);
   % clear the originalResolution
   mglSetParam('originalResolution',[]);
   % call the private mex function
@@ -140,14 +126,14 @@ if ~openDisplay
       return
     end
     % if passed in with zero or one argument then use default settings
-    mglPrivateOpen(whichScreen);
+    mglMetalOpen(whichScreen);
   else % open, trying to set resolution
     % for full screen resolution
-    if isempty(whichScreen) || (whichScreen>=1) 
+    if isempty(whichScreen) || (whichScreen>=1)
       % check to make sure that the whichScreen is within bounds
       if (whichScreen > displayResolution.numDisplays)
-	disp(sprintf('(mglOpen) Display number %i is out of range [0:%i]',whichScreen,displayResolution.numDisplays));
-	return
+	      disp(sprintf('(mglOpen) Display number %i is out of range [0:%i]',whichScreen,displayResolution.numDisplays));
+	      return
       end
       % get the current resolution, so we can return to it on close
       mglSetParam('originalResolution',mglResolution(whichScreen));
@@ -159,11 +145,11 @@ if ~openDisplay
       bitDepth = displayResolution.bitDepth;
       % check to make sure that the whichScreen is within bounds
       if (whichScreen < 0) || (whichScreen > displayResolution.numDisplays)
-	disp(sprintf('(mglOpen) Display number %i is out of range [0:%i]',whichScreen,displayResolution.numDisplays));
-	return
+	      disp(sprintf('(mglOpen) Display number %i is out of range [0:%i]',whichScreen,displayResolution.numDisplays));
+	      return
       end
       % and call mglPrivateOpen with the correct screen number
-      mglPrivateOpen(whichScreen);
+      mglMetalOpen(whichScreen);
     elseif ~isempty(mglGetParam('spoofFullScreen')) && (mglGetParam('spoofFullScreen') > 0);
       % get the current resolution, so we can return to it on close
       mglSetParam('originalResolution',mglResolution(whichScreen));
@@ -172,10 +158,10 @@ if ~openDisplay
       frameRate = displayResolution.frameRate;
       bitDepth = displayResolution.bitDepth;
       % and call mglPrivateOpen with the correct screen number
-      mglPrivateOpen(0);
+      mglMetalOpen(0);
     elseif whichScreen >= 0
       % open for a windowed mgl (i.e. whichScreen between 0 and 1
-      mglPrivateOpen(whichScreen,screenWidth,screenHeight);
+      mglMetalOpen(whichScreen,screenWidth,screenHeight);
       % get the frameRate and bitDepth
       displayResolution = mglResolution;
       frameRate = displayResolution.frameRate;
@@ -219,7 +205,7 @@ mglSetParam('deviceVDirection',1);
 mglSetParam('numTextures',0);
 
 % install sounds
-if exist('mglInstallSound') == 2 
+if exist('mglInstallSound') == 2
   mglInstallSound('/System/Library/Sounds/');
 end
 
@@ -232,4 +218,3 @@ if mglGetParam('matlabDesktop')
   % always show the cursor from the desktop.
   mglDisplayCursor(1);
 end
-
