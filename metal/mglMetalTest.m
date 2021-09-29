@@ -10,15 +10,28 @@ function retval = mglMetalTest(varargin)
 
 global mgl
 
+runWithXcode = false;
+
 % run only on initial setup
-if nargin < 1
+if nargin <= 1
+  if (nargin==1) && isequal(varargin{1},1)
+    runWithXcode = true;
+  end
+
   mglSetParam('verbose',1);
-  mglMetalOpen;
+  if runWithXcode
+    disp(sprintf('Startup mglMetal with XCode now...'))
+    mglMetalOpen(nan);
+  else
+    mglMetalOpen;
+  end
 
   % send ping to check communication
   myinput('Hit ENTER to ping: ');
   mgl.s = mglSocketWrite(mgl.s,uint16(mgl.command.ping));
   mglFullscreen(0);
+
+  %testText;
 
   % clear screen
   myinput('Hit ENTER to clear screen: ');
@@ -54,6 +67,19 @@ testTexture;
 testDots;
 
 mglMetalShutdown;
+%%%%%%%%%%%%%%%%%%%%%
+% Test text
+%%%%%%%%%%%%%%%%%%%%%
+function testText
+
+myinput('Hit ENTER to test text: ');
+mglClearScreen(0);
+mglFlush;
+tex = mglText('Hello World');
+mglMetalBltTexture(tex);
+mglFlush;
+
+
 %%%%%%%%%%%%%%%%%%%%%
 % Test lines
 %%%%%%%%%%%%%%%%%%%%%
@@ -183,10 +209,10 @@ texture(:,:,4) = maxVal*(exp(-((ex.^2+ey.^2)/sigma^2)));
 mglProfile('on');
 
 % create the texture
-tex = mglCreateTexture(texture);
+tex = mglMetalCreateTexture(texture);
 
 % blt the texture
-mglBltTexture(tex);
+mglMetalBltTexture(tex);
 
 % turn off profiling
 mglProfile('off');
@@ -201,7 +227,7 @@ nFrames = 300;
 phase = 0;
 for iFrame = 1:nFrames
   frameStart = mglGetSecs;
-  mglBltTexture(tex,[0 0],0,0,0,phase);
+  mglMetalBltTexture(tex,[0 0],0,0,0,phase);
   phase = phase + (1/60)/4;
   % flush and wait
   mglFlush;
@@ -217,19 +243,19 @@ nFrames = 300;
 phase = 0;rotation = 0;width = 0.25;height = 0.25;
 for iFrame = 1:nFrames
   frameStart = mglGetSecs;
-  mglBltTexture(tex,[-0.5 -0.5],0,0,rotation,phase,width,height);
-  mglBltTexture(tex,[-0.5 0.5],0,0,-rotation,phase,width,height);
-  mglBltTexture(tex,[0.5 0.5],0,0,rotation,phase,width,height);
-  mglBltTexture(tex,[0.5 -0.5],0,0,-rotation,phase,width,height);
-  mglBltTexture(tex,[0 -0.5],0,0,rotation,phase,width,height);
-  mglBltTexture(tex,[0 0.5],0,0,-rotation,phase,width,height);
-  mglBltTexture(tex,[-0.5 0],0,0,rotation,phase,width,height);
-  mglBltTexture(tex,[0.5 0],0,0,-rotation,phase,width,height);
+  mglMetalBltTexture(tex,[-0.5 -0.5],0,0,rotation,phase,width,height);
+  mglMetalBltTexture(tex,[-0.5 0.5],0,0,-rotation,phase,width,height);
+  mglMetalBltTexture(tex,[0.5 0.5],0,0,rotation,phase,width,height);
+  mglMetalBltTexture(tex,[0.5 -0.5],0,0,-rotation,phase,width,height);
+  mglMetalBltTexture(tex,[0 -0.5],0,0,rotation,phase,width,height);
+  mglMetalBltTexture(tex,[0 0.5],0,0,-rotation,phase,width,height);
+  mglMetalBltTexture(tex,[-0.5 0],0,0,rotation,phase,width,height);
+  mglMetalBltTexture(tex,[0.5 0],0,0,-rotation,phase,width,height);
 
-  mglBltTexture(tex,[0 0],1,-1,rotation,phase,width,height);
-  mglBltTexture(tex,[0 0],1,1,rotation,phase,width,height);
-  mglBltTexture(tex,[0 0],-1,-1,rotation,phase,width,height);
-  mglBltTexture(tex,[0 0],-1,1,rotation,phase,width,height);
+  mglMetalBltTexture(tex,[0 0],1,-1,rotation,phase,width,height);
+  mglMetalBltTexture(tex,[0 0],1,1,rotation,phase,width,height);
+  mglMetalBltTexture(tex,[0 0],-1,-1,rotation,phase,width,height);
+  mglMetalBltTexture(tex,[0 0],-1,1,rotation,phase,width,height);
 
   phase = phase + (1/60)/4;
   rotation = rotation+360/nFrames;
@@ -321,210 +347,6 @@ disp(sprintf('(mglMetalTest) Number of frames 5%% over %0.4f: %i/%i',expectedFra
 disp(sprintf('(mglMetalTest) Number of frames 10%% over %0.4f: %i/%i',expectedFrameTime,sum(frameTime>(expectedFrameTime*1.1)),nFrames));
 disp(sprintf('(mglMetalTest) Number of frames 20%% over %0.4f: %i/%i',expectedFrameTime,sum(frameTime>(expectedFrameTime*1.2)),nFrames));
 
-%%%%%%%%%%%%%%%%%%%
-%    mglLines2    %
-%%%%%%%%%%%%%%%%%%%
-function mglLines2(x0, y0, x1, y1, size, color)
-
-global mgl;
-
-if length(color) == 1
-  color = [color color color];
-end
-color = color(:);
-
-% set up vertices
-v = [];
-for iLine = 1:length(x0)
-  v(end+1:end+12) = [x0(iLine) y0(iLine) 1 color(:)' x1(iLine) y1(iLine) 1 color(:)'];
-end
-
-% send line command
-mglProfile('start');
-mgl.s = mglSocketWrite(mgl.s,uint16(mgl.command.line));
-
-% send vertices
-mgl.s = mglSocketWrite(mgl.s,uint32(2*iLine));
-mgl.s = mglSocketWrite(mgl.s,single(v));
-mglProfile('end','mglLines2');
-
-%%%%%%%%%%%%%%%%%
-%    mglQuad    %
-%%%%%%%%%%%%%%%%%
-function mglQuad(vX, vY, rgbColor)
-
-global mgl;
-
-% convert x and y into vertices
-v = [];
-for iQuad = 1:size(vX,1)
-
-  % one triangle of the quad
-  v(end+1:end+3) = [vX(iQuad,1) vY(iQuad,1) 0];
-  v(end+1:end+3) = rgbColor(iQuad,:);
-  v(end+1:end+3) = [vX(iQuad,2) vY(iQuad,2) 0];
-  v(end+1:end+3) = rgbColor(iQuad,:);
-  v(end+1:end+3) = [vX(iQuad,3) vY(iQuad,3) 0];
-  v(end+1:end+3) = rgbColor(iQuad,:);
-
-  % the other triangle of the quad
-  v(end+1:end+3) = [vX(iQuad,3) vY(iQuad,3) 0];
-  v(end+1:end+3) = rgbColor(iQuad,:);
-  v(end+1:end+3) = [vX(iQuad,4) vY(iQuad,4) 0];
-  v(end+1:end+3) = rgbColor(iQuad,:);
-  v(end+1:end+3) = [vX(iQuad,1) vY(iQuad,1) 0];
-  v(end+1:end+3) = rgbColor(iQuad,:);
-
-end
-
-% send quad command
-mglProfile('start');
-mgl.s = mglSocketWrite(mgl.s,uint16(mgl.command.quad));
-
-% number of vertices
-nVertices = length(v)/6;
-
-% send them
-mgl.s = mglSocketWrite(mgl.s,uint32(nVertices));
-mgl.s = mglSocketWrite(mgl.s,single(v));
-
-% end profiling
-mglProfile('end','mglQuad');
-
-%%%%%%%%%%%%%%%%%%%%
-%    mglPoints2    %
-%%%%%%%%%%%%%%%%%%%%
-function mglPoints2(x,y,size,color)
-
-global mgl;
-
-% create vertices
-v = [x(:) y(:)];
-v(:,3) = 0;
-v = v';
-
-% write dots command
-mglProfile('start');
-mgl.s = mglSocketWrite(mgl.s,uint16(mgl.command.dots));
-
-% send number of vertices
-nVertices = length(x);
-mgl.s = mglSocketWrite(mgl.s,uint32(nVertices));
-
-% send vertices
-mgl.s = mglSocketWrite(mgl.s,single(v(:)));
-
-% end profiling
-mglProfile('end','mglPoints2');
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%
-%    mglCreateTexture    %
-%%%%%%%%%%%%%%%%%%%%%%%%%%
-function tex = mglCreateTexture(im)
-
-global mgl
-
-% get dimensions of texture
-[tex.width tex.height tex.colorDim] = size(im);
-im = shiftdim(im,2);
-
-% send texture command
-mglProfile('start');
-mgl.s = mglSocketWrite(mgl.s,uint16(mgl.command.createTexture));
-
-% sent texture dimensions
-mgl.s = mglSocketWrite(mgl.s,uint32(tex.width));
-mgl.s = mglSocketWrite(mgl.s,uint32(tex.height));
-
-% sent texture
-mglSetParam('verbose',1);
-mgl.s = mglSocketWrite(mgl.s,single(im(:)));
-mglSetParam('verbose',0);
-
-% end profiling
-mglProfile('end','mglCreateTexture');
-
-% set the texture
-tex.id = 1;
-
-%%%%%%%%%%%%%%%%%%%%%%%
-%    mglBltTexture    %
-%%%%%%%%%%%%%%%%%%%%%%%
-function mglBltTexture(tex, position, hAlignment, vAlignment, rotation, phase, width, height)
-
-global mgl
-
-% default arguments
-if nargin < 2, position = [0 0]; end
-if nargin < 3, hAlignment = 0; end
-if nargin < 4, vAlignment = 0; end
-if nargin < 5, rotation = 0; end
-if nargin < 6, phase = 0; end
-if nargin < 7, width = 1; end
-if nargin < 8, height = 1; end
-
-% get coordinates for each corner
-% of the rectangle we are going
-% to put the texture on
-coords =[width/2 height/2;
-	 -width/2 height/2;
-	 -width/2 -height/2;
-	 width/2 -height/2]';
-
-% rotate coordinates if needed
-if ~isequal(mod(rotation,360),0)
-  r = pi*rotation/180;
-  rotmatrix = [cos(r) -sin(r);sin(r) cos(r)];
-  coords = rotmatrix * coords;
-end
-
-% handle alignment
-switch(hAlignment)
- case {-1}
-  position(1) = position(1)+width/2;
- case {1}
-  position(1) = position(1)-width/2;
-end
-switch(vAlignment)
- case {1}
-  position(2) = position(2)+height/2;
- case {-1}
-  position(2) = position(2)-height/2;
-end
-
-% set translation
-coords(1,:) = coords(1,:)+position(1);
-coords(2,:) = coords(2,:)+position(2);
-
-% now create vertices for 2 triangles to
-% represent the rectangle for the texture
-% with appropriate texture coordinates
-verticesWithTextureCoordinates = [...
-    coords(1,1) coords(2,1) 0 1 1;
-    coords(1,2) coords(2,2) 0 0 1;
-    coords(1,3) coords(2,3) 0 0 0;
-
-    coords(1,1) coords(2,1) 0 1 1;
-    coords(1,3) coords(2,3) 0 0 0;
-    coords(1,4) coords(2,4) 0 1 0;
-]';
-
-% number of vertices
-nVertices = 6;
-
-% send blt command
-mglProfile('start');
-mgl.s = mglSocketWrite(mgl.s,uint16(mgl.command.bltTexture));
-
-% send vertices
-mgl.s = mglSocketWrite(mgl.s,uint32(nVertices));
-mgl.s = mglSocketWrite(mgl.s,single(verticesWithTextureCoordinates));
-
-% send the phase
-mgl.s = mglSocketWrite(mgl.s,single(phase));
-
-% end profiling
-mglProfile('end','mglBltTexture');
 
 %%%%%%%%%%%%%%%%%
 %    myinput    %
