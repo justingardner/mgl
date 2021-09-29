@@ -16,3 +16,25 @@
 %mglVisualAngleCoordinates(57,[16 12]);
 %mglPoints2(16*rand(500,1)-8,12*rand(500,1)-6,2,1);
 %mglFlush
+function mglPoints2(x,y,size,color)
+
+global mgl;
+
+% create vertices
+v = [x(:) y(:)];
+v(:,3) = 0;
+v = v';
+
+% write dots command
+mglProfile('start');
+mgl.s = mglSocketWrite(mgl.s,uint16(mgl.command.dots));
+
+% send number of vertices
+nVertices = length(x);
+mgl.s = mglSocketWrite(mgl.s,uint32(nVertices));
+
+% send vertices
+mgl.s = mglSocketWrite(mgl.s,single(v(:)));
+
+% end profiling
+mglProfile('end','mglPoints2');

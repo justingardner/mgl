@@ -13,6 +13,10 @@
 %             mglMetalOpen(0,800,600);
 function mglMetalOpen(whichScreen,screenWidth,screenHeight)
 
+if nargin == 0
+  whichScreen = 1;
+end
+
 % get mglMetal application name
 [metalAppName metalDir] = mglMetalExecutableName;
 if isempty(metalAppName)
@@ -53,11 +57,13 @@ mgl.s = mglSocketOpen('testsocket');
 
 % check if mglMetal is running
 if mglMetalIsRunning
-  disp(sprintf('(mglOpen) mglMetal executable is already running'));
+  disp(sprintf('(mglMetalOpen) mglMetal executable is already running'));
   % then kill it
   mglMetalShutdown;
 end
 
 %start up mglMetal
-disp(sprintf('(mglOpen) Starting up mglMetal executable: %s',metalAppName));
-system(sprintf('open %s',metalAppName));
+if ~isnan(whichScreen)
+  disp(sprintf('(mglMetalOpen) Starting up mglMetal executable: %s',metalAppName));
+  system(sprintf('open %s',metalAppName));
+end

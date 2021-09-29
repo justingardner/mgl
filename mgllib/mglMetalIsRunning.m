@@ -14,6 +14,7 @@
 function [tf psid] = mglMetalIsRunning
 
 tf = false;
+psid = [];
 
 % check if mglMetal is running
 [status isMetalRunning] = system('ps aux | grep -i mglMetal | grep -v grep');
