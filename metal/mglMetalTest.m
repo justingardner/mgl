@@ -20,7 +20,7 @@ if nargin <= 1
 
   mglSetParam('verbose',1);
   if runWithXcode
-    disp(sprintf('Startup mglMetal with XCode now...'))
+    fprintf('Startup mglMetal with XCode now...\n')
     mglMetalOpen(nan);
   else
     mglMetalOpen;
