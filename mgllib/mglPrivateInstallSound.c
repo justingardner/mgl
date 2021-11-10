@@ -252,7 +252,7 @@ unsigned long installSoundFromData(int *d, unsigned int nChannels, unsigned int 
   NSSound* sound = [[NSSound alloc] initWithData:data];
 
   if (verbose)
-    mexPrintf("(mglPrivateInstallSound:installSoundFromData) Sound pointer: %i\n",(unsigned long)sound);
+    mexPrintf("(mglPrivateInstallSound:installSoundFromData) Sound pointer: %lu\n",(unsigned long)sound);
 
   // data is no longer needed. 
   [data release];
@@ -276,7 +276,7 @@ void removeSound(unsigned long soundID)
   NSSound *mySound = (NSSound*)soundID;
   
   // print message
-  if (verbose) mexPrintf("(mglInstallSound) Deallocating pointer %x with retain count: %lu\n",soundID,[mySound retainCount]);
+  if (verbose) mexPrintf("(mglInstallSound) Deallocating pointer %x with retain count: %i\n",soundID,[mySound retainCount]);
 
   // release
   [mySound release];
