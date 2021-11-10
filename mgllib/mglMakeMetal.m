@@ -52,6 +52,8 @@ cd(info.curpwd);
 %%%%%%%%%%%%%%%
 function info = processArgs(args)
 
+info.verbose = false;
+
 % Gets the mgl header file mgl.h to compare the timestamps
 % note that this will cd into the mgllib directory if it
 % doesn't find the mgl.h file in the current directory
@@ -205,7 +207,7 @@ info.mexCommand = sprintf('mex %s CFLAGS=''%s'' LDFLAGS=''%s'' ',mexopts,cFlags,
 %             function will return 1 for yes and 0 for no. If toall is set to 1, then
 %             'Yes to all' will be an option, which if selected will return inf
 %
-function r = askuser(question,toall,useDialog)
+function r = askuser(question,toall,useDialog,verbose)
 
 % check arguments
 if ~any(nargin == [1 2 3])
@@ -215,14 +217,12 @@ end
 
 if ieNotDefined('toall'),toall = 0;,end
 if ieNotDefined('useDialog'),useDialog=0;end
+if ieNotDefined('verbose'),verbose=false;end
 
 % if explicitly set to useDialog then use dialog, otherwise
 % check verbose setting
 if useDialog
   verbose = 1;
-else
-  verbose = mrGetPref('verbose');
-  if strcmp(verbose,'Yes'),verbose = 1;else,verbose = 0;end
 end
 
 r = [];

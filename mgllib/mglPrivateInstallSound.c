@@ -252,7 +252,7 @@ unsigned long installSoundFromData(int *d, unsigned int nChannels, unsigned int 
   NSSound* sound = [[NSSound alloc] initWithData:data];
 
   if (verbose)
-    mexPrintf("(mglPrivateInstallSound:installSoundFromData) Sound pointer: %i\n",(unsigned int)sound);
+    mexPrintf("(mglPrivateInstallSound:installSoundFromData) Sound pointer: %lu\n",(unsigned long)sound);
 
   // data is no longer needed. 
   [data release];

@@ -242,7 +242,7 @@ void usageError(char *functionName)
 /////////////////////////
 void mglCreateGlobal(void)
 {
-  const int ndims[] = {1};
+  const mwSize ndims[] = {1};
   int nfields = 1;
   const char *field_names[] = {"version"};
      
