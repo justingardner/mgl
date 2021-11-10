@@ -73,7 +73,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   }
 
   // make socket non-blocking
-  if (fcntl(socketDescriptor, F_SETFL, O_BLOCK) < 0) {
+  if (fcntl(socketDescriptor, F_SETFL, O_NONBLOCK) < 0) {
     mexPrintf("(mglSocketOpen) Could not set socket to non-blocking. This will not record io events until a connection is made.\n");
     // return
     plhs[0] = mxCreateDoubleMatrix(0,0,mxREAL);
@@ -116,7 +116,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
   // return structure
   const char *fieldNames[] = {"socketName","socketDescriptor","connectionDescriptor"};
-  const int outDims[2] = {1, 1};
+  const mwSize outDims[2] = {1, 1};
  plhs[0] = mxCreateStructArray(1,outDims,3,fieldNames);
  mxSetField(plhs[0],0,"socketName",mxCreateString(socketName));
  mxSetField(plhs[0],0,"socketDescriptor",mxCreateDoubleMatrix(1,1,mxREAL));
