@@ -40,7 +40,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   int frameRate,screenWidth,screenHeight,bitDepth,displayNumber,numDisplays,defaultDisplayNum,changeResolution = 0;
   int requestedScreenWidth, requestedScreenHeight, requestedFrameRate, requestedBitDepth;
   const char *fieldNames[] = {"displayNumber","numDisplays","screenWidth","screenHeight","frameRate","bitDepth"};
-  const int outDims[2] = {1, 1};
+  const mwSize outDims[2] = {1, 1};
 
   // get how many displays there are at which one is the default.
   getNumDisplaysAndDefault(&numDisplays,&defaultDisplayNum);

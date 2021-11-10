@@ -96,7 +96,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
  size_t buflen = dataSize * len;
 
  // allocate space for buffer
- const int dims[2] = {1,len};
+ const mwSize dims[2] = {1,len};
  plhs[0] = mxCreateNumericArray(1,dims,mxDOUBLE_CLASS,mxREAL);
 
  // read data

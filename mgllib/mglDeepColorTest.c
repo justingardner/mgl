@@ -57,7 +57,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   }
 
   // variables for dimensions
-  const int *dims = mxGetDimensions(prhs[0]); // rows cols
+  const mwSize *dims = mxGetDimensions(prhs[0]); // rows cols
   const mwSize ndims = mxGetNumberOfDimensions(prhs[0]); 
   const size_t n = mxGetNumberOfElements(prhs[0]);
   int imageWidth, imageHeight;

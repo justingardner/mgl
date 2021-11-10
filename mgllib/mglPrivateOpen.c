@@ -676,7 +676,7 @@ unsigned long cglOpen(double *displayNumber, int *screenWidth, int *screenHeight
   attribs[i++] = kCGLPFADoubleBuffer;
   attribs[i++] = kCGLPFAStencilSize; attribs[i++] = (CGLPixelFormatAttribute)8;
   attribs[i++] = kCGLPFADisplayMask; attribs[i++] = (CGLPixelFormatAttribute)displayMask;
-  attribs[i++] = (CGLPixelFormatAttribute)NULL;
+  attribs[i++] = 0;
 
   CGLPixelFormatObj pixelFormatObj;
   GLint numPixelFormats;
