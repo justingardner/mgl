@@ -11,9 +11,9 @@
 function tf = mglMetalShutdown
 
 % get psid
-[tf psid] = mglMetalIsRunning;
+[tf, psid] = mglMetalIsRunning;
 if ~tf
-  disp(sprintf('(mglMetalShutdown) No mglMetal process is running'));
+  fprintf('(mglMetalShutdown) No mglMetal process is running\n');
   return
 end
 
