@@ -49,7 +49,9 @@ mgl.command.profileoff = 15;
 
 % close socket if one is already opened
 cd(metalDir);
-if isfield(mgl,'s') mglSocketClose(mgl.s); end
+if isfield(mgl,'s')
+    mglSocketClose(mgl.s);
+end
 !rm -f testsocket
 
 % open a new socket for communication
@@ -66,4 +68,18 @@ end
 if ~isnan(whichScreen)
     fprintf('(mglMetalOpen) Starting up mglMetal executable: %s\n',metalAppName);
     system(sprintf('open %s',metalAppName));
+end
+
+% Wait until a connection is established with the mglMetal proecess.
+timer = tic();
+tiemeout = 10;
+while toc(timer) < tiemeout && mgl.s.connectionDescriptor == -1
+    mgl.s = mglSocketWrite(mgl.s,uint16(mgl.command.ping));
+    %pause(0.1)
+end
+
+if mgl.s.connectionDescriptor == -1
+    fprintf('(mglMetalOpen) Socket connection to mglMetal app timed out after %d seconds\n', timeout);
+else
+    fprintf('(mglMetalOpen) Socket connection to mglMetal app made in %f seconds\n', toc(timer));
 end
