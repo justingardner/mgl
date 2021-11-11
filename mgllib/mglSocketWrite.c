@@ -76,7 +76,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
    }
    // try to make a connection
    if ((connectionDescriptor = accept(socketDescriptor, NULL, NULL)) == -1) {
-     mexPrintf("(mglSocketWrite) Unable to make connection with socketDescriptor: %i\n",socketDescriptor);
      plhs[0] = mxDuplicateArray(prhs[0]);
      return;
    }
