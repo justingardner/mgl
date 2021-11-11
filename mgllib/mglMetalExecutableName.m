@@ -28,10 +28,17 @@ mglMetalDirs = xCodeOutputDir(isMglMetal);
 mglMetalDir = mglMetalDirs(sortedIndexes(end));
 
 % Get the full absolute path to the most recent mglMetal app.
-mglMetalPath = fullfile(mglMetalDir.folder, mglMetalDir.name, 'Build','Products','Release');
-metalAppName = fullfile(mglMetalPath, 'mglMetal.app');
-if ~isfolder(metalAppName)
-    fprintf('(mglOpen) Could not find mglMetal app folder %s. Perhaps you need to compile in XCode\n',mglMetalPath)
+mglProductsPath = fullfile(mglMetalDir.folder, mglMetalDir.name, 'Build','Products');
+debugAppName = fullfile(mglProductsPath, 'Debug', 'mglMetal.app');
+releaseAppName = fullfile(mglProductsPath, 'Release', 'mglMetal.app');
+if isfolder(debugAppName)
+    metalAppName = debugAppName;
+    fprintf('(mglOpen) Found Debug build of mglMetal: %s\n',metalAppName)
+elseif isfolder(releaseAppName)
+        metalAppName = releaseAppName;
+    fprintf('(mglOpen) Found Release build of mglMetal: %s\n',metalAppName)
+else
+    fprintf('(mglOpen) Could not find mglMetal in %s. Perhaps you need to compile in XCode\n',mglProductsPath)
     return
 end
 
