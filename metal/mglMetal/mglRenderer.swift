@@ -325,6 +325,19 @@ extension mglRenderer: MTKViewDelegate {
     func dots(view: MTKView, renderEncoder: MTLRenderCommandEncoder) {
         // set the pipeline state
         renderEncoder.setRenderPipelineState(pipelineStateDots)
+
+        // Set the point size to use for all vertices.
+        var pointSize = commandInterface.readFloat();
+        renderEncoder.setVertexBytes(&pointSize, length: MemoryLayout<Float>.size, index: 2);
+
+        // Set the color to use for all dots.
+        var color = commandInterface.readColor();
+        renderEncoder.setFragmentBytes(&color, length: MemoryLayout<simd_float3>.stride, index: 0)
+
+        // Set the shape to use for all dots.
+        var isRound = commandInterface.readUInt32();
+        renderEncoder.setFragmentBytes(&isRound, length: MemoryLayout<UInt32>.size, index: 1);
+
         // read the vertices
         let (vertexBufferDots, vertexCount) = commandInterface.readVertices(device: mglRenderer.device)
         print("VertexCount: \(vertexCount)")

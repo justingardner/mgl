@@ -48,11 +48,12 @@ fragment float4 fragment_main() {
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
 vertex VertexOut vertex_dots(const device packed_float3* vertex_array [[ buffer(0) ]],
                              constant float4x4 &deg2metal [[buffer(1)]],
+                             constant float &pointSize [[buffer(2)]],
                              unsigned int vid [[ vertex_id ]])
 {
     VertexOut vertex_out {
         .position = deg2metal * float4(vertex_array[vid], 1),
-        .point_size = 4.0
+        .point_size = pointSize
     };
     return(vertex_out);
 }
@@ -60,8 +61,17 @@ vertex VertexOut vertex_dots(const device packed_float3* vertex_array [[ buffer(
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
 // Fragment shader for rendering dots
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
-fragment float4 fragment_dots() {
-  return float4(1, 1, 1, 1);
+fragment float4 fragment_dots(const VertexOut in [[stage_in]],
+                              const float2 pointCoord [[point_coord]],
+                              constant simd_float3 &color [[buffer(0)]],
+                              constant uint32_t &isRound [[buffer(1)]]) {
+    if (isRound) {
+        float pointRadius = length(pointCoord - float2(0.5f));
+        float a = 1.0 - smoothstep(0.49, 0.5, pointRadius);
+        return float4(color[0], color[1], color[2], a);
+    } else {
+        return float4(color[0], color[1], color[2], 1);
+    }
 }
 
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/
