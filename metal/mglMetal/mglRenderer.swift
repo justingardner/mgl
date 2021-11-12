@@ -35,6 +35,7 @@ enum mglCommands : UInt16 {
     case nonblocking = 13
     case profileon = 14
     case profileoff = 15
+    case polygon = 16
 }
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
 // mglRenderer: Class does most of the work
@@ -247,6 +248,7 @@ extension mglRenderer: MTKViewDelegate {
                     case mglCommands.setXform: setXform(renderEncoder: renderEncoder)
                     case mglCommands.line: drawVerticesWithColor(view: view, renderEncoder: renderEncoder, primitiveType: .line)
                     case mglCommands.quad: drawVerticesWithColor(view: view, renderEncoder: renderEncoder, primitiveType: .triangle)
+                    case mglCommands.polygon: drawVerticesWithColor(view: view, renderEncoder: renderEncoder, primitiveType: .triangleStrip)
                     case mglCommands.fullscreen:
                         fullscreen(view: view, renderEncoder: renderEncoder)
                         readCommands = false

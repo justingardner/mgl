@@ -46,6 +46,7 @@ mgl.command.blocking = 12;
 mgl.command.nonblocking = 13;
 mgl.command.profileon = 14;
 mgl.command.profileoff = 15;
+mgl.command.polygon = 16;
 
 % close socket if one is already opened
 cd(metalDir);
