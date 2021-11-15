@@ -36,6 +36,7 @@ enum mglCommands : UInt16 {
     case profileon = 14
     case profileoff = 15
     case polygon = 16
+    case getSecs = 17
 }
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
 // mglRenderer: Class does most of the work
@@ -269,6 +270,8 @@ extension mglRenderer: MTKViewDelegate {
                     case mglCommands.flush:
                         readCommands = false
                         acknowledgeFlush = true
+                    case mglCommands.getSecs:
+                        commandInterface.writeDouble(data: secs.get())
                 }
                 // if we have received any command then kick into blocking wait mode
                 blocking = true;
