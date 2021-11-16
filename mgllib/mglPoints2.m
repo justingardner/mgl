@@ -25,6 +25,10 @@ else
     isRound = logical(varargin{1}(1));
 end
 
+if numel(color) == 1
+    color = [color, color, color];
+end
+
 global mgl;
 
 % create vertices
@@ -37,13 +41,13 @@ mglProfile('start');
 mgl.s = mglSocketWrite(mgl.s,uint16(mgl.command.dots));
 
 % send point size
-mgl.s = mglSocketWrite(mgl.s,single(size));
+mgl.s = mglSocketWrite(mgl.s,single(size(1)));
 
 % send color
-mgl.s = mglSocketWrite(mgl.s,single(color));
+mgl.s = mglSocketWrite(mgl.s,single(color(1:3)));
 
 % send roundness flag
-mgl.s = mglSocketWrite(mgl.s,uint32(isRound));
+mgl.s = mglSocketWrite(mgl.s,uint32(isRound(1)));
 
 % send number of vertices
 nVertices = length(x);

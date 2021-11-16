@@ -38,7 +38,9 @@ end
 
 global mgl
 
-if length(clearColor) == 1
+if nargin < 1 || numel(clearColor) == 0
+    clearColor = [0, 0, 0];
+elseif numel(clearColor) == 1
   clearColor = [clearColor clearColor clearColor];
 end
 clearColor = clearColor(:);
