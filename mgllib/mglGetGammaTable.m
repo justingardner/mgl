@@ -22,7 +22,11 @@
 %gammaTable = mglGetGammaTable
 function t = mglGetGammaTable(fullTable)
 
-t = mglPrivateGetGammaTable;
+% BSH -- I'm stubbing this out for now.
+%t = mglPrivateGetGammaTable;
+t.redTable = linspace(0, 1, 256);
+t.greenTable = linspace(0, 1, 256);
+t.blueTable = linspace(0, 1, 256);
 
 if nargin < 1,fullTable = false;end
 

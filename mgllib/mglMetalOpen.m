@@ -84,3 +84,8 @@ if mgl.s.connectionDescriptor == -1
 else
     fprintf('(mglMetalOpen) Socket connection to mglMetal established in %f seconds\n', toc(timer));
 end
+
+% BSH stubbing these out for now
+mglSetParam('displayNumber', 0);
+mglSetParam('screenWidth', 400);
+mglSetParam('screenHeight', 400);

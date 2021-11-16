@@ -19,7 +19,7 @@ global mgl
 % for now, imageWidth needs to be 16 byte aligned to 256
 imageWidth = ceil(tex.imageWidth*16/256)*16;
 if imageWidth ~= tex.imageWidth
-  keyboard
+  disp('(mglMetalCreateTexture) Resizing texture image to align to 256')
   newim = zeros([imageWidth tex.imageHeight tex.colorDim]);
   newim(1:tex.imageWidth,1:tex.imageHeight,:) = im;
   % and reset to this new padded image

@@ -179,6 +179,7 @@ if ~openDisplay
   % clear screen to black
   mglClearScreen(0);
   mglFlush;
+  mglFlush; % TODO, at the moment clear screen with Metal takes two flushes
 end
 
 % round down to remove any decimal alpha request
