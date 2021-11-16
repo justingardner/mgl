@@ -66,6 +66,29 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 //-----------------------------------------------------------------------------------///
 #ifdef __APPLE__
 #ifdef __cocoa__
+
+// As of macOS Catalina, it seems we need to call 
+// TISGetInputSourceProperty from the main thread, otherwise it crashes!
+// See also https://github.com/Psychtoolbox-3/Psychtoolbox-3/commit/222c86dec7d2e01e325afe70452956134cb14e69
+// This util should be a drop-in for TISGetInputSourceProperty.
+////////////////////////////////////////////
+//   getInputSourcePropertyOnMainThread   //
+////////////////////////////////////////////
+void * getInputSourcePropertyOnMainThread(
+    TISInputSourceRef inputSource,
+    const CFStringRef propertyKey)
+{
+    if (NSThread.isMainThread) {
+        return TISGetInputSourceProperty(inputSource, propertyKey);
+    }
+
+    __block void* property;
+    dispatch_sync(dispatch_get_main_queue(), ^{
+        property = TISGetInputSourceProperty(inputSource, propertyKey);
+    });
+    return property;
+}
+
 // Here is the new version, same idea, but slightly different, annoyingly opaque mac OS
 // system calls to get keyboard layout (works in 64bit) -j.
 ///////////////////////
@@ -99,7 +122,7 @@ mxArray *charToKeycode(const mxArray *cellArrayOfChars, int returnAllMatches)
   keyboard_type = LMGetKbdType ();
   // now get the unicode key layout data
   if (currentKeyLayoutRef) {
-    CFDataRef currentKeyLayoutDataRef = (CFDataRef )TISGetInputSourceProperty(currentKeyLayoutRef,kTISPropertyUnicodeKeyLayoutData);
+    CFDataRef currentKeyLayoutDataRef = getInputSourcePropertyOnMainThread(currentKeyLayoutRef,kTISPropertyUnicodeKeyLayoutData);
     CFRelease(currentKeyLayoutRef);
     if (currentKeyLayoutDataRef) 
       chr_data = CFDataGetBytePtr(currentKeyLayoutDataRef);
@@ -179,6 +202,7 @@ mxArray *charToKeycode(const mxArray *cellArrayOfChars, int returnAllMatches)
 
   return(keycodeArray);
 }
+
 #else// __cocoa__
 //-----------------------------------------------------------------------------------///
 // **************************** mac carbon specific code  *************************** //
