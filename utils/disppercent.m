@@ -39,13 +39,13 @@ function retval = disppercent(percentdone,mesg)
 persistent disppercentDeprecationWarning
 if isempty(disppercentDeprecationWarning)
     disppercentDeprecationWarning = true;
-    fprintf('(disppercent) This seems to need updating, BSH is stubbing it out for now.');
+    fprintf('(disppercent) This seems to need updating, BSH is stubbing it out for now.\n');
 end
 
 if nargin < 2
     mesg = '';
 end
-fprintf('(disppercent) percentdone: %f mesg: %s', percentdone, mesg)
+fprintf('(disppercent) percentdone: %f mesg: %s\n', percentdone, mesg)
 
 return
 
