@@ -49,6 +49,8 @@ mgl.command.profileoff = 15;
 mgl.command.polygon = 16;
 mgl.command.getSecs = 17;
 
+mgl.currentMatrix = eye(4);
+
 % close socket if one is already opened
 cd(metalDir);
 if isfield(mgl,'s')
