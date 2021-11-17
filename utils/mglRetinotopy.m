@@ -922,23 +922,19 @@ angles = (0:stimulus.wedgeStepSize:(360-stimulus.wedgeStepSize))+90+stimulus.wed
 % create masks for wedges
 for angleNum = 1:length(angles)
   angle = angles(angleNum);
-  % init the wedge mask values
-  stimulus.maskWedgeX{angleNum} = [];
-  stimulus.maskWedgeY{angleNum} = [];
-  % create a polygon that spares the wedge that we want
-  % start in the center, compute it in radial coordinates
-  r = 0;a = 0;
-  % and go around the angles except for the wedge we want
-  for vertexAngle = angle:(angle+360-stimulus.wedgeAngle);
-    r(end+1) = stimulus.maxRadius+1;
-    a(end+1) = vertexAngle;
-  end
-  % and end up in the center
-  r(end+1) = 0;
-  a(end+1) = 0;
-  % now convert to rectilinear
-  stimulus.maskWedgeX{angleNum}(:,end+1) = r.*cos(d2r(a));
-  stimulus.maskWedgeY{angleNum}(:,end+1) = r.*sin(d2r(a));
+  % Make the mask from two overlapping semicircles, offset by wedgeAngle.
+  % This wayt the mask polygons will be convex and triangle-strip-able.
+  maskRadius = stimulus.maxRadius + 1;
+  topRadians = d2r(angle:angle + 180);
+  topX = maskRadius * cos(topRadians);
+  topY = maskRadius * sin(topRadians);
+
+  bottomAngle = angle - stimulus.wedgeAngle;
+  bottomRadians = d2r(bottomAngle-180:bottomAngle);
+  bottomX = maskRadius * cos(bottomRadians);
+  bottomY = maskRadius * sin(bottomRadians);
+  stimulus.maskWedgeX{angleNum} = {topX, bottomX};
+  stimulus.maskWedgeY{angleNum} = {topY, bottomY};
 end
 stimulus.wedgeN = length(angles);
 
@@ -950,12 +946,12 @@ for radiusNum = 1:length(stimulus.ringRadiusMin)
   stimulus.maskInnerX{radiusNum} = [];
   stimulus.maskInnerY{radiusNum} = [];
   % compute in radial coordinates
-  r = [0];a = [0];
+  r = [];a = [];
   for angle = 0:stimulus.elementAngleSize:360
     r(end+1) = stimulus.ringRadiusMin(radiusNum);
     a(end+1) = angle;
   end
-  r(end+1) = 0;a(end+1) = 0;
+  %r(end+1) = 0;a(end+1) = 0;
   % now convert to rectilinear
   stimulus.maskInnerX{radiusNum}(:,end+1) = r.*cos(d2r(a));
   stimulus.maskInnerY{radiusNum}(:,end+1) = r.*sin(d2r(a));
@@ -1180,7 +1176,14 @@ else
   
   % mask out to get a wedge
   if stimulus.stimulusType == 1
-    mglPolygon(stimulus.maskWedgeX{stimulus.currentMask}+stimulus.xOffset,stimulus.maskWedgeY{stimulus.currentMask}+stimulus.yOffset,0.5);
+    % For the mask is made of two overlapping semicircles.
+    topX = stimulus.maskWedgeX{stimulus.currentMask}{1};
+    topY = stimulus.maskWedgeY{stimulus.currentMask}{1};
+    mglPolygon(topX+stimulus.xOffset,topY+stimulus.yOffset,0.5);
+
+    bottomX = stimulus.maskWedgeX{stimulus.currentMask}{2};
+    bottomY = stimulus.maskWedgeY{stimulus.currentMask}{2};
+    mglPolygon(bottomX+stimulus.xOffset,bottomY+stimulus.yOffset,0.5);
     % or mask out to get a ring
   else
     mglPolygon(stimulus.maskInnerX{stimulus.currentMask}+stimulus.xOffset,stimulus.maskInnerY{stimulus.currentMask}+stimulus.yOffset,0.5);
