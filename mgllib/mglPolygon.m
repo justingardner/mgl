@@ -26,49 +26,32 @@ if numel(x) ~= numel(y)
     return;
 end
 
-color = [1 1 1]';
-if nargin > 2 && isnumeric(varargin{1}) && numel(varargin{1}) == 3
-    color = varargin{1}(:);
+color = [1 1 1];
+if nargin > 2 && isnumeric(varargin{1})
+    color = varargin{1};
+end
+if numel(color) == 1
+    color = [color, color, color];
 end
 
 % Metal doesn't support "polygons" in the sense of "glBegin(GL_POLYGON)".
 % But Metal does support triangle strips.
-% Assuming the given polygon is convex, we can rearrange it as a strip.
+% Assuming the given polygon is convex and the vertices are wound
+% sequentially, we can reorder the vertices to work as a triangle strip.
 
-% Divide vertices horizontally into left and right halves.
+% Divide the vertices into halves, working from the front and the back.
 n = numel(x);
 nHalf = ceil(n / 2);
-[~, horizontally] = sort(x);
-left = horizontally(1:nHalf);
-right = horizontally(nHalf+1:n);
-xLeft = x(left);
-yLeft = y(left);
-xRight = x(right);
-yRight = y(right);
+front = 1:nHalf;
+back = n:-1:nHalf+1;
 
-% Sort each half vertically.
-[yLeft, vertically] = sort(yLeft);
-xLeft = xLeft(vertically);
-
-[yRight, vertically] = sort(yRight);
-xRight = xRight(vertically);
-
-% Zip the halves back together, starting at the bottom, alternating halves.
+% Zip the halves back together, alternating front and back.
 xStrip = zeros(2, nHalf);
+xStrip(1, 1:numel(front)) = x(front);
+xStrip(2, 1:numel(back)) = x(back);
 yStrip = zeros(2, nHalf);
-if (yLeft(1) < yRight(1))
-    % The left side contains the bottom vertex.
-    xStrip(1, 1:numel(xLeft)) = xLeft;
-    xStrip(2, 1:numel(xRight)) = xRight;
-    yStrip(1, 1:numel(yLeft)) = yLeft;
-    yStrip(2, 1:numel(yRight)) = yRight;
-else
-    % The right side contains the bottom vertex (or they're equal).
-    xStrip(1, 1:numel(xRight)) = xRight;
-    xStrip(2, 1:numel(xLeft)) = xLeft;
-    yStrip(1, 1:numel(yRight)) = yRight;
-    yStrip(2, 1:numel(yLeft)) = yLeft;
-end
+yStrip(1, 1:numel(front)) = y(front);
+yStrip(2, 1:numel(back)) = y(back);
 
 % Concatenate vertices as XYZRGB.
 vertices = zeros(6, n, 'single');
@@ -78,6 +61,7 @@ vertices(4, 1:n) = color(1);
 vertices(5, 1:n) = color(2);
 vertices(6, 1:n) = color(3);
 
+% Send vertices over to the rendering app.
 mgl.s = mglSocketWrite(mgl.s,uint16(mgl.command.polygon));
 mgl.s = mglSocketWrite(mgl.s,uint32(n));
 mgl.s = mglSocketWrite(mgl.s,vertices);
