@@ -34,8 +34,13 @@
 %disppercent(-inf,'Doing stuff');for i =  1:30;pause(0.1);disppercent(i/30);end;elapsedTime = disppercent(inf);
 function retval = disppercent(percentdone,mesg)
 
-% BSH stubbing this out for now
-fprintf('(disppercent) This seems to need updating, BSH is stubbing it out for now.')
+% BSH stubbing this out for now.
+% Try not to spam the console every time this is called.
+persistent disppercentDeprecationWarning
+if isempty(disppercentDeprecationWarning)
+    disppercentDeprecationWarning = true;
+    fprintf('(disppercent) This seems to need updating, BSH is stubbing it out for now.');
+end
 
 if nargin < 2
     mesg = '';

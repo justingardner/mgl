@@ -31,7 +31,10 @@
 %mglFlush();
 function mglGluDisk(x, y, size, color, varargin)
 
-if (nargin > 4)
+% Warn about deprecated function, but try not to spam on every frame.
+persistent mglGluDiskDeprecationWarning
+if (nargin > 4) && isempty(mglGluDiskDeprecationWarning)
+    mglGluDiskDeprecationWarning = true;
     fprintf("(mglGluDisk) GLU is deprecated, ignoring args nslices and/or nloops.  See mglPoints2 instead.\n")
 end
 

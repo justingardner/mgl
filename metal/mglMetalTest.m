@@ -107,10 +107,10 @@ for xStart = -1:xWidth:(1-xWidth)
   c = 1-c;
   for yStart = -1:yWidth:(1-xWidth)
     c = c-(1*c)+(1-c);
-    x(iQuad,1:4) = [xStart xStart+xWidth xStart+xWidth xStart];
-    y(iQuad,1:4) = [yStart yStart yStart+xWidth yStart+xWidth];
-    color(iQuad,1:3) = [c c c];
-    inverseColor(iQuad,1:3) = [1-c 1-c 1-c];
+    x(1:4, iQuad) = [xStart xStart+xWidth xStart+xWidth xStart];
+    y(1:4, iQuad) = [yStart yStart yStart+xWidth yStart+xWidth];
+    color(1:3, iQuad) = [c c c];
+    inverseColor(1:3, iQuad) = [1-c 1-c 1-c];
     iQuad = iQuad + 1;
   end
 end

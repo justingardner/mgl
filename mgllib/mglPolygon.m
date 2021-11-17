@@ -54,26 +54,26 @@ xLeft = xLeft(vertically);
 xRight = xRight(vertically);
 
 % Zip the halves back together, starting at the bottom, alternating halves.
-xStrip = zeros(1, n);
-yStrip = zeros(1, n);
+xStrip = zeros(2, nHalf);
+yStrip = zeros(2, nHalf);
 if (yLeft(1) < yRight(1))
     % The left side contains the bottom vertex.
-    xStrip(1:2:end) = xLeft;
-    xStrip(2:2:end) = xRight;
-    yStrip(1:2:end) = yLeft;
-    yStrip(2:2:end) = yRight;
+    xStrip(1, 1:numel(xLeft)) = xLeft;
+    xStrip(2, 1:numel(xRight)) = xRight;
+    yStrip(1, 1:numel(yLeft)) = yLeft;
+    yStrip(2, 1:numel(yRight)) = yRight;
 else
     % The right side contains the bottom vertex (or they're equal).
-    xStrip(1:2:end) = xRight;
-    xStrip(2:2:end) = xLeft;
-    yStrip(1:2:end) = yRight;
-    yStrip(2:2:end) = yLeft;
+    xStrip(1, 1:numel(xRight)) = xRight;
+    xStrip(2, 1:numel(xLeft)) = xLeft;
+    yStrip(1, 1:numel(yRight)) = yRight;
+    yStrip(2, 1:numel(yLeft)) = yLeft;
 end
 
 % Concatenate vertices as XYZRGB.
 vertices = zeros(6, n, 'single');
-vertices(1, 1:n) = xStrip;
-vertices(2, 1:n) = yStrip;
+vertices(1, 1:n) = xStrip(1:n);
+vertices(2, 1:n) = yStrip(1:n);
 vertices(4, 1:n) = color(1);
 vertices(5, 1:n) = color(2);
 vertices(6, 1:n) = color(3);

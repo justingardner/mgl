@@ -18,38 +18,42 @@
 %mglScreenCoordinates
 %mglQuad([100; 600; 600; 100], [100; 200; 600; 100], [1; 1; 1], 1);
 %mglFlush();
-function mglQuad(vX, vY, rgbColor)
+function mglQuad(vX, vY, rgbColor, antiAliasFlag)
+
+% Not currently used, but let's maintain compatibility with v2.
+if nargin < 4
+    antiAliasFlag = false;
+end
 
 global mgl;
 
-% convert x and y into vertices
-v = [];
-for iQuad = 1:size(vX,1)
+% Construct XYZRGB vertex array with 3 triangels / 6 vertices per quad.
+nQuads = size(vX, 2);
+nVertices = nQuads * 6;
+v = zeros(6, nVertices);
+for iQuad = 1:nQuads
 
-  % one triangle of the quad
-  v(end+1:end+3) = [vX(iQuad,1) vY(iQuad,1) 0];
-  v(end+1:end+3) = rgbColor(iQuad,:);
-  v(end+1:end+3) = [vX(iQuad,2) vY(iQuad,2) 0];
-  v(end+1:end+3) = rgbColor(iQuad,:);
-  v(end+1:end+3) = [vX(iQuad,3) vY(iQuad,3) 0];
-  v(end+1:end+3) = rgbColor(iQuad,:);
+    % one triangle of the quad
+    v(1:2, iQuad * 6 - 5) = [vX(1, iQuad), vY(1, iQuad)];
+    v(4:6, iQuad * 6 - 5) = rgbColor(:, iQuad);
+    v(1:2, iQuad * 6 - 4) = [vX(2, iQuad), vY(2, iQuad)];
+    v(4:6, iQuad * 6 - 4) = rgbColor(:, iQuad);
+    v(1:2, iQuad * 6 - 3) = [vX(3, iQuad), vY(3, iQuad)];
+    v(4:6, iQuad * 6 - 3) = rgbColor(:, iQuad);
 
-  % the other triangle of the quad
-  v(end+1:end+3) = [vX(iQuad,3) vY(iQuad,3) 0];
-  v(end+1:end+3) = rgbColor(iQuad,:);
-  v(end+1:end+3) = [vX(iQuad,4) vY(iQuad,4) 0];
-  v(end+1:end+3) = rgbColor(iQuad,:);
-  v(end+1:end+3) = [vX(iQuad,1) vY(iQuad,1) 0];
-  v(end+1:end+3) = rgbColor(iQuad,:);
+    % the other triangle of the quad
+    v(1:2, iQuad * 6 - 2) = [vX(3, iQuad), vY(3, iQuad)];
+    v(4:6, iQuad * 6 - 2) = rgbColor(:, iQuad);
+    v(1:2, iQuad * 6 - 1) = [vX(4, iQuad), vY(4, iQuad)];
+    v(4:6, iQuad * 6 - 1) = rgbColor(:, iQuad);
+    v(1:2, iQuad * 6) = [vX(1, iQuad), vY(1, iQuad)];
+    v(4:6, iQuad * 6) = rgbColor(:, iQuad);
 
 end
 
 % send quad command
 mglProfile('start');
 mgl.s = mglSocketWrite(mgl.s,uint16(mgl.command.quad));
-
-% number of vertices
-nVertices = length(v)/6;
 
 % send them
 mgl.s = mglSocketWrite(mgl.s,uint32(nVertices));
