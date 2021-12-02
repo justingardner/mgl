@@ -9,7 +9,7 @@
 %             draw some text on the string. If you need
 %             to draw text more quickly, you will have to
 %             pre-make the text textures with mglText and
-%             then use mglBltTexture when you want it 
+%             then use mglBltTexture when you want it
 %             str = desired string
 %             pos = [x y] - position on screen
 %             hAlignment = {-1 = left,0 = center,1 = right}
@@ -29,8 +29,8 @@ function retval = mglTextDraw(str,pos,hAlignment,vAlignment)
 
 % check arguments
 if ~any(nargin == [2:4])
-  help mglTextDraw
-  return
+    help mglTextDraw
+    return
 end
 
 % default alignment
@@ -38,6 +38,8 @@ if ~exist('hAlignment'),hAlignment = 0;,end
 if ~exist('vAlignment'),vAlignment = 0;,end
 
 % make the text texture and blt it to the screen
-textTexture = mglText(str);
-%mglBltTexture(textTexture,pos,hAlignment,vAlignment);
+tex = mglText(str);
+mglMetalBltTexture(tex,pos,hAlignment,vAlignment);
+
+% TODO: metal texture lifecycle management.
 %mglDeleteTexture(textTexture);

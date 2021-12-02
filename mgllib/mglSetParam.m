@@ -19,8 +19,12 @@ if ~any(nargin == [2 3])
   return
 end
 
+% BSH: It seems we use both mgl and MLG in different places.
+% TODO: Should we pick one?
 global mgl
+global MGL
 mgl.(paramName) = paramValue;
+MGL.(paramName) = paramValue;
 
 if (nargin >= 3) && (isequal(makePersistent,1) || isequal(makePersistent,2))
   persistentParams = [];
