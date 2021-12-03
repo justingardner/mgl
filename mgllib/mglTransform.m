@@ -24,7 +24,7 @@ function mglTransform(whichMatrix, whichTransform, varargin)
 
 % Warn about work in progress, but try not to spam on every frame.
 persistent mglTransformWIPWarning
-if (nargin > 4) && isempty(mglTransformWIPWarning)
+if isempty(mglTransformWIPWarning)
     mglTransformWIPWarning = true;
     fprintf("(mglTransform) v3 work in progress: only GL_MODELVIEW, glScale, glTranslate, and glLoadIdentity are supported so far.\n")
 end
@@ -39,14 +39,14 @@ global mgl
 
 switch whichTransform
     case 'glScale'
-        xyz = varargin{1};
+        xyz = [varargin{1:3}];
         newMatrix = eye(4);
         newMatrix([1,6,11]) = xyz;
         mgl.currentMatrix = mgl.currentMatrix * newMatrix;
     case 'glTranslate'
-        xyz = varargin{1};
+        xyz = [varargin{1:3}];
         newMatrix = eye(4);
-        newMatrix([4,8,12]) = xyz;
+        newMatrix([13,14,15]) = xyz;
         mgl.currentMatrix = mgl.currentMatrix * newMatrix;
     case 'glLoadIdentity'
         mgl.currentMatrix = eye(4);
