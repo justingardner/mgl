@@ -27,14 +27,10 @@ oldDeviceVDirection = mglGetParam('deviceVDirection');
 oldXDeviceToPixels = mglGetParam('xDeviceToPixels');
 oldYDeviceToPixels = mglGetParam('yDeviceToPixels');
 
-% set the transforms to identity
-mglTransform('GL_MODELVIEW','glLoadIdentity');
-mglTransform('GL_PROJECTION','glLoadIdentity')
-mglTransform('GL_TEXTURE','glLoadIdentity')
-
 % now set them for screen coordinates
-mglTransform('GL_MODELVIEW','glScale',2.0/mglGetParam('screenWidth'),-2.0/mglGetParam('screenHeight'),1);
-mglTransform('GL_MODELVIEW','glTranslate',-mglGetParam('screenWidth')/2.0,-mglGetParam('screenHeight')/2.0,0.0);
+mglTransform('set', eye(4));
+mglTransform('scale', [2.0/mglGetParam('screenWidth'),-2.0/mglGetParam('screenHeight'),1]);
+mglTransform('translate', [-mglGetParam('screenWidth')/2.0,-mglGetParam('screenHeight')/2.0,0.0]);
 
 % set the globals appropriately
 mglSetParam('xDeviceToPixels',1.0);

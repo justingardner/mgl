@@ -1,56 +1,49 @@
 % mglTransform.m
 %
 %        $Id$
-%      usage: mglTransform(whichMatrix, whichTransform, [whichParameters])
-%         by: Jonas Larsson
-%       date: 2006-04-07
+%      usage: currentMatrix = mglTransform(operation, value)
+%         by: Ben Heasly
+%       date: 2021-12-03
 %  copyright: (c) 2006 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
 %    purpose: applies view transformations
-%  arguments: whichMatrix: 'GL_MODELVIEW', 'GL_PROJECTION', or 'GL_TEXTURE'
-%             whichTransform:  'glRotate', 'glTranslate', 'glScale',
-%                              'glMultMatrix', 'glFrustum', 'glOrtho',
-%                              'glLoadMatrix', 'glLoadIdentity', 'glPushMatrix',
-%                              'glPopMatrix', 'glDepthRange', or 'glViewport'
-%             whichParameters: function-specific; see OpenGL documentation
-%             You can also specifiy one of GL_MODELVIEW, GL_PROJECTION, or
-%             GL_TEXTURE and a return variable current matrix values. If
-%             two outputs are specified, the result of the computation
-%             will be returned.
+%  arguments: operation: 'get', 'set', 'scale', 'translate'
+%             value: 4x4 matrix or xyz vector, if required.
+%             returns: the final 4x4 matrix value that was applied
+%
+%             Here are some examples:
+%               currentMatrix = mglTransform('get');
+%               currentMatrix = mglTransform('set', eye(4));
+%               currentMatrix = mglTransform('scale', [2, 2, 1]);
+%               currentMatrix = mglTransform('translate', [-100, -100, 0]);
 %
 %             This function is usually not called directly, but
 %             called by mglVisualAngleCoordinates or
 %             mglScreenCoordinates to set the transforms
-function mglTransform(whichMatrix, whichTransform, varargin)
+function currentMatrix = mglTransform(operation, value)
 
-% Warn about work in progress, but try not to spam on every frame.
-persistent mglTransformWIPWarning
-if isempty(mglTransformWIPWarning)
-    mglTransformWIPWarning = true;
-    fprintf("(mglTransform) v3 work in progress: only GL_MODELVIEW, glScale, glTranslate, and glLoadIdentity are supported so far.\n")
+persistent mglTransformIsNotOpenGLAnymore
+if isempty(mglTransformIsNotOpenGLAnymore)
+    mglTransformIsNotOpenGLAnymore = true;
+    fprintf("(mglTransform) Notice: mglTransform no longer supports OpenGL transforms and constants.\n")
 end
 
-if ~strcmp('GL_MODELVIEW', whichMatrix)
-    return;
-end
-
-% This is a rough placeholder for work in progress
-% The Metal app should own this state, not Matlab.
 global mgl
-
-switch whichTransform
-    case 'glScale'
-        xyz = [varargin{1:3}];
+switch operation
+    case 'get'
+        currentMatrix = mgl.currentMatrix;
+        return;
+    case 'set'
+        mgl.currentMatrix = value;
+    case 'scale'
         newMatrix = eye(4);
-        newMatrix([1,6,11]) = xyz;
+        newMatrix([1,6,11]) = value;
         mgl.currentMatrix = mgl.currentMatrix * newMatrix;
-    case 'glTranslate'
-        xyz = [varargin{1:3}];
+    case 'translate'
         newMatrix = eye(4);
-        newMatrix([13,14,15]) = xyz;
+        newMatrix([13,14,15]) = value;
         mgl.currentMatrix = mgl.currentMatrix * newMatrix;
-    case 'glLoadIdentity'
-        mgl.currentMatrix = eye(4);
 end
+currentMatrix = mgl.currentMatrix;
 
 mgl.s = mglSocketWrite(mgl.s,uint16(mgl.command.xform));
 mgl.s = mglSocketWrite(mgl.s,single(mgl.currentMatrix));

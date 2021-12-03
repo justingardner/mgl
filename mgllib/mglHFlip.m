@@ -29,4 +29,4 @@ if mglGetParam('displayNumber') == -1
 end
 
 % flip the modelviews horizontal axis
-mglTransform('GL_MODELVIEW','glScale',-1,1,1);
+mglTransform('scale',[-1,1,1]);

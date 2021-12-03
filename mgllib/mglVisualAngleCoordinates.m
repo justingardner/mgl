@@ -78,9 +78,7 @@ if isempty(mglGetParam('deviceOrigin'))
 end
 
 % set the transforms to identity
-mglTransform('GL_MODELVIEW','glLoadIdentity');
-mglTransform('GL_PROJECTION','glLoadIdentity')
-mglTransform('GL_TEXTURE','glLoadIdentity')
+mglTransform('set', eye(4));
 
 % Set view transformation for 2D display
 
@@ -157,9 +155,8 @@ mglSetParam('deviceRect',[minx miny maxx maxy]);
 
 % set the transforms 
 deviceOrigin = mglGetParam('deviceOrigin');
-mglTransform('GL_MODELVIEW','glScale',2/mglGetParam('deviceWidth'),2/mglGetParam('deviceHeight'),1);
-mglTransform('GL_MODELVIEW','glTranslate',deviceOrigin(1),deviceOrigin(2),deviceOrigin(3));
-mglTransform('GL_PROJECTION','glLoadIdentity')
+mglTransform('scale',[2/mglGetParam('deviceWidth'),2/mglGetParam('deviceHeight'),1]);
+mglTransform('translate',[deviceOrigin(1),deviceOrigin(2),deviceOrigin(3)]);
 
 mglSetParam('deviceCoords','visualAngle');
 mglSetParam('screenCoordinates',0);

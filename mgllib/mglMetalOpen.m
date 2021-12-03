@@ -49,8 +49,6 @@ mgl.command.profileoff = 15;
 mgl.command.polygon = 16;
 mgl.command.getSecs = 17;
 
-mgl.currentMatrix = eye(4);
-
 % close socket if one is already opened
 cd(metalDir);
 if isfield(mgl,'s')
@@ -80,6 +78,9 @@ tiemeout = 10;
 while toc(timer) < tiemeout && mgl.s.connectionDescriptor == -1
     mgl.s = mglSocketWrite(mgl.s,uint16(mgl.command.ping));
 end
+
+% Make sure Matlab and metal agree on initial transform.
+mglTransform('set', eye(4));
 
 if mgl.s.connectionDescriptor == -1
     fprintf('(mglMetalOpen) Socket connection to mglMetal timed out after %d seconds\n', timeout);
