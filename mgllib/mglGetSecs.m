@@ -13,17 +13,7 @@
 %             t=mglGetSecs(t0)
 %
 %
-function secs = mglGetSecs()
 
-global mgl
+% wrapper for mglGetSecs.mex/glx/mac
 
-mgl.s = mglSocketWrite(mgl.s,uint16(mgl.command.getSecs));
-
-% Wait for a return value.
-[dataWaiting, mgl.s] = mglSocketDataWaiting(mgl.s);
-while ~dataWaiting
-    [dataWaiting, mgl.s] = mglSocketDataWaiting(mgl.s);
-end
-
-% Read out the return value.
-[secs, mgl.s] = mglSocketRead(mgl.s);
+  
