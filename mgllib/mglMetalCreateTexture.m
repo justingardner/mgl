@@ -52,3 +52,6 @@ tex.textureNumber= 1;
 
 % set the textureType (this was used in openGL to differntiate 1D and 2D textures)
 tex.textureType = 1;
+
+% TODO: texture lifecycle management
+mglSetParam('numTextures', 1);

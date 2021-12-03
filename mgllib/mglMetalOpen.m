@@ -91,3 +91,4 @@ end
 mglSetParam('displayNumber', 0);
 mglSetParam('screenWidth', 400);
 mglSetParam('screenHeight', 400);
+mglSetParam('numTextures', 0);
