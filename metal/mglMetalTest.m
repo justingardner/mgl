@@ -18,7 +18,6 @@ if nargin <= 1
     runWithXcode = true;
   end
 
-  mglSetParam('verbose',1);
   if runWithXcode
     fprintf('Startup mglMetal with XCode now...\n')
     mglMetalOpen(nan);
@@ -27,9 +26,10 @@ if nargin <= 1
   end
 
   % send ping to check communication
+  mglSetParam('verbose',1);
   myinput('Hit ENTER to ping: ');
   mgl.s = mglSocketWrite(mgl.s,uint16(mgl.command.ping));
-  mglFullscreen(0);
+  mglSetParam('verbose',0);
 
   %testText;
 
