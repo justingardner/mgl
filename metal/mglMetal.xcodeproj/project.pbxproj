@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		4DEBF1C02760EE3100AA81AA /* mglCommandBytesTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DEBF1BF2760EE3100AA81AA /* mglCommandBytesTest.swift */; };
 		D08D4BBE23B8834C00A27C79 /* mglCommandInterface.swift in Sources */ = {isa = PBXBuildFile; fileRef = D08D4BBD23B8834C00A27C79 /* mglCommandInterface.swift */; };
 		D0A59C7A23C2E41900D3AE93 /* mglSecs.m in Sources */ = {isa = PBXBuildFile; fileRef = D0A59C7923C2E41900D3AE93 /* mglSecs.m */; };
 		D0F6B96E23B6D9E700B45409 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0F6B96D23B6D9E700B45409 /* AppDelegate.swift */; };
@@ -39,6 +40,8 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		4DEBF1BC275FDEFC00AA81AA /* mglCommandBytes.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = mglCommandBytes.h; sourceTree = "<group>"; };
+		4DEBF1BF2760EE3100AA81AA /* mglCommandBytesTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglCommandBytesTest.swift; sourceTree = "<group>"; };
 		D08D4BBD23B8834C00A27C79 /* mglCommandInterface.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglCommandInterface.swift; sourceTree = "<group>"; };
 		D0A59C7823C2E41900D3AE93 /* mglSecs.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = mglSecs.h; sourceTree = "<group>"; };
 		D0A59C7923C2E41900D3AE93 /* mglSecs.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = mglSecs.m; sourceTree = "<group>"; };
@@ -126,6 +129,7 @@
 				D0F6B97623B6D9E800B45409 /* Info.plist */,
 				D0F6B97723B6D9E800B45409 /* mglMetal.entitlements */,
 				D0F6B9A123B6ED4300B45409 /* mglPrimitives.swift */,
+				4DEBF1BC275FDEFC00AA81AA /* mglCommandBytes.h */,
 			);
 			path = mglMetal;
 			sourceTree = "<group>";
@@ -135,6 +139,7 @@
 			children = (
 				D0F6B98023B6D9E800B45409 /* mglMetalTests.swift */,
 				D0F6B98223B6D9E800B45409 /* Info.plist */,
+				4DEBF1BF2760EE3100AA81AA /* mglCommandBytesTest.swift */,
 			);
 			path = mglMetalTests;
 			sourceTree = "<group>";
@@ -294,6 +299,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				4DEBF1C02760EE3100AA81AA /* mglCommandBytesTest.swift in Sources */,
 				D0F6B98123B6D9E800B45409 /* mglMetalTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

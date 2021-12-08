@@ -7,3 +7,4 @@
 
 #include "mglCommunicator.h"
 #include "mglSecs.h"
+#include "mglCommandBytes.h"

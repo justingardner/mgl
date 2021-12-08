@@ -35,7 +35,7 @@ class mglCommandInterface {
             try communicator.open("testsocket")
         }
         catch let error as NSError {
-            fatalError("(mglCommunicator) Error: \(error.domain) \(error.localizedDescription)")
+            print("(mglCommunicator) Error: \(error.domain) \(error.localizedDescription)")
         }
     }
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
