@@ -14,25 +14,25 @@
 #include <math.h>
 
 typedef enum mglCommandCode : uint16_t {
-    ping = 0,
-    clearScreen = 1,
-    dots = 2,
-    flush = 3,
-    setXform = 4,
-    line = 5,
-    quad = 6,
-    createTexture = 7,
-    bltTexture = 8,
-    test = 9,
-    fullscreen = 10,
-    windowed = 11,
-    blocking = 12,
-    nonblocking = 13,
-    profileon = 14,
-    profileoff = 15,
-    polygon = 16,
-    getSecs = 17,
-    errorOrUnknown = UINT16_MAX
+    mglPing = 0,
+    mglClearScreen = 1,
+    mglDots = 2,
+    mglFlush = 3,
+    mglSetXform = 4,
+    mglLine = 5,
+    mglQuad = 6,
+    mglCreateTexture = 7,
+    mglBltTexture = 8,
+    mglTest = 9,
+    mglFullscreen = 10,
+    mglWindowed = 11,
+    mglBlocking = 12,
+    mglNonblocking = 13,
+    mglProfileon = 14,
+    mglProfileoff = 15,
+    mglPolygon = 16,
+    mglGetSecs = 17,
+    mglErrorOrUnknown = UINT16_MAX
 } mglCommandCode;
 
 //
@@ -51,20 +51,20 @@ typedef size_t (*mglWriter) (const void * sourceBuffer, size_t n);
 // Read and write various scalars.
 //
 
-mglCommandCode readCommandCode(mglReader read) {
+static inline mglCommandCode mglReadCommandCode(mglReader read) {
     mglCommandCode value;
     size_t nRead = read(&value, sizeof(value));
     if (nRead == sizeof(value)) {
         return value;
     } else {
-        return errorOrUnknown;
+        return mglErrorOrUnknown;
     }
 }
-size_t writeCommandCode(mglWriter write, mglCommandCode value) {
+static inline size_t mglWriteCommandCode(mglWriter write, mglCommandCode value) {
     return write(&value, sizeof(value));
 }
 
-uint32_t readUInt32(mglReader read) {
+static inline uint32_t mglReadUInt32(mglReader read) {
     uint32_t value;
     size_t nRead = read(&value, sizeof(value));
     if (nRead == sizeof(value)) {
@@ -73,11 +73,11 @@ uint32_t readUInt32(mglReader read) {
         return UINT32_MAX;
     }
 }
-size_t writeUInt32(mglWriter write, uint32_t value) {
+static inline size_t mglWriteUInt32(mglWriter write, uint32_t value) {
     return write(&value, sizeof(value));
 }
 
-double readDouble(mglReader read) {
+static inline double mglReadDouble(mglReader read) {
     double value;
     size_t nRead = read(&value, sizeof(value));
     if (nRead == sizeof(value)) {
@@ -86,11 +86,11 @@ double readDouble(mglReader read) {
         return NAN;
     }
 }
-size_t writeDouble(mglWriter write, double value) {
+static inline size_t mglWriteDouble(mglWriter write, double value) {
     return write(&value, sizeof(value));
 }
 
-float readFloat(mglReader read) {
+static inline float mglReadFloat(mglReader read) {
     float value;
     size_t nRead = read(&value, sizeof(value));
     if (nRead == sizeof(value)) {
@@ -99,7 +99,7 @@ float readFloat(mglReader read) {
         return NAN;
     }
 }
-size_t writeFloat(mglWriter write, float value) {
+static inline size_t mglWriteFloat(mglWriter write, float value) {
     return write(&value, sizeof(value));
 }
 
@@ -107,46 +107,53 @@ size_t writeFloat(mglWriter write, float value) {
 // Read and write arrays of various types.
 //
 
-size_t sizeOfUInt32Array(size_t n) {
+static inline size_t mglReadByteArray(mglReader read, void * destinationBuffer, size_t n) {
+    return read(destinationBuffer, n);
+}
+static inline size_t mglWriteByteArray(mglWriter write, const void * sourceBuffer, size_t n) {
+    return write(sourceBuffer, n);
+}
+
+static inline size_t mglSizeOfUInt32Array(size_t n) {
     return sizeof(uint32_t) * n;
 }
-size_t readUInt32Array(mglReader read, uint32_t * destinationBuffer, size_t n) {
-    return read(destinationBuffer, sizeOfUInt32Array(n));
+static inline size_t mglReadUInt32Array(mglReader read, uint32_t * destinationBuffer, size_t n) {
+    return read(destinationBuffer, mglSizeOfUInt32Array(n));
 }
-size_t writeUInt32Array(mglWriter write, const uint32_t * sourceBuffer, size_t n) {
-    return write(sourceBuffer, sizeOfUInt32Array(n));
+static inline size_t mglWriteUInt32Array(mglWriter write, const uint32_t * sourceBuffer, size_t n) {
+    return write(sourceBuffer, mglSizeOfUInt32Array(n));
 }
 
-size_t sizeOfDoubleArray(size_t n) {
+static inline size_t mglSizeOfDoubleArray(size_t n) {
     return sizeof(double) * n;
 }
-size_t readDoubleArray(mglReader read, double * destinationBuffer, size_t n) {
-    return read(destinationBuffer, sizeOfDoubleArray(n));
+static inline size_t mglReadDoubleArray(mglReader read, double * destinationBuffer, size_t n) {
+    return read(destinationBuffer, mglSizeOfDoubleArray(n));
 }
-size_t writeDoubleArray(mglWriter write, const double * sourceBuffer, size_t n) {
-    return write(sourceBuffer, sizeOfDoubleArray(n));
+static inline size_t mglWriteDoubleArray(mglWriter write, const double * sourceBuffer, size_t n) {
+    return write(sourceBuffer, mglSizeOfDoubleArray(n));
 }
 
-size_t sizeOfFloatArray(size_t n) {
+static inline size_t mglSizeOfFloatArray(size_t n) {
     return sizeof(float) * n;
 }
-size_t sizeOfFloatVertexArray(size_t nVertices, size_t nDimensions) {
-    return sizeOfFloatArray(nVertices * nDimensions);
+static inline size_t mglSizeOfFloatVertexArray(size_t nVertices, size_t nDimensions) {
+    return mglSizeOfFloatArray(nVertices * nDimensions);
 }
-size_t sizeOfFloatRgbaTexture(size_t width, size_t height) {
-    return sizeOfFloatArray(4 * width * height);
+static inline size_t mglSizeOfFloatRgbaTexture(size_t width, size_t height) {
+    return mglSizeOfFloatArray(4 * width * height);
 }
-size_t sizeOfFloatRgb() {
-    return sizeOfFloatArray(3);
+static inline size_t mglSizeOfFloatRgb(void) {
+    return mglSizeOfFloatArray(3);
 }
-size_t sizeOfFloat4x4Matrix() {
-    return sizeOfFloatArray(16);
+static inline size_t mglSizeOfFloat4x4Matrix(void) {
+    return mglSizeOfFloatArray(16);
 }
-size_t readFloatArray(mglReader read, float * destinationBuffer, size_t n) {
-    return read(destinationBuffer, sizeOfFloatArray(n));
+static inline size_t mglReadFloatArray(mglReader read, float * destinationBuffer, size_t n) {
+    return read(destinationBuffer, mglSizeOfFloatArray(n));
 }
-size_t writeFloatArray(mglWriter write, const float * sourceBuffer, size_t n) {
-    return write(sourceBuffer, sizeOfFloatArray(n));
+static inline size_t mglWriteFloatArray(mglWriter write, const float * sourceBuffer, size_t n) {
+    return write(sourceBuffer, mglSizeOfFloatArray(n));
 }
 
 #endif /* mglCommandBytes_h */

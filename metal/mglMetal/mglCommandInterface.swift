@@ -12,19 +12,16 @@ import Foundation
 import MetalKit
 
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
-// A class which abstracts the mglCommunicatorProtocol
-// The ideas is that mglCommunicatorSocket which implements
-// the mglCommunicatorProtocol could be swaped
-// out with some other class that implements the protocol over
-// somet other way of communicating (e.g. shared memory) in
-// the future. This class then provides a programmatically
-// easy way to access data from matlab
+// A class which builds on the mglCommunicatorProtocol
+// to safely read and write supported data types to
+// and from a byte stream.  This uses the header
+// mglCommandBytes.h, which is also used by Matlab.
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
 class mglCommandInterface {
     // variable to hold mglCommunicator which
     // communicates with matlab
     var communicator : mglCommunicatorSocket
-    
+
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     // init
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
@@ -45,20 +42,12 @@ class mglCommandInterface {
         // close the socket
         communicator.close()
     }
-    
+
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     // readCommand
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
-    func readCommand() -> mglCommands {
-        // allocate data
-        let command = UnsafeMutablePointer<mglCommands>.allocate(capacity: 1)
-        defer {
-          command.deallocate()
-        }
-        // read 2 bytes of raw data
-        communicator.readData(2, buf: command);
-        // return what it points to
-        return(command.pointee)
+    func readCommand() -> mglCommandCode {
+        return mglReadCommandCode(communicator.reader());
     }
 
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
@@ -72,76 +61,52 @@ class mglCommandInterface {
     // readUINT32
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     func readUInt32() -> UInt32 {
-        // allocate data
-        let data = UnsafeMutablePointer<UInt32>.allocate(capacity: 1)
-        defer {
-          data.deallocate()
-        }
-        // read 4 bytes of raw data
-        communicator.readData(4,buf:data);
-        // return what it points to
-        return(data.pointee)
+        return mglReadUInt32(communicator.reader());
     }
-    
+
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     // readFloat
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     func readFloat() -> Float {
-        // allocate data
-        let data = UnsafeMutablePointer<Float>.allocate(capacity: 1)
-        defer {
-          data.deallocate()
-        }
-        // read a bytes of raw data
-        communicator.readData(4,buf:data);
-        // return what it points to
-        return(data.pointee)
+        return mglReadFloat(communicator.reader());
     }
-    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
-    // readData
-    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
-    func readData(count: Int, buf: UnsafeMutableRawPointer) {
-        // read data
-        communicator.readData(Int32(count),buf:buf);
-    }
-    
+
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     // readColor
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     func readColor() -> simd_float3 {
-        // allocate data
-        let data = UnsafeMutablePointer<simd_float3>.allocate(capacity: 1)
+        // Read plain old float array from the socket.
+        let data = UnsafeMutablePointer<Float>.allocate(capacity: mglSizeOfFloatRgb())
         defer {
-          data.deallocate()
+            data.deallocate()
         }
+        mglReadFloatArray(communicator.reader(), data, mglSizeOfFloatRgb());
 
-        // read 12 bytes of raw data
-        communicator.readData(4*3,buf:data);
-
-        // return what it points to
-        return(data.pointee)
+        // Let the library decide how simd vectors are aligned and packed.
+        return(simd_make_float3(data[0], data[1], data[2]))
     }
-    
+
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     // readVertices
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     func readVertices(device: MTLDevice, extraVals: Int = 0) -> (buffer: MTLBuffer, vertexCount: Int) {
         // Get the number of vertices
         let vertexCount = Int(readUInt32())
-        print("(commandInterface:readVerticesWithColor) VertexCount: \(vertexCount)")
-        
+        print("(commandInterface:readVertices) VertexCount: \(vertexCount)")
+
         // calculate how many floats we have per vertex. ExtraVals can be used
         // for things like color or texture coordinates
         let valsPerVertex = 3 + extraVals
-        
+        let bufferSize = mglSizeOfFloatVertexArray(vertexCount, valsPerVertex)
+
         // get an MTLBuffer from the GPU
-        guard let vertexBuffer = device.makeBuffer(length: vertexCount * valsPerVertex * MemoryLayout<Float>.stride) else {
-            fatalError("(mglMetal:mglCommandInterface) Could not make vertex buffer of size \(vertexCount) * \(valsPerVertex) * \(MemoryLayout<Float>.stride)")
+        guard let vertexBuffer = device.makeBuffer(length: bufferSize) else {
+            fatalError("(commandInterface:readVertices) Could not make vertex buffer of size \(bufferSize)")
         }
-        
+
         // Read the data into the MTLBuffer
-        readData(count: vertexCount * valsPerVertex * MemoryLayout<Float>.stride, buf: vertexBuffer.contents())
-        
+        mglReadByteArray(communicator.reader(), vertexBuffer.contents(), bufferSize)
+
         // return the MTLBuffer
         return(vertexBuffer, vertexCount)
     }
@@ -154,25 +119,25 @@ class mglCommandInterface {
         let textureWidth = Int(readUInt32())
         let textureHeight = Int(readUInt32())
         print("(commandInterface:readTexture) textureWidth: \(textureWidth) textureHeight: \(textureHeight)")
-        
+
         // set the texture descriptor
         let textureDescriptor = MTLTextureDescriptor.texture2DDescriptor(
-                pixelFormat: .rgba32Float,
-                width: Int(textureWidth),
-                height: Int(textureHeight),
-                mipmapped: false)
-        
+            pixelFormat: .rgba32Float,
+            width: Int(textureWidth),
+            height: Int(textureHeight),
+            mipmapped: false)
+
         // compute size of texture in bytes (4 is for RGBA)
-        let textureSize = textureWidth * textureHeight * 4 * MemoryLayout<Float>.size
-        
+        let textureSize = mglSizeOfFloatRgbaTexture(textureWidth, textureHeight)
+
         // get an MTLBuffer from the GPU to store image data in
         guard let textureBuffer = device.makeBuffer(length: textureSize, options: .storageModeManaged) else {
             fatalError("(mglMetal:mglCommandInterface) Could not make texture buffer of size:  \(textureWidth) * \(textureHeight)")
         }
-        
+
         // Read the data into the MTLBuffer
-        readData(count: textureSize, buf: textureBuffer.contents())
-        
+        mglReadByteArray(communicator.reader(), textureBuffer.contents(), textureSize)
+
         // Now make the buffer into a texture
         guard let texture = textureBuffer.makeTexture(descriptor: textureDescriptor, offset: 0, bytesPerRow: textureWidth * 4 * MemoryLayout<Float>.size) else {
             fatalError("(mglMetal:mglCommandInterface) Could not make texture from texture buffer of size:  \(textureWidth) * \(textureHeight)")
@@ -182,30 +147,31 @@ class mglCommandInterface {
         // return the texture
         return(texture)
     }
-    
+
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     // readXform
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     func readXform() -> simd_float4x4 {
-        // allocate data
-        let data = UnsafeMutablePointer<simd_float4x4>.allocate(capacity: 1)
+        // Read plain old float array from the socket.
+        let data = UnsafeMutablePointer<Float>.allocate(capacity: mglSizeOfFloat4x4Matrix())
         defer {
-          data.deallocate()
+            data.deallocate()
         }
+        mglReadFloatArray(communicator.reader(), data, mglSizeOfFloat4x4Matrix());
 
-        // read 4 bytes of raw data
-        communicator.readData(4*4*4,buf:data);
-
-        // return what it points to
-        return(data.pointee)
+        // Let the library decide how simd vectors are aligned and packed.
+        let column0 = simd_make_float4(data[0], data[1], data[2], data[3])
+        let column1 = simd_make_float4(data[4], data[5], data[6], data[7])
+        let column2 = simd_make_float4(data[8], data[9], data[10], data[11])
+        let column3 = simd_make_float4(data[12], data[13], data[14], data[15])
+        return(simd_float4x4(column0, column1, column2, column3))
     }
-    
-//\/\/\/\/\/\/\/\/\/\/\/\/\/\/
+
+    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     // writeDouble
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     func writeDouble(data: Double) {
-        // pass on to communicator
-        communicator.writeDataDouble(data);
+        mglWriteDouble(communicator.writer(), data)
     }
 
 }

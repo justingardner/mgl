@@ -16,29 +16,6 @@ import MetalKit
 import AppKit
 
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
-// Enum of command codes
-//\/\/\/\/\/\/\/\/\/\/\/\/\/\/
-enum mglCommands : UInt16 {
-    case ping = 0
-    case clearScreen = 1
-    case dots = 2
-    case flush = 3
-    case setXform = 4
-    case line = 5
-    case quad = 6
-    case createTexture = 7
-    case bltTexture = 8
-    case test = 9
-    case fullscreen = 10
-    case windowed = 11
-    case blocking = 12
-    case nonblocking = 13
-    case profileon = 14
-    case profileoff = 15
-    case polygon = 16
-    case getSecs = 17
-}
-//\/\/\/\/\/\/\/\/\/\/\/\/\/\/
 // mglRenderer: Class does most of the work
 // handles initializing of the GPU, pipeline states etc
 // handles the frame updates and drawing as well as resizing
@@ -94,7 +71,7 @@ class mglRenderer: NSObject {
         // tell the view aand renderer about the device
         metalView.device = device
         mglRenderer.device = device
-         
+
         // initialize the command queue
         mglRenderer.commandQueue = device.makeCommandQueue()!
         
@@ -132,7 +109,7 @@ class mglRenderer: NSObject {
         do {
             pipelineState = try device.makeRenderPipelineState(descriptor: pipelineDescriptor)
         } catch let error {
-           fatalError(error.localizedDescription)
+            fatalError(error.localizedDescription)
         }
         
         // Set up a pipelineState for rendering dots
@@ -148,7 +125,7 @@ class mglRenderer: NSObject {
         do {
             pipelineStateDots = try device.makeRenderPipelineState(descriptor: pipelineDescriptor)
         } catch let error {
-           fatalError(error.localizedDescription)
+            fatalError(error.localizedDescription)
         }
 
         // Set up a pipelineState for rendering textures
@@ -165,7 +142,7 @@ class mglRenderer: NSObject {
         do {
             pipelineStateTextures = try device.makeRenderPipelineState(descriptor: pipelineDescriptor)
         } catch let error {
-           fatalError(error.localizedDescription)
+            fatalError(error.localizedDescription)
         }
 
         // add attribute for color
@@ -181,7 +158,7 @@ class mglRenderer: NSObject {
         do {
             pipelineStateVertexWithColor = try device.makeRenderPipelineState(descriptor: pipelineDescriptor)
         } catch let error {
-           fatalError(error.localizedDescription)
+            fatalError(error.localizedDescription)
         }
 
         // init the super class
@@ -189,7 +166,7 @@ class mglRenderer: NSObject {
         
         // Set the clear color for the view
         metalView.clearColor = MTLClearColor(red: 0.5, green: 0.5,
-                                              blue: 0.5, alpha: 1)
+                                             blue: 0.5, alpha: 1)
         // Tell the view that this class will be used as the
         // delegate - this makes it so that the view will call
         // the draw function each frame update and the resize function
@@ -197,8 +174,8 @@ class mglRenderer: NSObject {
         
         // Done. Print out that we did something.
         print("(mglMetal:mglRenderer) Init mglRenderer")
-     }
- }
+    }
+}
 
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
 // mtkViewDelegate: adds functionality to take care of
@@ -209,7 +186,7 @@ extension mglRenderer: MTKViewDelegate {
     // mtkView delegate function that runs when drawable size changes
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {
-       print("(mglMetal:mglRenderer) drawableSizeWillChange \(size)")
+        print("(mglMetal:mglRenderer) drawableSizeWillChange \(size)")
 
     }
     
@@ -227,10 +204,10 @@ extension mglRenderer: MTKViewDelegate {
         
         // Get the commandBuffer and renderEncoder
         guard let descriptor = view.currentRenderPassDescriptor,
-        let commandBuffer = mglRenderer.commandQueue.makeCommandBuffer(),
-        let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: descriptor) else {
-            return
-        }
+              let commandBuffer = mglRenderer.commandQueue.makeCommandBuffer(),
+              let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: descriptor) else {
+                  return
+              }
         
         // set deg2metal in renderEncoder
         renderEncoder.setVertexBytes(&deg2metal, length: MemoryLayout<float4x4>.stride, index: 1)
@@ -241,42 +218,44 @@ extension mglRenderer: MTKViewDelegate {
             if commandInterface.dataWaiting() {
                 let command = commandInterface.readCommand()
                 switch command {
-                    case mglCommands.ping: print("ping")
-                    case mglCommands.clearScreen: clearScreen(view : view, renderEncoder: renderEncoder)
-                    case mglCommands.dots: dots(view: view, renderEncoder: renderEncoder)
-                    case mglCommands.createTexture: createTexture(view: view, renderEncoder: renderEncoder)
-                    case mglCommands.bltTexture: bltTexture(view: view, renderEncoder: renderEncoder)
-                    case mglCommands.setXform: setXform(renderEncoder: renderEncoder)
-                    case mglCommands.line: drawVerticesWithColor(view: view, renderEncoder: renderEncoder, primitiveType: .line)
-                    case mglCommands.quad: drawVerticesWithColor(view: view, renderEncoder: renderEncoder, primitiveType: .triangle)
-                    case mglCommands.polygon: drawVerticesWithColor(view: view, renderEncoder: renderEncoder, primitiveType: .triangleStrip)
-                    case mglCommands.fullscreen:
-                        fullscreen(view: view, renderEncoder: renderEncoder)
-                        readCommands = false
-                    case mglCommands.windowed:
-                        windowed(view: view, renderEncoder: renderEncoder)
-                        readCommands = false
-                    case mglCommands.test: test(view: view, renderEncoder: renderEncoder)
-                    case mglCommands.blocking:
-                        blocking = true
-                        print("(mglRenderer) Blocking")
-                    case mglCommands.nonblocking:
-                        blocking = false
-                        print("(mglRenderer) Non-blocking")
-                    case mglCommands.profileon:
-                        profile = true
-                    case mglCommands.profileoff:
-                        profile = false
-                    case mglCommands.flush:
-                        readCommands = false
-                        acknowledgeFlush = true
-                    case mglCommands.getSecs:
-                        commandInterface.writeDouble(data: secs.get())
+                case mglPing: print("ping")
+                case mglClearScreen: clearScreen(view : view, renderEncoder: renderEncoder)
+                case mglDots: dots(view: view, renderEncoder: renderEncoder)
+                case mglCreateTexture: createTexture(view: view, renderEncoder: renderEncoder)
+                case mglBltTexture: bltTexture(view: view, renderEncoder: renderEncoder)
+                case mglSetXform: setXform(renderEncoder: renderEncoder)
+                case mglLine: drawVerticesWithColor(view: view, renderEncoder: renderEncoder, primitiveType: .line)
+                case mglQuad: drawVerticesWithColor(view: view, renderEncoder: renderEncoder, primitiveType: .triangle)
+                case mglPolygon: drawVerticesWithColor(view: view, renderEncoder: renderEncoder, primitiveType: .triangleStrip)
+                case mglFullscreen:
+                    fullscreen(view: view, renderEncoder: renderEncoder)
+                    readCommands = false
+                case mglWindowed:
+                    windowed(view: view, renderEncoder: renderEncoder)
+                    readCommands = false
+                case mglTest: test(view: view, renderEncoder: renderEncoder)
+                case mglBlocking:
+                    blocking = true
+                    print("(mglRenderer) Blocking")
+                case mglNonblocking:
+                    blocking = false
+                    print("(mglRenderer) Non-blocking")
+                case mglProfileon:
+                    profile = true
+                case mglProfileoff:
+                    profile = false
+                case mglFlush:
+                    readCommands = false
+                    acknowledgeFlush = true
+                case mglGetSecs:
+                    commandInterface.writeDouble(data: secs.get())
+                default:
+                    print("(mglRenderer) Unknown command code: \(command)")
                 }
                 // if we have received any command then kick into blocking wait mode
                 blocking = true;
                 // if we are in profile mode, then return profiling time
-                if profile && (command != mglCommands.flush) {
+                if profile && (command != mglFlush) {
                     // write current time in mglSecs
                     commandInterface.writeDouble(data: secs.get())
                 }
@@ -301,7 +280,7 @@ extension mglRenderer: MTKViewDelegate {
 
         // set the drawable, present and commit - should draw after this
         guard let drawable = view.currentDrawable else {
-             return
+            return
         }
         commandBuffer.present(drawable)
         commandBuffer.commit()
@@ -375,7 +354,7 @@ extension mglRenderer: MTKViewDelegate {
 
         // set the vertices in the renderEncoder
         renderEncoder.setVertexBuffer(vertexBufferTexture, offset: 0, index: 0)
-            
+
         // send the texture to the renderEncoder
         renderEncoder.setFragmentTexture(texture, index:0)
 
@@ -503,64 +482,64 @@ extension mglRenderer: MTKViewDelegate {
         //view.window?.toggleFullScreen(nil)
         //view.window?.alphaValue(0.5)
         //view.window?.isOpage(false)
-/*
-        var diffuseTexture : MTLTexture!
-        let fileLocation = "file://Users/justin/Library/Containers/gru.mglMetal/Data/texture.png"
-        if let textureUrl = NSURL(string: fileLocation) {
-            let textureLoader = MTKTextureLoader(device: mglRenderer.device)
-            do {
-               diffuseTexture =
-                try textureLoader.newTexture(
-                    URL: textureUrl as URL,
-                       options: nil)
-                  } catch _ {
-                       print("diffuseTexture assignment failed")
-                    }
-                }
+        /*
+         var diffuseTexture : MTLTexture!
+         let fileLocation = "file://Users/justin/Library/Containers/gru.mglMetal/Data/texture.png"
+         if let textureUrl = NSURL(string: fileLocation) {
+         let textureLoader = MTKTextureLoader(device: mglRenderer.device)
+         do {
+         diffuseTexture =
+         try textureLoader.newTexture(
+         URL: textureUrl as URL,
+         options: nil)
+         } catch _ {
+         print("diffuseTexture assignment failed")
+         }
+         }
          renderEncoder.setFragmentTexture(diffuseTexture, index:1)
-        print(diffuseTexture)
-*/
+         print(diffuseTexture)
+         */
         /*
-        let options: [MTKTextureLoader.Option : Any] = [.generateMipmaps : true, .SRGB : true]
-        let textureLoader = MTKTextureLoader(device: mglRenderer.device)
-        let baseColorTexture = try? textureLoader.newTexture(name: "texture", scaleFactor: 1.0, bundle: nil, options: options)
-        print(baseColorTexture!)
-        renderEncoder.setFragmentTexture(baseColorTexture, index:2)
- */
+         let options: [MTKTextureLoader.Option : Any] = [.generateMipmaps : true, .SRGB : true]
+         let textureLoader = MTKTextureLoader(device: mglRenderer.device)
+         let baseColorTexture = try? textureLoader.newTexture(name: "texture", scaleFactor: 1.0, bundle: nil, options: options)
+         print(baseColorTexture!)
+         renderEncoder.setFragmentTexture(baseColorTexture, index:2)
+         */
         /*
-                struct SkySettings {
-                var turbidity: Float = 0.28
-                var sunElevation: Float = 0.6
-                var upperAtmosphereScattering: Float = 0.1
-                var groundAlbedo: Float = 4
-                }
-                var skySettings = SkySettings()
-          var theskytexture: MTLTexture?
-          var dimensions = [256, 256]
-          let skyTexture = MDLSkyCubeTexture(name: "sky",channelEncoding: .uInt8, textureDimensions: [256, 256], turbidity: skySettings.turbidity, sunElevation: skySettings.sunElevation, upperAtmosphereScattering:skySettings.upperAtmosphereScattering, groundAlbedo: skySettings.groundAlbedo)
-        do {
-          let textureLoader =
-        MTKTextureLoader(device: mglRenderer.device)
-        theskytexture = try textureLoader.newTexture(texture: skyTexture, options: nil)
+         struct SkySettings {
+         var turbidity: Float = 0.28
+         var sunElevation: Float = 0.6
+         var upperAtmosphereScattering: Float = 0.1
+         var groundAlbedo: Float = 4
+         }
+         var skySettings = SkySettings()
+         var theskytexture: MTLTexture?
+         var dimensions = [256, 256]
+         let skyTexture = MDLSkyCubeTexture(name: "sky",channelEncoding: .uInt8, textureDimensions: [256, 256], turbidity: skySettings.turbidity, sunElevation: skySettings.sunElevation, upperAtmosphereScattering:skySettings.upperAtmosphereScattering, groundAlbedo: skySettings.groundAlbedo)
+         do {
+         let textureLoader =
+         MTKTextureLoader(device: mglRenderer.device)
+         theskytexture = try textureLoader.newTexture(texture: skyTexture, options: nil)
 
-        }
-        catch {
-            print(error.localizedDescription)
-        }
-        print(theskytexture)
-        */
-  /*              // TODO: Setup vertex and fragment shaders
-       renderEncoder.setFragmentTexture(theskytexture, index:1)
-  */
+         }
+         catch {
+         print(error.localizedDescription)
+         }
+         print(theskytexture)
+         */
+        /*              // TODO: Setup vertex and fragment shaders
+         renderEncoder.setFragmentTexture(theskytexture, index:1)
+         */
         // set the renderEncoder pipeline state
-       //renderEncoder.setRenderPipelineState(pipelineState)
-       
-       // Give it our vertices
-       //renderEncoder.setVertexBuffer(vertexBuffer, offset: 0, index: 0)
-       //for submesh in mesh.submeshes {renderEncoder.drawIndexedPrimitives(type: .triangle,indexCount: submesh.indexCount,indexType: submesh.indexType, indexBuffer: submesh.indexBuffer.buffer, indexBufferOffset: submesh.indexBuffer.offset)
-       //}
-       // done
-       //renderEncoder.endEncoding()
+        //renderEncoder.setRenderPipelineState(pipelineState)
+
+        // Give it our vertices
+        //renderEncoder.setVertexBuffer(vertexBuffer, offset: 0, index: 0)
+        //for submesh in mesh.submeshes {renderEncoder.drawIndexedPrimitives(type: .triangle,indexCount: submesh.indexCount,indexType: submesh.indexType, indexBuffer: submesh.indexBuffer.buffer, indexBufferOffset: submesh.indexBuffer.offset)
+        //}
+        // done
+        //renderEncoder.endEncoding()
         // print vertices out (for debugging)
         //do {
         //    let rawPointer = vertexBufferDots.contents()
@@ -568,9 +547,9 @@ extension mglRenderer: MTKViewDelegate {
         //    let bufferPointer = UnsafeBufferPointer<Float>(start: typedPointer, count: vertexCount * 3)
         //    for (index, value) in bufferPointer.enumerated() {
         //        print("Vertex value: \(index): \(value)")
-         //   }
+        //   }
         //}
 
-   }
+    }
 
 }
