@@ -76,11 +76,11 @@ class mglCommandInterface {
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     func readColor() -> simd_float3 {
         // Read plain old float array from the socket.
-        let data = UnsafeMutablePointer<Float>.allocate(capacity: mglSizeOfFloatRgb())
+        let data = UnsafeMutablePointer<Float>.allocate(capacity: 3)
         defer {
             data.deallocate()
         }
-        mglReadFloatArray(communicator.reader(), data, mglSizeOfFloatRgb());
+        mglReadFloatArray(communicator.reader(), data, 3);
 
         // Let the library decide how simd vectors are aligned and packed.
         return(simd_make_float3(data[0], data[1], data[2]))
@@ -153,11 +153,15 @@ class mglCommandInterface {
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     func readXform() -> simd_float4x4 {
         // Read plain old float array from the socket.
-        let data = UnsafeMutablePointer<Float>.allocate(capacity: mglSizeOfFloat4x4Matrix())
+        let dataBytes = mglSizeOfFloat4x4Matrix()
+        print("I want a transform of \(dataBytes) bytes.")
+        let data = UnsafeMutablePointer<Float>.allocate(capacity: 16)
         defer {
             data.deallocate()
         }
-        mglReadFloatArray(communicator.reader(), data, mglSizeOfFloat4x4Matrix());
+        mglReadFloatArray(communicator.reader(), data, 16);
+
+        print("I got a transform.")
 
         // Let the library decide how simd vectors are aligned and packed.
         let column0 = simd_make_float4(data[0], data[1], data[2], data[3])

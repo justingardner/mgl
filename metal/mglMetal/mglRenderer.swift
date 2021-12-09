@@ -268,7 +268,7 @@ extension mglRenderer: MTKViewDelegate {
                     //let nextEvent = window.nextEvent(matching: [.mouseEntered, .keyDown, .keyUp, .leftMouseDown, .leftMouseDragged, .leftMouseUp, .appKitDefined, .systemDefined, .applicationDefined])
                     let nextEvent = window.nextEvent(matching: .any)
                     if !(nextEvent == nil) {
-                        print("(mglRenderer) Processing OS events")
+                        //print("(mglRenderer) Processing OS events")
                         readCommands = false
                     }
                 }
