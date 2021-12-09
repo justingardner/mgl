@@ -69,7 +69,9 @@ end
 %start up mglMetal
 if ~isnan(whichScreen)
     fprintf('(mglMetalOpen) Starting up mglMetal executable: %s\n',metalAppName);
-    system(sprintf('open %s',metalAppName));
+    socketAddress = 'testsocket';
+    fprintf('(mglMetalOpen) using socket address: %s\n', socketAddress);
+    system(sprintf('open %s --args -mglConnectionAddress %s', metalAppName, socketAddress));
 end
 
 % Wait until a connection is established with the mglMetal proecess.

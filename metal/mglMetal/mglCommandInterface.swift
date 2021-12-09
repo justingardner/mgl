@@ -16,23 +16,32 @@ import MetalKit
 // to safely read and write supported data types to
 // and from a byte stream.  This uses the header
 // mglCommandBytes.h, which is also used by Matlab.
+//
+// This opens a connection to Matlab based on a socket
+// address passed as a command line option:
+//   mglMetal ... -mglConnectionAddress my-address
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
 class mglCommandInterface {
-    // variable to hold mglCommunicator which
-    // communicates with matlab
-    var communicator : mglCommunicatorSocket
+    let communicator: mglCommunicatorProtocol = mglCommunicatorSocket()
 
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     // init
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     init() {
-        // Setup communication with matlab
-        communicator = mglCommunicatorSocket()
+        // Get the socket address to use from the command line
+        let arguments = CommandLine.arguments
+        guard let optionIndex = arguments.firstIndex(of: "-mglConnectionAddress"),
+              let address = arguments.indices.contains(optionIndex + 1) ? arguments[optionIndex + 1] : nil else {
+                  print("(mglCommandInterface) no value given for -mglConnectionAddress on command line, running with no connection.")
+                  return;
+              }
+
+        print("(mglCommandInterface) using socket address \(address)")
         do {
-            try communicator.open("testsocket")
+            try communicator.open(address)
         }
         catch let error as NSError {
-            print("(mglCommunicator) Error: \(error.domain) \(error.localizedDescription)")
+            fatalError("(mglCommunicator) Error: \(error.domain) \(error.localizedDescription)")
         }
     }
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
