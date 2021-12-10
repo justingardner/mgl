@@ -8,17 +8,16 @@
 
 import Foundation
 
-class mglLocalServer {
-
-    let maxConnections = Int32(500)
-    let pollMilliseconds = Int32(10)
+class mglLocalServer : mglServer {
 
     let pathToBind: String
-    let boundSocketDescriptor: Int32
+    let maxConnections: Int32 = Int32(500)
+    let pollMilliseconds: Int32 = Int32(10)
 
+    let boundSocketDescriptor: Int32
     var acceptedSocketDescriptor: Int32 = -1
 
-    init(pathToBind: String) {
+    init(pathToBind: String, maxConnections: Int32 = Int32(500), pollMilliseconds: Int32 = Int32(10)) {
         print("(mglLocalServer) Starting with path to bind: \(pathToBind)")
         self.pathToBind = pathToBind
 
@@ -32,6 +31,11 @@ class mglLocalServer {
         boundSocketDescriptor = socket(AF_UNIX, SOCK_STREAM, 0)
         if boundSocketDescriptor < 0 {
             fatalError("(mglLocalServer) Could not create socket: \(boundSocketDescriptor) errno: \(errno)")
+        }
+
+        let nonblockingResult = fcntl(boundSocketDescriptor, F_SETFL, O_NONBLOCK)
+        if nonblockingResult < 0 {
+            fatalError("(mglLocalServer) Could not set socket to nonblocking: \(nonblockingResult) errno: \(errno)")
         }
 
         var address = sockaddr_un()
@@ -80,11 +84,22 @@ class mglLocalServer {
         }
     }
 
-    func waitForClientToConnect() {
-        disconnect()
-        print("(mglLocalServer) Waiting until a client connects at path: \(pathToBind)")
+    func acceptClientConnection() -> Bool {
+        if clientIsAccepted() {
+            return true
+        }
+
         acceptedSocketDescriptor = accept(boundSocketDescriptor, nil, nil)
-        print("(mglLocalServer) Accepted a client connection at path: \(pathToBind)")
+        if (acceptedSocketDescriptor >= 0) {
+            print("(mglLocalServer) Accepted a new client connection at path: \(pathToBind)")
+            return true
+        }
+
+        // Since this is a nonblockign socket, it's OK for accept to return -1 -- as long as errno is EAGAIN or EWOULDBLOCK.
+        if (errno != EAGAIN || errno != EWOULDBLOCK) {
+            fatalError("(mglLocalServer) Could not accept client connection: \(acceptedSocketDescriptor) errno: \(errno)")
+        }
+        return false;
     }
 
     func dataWaiting() -> Bool {

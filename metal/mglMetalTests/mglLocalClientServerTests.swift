@@ -26,7 +26,8 @@ class mglLocalSocketTests: XCTestCase {
         XCTAssertGreaterThanOrEqual(client.socketDescriptor, 0)
 
         // Let the server accept the client's connection.
-        server.waitForClientToConnect()
+        let accepted = server.acceptClientConnection()
+        XCTAssertTrue(accepted)
         XCTAssertTrue(server.clientIsAccepted())
     }
 

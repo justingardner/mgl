@@ -12,87 +12,130 @@ import Foundation
 import MetalKit
 
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
-// A class which builds on the mglCommunicatorProtocol
-// to safely read and write supported data types to
-// and from a byte stream.  This uses the header
-// mglCommandBytes.h, which is also used by Matlab.
+// This class combines an mglServer instance with
+// the header mglCommandTypes.h, which is also used
+// in our Matlab code, to safely read and write
+// supported commands and data types.
 //
-// This opens a connection to Matlab based on a socket
-// address passed as a command line option:
+// This opens a connection to Matlab based on a
+// connection address passed as a command line option:
 //   mglMetal ... -mglConnectionAddress my-address
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
 class mglCommandInterface {
-    let communicator: mglCommunicatorProtocol = mglCommunicatorSocket()
+    private let server: mglServer
 
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     // init
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     init() {
-        // Get the socket address to use from the command line
+        // Get the connection address to use from the command line
         let arguments = CommandLine.arguments
-        guard let optionIndex = arguments.firstIndex(of: "-mglConnectionAddress"),
-              let address = arguments.indices.contains(optionIndex + 1) ? arguments[optionIndex + 1] : nil else {
-                  print("(mglCommandInterface) no value given for -mglConnectionAddress on command line, running with no connection.")
-                  return;
-              }
+        let optionIndex = arguments.firstIndex(of: "-mglConnectionAddress") ?? -2
+        if optionIndex < 0 {
+            print("(mglCommandInterface) no command line option passed for -mglConnectionAddress, using a default address.")
+        }
+        let address = arguments.indices.contains(optionIndex + 1) ? arguments[optionIndex + 1] : "test"
+        print("(mglCommandInterface) using connection address \(address)")
 
-        print("(mglCommandInterface) using socket address \(address)")
-        do {
-            try communicator.open(address)
-        }
-        catch let error as NSError {
-            fatalError("(mglCommunicator) Error: \(error.domain) \(error.localizedDescription)")
-        }
-    }
-    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
-    // deinit
-    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
-    deinit {
-        // close the socket
-        communicator.close()
+        // In the future we might inspect the address to decide what kind of server to create,
+        // like local socket vs internet socket, vs shared memory, etc.
+        // For now, we always interpret the address as a file system path for a local socket.
+        server = mglLocalServer(pathToBind: address)
     }
 
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
-    // readCommand
+    // waitForClientToConnect
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
-    func readCommand() -> mglCommandCode {
-        return mglReadCommandCode(communicator.reader());
+    func acceptClientConnection() -> Bool {
+        return server.acceptClientConnection()
     }
 
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     // dataWaiting
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     func dataWaiting() -> Bool {
-        return communicator.dataWaiting()
+        return server.dataWaiting()
+    }
+
+    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
+    // readCommand
+    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
+    func readCommand() -> mglCommandCode {
+        var data = mglUnknownCommand
+        let expectedByteCount = MemoryLayout<mglCommandCode>.size
+        let bytesRead = server.readData(buffer: &data, expectedByteCount: expectedByteCount)
+        if (bytesRead != expectedByteCount) {
+            fatalError("(mglCommandInterface:readCommand) Expected to read \(expectedByteCount) bytes but read \(bytesRead)")
+        }
+        return data
     }
 
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     // readUINT32
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
-    func readUInt32() -> UInt32 {
-        return mglReadUInt32(communicator.reader());
+    func readUInt32() -> mglUInt32 {
+        var data = mglUInt32(0)
+        let expectedByteCount = MemoryLayout<mglUInt32>.size
+        let bytesRead = server.readData(buffer: &data, expectedByteCount: expectedByteCount)
+        if (bytesRead != expectedByteCount) {
+            fatalError("(mglCommandInterface:readUInt32) Expected to read \(expectedByteCount) bytes but read \(bytesRead)")
+        }
+        return data
     }
 
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     // readFloat
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
-    func readFloat() -> Float {
-        return mglReadFloat(communicator.reader());
+    func readFloat() -> mglFloat {
+        var data = mglFloat(0)
+        let expectedByteCount = MemoryLayout<mglFloat>.size
+        let bytesRead = server.readData(buffer: &data, expectedByteCount: expectedByteCount)
+        if (bytesRead != expectedByteCount) {
+            fatalError("(mglCommandInterface:readFloat) Expected to read \(expectedByteCount) bytes but read \(bytesRead)")
+        }
+        return data
     }
 
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     // readColor
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     func readColor() -> simd_float3 {
-        // Read plain old float array from the socket.
         let data = UnsafeMutablePointer<Float>.allocate(capacity: 3)
         defer {
             data.deallocate()
         }
-        mglReadFloatArray(communicator.reader(), data, 3);
 
-        // Let the library decide how simd vectors are aligned and packed.
-        return(simd_make_float3(data[0], data[1], data[2]))
+        let expectedByteCount = Int(mglSizeOfFloatRgbColor())
+        let bytesRead = server.readData(buffer: data, expectedByteCount: expectedByteCount)
+        if (bytesRead != expectedByteCount) {
+            fatalError("(mglCommandInterface:readColor) Expected to read \(expectedByteCount) bytes but read \(bytesRead)")
+        }
+
+        // Let the library decide how simd vectors are packed.
+        return simd_make_float3(data[0], data[1], data[2])
+    }
+
+    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
+    // readXform
+    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
+    func readXform() -> simd_float4x4 {
+        let data = UnsafeMutablePointer<Float>.allocate(capacity: 16)
+        defer {
+            data.deallocate()
+        }
+
+        let expectedByteCount = Int(mglSizeOfFloat4x4Matrix())
+        let bytesRead = server.readData(buffer: data, expectedByteCount: expectedByteCount)
+        if (bytesRead != expectedByteCount) {
+            fatalError("(mglCommandInterface:readXform) Expected to read \(expectedByteCount) bytes but read \(bytesRead)")
+        }
+
+        // Let the library decide how simd vectors are packed.
+        let column0 = simd_make_float4(data[0], data[1], data[2], data[3])
+        let column1 = simd_make_float4(data[4], data[5], data[6], data[7])
+        let column2 = simd_make_float4(data[8], data[9], data[10], data[11])
+        let column3 = simd_make_float4(data[12], data[13], data[14], data[15])
+        return(simd_float4x4(column0, column1, column2, column3))
     }
 
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
@@ -101,23 +144,24 @@ class mglCommandInterface {
     func readVertices(device: MTLDevice, extraVals: Int = 0) -> (buffer: MTLBuffer, vertexCount: Int) {
         // Get the number of vertices
         let vertexCount = Int(readUInt32())
-        print("(commandInterface:readVertices) VertexCount: \(vertexCount)")
+        print("(mglCommandInterface:readVertices) vertexCount: \(vertexCount)")
 
-        // calculate how many floats we have per vertex. ExtraVals can be used
-        // for things like color or texture coordinates
-        let valsPerVertex = 3 + extraVals
-        let bufferSize = mglSizeOfFloatVertexArray(vertexCount, valsPerVertex)
+        // Calculate how many floats we have per vertex.
+        // Start with 3 for XYZ, plus extraVals which can be used for things like color or texture coordinates.
+        let valsPerVertex = mglUInt32(3 + extraVals)
+        let expectedByteCount = Int(mglSizeOfFloatVertexArray(mglUInt32(vertexCount), valsPerVertex))
 
         // get an MTLBuffer from the GPU
-        guard let vertexBuffer = device.makeBuffer(length: bufferSize) else {
-            fatalError("(commandInterface:readVertices) Could not make vertex buffer of size \(bufferSize)")
+        guard let vertexBuffer = device.makeBuffer(length: expectedByteCount) else {
+            fatalError("(mglCommandInterface:readVertices) Could not make vertex buffer of size \(expectedByteCount)")
         }
 
-        // Read the data into the MTLBuffer
-        mglReadByteArray(communicator.reader(), vertexBuffer.contents(), bufferSize)
-
-        // return the MTLBuffer
-        return(vertexBuffer, vertexCount)
+        let bytesRead = server.readData(buffer: vertexBuffer.contents(), expectedByteCount: expectedByteCount)
+        if (bytesRead == expectedByteCount) {
+            return (vertexBuffer, vertexCount)
+        } else {
+            fatalError("(mglCommandInterface:readVertices) Expected to read \(expectedByteCount) bytes but read \(bytesRead)")
+        }
     }
 
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
@@ -127,64 +171,45 @@ class mglCommandInterface {
         // Read the texture width and height
         let textureWidth = Int(readUInt32())
         let textureHeight = Int(readUInt32())
-        print("(commandInterface:readTexture) textureWidth: \(textureWidth) textureHeight: \(textureHeight)")
+        print("(mglCommandInterface:readTexture) textureWidth: \(textureWidth) textureHeight: \(textureHeight)")
 
-        // set the texture descriptor
+        // Set the texture descriptor
         let textureDescriptor = MTLTextureDescriptor.texture2DDescriptor(
             pixelFormat: .rgba32Float,
             width: Int(textureWidth),
             height: Int(textureHeight),
             mipmapped: false)
 
-        // compute size of texture in bytes (4 is for RGBA)
-        let textureSize = mglSizeOfFloatRgbaTexture(textureWidth, textureHeight)
+        // Compute size of texture in bytes
+        let expectedByteCount = Int(mglSizeOfFloatRgbaTexture(mglUInt32(textureWidth), mglUInt32(textureHeight)))
 
-        // get an MTLBuffer from the GPU to store image data in
-        guard let textureBuffer = device.makeBuffer(length: textureSize, options: .storageModeManaged) else {
-            fatalError("(mglMetal:mglCommandInterface) Could not make texture buffer of size:  \(textureWidth) * \(textureHeight)")
+        // Get an MTLBuffer from the GPU to store image data in
+        guard let textureBuffer = device.makeBuffer(length: expectedByteCount, options: .storageModeManaged) else {
+            fatalError("(mglCommandInterface:readTexture) Could not make texture buffer of size \(expectedByteCount) width: \(textureWidth) height: \(textureHeight)")
         }
 
-        // Read the data into the MTLBuffer
-        mglReadByteArray(communicator.reader(), textureBuffer.contents(), textureSize)
+        let bytesRead = server.readData(buffer: textureBuffer.contents(), expectedByteCount: expectedByteCount)
+        if (bytesRead != expectedByteCount) {
+            fatalError("(mglCommandInterface:readTexture) Expected to read \(expectedByteCount) bytes but read \(bytesRead)")
+        }
 
         // Now make the buffer into a texture
-        guard let texture = textureBuffer.makeTexture(descriptor: textureDescriptor, offset: 0, bytesPerRow: textureWidth * 4 * MemoryLayout<Float>.size) else {
-            fatalError("(mglMetal:mglCommandInterface) Could not make texture from texture buffer of size:  \(textureWidth) * \(textureHeight)")
+        let bytesPerRow = expectedByteCount / textureHeight
+        guard let texture = textureBuffer.makeTexture(descriptor: textureDescriptor, offset: 0, bytesPerRow: bytesPerRow) else {
+            fatalError("(mglCommandInterface:readTexture) Could not make texture from texture buffer of size \(expectedByteCount) width: \(textureWidth) height")
         }
-        print("mglMetal:mglCommandInterface) Created texture: \(textureWidth) x \(textureHeight)")
 
-        // return the texture
+        print("mglCommandInterface:readTexture) Created texture: \(textureWidth) x \(textureHeight)")
         return(texture)
-    }
-
-    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
-    // readXform
-    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
-    func readXform() -> simd_float4x4 {
-        // Read plain old float array from the socket.
-        let dataBytes = mglSizeOfFloat4x4Matrix()
-        print("I want a transform of \(dataBytes) bytes.")
-        let data = UnsafeMutablePointer<Float>.allocate(capacity: 16)
-        defer {
-            data.deallocate()
-        }
-        mglReadFloatArray(communicator.reader(), data, 16);
-
-        print("I got a transform.")
-
-        // Let the library decide how simd vectors are aligned and packed.
-        let column0 = simd_make_float4(data[0], data[1], data[2], data[3])
-        let column1 = simd_make_float4(data[4], data[5], data[6], data[7])
-        let column2 = simd_make_float4(data[8], data[9], data[10], data[11])
-        let column3 = simd_make_float4(data[12], data[13], data[14], data[15])
-        return(simd_float4x4(column0, column1, column2, column3))
     }
 
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     // writeDouble
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
-    func writeDouble(data: Double) {
-        mglWriteDouble(communicator.writer(), data)
+    func writeDouble(data: Double) -> Int {
+        var localData = data
+        let expectedByteCount = MemoryLayout<mglDouble>.size
+        return server.sendData(buffer: &localData, byteCount: expectedByteCount)
     }
 
 }

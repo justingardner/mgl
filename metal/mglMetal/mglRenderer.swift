@@ -194,10 +194,16 @@ extension mglRenderer: MTKViewDelegate {
     // darw delegate which does all the work! Run every frame buffer update
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     func draw(in view: MTKView) {
-        
+        // Check if a client connection is already accepted, or try to accept a new one.
+        let clientIsConnected = commandInterface.acceptClientConnection()
+        if !clientIsConnected {
+            // Nothing to do if client isn't connected.  We'll try again on the next draw.
+            return
+        }
+
         if acknowledgeFlush {
             // send flush acknowledge
-            commandInterface.writeDouble(data:0)
+            _ = commandInterface.writeDouble(data:0)
             acknowledgeFlush = false
             print("(mglRenderer:draw) Sending flush acknowledge")
         }
@@ -248,7 +254,7 @@ extension mglRenderer: MTKViewDelegate {
                     readCommands = false
                     acknowledgeFlush = true
                 case mglGetSecs:
-                    commandInterface.writeDouble(data: secs.get())
+                    _ = commandInterface.writeDouble(data: secs.get())
                 default:
                     print("(mglRenderer) Unknown command code: \(command)")
                 }
@@ -257,7 +263,7 @@ extension mglRenderer: MTKViewDelegate {
                 // if we are in profile mode, then return profiling time
                 if profile && (command != mglFlush) {
                     // write current time in mglSecs
-                    commandInterface.writeDouble(data: secs.get())
+                    _ = commandInterface.writeDouble(data: secs.get())
                 }
             }
             else {
