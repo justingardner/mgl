@@ -21,11 +21,13 @@ class mglLocalServer : mglServer {
         print("(mglLocalServer) Starting with path to bind: \(pathToBind)")
         self.pathToBind = pathToBind
 
-        let url = URL(fileURLWithPath: pathToBind)
-        do {
-            try FileManager.default.removeItem(at: url)
-        } catch let error as NSError {
-            fatalError("(mglLocalServer) Unable to remove existing file\(pathToBind): \(error)")
+        if FileManager.default.fileExists(atPath: pathToBind) {
+            let url = URL(fileURLWithPath: pathToBind)
+            do {
+                try FileManager.default.removeItem(at: url)
+            } catch let error as NSError {
+                fatalError("(mglLocalServer) Unable to remove existing file\(pathToBind): \(error)")
+            }
         }
 
         boundSocketDescriptor = socket(AF_UNIX, SOCK_STREAM, 0)
@@ -114,6 +116,10 @@ class mglLocalServer : mglServer {
     }
 
     func readData(buffer: UnsafeMutableRawPointer, expectedByteCount: Int) -> Int {
+        while !dataWaiting() {
+            print("(mglLocalServer) Waiting for data to read, polling every \(pollMilliseconds) ms (this should be rare).")
+        }
+
         let bytesRead = recv(acceptedSocketDescriptor, buffer, expectedByteCount, MSG_WAITALL);
         if bytesRead < 0 {
             print("(mglLocalServer) Error reading \(expectedByteCount) bytes from client: \(bytesRead) errno: \(errno)")

@@ -34,7 +34,7 @@ class mglCommandInterface {
         if optionIndex < 0 {
             print("(mglCommandInterface) no command line option passed for -mglConnectionAddress, using a default address.")
         }
-        let address = arguments.indices.contains(optionIndex + 1) ? arguments[optionIndex + 1] : "test"
+        let address = arguments.indices.contains(optionIndex + 1) ? arguments[optionIndex + 1] : "mglMetalSocket"
         print("(mglCommandInterface) using connection address \(address)")
 
         // In the future we might inspect the address to decide what kind of server to create,
