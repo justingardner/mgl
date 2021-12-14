@@ -15,14 +15,7 @@ copyright: (c) 2019 Justin Gardner (GPL see mgl/COPYING)
 //   include section   //
 /////////////////////////
 #include "mgl.h"
-#include <stdio.h>
 #include <sys/socket.h>
-#include <sys/un.h>
-#include <memory.h>
-#include <signal.h>
-#include <errno.h>
-#include <unistd.h>
-#include <CoreServices/CoreServices.h>
 
 //////////////
 //   main   //
@@ -33,17 +26,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
  int verbose = (int)mglGetGlobalDouble("verbose");
 
  unsigned int socketDescriptor;
- unsigned int connectionDescriptor;
  
  // get socket
  if (nrhs == 1) {
    mxArray *field;
-   // get the connectionDescriptor
-   if ((field = mxGetField(prhs[0],0,"connectionDescriptor")) == NULL) {
-     mexPrintf("(mglSocketClose) Input argument must have field: connectionDescriptor\n");
-     return;
-   }
-   connectionDescriptor = (unsigned int)mxGetScalar(field);
    // get the socketDescriptor
    if ((field = mxGetField(prhs[0],0,"socketDescriptor")) == NULL) {
      mexPrintf("(mglSocketClose) Input argument must have field: socketDescriptor\n");
@@ -62,17 +48,17 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
  }   
 
  // check if open
- if (connectionDescriptor == -1) {
+ if (socketDescriptor == -1) {
    if (verbose) mexPrintf("(mglSocketClose) Socket already closed\n");
  }
  else {
-   if (verbose) mexPrintf("(mglSocketClose) Closing socket %i\n",connectionDescriptor);
-   close(connectionDescriptor);
+   if (verbose) mexPrintf("(mglSocketClose) Closing socket %i\n",socketDescriptor);
+   close(socketDescriptor);
  }
 
   // return structure
  plhs[0] = mxDuplicateArray(prhs[0]);
- mxSetField(plhs[0],0,"connectionDescriptor",mxCreateDoubleMatrix(1,1,mxREAL));
- *(double *)mxGetPr(mxGetField(plhs[0],0,"connectionDescriptor")) = -1.0;
+ mxSetField(plhs[0],0,"socketDescriptor",mxCreateDoubleMatrix(1,1,mxREAL));
+ *(double *)mxGetPr(mxGetField(plhs[0],0,"socketDescriptor")) = -1.0;
 }
 

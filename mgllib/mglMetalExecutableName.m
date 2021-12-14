@@ -51,3 +51,7 @@ if ~isfolder(metalDir)
     fprintf('(mglMetalTest) Please compile the mglMetal app which should create the dir: %s\n',metalDir);
     return
 end
+
+% Reolve absoulte path to the same metalDir
+metalDirInfo = dir(metalDir);
+metalDir = fullfile(metalDirInfo(1).folder);

@@ -17,12 +17,6 @@ if nargin == 0
     whichScreen = 1;
 end
 
-% get mglMetal application name
-[metalAppName, metalDir] = mglMetalExecutableName;
-if isempty(metalAppName)
-    return
-end
-
 % create the mgl global variable
 global mgl
 
@@ -49,46 +43,48 @@ mgl.command.profileoff = 15;
 mgl.command.polygon = 16;
 mgl.command.getSecs = 17;
 
-% close socket if one is already opened
-cd(metalDir);
-if isfield(mgl,'s')
-    mglSocketClose(mgl.s);
+% get mglMetal application name
+[metalAppName, metalDir] = mglMetalExecutableName;
+if isempty(metalAppName)
+    return
 end
-!rm -f testsocket
-
-% open a new socket for communication
-mgl.s = mglSocketOpen('testsocket');
 
 % check if mglMetal is running
-if mglMetalIsRunning
+if mglMetalIsRunning && ~isnan(whichScreen)
     fprintf('(mglMetalOpen) mglMetal executable is already running\n');
     % then kill it
     mglMetalShutdown;
 end
 
 %start up mglMetal
+socketAddress = fullfile(metalDir, 'mglMetalSocket');
+fprintf('(mglMetalOpen) Using socket address: %s\n', socketAddress);
 if ~isnan(whichScreen)
-    fprintf('(mglMetalOpen) Starting up mglMetal executable: %s\n',metalAppName);
-    socketAddress = 'testsocket';
-    fprintf('(mglMetalOpen) using socket address: %s\n', socketAddress);
+    fprintf('(mglMetalOpen) Starting up mglMetal executable: %s\n', metalAppName);
     system(sprintf('open %s --args -mglConnectionAddress %s', metalAppName, socketAddress));
 end
 
-% Wait until a connection is established with the mglMetal proecess.
-timer = tic();
-tiemeout = 10;
-while toc(timer) < tiemeout && mgl.s.connectionDescriptor == -1
-    mgl.s = mglSocketWrite(mgl.s,uint16(mgl.command.ping));
+% close socket if one is already opened
+if isfield(mgl, 's')
+    mglSocketClose(mgl.s);
 end
 
-% Make sure Matlab and metal agree on initial transform.
-mglTransform('set', eye(4));
+% Open a new socket and wait for a connection to the mglMetal server.
+timer = tic();
+tiemeout = 10;
+mgl.s = mglSocketOpen(socketAddress);
+while toc(timer) < tiemeout && isempty(mgl.s)
+  mgl.s = mglSocketOpen(socketAddress);
+end
 
-if mgl.s.connectionDescriptor == -1
+if isempty(mgl.s)
     fprintf('(mglMetalOpen) Socket connection to mglMetal timed out after %d seconds\n', timeout);
 else
     fprintf('(mglMetalOpen) Socket connection to mglMetal established in %f seconds\n', toc(timer));
 end
+
+% Make sure Matlab and metal agree on initial coordinate transform.
+mglTransform('set', eye(4));
 
 % BSH stubbing these out for now
 mglSetParam('displayNumber', 0);
