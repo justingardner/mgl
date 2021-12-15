@@ -152,16 +152,19 @@ class mglCommandInterface {
         let expectedByteCount = Int(mglSizeOfFloatVertexArray(mglUInt32(vertexCount), valsPerVertex))
 
         // get an MTLBuffer from the GPU
-        guard let vertexBuffer = device.makeBuffer(length: expectedByteCount) else {
+        // With storageModeManaged, we must explicitly sync the data to the GPU, below.
+        guard let vertexBuffer = device.makeBuffer(length: expectedByteCount, options: .storageModeManaged) else {
             fatalError("(mglCommandInterface:readVertices) Could not make vertex buffer of size \(expectedByteCount)")
         }
 
         let bytesRead = server.readData(buffer: vertexBuffer.contents(), expectedByteCount: expectedByteCount)
-        if (bytesRead == expectedByteCount) {
-            return (vertexBuffer, vertexCount)
-        } else {
+        if (bytesRead != expectedByteCount) {
             fatalError("(mglCommandInterface:readVertices) Expected to read \(expectedByteCount) bytes but read \(bytesRead)")
         }
+
+        // With storageModeManaged above, we must explicitly sync the new data to the GPU.
+        vertexBuffer.didModifyRange( 0 ..< expectedByteCount)
+        return (vertexBuffer, vertexCount)
     }
 
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
@@ -184,6 +187,7 @@ class mglCommandInterface {
         let expectedByteCount = Int(mglSizeOfFloatRgbaTexture(mglUInt32(textureWidth), mglUInt32(textureHeight)))
 
         // Get an MTLBuffer from the GPU to store image data in
+        // With storageModeManaged, we must explicitly sync the data to the GPU, below.
         guard let textureBuffer = device.makeBuffer(length: expectedByteCount, options: .storageModeManaged) else {
             fatalError("(mglCommandInterface:readTexture) Could not make texture buffer of size \(expectedByteCount) width: \(textureWidth) height: \(textureHeight)")
         }
@@ -192,6 +196,9 @@ class mglCommandInterface {
         if (bytesRead != expectedByteCount) {
             fatalError("(mglCommandInterface:readTexture) Expected to read \(expectedByteCount) bytes but read \(bytesRead)")
         }
+
+        // With storageModeManaged above, we must explicitly sync the new data to the GPU.
+        textureBuffer.didModifyRange(0 ..< expectedByteCount)
 
         // Now make the buffer into a texture
         let bytesPerRow = expectedByteCount / textureHeight
