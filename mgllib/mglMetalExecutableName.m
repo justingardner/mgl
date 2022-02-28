@@ -1,57 +1,37 @@
-% mglMetalExecutableName: Returns the name of the mglMetal application
+% mglMetalExecutableName: Returns the full path to the mglMetal.app bundle.
 %
 %        $Id$
 %      usage: mglMetalExecutableName
 %         by: justin gardner
 %       date: 09/27/2021
 %  copyright: (c) 2021 Justin Gardner (GPL see mgl/COPYING)
-%    purpose: Returns the name of the mglMetal application
-%      usage: mglAppName = mglMetalExecutableName;
+%    purpose: Returns the full path of the mglMetal.app application
+%             and also the name of the "sandbox" directory that the app
+%             has access to.
+%      usage: [mglMetalApp, mglMetalSandbox] = mglMetalExecutableName
 %
-function [metalAppName, metalDir] = mglMetalExecutableName
+function [mglMetalApp, mglMetalSandbox] = mglMetalExecutableName
 
-metalAppName = '';
-metalDir = '';
+% The mglMetal app should live within the mgl repo, just like the mex-function binaries do.
+mglDir = fileparts(fileparts(which('mglOpen')));
 
-% Search xCode for the mglMetal build output. (why is this so hard with xcode?)
-xCodeOutputPath = '~/Library/Developer/XCode/DerivedData/';
-xCodeOutputDir = dir(xCodeOutputPath);
-if isempty(xCodeOutputDir)
-    fprintf('(mglOpen) Could not find mglMetal executable in %s. Perhaps you need to compile in XCode\n',xCodeOutputPath)
-    return
-end
-
-% Choose the most recent "mglMetal-" build dir.
-isMglMetal = cellfun(@(s)startsWith(s, "mglMetal-"), {xCodeOutputDir.name});
-mglMetalDirs = xCodeOutputDir(isMglMetal);
-[~, sortedIndexes] = sort([mglMetalDirs.datenum]);
-mglMetalDir = mglMetalDirs(sortedIndexes(end));
-
-% Get the full absolute path to the most recent mglMetal app.
-mglProductsPath = fullfile(mglMetalDir.folder, mglMetalDir.name, 'Build','Products');
-debugAppName = fullfile(mglProductsPath, 'Debug', 'mglMetal.app');
-releaseAppName = fullfile(mglProductsPath, 'Release', 'mglMetal.app');
-if isfolder(debugAppName)
-    metalAppName = debugAppName;
-    fprintf('(mglOpen) Found Debug build of mglMetal: %s\n',metalAppName)
-elseif isfolder(releaseAppName)
-        metalAppName = releaseAppName;
-    fprintf('(mglOpen) Found Release build of mglMetal: %s\n',metalAppName)
+% Use the "latest" development version if present, otherwise use the "stable" version.
+latestAppDir = fullfile(mglDir, 'metal', 'binary', 'latest', 'mglMetal.app');
+if isfolder(latestAppDir)
+    mglMetalApp = latestAppDir;
 else
-    fprintf('(mglOpen) Could not find mglMetal in %s. Perhaps you need to compile in XCode\n',mglProductsPath)
-    return
+    mglMetalApp = fullfile(mglDir, 'metal', 'binary', 'stable', 'mglMetal.app');
 end
+fprintf('(mglMetalExecutableName) Using mglMetal app at %s\n', mglMetalApp);
 
-% Get working directory where mglMetal app runs from.
-% This seems to be a macOs/xCode convention, so good to use this during
-% development.
-% Once stable, we may be able to choose any dir to run from?
-metalDir = '~/Library/Containers/gru.mglMetal/Data';
-if ~isfolder(metalDir)
-    fprintf('(mglMetalTest) Please compile the mglMetal app which should create the dir: %s\n',metalDir);
-    return
-end
-
-% Reolve absoulte path to the same metalDir
-metalDirInfo = dir(metalDir);
-metalDir = fullfile(metalDirInfo(1).folder);
+% The mglMetal app runs in a "sandbox" with limited file system access.
+% We don't need this, but it seems like a reasonable idea to go along with.
+% The sandbox is in your user folder, with a name based on the app's id.
+% The id is the "PRODUCT_BUNDLE_IDENTIFIER" in the Xcode project.
+% The same id gets written into the mglMetal.app at, for example:
+%   mgl/metal/binary/stable/mglMetal.app/Contents/Info.plist
+% We could parse out the "CFBundleIdentifier" from here if we need to.
+% But the value seems unlikely to change, so for now here it is.
+mglMetalAppId = 'gru.mglMetal';
+sandboxDirInfo = dir(fullfile('~', 'Library', 'Containers', mglMetalAppId, 'Data'));
+mglMetalSandbox = sandboxDirInfo(1).folder;

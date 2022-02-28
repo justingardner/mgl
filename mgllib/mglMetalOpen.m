@@ -43,9 +43,10 @@ mgl.command.profileoff = 15;
 mgl.command.polygon = 16;
 mgl.command.getSecs = 17;
 
-% get mglMetal application name
-[metalAppName, metalDir] = mglMetalExecutableName;
-if isempty(metalAppName)
+% Get the full path to the mglMetal.app dir.
+[mglMetalApp, mglMetalSandbox] = mglMetalExecutableName
+if ~isfolder(mglMetalApp)
+    fprintf('(mglMetalOpen) mglMetal executable seems not to exist: %s\n', mglMetalApp);
     return
 end
 
@@ -56,12 +57,14 @@ if mglMetalIsRunning && ~isnan(whichScreen)
     mglMetalShutdown;
 end
 
-%start up mglMetal
-socketAddress = fullfile(metalDir, 'mglMetalSocket');
+% Choose a socket address that's inside the app's sandbox dir.
+socketAddress = fullfile(mglMetalSandbox, 'mglMetal.socket');
 fprintf('(mglMetalOpen) Using socket address: %s\n', socketAddress);
+
+% Start up mglMetal!
 if ~isnan(whichScreen)
-    fprintf('(mglMetalOpen) Starting up mglMetal executable: %s\n', metalAppName);
-    system(sprintf('open %s --args -mglConnectionAddress %s', metalAppName, socketAddress));
+    fprintf('(mglMetalOpen) Starting up mglMetal executable: %s\n', mglMetalApp);
+    system(sprintf('open %s --args -mglConnectionAddress %s', mglMetalApp, socketAddress));
 end
 
 % close socket if one is already opened
@@ -71,9 +74,9 @@ end
 
 % Open a new socket and wait for a connection to the mglMetal server.
 timer = tic();
-tiemeout = 10;
+timeout = 10;
 mgl.s = mglSocketOpen(socketAddress);
-while toc(timer) < tiemeout && isempty(mgl.s)
+while toc(timer) < timeout && isempty(mgl.s)
   mgl.s = mglSocketOpen(socketAddress);
 end
 

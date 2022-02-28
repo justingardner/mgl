@@ -57,7 +57,7 @@ class mglLocalServer : mglServer {
         }
 
         if bindResult < 0 {
-            fatalError("(mglLocalServer) Could not bind the path: \(bindResult) errno: \(errno)")
+            fatalError("(mglLocalServer) Could not bind the path \(pathToBind) with result: \(bindResult) errno: \(errno)")
         }
 
         let listenResult = listen(boundSocketDescriptor, maxConnections)
