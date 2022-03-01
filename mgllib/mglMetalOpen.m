@@ -44,7 +44,7 @@ mgl.command.polygon = 16;
 mgl.command.getSecs = 17;
 
 % Get the full path to the mglMetal.app dir.
-[mglMetalApp, mglMetalSandbox] = mglMetalExecutableName
+[mglMetalApp, mglMetalSandbox] = mglMetalExecutableName;
 if ~isfolder(mglMetalApp)
     fprintf('(mglMetalOpen) mglMetal executable seems not to exist: %s\n', mglMetalApp);
     return

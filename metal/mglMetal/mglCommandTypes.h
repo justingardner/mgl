@@ -91,6 +91,7 @@ typedef float mglFloat;
 // Utils to calculate bytes sizes of arrays of supported scalar types.
 // Communication code should use these sizes for buffers, reads, and writes.
 // Matlab and mglMetal should share this header so that they agree on the array sizes.
+static inline mglUInt32 mglSizeOfCommandCodeArray(mglUInt32 n) { return sizeof(mglCommandCode) * n; }
 static inline mglUInt32 mglSizeOfUInt32Array(mglUInt32 n) { return sizeof(mglUInt32) * n; }
 static inline mglUInt32 mglSizeOfDoubleArray(mglUInt32 n) { return sizeof(mglDouble) * n; }
 static inline mglUInt32 mglSizeOfFloatArray(mglUInt32 n) { return sizeof(mglFloat) * n; }

@@ -47,7 +47,7 @@ class mglLocalServer : mglServer {
 
         // Some interesting swift-c interop here.
         // withUnsafePointer gives us a c-style-pointer to the address struct, which has concrete type sockaddr_un.
-        // withMemoryRebound gives is a view of the same pointer, but "cast" to the generic sockaddr type that bind() wants.
+        // withMemoryRebound gives us a view of the same pointer, but "cast" to the generic sockaddr type that bind() wants.
         // $0 is an automatic parameter name that can be used in each {} block.
         let addressLength = socklen_t(address.sun_len)
         let bindResult = withUnsafePointer(to: &address) {
@@ -98,7 +98,7 @@ class mglLocalServer : mglServer {
         }
 
         // Since this is a nonblockign socket, it's OK for accept to return -1 -- as long as errno is EAGAIN or EWOULDBLOCK.
-        if (errno != EAGAIN || errno != EWOULDBLOCK) {
+        if (errno != EAGAIN && errno != EWOULDBLOCK) {
             fatalError("(mglLocalServer) Could not accept client connection: \(acceptedSocketDescriptor) errno: \(errno)")
         }
         return false;
