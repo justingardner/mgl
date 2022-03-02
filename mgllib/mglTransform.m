@@ -45,5 +45,5 @@ switch operation
 end
 currentMatrix = mgl.currentMatrix;
 
-mgl.s = mglSocketWrite(mgl.s,uint16(mgl.command.xform));
-mgl.s = mglSocketWrite(mgl.s,single(mgl.currentMatrix));
+mglSocketWrite(mgl.s, mgl.command.mglSetXform);
+mglSocketWrite(mgl.s, single(mgl.currentMatrix));

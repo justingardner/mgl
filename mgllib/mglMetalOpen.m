@@ -23,27 +23,10 @@ global mgl
 mglSetParam('noask',false);
 mglSetParam('profile',false);
 
-% set command numbers
-mgl.command.ping = 0;
-mgl.command.clearScreen = 1;
-mgl.command.dots = 2;
-mgl.command.flush = 3;
-mgl.command.xform = 4;
-mgl.command.line = 5;
-mgl.command.quad = 6;
-mgl.command.createTexture = 7;
-mgl.command.bltTexture = 8;
-mgl.command.test = 9;
-mgl.command.fullscreen = 10;
-mgl.command.windowed = 11;
-mgl.command.blocking = 12;
-mgl.command.nonblocking = 13;
-mgl.command.profileon = 14;
-mgl.command.profileoff = 15;
-mgl.command.polygon = 16;
-mgl.command.getSecs = 17;
+% Get supported command codes from a header that's shared with mglMetal.
+mgl.command = mglSocketCommandTypes();
 
-% Get the full path to the mglMetal.app dir.
+% Get the full path to the mglMetal.app dir and its runtime sandbox.
 [mglMetalApp, mglMetalSandbox] = mglMetalExecutableName;
 if ~isfolder(mglMetalApp)
     fprintf('(mglMetalOpen) mglMetal executable seems not to exist: %s\n', mglMetalApp);
@@ -57,7 +40,7 @@ if mglMetalIsRunning && ~isnan(whichScreen)
     mglMetalShutdown;
 end
 
-% Choose a socket address that's inside the app's sandbox dir.
+% Choose a socket address that's inside the mglMetal.app runtime sandbox.
 socketAddress = fullfile(mglMetalSandbox, 'mglMetal.socket');
 fprintf('(mglMetalOpen) Using socket address: %s\n', socketAddress);
 
@@ -73,12 +56,15 @@ if isfield(mgl, 's')
 end
 
 % Open a new socket and wait for a connection to the mglMetal server.
-timer = tic();
 timeout = 10;
-mgl.s = mglSocketOpen(socketAddress);
+fprintf('(mglMetalOpen) Trying to connect to mglMetal with timeout %d seconds.\n', timeout);
+timer = tic();
+mgl.s = mglSocketCreateClient(socketAddress);
 while toc(timer) < timeout && isempty(mgl.s)
-  mgl.s = mglSocketOpen(socketAddress);
+  fprintf('.');
+  mgl.s = mglSocketCreateClient(socketAddress);
 end
+fprintf('\n');
 
 if isempty(mgl.s)
     fprintf('(mglMetalOpen) Socket connection to mglMetal timed out after %d seconds\n', timeout);

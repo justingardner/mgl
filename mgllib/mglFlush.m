@@ -17,13 +17,6 @@ function mglFlush
 
 global mgl
 
-% write flush comnand
-mglProfile('start');
-mgl.s = mglSocketWrite(mgl.s,uint16(mgl.command.flush));
-
-% wait for return
-[dataWaiting mgl.s] = mglSocketDataWaiting(mgl.s);
-while ~dataWaiting, [dataWaiting mgl.s] = mglSocketDataWaiting(mgl.s);end
-
-% and read value
-[val mgl.s] = mglSocketRead(mgl.s);
+% write flush comnand and wait for return value.
+mglSocketWrite(mgl.s, mgl.command.mglFlush);
+mglSocketRead(mgl.s, 'double');

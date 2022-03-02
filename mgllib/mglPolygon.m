@@ -62,6 +62,6 @@ vertices(5, 1:n) = color(2);
 vertices(6, 1:n) = color(3);
 
 % Send vertices over to the rendering app.
-mgl.s = mglSocketWrite(mgl.s,uint16(mgl.command.polygon));
-mgl.s = mglSocketWrite(mgl.s,uint32(n));
-mgl.s = mglSocketWrite(mgl.s,vertices);
+mglSocketWrite(mgl.s, mgl.command.mglPolygon);
+mglSocketWrite(mgl.s, uint32(n));
+mglSocketWrite(mgl.s, vertices);

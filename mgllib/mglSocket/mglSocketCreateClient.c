@@ -38,7 +38,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
     // Get the socket address to connect to from the first argument.
     char *address = mxArrayToUTF8String(prhs[0]);
     if (address == NULL) {
-        mexPrintf("(mglSocketCreateClient) Could not read socket address from first arg.\n");
+        if (verbose) {
+            mexPrintf("(mglSocketCreateClient) Could not read socket address from first arg.\n");
+        }
         plhs[0] = mxCreateDoubleMatrix(0, 0, mxREAL);
         return;
     }
@@ -56,7 +58,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
     // Create a socket for the client connect from.
     int connectionSocketDescriptor = socket(AF_UNIX, SOCK_STREAM, 0);
     if (connectionSocketDescriptor < 0) {
-        mexPrintf("(mglSocketCreateClient) Could not create a socket -- result: %d, errno: %d\n", connectionSocketDescriptor, errno);
+        if (verbose) {
+            mexPrintf("(mglSocketCreateClient) Could not create a socket -- result: %d, errno: %d\n", connectionSocketDescriptor, errno);
+        }
         plhs[0] = mxCreateDoubleMatrix(0, 0, mxREAL);
         return;
     }
@@ -65,7 +69,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
     int connectResult = connect(connectionSocketDescriptor, (struct sockaddr *) &addr, sizeof(struct sockaddr_un));
     if (connectResult < 0) {
         close(connectionSocketDescriptor);
-        mexPrintf("(mglSocketCreateClient) Could not connect socket to address %s -- result: %d, errno: %d\n", addr.sun_path, connectResult, errno);
+        if (verbose) {
+            mexPrintf("(mglSocketCreateClient) Could not connect socket to address %s -- result: %d, errno: %d\n", addr.sun_path, connectResult, errno);
+        }
         plhs[0] = mxCreateDoubleMatrix(0, 0, mxREAL);
         return;
     }

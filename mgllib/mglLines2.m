@@ -38,9 +38,9 @@ end
 
 % send line command
 mglProfile('start');
-mgl.s = mglSocketWrite(mgl.s,uint16(mgl.command.line));
+mglSocketWrite(mgl.s, mgl.command.mglLine);
 
 % send vertices
-mgl.s = mglSocketWrite(mgl.s,uint32(2*iLine));
-mgl.s = mglSocketWrite(mgl.s,single(v));
+mglSocketWrite(mgl.s, uint32(2*iLine));
+mglSocketWrite(mgl.s, single(v));
 mglProfile('end','mglLines2');

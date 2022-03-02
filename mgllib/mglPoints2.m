@@ -38,23 +38,23 @@ v = v';
 
 % write dots command
 mglProfile('start');
-mgl.s = mglSocketWrite(mgl.s,uint16(mgl.command.dots));
+mglSocketWrite(mgl.s, mgl.command.mglDots);
 
 % send point size
-mgl.s = mglSocketWrite(mgl.s,single(size(1)));
+mglSocketWrite(mgl.s, single(size(1)));
 
 % send color
-mgl.s = mglSocketWrite(mgl.s,single(color(1:3)));
+mglSocketWrite(mgl.s, single(color(1:3)));
 
 % send roundness flag
-mgl.s = mglSocketWrite(mgl.s,uint32(isRound(1)));
+mglSocketWrite(mgl.s, uint32(isRound(1)));
 
 % send number of vertices
 nVertices = length(x);
-mgl.s = mglSocketWrite(mgl.s,uint32(nVertices));
+mglSocketWrite(mgl.s, uint32(nVertices));
 
 % send vertices
-mgl.s = mglSocketWrite(mgl.s,single(v(:)));
+mglSocketWrite(mgl.s, single(v(:)));
 
 % end profiling
 mglProfile('end','mglPoints2');

@@ -28,7 +28,7 @@ if nargin <= 1
   % send ping to check communication
   mglSetParam('verbose',1);
   myinput('Hit ENTER to ping: ');
-  mgl.s = mglSocketWrite(mgl.s,uint16(mgl.command.ping));
+  mglSocketWrite(mgl.s, mgl.command.mglPing);
   mglSetParam('verbose',0);
 
   %testText;
@@ -95,8 +95,6 @@ mglFlush;
 %%%%%%%%%%%%%%%%%%%%%
 function testQuads
 
-global mgl
-
 myinput('Hit ENTER to test quads: ');
 
 % make a checkerboard
@@ -151,12 +149,12 @@ myinput('Hit ENTER to test coordinate xform: ');
 
 % write command to send coords
 mglProfile('start');
-mgl.s = mglSocketWrite(mgl.s,uint16(mgl.command.xform));
+mglSocketWrite(mgl.s, mgl.command.mglSetXform);
 
 % send xform
 xform = eye(4);
 xform(:,4) = [-0.2 0.2 0 1];
-mgl.s = mglSocketWrite(mgl.s,single(xform(:)));
+mglSocketWrite(mgl.s, single(xform(:)));
 mglProfile('end','testCoords');
 
 % draw traingle points
@@ -170,11 +168,11 @@ myinput('Hit ENTER to test coordinate xform: ');
 
 % write command to send coordinates
 mglProfile('start');
-mgl.s = mglSocketWrite(mgl.s,uint16(mgl.command.xform));
+mglSocketWrite(mgl.s, mgl.command.mglSetXform);
 
 % set xform back to identity
 xform = eye(4);
-mgl.s = mglSocketWrite(mgl.s,single(xform(:)));
+mglSocketWrite(mgl.s, single(xform(:)));
 mglProfile('end','testCoords');
 
 % draw traingle points
@@ -329,7 +327,7 @@ mglFullscreen(0);
 
 % send non-blocking command
 mglProfile('start');
-mgl.s = mglSocketWrite(mgl.s,uint16(mgl.command.nonblocking));
+mglSocketWrite(mgl.s, mgl.command.mglNonblocking);
 mglProfile('end','non-blocking');
 
 %%%%%%%%%%%%%%%%%%%%%%%%
@@ -372,11 +370,11 @@ global mgl;
 if tf
   % go full screen
   mglProfile('start');
-  mgl.s = mglSocketWrite(mgl.s,uint16(mgl.command.fullscreen));
+  mglSocketWrite(mgl.s, mgl.command.mglFullscreen);
   mglProfile('end','mglFullscreen');
 else
   mglProfile('start');
-  mgl.s = mglSocketWrite(mgl.s,uint16(mgl.command.windowed));
+  mglSocketWrite(mgl.s, mgl.command.mglWindowed);
   mglProfile('end','mglWindowed');
 end
 

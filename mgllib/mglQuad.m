@@ -53,11 +53,11 @@ end
 
 % send quad command
 mglProfile('start');
-mgl.s = mglSocketWrite(mgl.s,uint16(mgl.command.quad));
+mglSocketWrite(mgl.s, mgl.command.mglQuad);
 
 % send them
-mgl.s = mglSocketWrite(mgl.s,uint32(nVertices));
-mgl.s = mglSocketWrite(mgl.s,single(v));
+mglSocketWrite(mgl.s, uint32(nVertices));
+mglSocketWrite(mgl.s, single(v));
 
 % end profiling
 mglProfile('end','mglQuad');

@@ -26,7 +26,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
 
     // Check for expected usage.
-    if (nrhs < 2 || nrhs > 4 || nlhs != 1) {
+    if (nrhs < 2 || nrhs > 4) {
         const int ndims = 1;
         const int dims[] = {1};
         mxArray *callInput[] = { mxCreateString("mglSocketRead") };

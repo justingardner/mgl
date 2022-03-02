@@ -33,15 +33,15 @@ im = shiftdim(im,2);
 
 % send texture command
 mglProfile('start');
-mgl.s = mglSocketWrite(mgl.s,uint16(mgl.command.createTexture));
+mglSocketWrite(mgl.s, mgl.command.mglCreateTexture);
 
 % sent texture dimensions
-mgl.s = mglSocketWrite(mgl.s,uint32(tex.imageWidth));
-mgl.s = mglSocketWrite(mgl.s,uint32(tex.imageHeight));
+mglSocketWrite(mgl.s, uint32(tex.imageWidth));
+mglSocketWrite(mgl.s, uint32(tex.imageHeight));
 
 % sent texture
 mglSetParam('verbose',1);
-mgl.s = mglSocketWrite(mgl.s,single(im(:)));
+mglSocketWrite(mgl.s, single(im(:)));
 mglSetParam('verbose',0);
 
 % end profiling

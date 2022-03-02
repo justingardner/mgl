@@ -73,14 +73,14 @@ nVertices = 6;
 
 % send blt command
 mglProfile('start');
-mgl.s = mglSocketWrite(mgl.s,uint16(mgl.command.bltTexture));
+mglSocketWrite(mgl.s, mgl.command.mglBltTexture);
 
 % send vertices
-mgl.s = mglSocketWrite(mgl.s,uint32(nVertices));
-mgl.s = mglSocketWrite(mgl.s,single(verticesWithTextureCoordinates));
+mglSocketWrite(mgl.s, uint32(nVertices));
+mglSocketWrite(mgl.s, single(verticesWithTextureCoordinates));
 
 % send the phase
-mgl.s = mglSocketWrite(mgl.s,single(phase));
+mglSocketWrite(mgl.s, single(phase));
 
 % end profiling
 mglProfile('end','mglBltTexture');

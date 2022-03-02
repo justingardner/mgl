@@ -47,8 +47,8 @@ clearColor = clearColor(:);
 
 % write clear screen command
 mglProfile('start');
-mgl.s = mglSocketWrite(mgl.s,uint16(mgl.command.clearScreen));
+mglSocketWrite(mgl.s, mgl.command.mglClearScreen);
 
 % write color
-mgl.s = mglSocketWrite(mgl.s,single(clearColor));
+mglSocketWrite(mgl.s, single(clearColor));
 mglProfile('end','mglClearScreen');

@@ -24,7 +24,7 @@ copyright: (c) 2019 Justin Gardner (GPL see mgl/COPYING)
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
     // Check for expected usage.
-    if (nrhs != 2 || nlhs != 1) {
+    if (nrhs != 2) {
         const int ndims = 1;
         const int dims[] = {1};
         mxArray *callInput[] = { mxCreateString("mglSocketWrite") };
