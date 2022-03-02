@@ -6,22 +6,19 @@ mglMakeSocket();
 %%
 mglSetParam('verbose', 1);
 
-socketFile = '/Users/benjaminheasly/test.socket';
+socketFile = '/tmp/test.socket';
 delete(socketFile);
 
 serverInfo = mglSocketCreateServer(socketFile);
 clientInfo = mglSocketCreateClient(socketFile);
 serverInfo = mglSocketAcceptConnection(serverInfo);
 
-clientSent = mglSocketWrite(clientInfo, eye(4));
-serverWaiting = mglSocketDataWaiting(serverInfo);
-serverRead = mglSocketRead(serverInfo, 'double', 4, 4);
-disp(serverRead)
+n = 2049;
+data = zeros(1, n, 'single');
 
-serverSent = mglSocketWrite(serverInfo, uint16(1:10));
-clientWaiting = mglSocketDataWaiting(clientInfo);
-clientRead = mglSocketRead(clientInfo, 'uint16', 1, 10);
-disp(clientRead)
+clientSent = mglSocketWrite(clientInfo, data);
+serverWaiting = mglSocketDataWaiting(serverInfo);
+serverRead = mglSocketRead(serverInfo, 'single', 1, n);
 
 serverInfo = mglSocketClose(serverInfo);
 clientInfo = mglSocketClose(clientInfo);
