@@ -13,27 +13,23 @@
 #include <stdint.h>
 
 // Source of truth for supported commands and their numeric codes.
-// Communication code should use these enum values, and not the numeric values themselves.
+// Communication code should use these enum symbols, not the numeric values themselves.
 // Matlab and mglMetal should share this header so that they agree on the commands.
 typedef enum mglCommandCode : uint16_t {
     mglPing = 0,
-    mglClearScreen = 1,
-    mglDots = 2,
-    mglFlush = 3,
-    mglSetXform = 4,
-    mglLine = 5,
-    mglQuad = 6,
-    mglCreateTexture = 7,
-    mglBltTexture = 8,
-    mglTest = 9,
-    mglFullscreen = 10,
-    mglWindowed = 11,
-    mglBlocking = 12,
-    mglNonblocking = 13,
-    mglProfileon = 14,
-    mglProfileoff = 15,
-    mglPolygon = 16,
-    mglGetSecs = 17,
+    mglDrainSystemEvents = 1,
+    mglFullscreen = 2,
+    mglWindowed = 3,
+    mglCreateTexture = 4,
+    mglDrawingCommands = 1000,
+    mglFlush = 1001,
+    mglClearScreen = 1002,
+    mglBltTexture = 1003,
+    mglSetXform = 1004,
+    mglDots = 1005,
+    mglLine = 1006,
+    mglQuad = 1007,
+    mglPolygon = 1008,
     mglUnknownCommand = UINT16_MAX
 } mglCommandCode;
 
@@ -42,43 +38,33 @@ typedef enum mglCommandCode : uint16_t {
 // It's tedious to create these by hand, but better to do it once, here in the source of truth.
 const mglCommandCode mglCommandCodes[] = {
     mglPing,
-    mglClearScreen,
-    mglDots,
-    mglFlush,
-    mglSetXform,
-    mglLine,
-    mglQuad,
-    mglCreateTexture,
-    mglBltTexture,
-    mglTest,
+    mglDrainSystemEvents,
     mglFullscreen,
     mglWindowed,
-    mglBlocking,
-    mglNonblocking,
-    mglProfileon,
-    mglProfileoff,
-    mglPolygon,
-    mglGetSecs
+    mglCreateTexture,
+    mglFlush,
+    mglClearScreen,
+    mglBltTexture,
+    mglSetXform,
+    mglDots,
+    mglLine,
+    mglQuad,
+    mglPolygon
 };
 const char* mglCommandNames[] = {
     "mglPing",
-    "mglClearScreen",
-    "mglDots",
-    "mglFlush",
-    "mglSetXform",
-    "mglLine",
-    "mglQuad",
-    "mglCreateTexture",
-    "mglBltTexture",
-    "mglTest",
+    "mglDrainSystemEvents",
     "mglFullscreen",
     "mglWindowed",
-    "mglBlocking",
-    "mglNonblocking",
-    "mglProfileon",
-    "mglProfileoff",
-    "mglPolygon",
-    "mglGetSecs"
+    "mglCreateTexture",
+    "mglFlush",
+    "mglClearScreen",
+    "mglBltTexture",
+    "mglSetXform",
+    "mglDots",
+    "mglLine",
+    "mglQuad",
+    "mglPolygon"
 };
 
 // Type aliases for supported scalar data types of known, fixed sizes.

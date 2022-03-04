@@ -26,20 +26,6 @@ struct VertexOut {
     float point_size [[point_size]];
 };
 
-//\/\/\/\/\/\/\/\/\/\/\/\/\/\/
-// Vertex shader
-//\/\/\/\/\/\/\/\/\/\/\/\/\/\/
-vertex float4 vertex_main(const VertexIn vertexIn [[ stage_in ]]) {
-  float4 position = vertexIn.position;
-  return position;
-}
-
-//\/\/\/\/\/\/\/\/\/\/\/\/\/\/
-// Fragment shader
-//\/\/\/\/\/\/\/\/\/\/\/\/\/\/
-fragment float4 fragment_main() {
-  return float4(1, 0, 0, 1);
-}
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/
 // Dots
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/
@@ -112,7 +98,6 @@ fragment float4 fragment_textures(VertexTextureOut in [[stage_in]],
                                   texture2d<float> myTexture [[texture(0)]],
                                   sampler mySampler [[sampler(0)]] ,
                                   constant float &phase [[buffer(2)]]) {
-//    return(myTexture.sample(mySampler, in.texCoords));
     float4 c = myTexture.sample(mySampler, in.texCoords+phase);
     float4 calpha = myTexture.sample(mySampler, in.texCoords);
     return(float4(c[0], c[1], c[2], calpha[3]));

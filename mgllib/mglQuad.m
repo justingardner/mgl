@@ -1,7 +1,7 @@
 % mglQuad.m
 %
 %      $Id$
-%    usage: mglQuad( vX, vY, rgbColor, [antiAliasFlag] );
+%    usage: [ackTime, processedTime] = mglQuad( vX, vY, rgbColor, [antiAliasFlag] );
 %       by: justin gardner
 %     date: 09/28/2021
 %  copyright: (c) 2021 Justin Gardner (GPL see mgl/COPYING)
@@ -18,7 +18,7 @@
 %mglScreenCoordinates
 %mglQuad([100; 600; 600; 100], [100; 200; 600; 100], [1; 1; 1], 1);
 %mglFlush();
-function mglQuad(vX, vY, rgbColor, antiAliasFlag)
+function [ackTime, processedTime] = mglQuad(vX, vY, rgbColor, antiAliasFlag)
 
 % Not currently used, but let's maintain compatibility with v2.
 if nargin < 4
@@ -52,12 +52,8 @@ for iQuad = 1:nQuads
 end
 
 % send quad command
-mglProfile('start');
 mglSocketWrite(mgl.s, mgl.command.mglQuad);
-
-% send them
+ackTime = mglSocketRead(mgl.s, 'double');
 mglSocketWrite(mgl.s, uint32(nVertices));
 mglSocketWrite(mgl.s, single(v));
-
-% end profiling
-mglProfile('end','mglQuad');
+processedTime = mglSocketRead(mgl.s, 'double');

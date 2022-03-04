@@ -1,7 +1,7 @@
 % mglPoints2.m
 %
 %        $Id$
-%      usage: mglPoints2()
+%      usage: [ackTime, processedTime] = mglPoints2()
 %         by: justin gardner & Jonas Larsson
 %       date: 04/03/06
 %  copyright: (c) 2006 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
@@ -17,7 +17,7 @@
 %mglVisualAngleCoordinates(57,[16 12]);
 %mglPoints2(16*rand(500,1)-8,12*rand(500,1)-6,2,1);
 %mglFlush
-function mglPoints2(x,y,size,color,varargin)
+function [ackTime, processedTime] = mglPoints2(x,y,size,color,varargin)
 
 if nargin < 5
     isRound = false;
@@ -37,24 +37,11 @@ v(:,3) = 0;
 v = v';
 
 % write dots command
-mglProfile('start');
 mglSocketWrite(mgl.s, mgl.command.mglDots);
-
-% send point size
+ackTime = mglSocketRead(mgl.s, 'double');
 mglSocketWrite(mgl.s, single(size(1)));
-
-% send color
 mglSocketWrite(mgl.s, single(color(1:3)));
-
-% send roundness flag
 mglSocketWrite(mgl.s, uint32(isRound(1)));
-
-% send number of vertices
-nVertices = length(x);
-mglSocketWrite(mgl.s, uint32(nVertices));
-
-% send vertices
+mglSocketWrite(mgl.s, uint32(length(x)));
 mglSocketWrite(mgl.s, single(v(:)));
-
-% end profiling
-mglProfile('end','mglPoints2');
+processedTime = mglSocketRead(mgl.s, 'double');

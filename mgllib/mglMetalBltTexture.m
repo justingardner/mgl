@@ -1,6 +1,6 @@
 % mglMetalBltTexture.m
 %
-%       usage: mglMetalBltTexture(im)
+%       usage: [ackTime, processedTime] = mglMetalBltTexture(tex)
 %          by: justin gardner
 %        date: 09/28/2021
 %  copyright: (c) 2021 Justin Gardner (GPL see mgl/COPYING)
@@ -9,7 +9,7 @@
 %              called by mglCreateTexture and mglBltTexture
 %       e.g.:
 %
-function mglMetalBltTexture(tex, position, hAlignment, vAlignment, rotation, phase, width, height)
+function [ackTime, processedTime] = mglMetalBltTexture(tex, position, hAlignment, vAlignment, rotation, phase, width, height)
 
 global mgl
 
@@ -72,15 +72,10 @@ verticesWithTextureCoordinates = [...
 nVertices = 6;
 
 % send blt command
-mglProfile('start');
 mglSocketWrite(mgl.s, mgl.command.mglBltTexture);
-
-% send vertices
+ackTime = mglSocketRead(mgl.s, 'double');
+mglSocketWrite(mgl.s, tex.textureNumber);
 mglSocketWrite(mgl.s, uint32(nVertices));
 mglSocketWrite(mgl.s, single(verticesWithTextureCoordinates));
-
-% send the phase
 mglSocketWrite(mgl.s, single(phase));
-
-% end profiling
-mglProfile('end','mglBltTexture');
+processedTime = mglSocketRead(mgl.s, 'double');

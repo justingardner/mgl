@@ -1,7 +1,7 @@
 % mglClearScreen.m
 %
 %        $Id$
-%      usage: mglClearScreen([clearColor], [clearBits])
+%      usage: [ackTime, processedTime] = mglClearScreen([clearColor], [clearBits])
 %         by: Justin Gardner
 %       date: 09/27/2021
 %  copyright: (c) 2021 Justin Gardner (GPL see mgl/COPYING)
@@ -29,7 +29,7 @@
 % mglClearScreen([0.7 0.2 0.5]);
 % mglFlush();
 %
-function mglClearScreen(clearColor, clearBits)
+function [ackTime, processedTime] = mglClearScreen(clearColor, clearBits)
 
 if nargin == 2
   disp(sprintf('(mglClearScreen) clearBits not implemented in mgl 3.0'));
@@ -46,9 +46,7 @@ end
 clearColor = clearColor(:);
 
 % write clear screen command
-mglProfile('start');
 mglSocketWrite(mgl.s, mgl.command.mglClearScreen);
-
-% write color
+ackTime = mglSocketRead(mgl.s, 'double');
 mglSocketWrite(mgl.s, single(clearColor));
-mglProfile('end','mglClearScreen');
+processedTime = mglSocketRead(mgl.s, 'double');

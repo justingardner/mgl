@@ -1,7 +1,7 @@
 % mglText.m
 %
 %        $Id$
-%      usage: tex = mglText('string')
+%      usage: [tex, ackTime, processedTime] = mglText('string')
 %         by: justin gardner
 %       date: 09/28/2021 Based on version from 05/10/06
 %  copyright: (c) 2021 Justin Gardner (GPL see mgl/COPYING)
@@ -15,7 +15,7 @@
 %thisText = mglText('Hello')
 %mglBltTexture(thisText,[0 0],'left','top');
 %mglFlush;
-function tex = mglText(str)
+function [tex, ackTime, processedTime] = mglText(str)
 
 if (nargin ~= 1) || ~isstr(str)
   help mglText;
@@ -30,4 +30,4 @@ im.textImage = reshape(im.textImage,im.imageHeight,im.imageWidth,4);
 im.textImage = permute(im.textImage,[2 1 3]);
 
 % create the texture
-tex = mglMetalCreateTexture(im.textImage);
+[tex, ackTime, processedTime] = mglMetalCreateTexture(im.textImage);

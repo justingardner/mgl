@@ -117,7 +117,7 @@ class mglLocalServer : mglServer {
 
     func readData(buffer: UnsafeMutableRawPointer, expectedByteCount: Int) -> Int {
         while !dataWaiting() {
-            print("(mglLocalServer) Waiting for data to read, polling every \(pollMilliseconds) ms. This message should be rare.")
+            // Keep polling every pollMilliseconds
         }
 
         let bytesRead = recv(acceptedSocketDescriptor, buffer, expectedByteCount, MSG_WAITALL);

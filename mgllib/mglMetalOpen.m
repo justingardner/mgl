@@ -20,9 +20,6 @@ end
 % create the mgl global variable
 global mgl
 
-mglSetParam('noask',false);
-mglSetParam('profile',false);
-
 % Get supported command codes from a header that's shared with mglMetal.
 mgl.command = mglSocketCommandTypes();
 
@@ -61,6 +58,7 @@ fprintf('(mglMetalOpen) Trying to connect to mglMetal with timeout %d seconds.\n
 timer = tic();
 mgl.s = mglSocketCreateClient(socketAddress);
 while toc(timer) < timeout && isempty(mgl.s)
+  pause(0.1);
   fprintf('.');
   mgl.s = mglSocketCreateClient(socketAddress);
 end
@@ -74,6 +72,7 @@ end
 
 % Make sure Matlab and metal agree on initial coordinate transform.
 mglTransform('set', eye(4));
+mglFlush();
 
 % BSH stubbing these out for now
 mglSetParam('displayNumber', 0);

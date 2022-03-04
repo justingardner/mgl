@@ -17,7 +17,7 @@
 %mglPolygon(x, y, [1 0 0]);
 %mglFlush();
 
-function mglPolygon(x, y, varargin)
+function [ackTime, processedTime] = mglPolygon(x, y, varargin)
 
 global mgl;
 
@@ -63,5 +63,7 @@ vertices(6, 1:n) = color(3);
 
 % Send vertices over to the rendering app.
 mglSocketWrite(mgl.s, mgl.command.mglPolygon);
+ackTime = mglSocketRead(mgl.s, 'double');
 mglSocketWrite(mgl.s, uint32(n));
 mglSocketWrite(mgl.s, vertices);
+processedTime = mglSocketRead(mgl.s, 'double');

@@ -34,7 +34,7 @@ class mglCommandInterface {
         if optionIndex < 0 {
             print("(mglCommandInterface) no command line option passed for -mglConnectionAddress, using a default address.")
         }
-        let address = arguments.indices.contains(optionIndex + 1) ? arguments[optionIndex + 1] : "mglMetalSocket"
+        let address = arguments.indices.contains(optionIndex + 1) ? arguments[optionIndex + 1] : "mglMetal.socket"
         print("(mglCommandInterface) using connection address \(address)")
 
         // In the future we might inspect the address to decide what kind of server to create,
@@ -81,6 +81,12 @@ class mglCommandInterface {
             fatalError("(mglCommandInterface:readUInt32) Expected to read \(expectedByteCount) bytes but read \(bytesRead)")
         }
         return data
+    }
+
+    func writeUInt32(data: mglUInt32) -> Int {
+        var localData = data
+        let expectedByteCount = MemoryLayout<mglUInt32>.size
+        return server.sendData(buffer: &localData, byteCount: expectedByteCount)
     }
 
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
@@ -210,13 +216,15 @@ class mglCommandInterface {
         return(texture)
     }
 
-    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
-    // writeDouble
-    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     func writeDouble(data: Double) -> Int {
         var localData = data
         let expectedByteCount = MemoryLayout<mglDouble>.size
         return server.sendData(buffer: &localData, byteCount: expectedByteCount)
     }
 
+    func writeCommand(data: mglCommandCode) -> Int {
+        var localData = data
+        let expectedByteCount = MemoryLayout<mglCommandCode>.size
+        return server.sendData(buffer: &localData, byteCount: expectedByteCount)
+    }
 }

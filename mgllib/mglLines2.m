@@ -21,7 +21,7 @@
 %mglVisualAngleCoordinates(57,[16 12]);
 %mglLines2(rand(1,100)*5-2.5, rand(1,100)*10-5, rand(1,100)*5-2.5, rand(1,100)*3-1.5, 3, [0 0.6 1],1);
 %mglFlush
-function mglLines2(x0, y0, x1, y1, size, color)
+function [ackTime, processedTime] = mglLines2(x0, y0, x1, y1, size, color)
 
 global mgl;
 
@@ -37,10 +37,8 @@ for iLine = 1:length(x0)
 end
 
 % send line command
-mglProfile('start');
 mglSocketWrite(mgl.s, mgl.command.mglLine);
-
-% send vertices
+ackTime = mglSocketRead(mgl.s, 'double');
 mglSocketWrite(mgl.s, uint32(2*iLine));
 mglSocketWrite(mgl.s, single(v));
-mglProfile('end','mglLines2');
+processedTime = mglSocketRead(mgl.s, 'double');
