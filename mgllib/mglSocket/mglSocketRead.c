@@ -6,7 +6,7 @@
      date: 12/26/2019
 copyright: (c) 2019 Justin Gardner (GPL see mgl/COPYING)
   purpose: mex function to read from a posix socket
-   usage: data = mglSocketRead(s, typeName, rows=1, columns=1)
+   usage: data = mglSocketRead(s, typeName, rows=1, columns=1, slices=1)
 
 =========================================================================
 #endif
@@ -26,7 +26,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
 
     // Check for expected usage.
-    if (nrhs < 2 || nrhs > 4) {
+    if (nrhs < 2 || nrhs > 5) {
         const int ndims = 1;
         const int dims[] = {1};
         mxArray *callInput[] = { mxCreateString("mglSocketRead") };
@@ -55,7 +55,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         return;
     }
 
-    // Get the type and size of data expecting to read.
+    // Get the element type of data expecting to read.
     char *typeName = mxArrayToUTF8String(prhs[1]);
     if (typeName == NULL) {
         mexPrintf("(mglSocketRead) Could not read data type name from second arg.\n");
@@ -64,7 +64,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     }
 
     if (verbose) {
-        mexPrintf("(mglSocketRead) Reading data type %s.\n", typeName);
+        mexPrintf("(mglSocketRead) Reading data with element type %s.\n", typeName);
     }
 
     // Get the dimensions of the output matrix.
@@ -78,21 +78,31 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         columns = (mwSize) mxGetScalar(prhs[3]);
     }
 
-    size_t numElements = rows * columns;
+    mwSize slices = 1;
+    if (nrhs >= 5) {
+        slices = (mwSize) mxGetScalar(prhs[4]);
+    }
+
+    if (verbose) {
+        mexPrintf("(mglSocketRead) Reading %d x %d x %d elements.\n", rows, columns, slices);
+    }
+
+    size_t numElements = rows * columns * slices;
     size_t numBytes = 0;
+    mwSize dims[] = {rows, columns, slices};
     mxArray* data;
     if (!strcmp("uint16", typeName)) {
         numBytes = mglSizeOfCommandCodeArray(numElements);
-        data = mxCreateNumericMatrix(rows, columns, mxUINT16_CLASS, mxREAL);
+        data = mxCreateNumericArray(3, dims, mxUINT16_CLASS, mxREAL);
     } else if (!strcmp("uint32", typeName)) {
         numBytes = mglSizeOfUInt32Array(numElements);
-        data = mxCreateNumericMatrix(rows, columns, mxUINT32_CLASS, mxREAL);
+        data = mxCreateNumericArray(3, dims, mxUINT32_CLASS, mxREAL);
     } else if (!strcmp("double", typeName)) {
         numBytes = mglSizeOfDoubleArray(numElements);
-        data = mxCreateNumericMatrix(rows, columns, mxDOUBLE_CLASS, mxREAL);
+        data = mxCreateNumericArray(3, dims, mxDOUBLE_CLASS, mxREAL);
     } else if (!strcmp("single", typeName)) {
         numBytes = mglSizeOfFloatArray(numElements);
-        data = mxCreateNumericMatrix(rows, columns, mxSINGLE_CLASS, mxREAL);
+        data = mxCreateNumericArray(3, dims, mxSINGLE_CLASS, mxREAL);
     } else {
         if (verbose) {
             mexPrintf("(mglSocketRead) Unsupported data type %s, must be uint16, uint32, double, or single.\n", typeName);
@@ -103,7 +113,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     }
 
     if (verbose) {
-        mexPrintf("(mglSocketRead) Reading %dx%d elements of type %s as %d bytes on connectionSocketDescriptor %d.\n", rows, columns, mxGetClassName(data), numBytes, connectionSocketDescriptor);
+        mexPrintf("(mglSocketRead) Reading %d x %d x %d elements of type %s as %d bytes on connectionSocketDescriptor %d.\n", rows, columns, slices, mxGetClassName(data), numBytes, connectionSocketDescriptor);
     }
 
     // Read data from the socket into the Matlab data matrix.

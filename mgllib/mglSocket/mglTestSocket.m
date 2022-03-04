@@ -68,20 +68,22 @@ disp("...Sockets tests passed OK!")
 % reading concurrently from its own process, allowing the sender to keep on
 % writing.
 function assertReceivedIntegrity(sender, receiver, typeName)
+elements = 8192 / 8;
 rows = randi(32);
 columns = randi(32);
+slices = floor(elements / (rows * columns));
 if (strcmp(typeName, 'uint16') || strcmp(typeName, 'uint32'))
-    originalData = randi(2^16-1, [rows, columns], typeName);
+    originalData = randi(2^16-1, [rows, columns, slices], typeName);
 else
-    originalData = rand([rows, columns], typeName);
+    originalData = rand([rows, columns, slices], typeName);
 end
 
-fprintf('Sending %d x %d %s data...', rows, columns, typeName);
+fprintf('Sending %d x %d x %d %s data...', rows, columns, slices, typeName);
 
 timer = tic();
 byteCount = mglSocketWrite(sender, originalData);
 dataWaiting = mglSocketDataWaiting(receiver);
-receivedData = mglSocketRead(receiver, typeName, rows, columns);
+receivedData = mglSocketRead(receiver, typeName, rows, columns, slices);
 duration = toc(timer);
 
 assert(byteCount > 0, 'Sent byte count should be positive but it was %d.', byteCount);
