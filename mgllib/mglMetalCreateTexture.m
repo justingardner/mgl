@@ -27,8 +27,8 @@ if imageWidth ~= tex.imageWidth
   tex.imageWidth = imageWidth;
 end
 
-% get dimensions of texture
-%[tex.imageWidth tex.imageHeight tex.colorDim] = size(im);
+% Rearrange the image data to Metal texture format.
+% See the corresponding shift in mglMetalReadTexture.
 im = shiftdim(im,2);
 
 % send texture command

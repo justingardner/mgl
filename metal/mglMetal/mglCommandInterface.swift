@@ -216,6 +216,24 @@ class mglCommandInterface {
         return(texture)
     }
 
+    func writeTexture(texture: MTLTexture) -> Int {
+        guard let textureData = texture.buffer?.contents() else {
+            print("(mglCommandInterface:writeTexture) unable to access buffer contents of texture \(texture)")
+            // No data to return, but Matlab expects a response with width and height.
+            _ = writeUInt32(data: 0)
+            _ = writeUInt32(data: 0)
+            return 0
+        }
+
+        print("(mglCommandInterface:writeTexture) width: \(texture.width) height: \(texture.height)")
+        _ = writeUInt32(data: mglUInt32(texture.width))
+        _ = writeUInt32(data: mglUInt32(texture.height))
+
+        // Compute size of texture in bytes
+        let expectedByteCount = Int(mglSizeOfFloatRgbaTexture(mglUInt32(texture.width), mglUInt32(texture.height)))
+        return server.sendData(buffer: textureData, byteCount: expectedByteCount)
+    }
+
     func writeDouble(data: Double) -> Int {
         var localData = data
         let expectedByteCount = MemoryLayout<mglDouble>.size

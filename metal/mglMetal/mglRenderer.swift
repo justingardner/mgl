@@ -201,6 +201,7 @@ extension mglRenderer: MTKViewDelegate {
             case mglFullscreen: fullscreen(view: view)
             case mglWindowed: windowed(view: view)
             case mglCreateTexture: createTexture()
+            case mglReadTexture: readTexture()
             default: print("(mglRenderer) Unknown command code: \(command)")
             }
 
@@ -357,6 +358,20 @@ extension mglRenderer: MTKViewDelegate {
 
         // Return the total number of textures.
         _ = commandInterface.writeUInt32(data: textureCount)
+    }
+
+    func readTexture() {
+        let textureNumber = commandInterface.readUInt32()
+        let textureIndex = Array<MTLTexture>.Index(textureNumber)
+        if (!textures.indices.contains(textureIndex)) {
+            print("(mglRenderer:readTexture) given textureNumber \(textureNumber) is invalid, ie not in texture indices \(textures.indices).")
+            // No data to return, but Matlab expects a response wiht width and height.
+            _ = commandInterface.writeUInt32(data: 0)
+            _ = commandInterface.writeUInt32(data: 0)
+            return;
+        }
+        let texture = textures[textureIndex]
+        _ = commandInterface.writeTexture(texture: texture)
     }
 
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
