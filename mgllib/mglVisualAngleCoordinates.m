@@ -52,10 +52,7 @@ if mglGetParam('displayNumber') == -1
 end
 
 % remember old settings
-oldDeviceHDirection = mglGetParam('deviceHDirection');
-oldDeviceVDirection = mglGetParam('deviceVDirection');
-oldXDeviceToPixels = mglGetParam('xDeviceToPixels');
-oldYDeviceToPixels = mglGetParam('yDeviceToPixels');
+oldTransform = mglTransform('get');
 
 % get distance and size of screen (either from
 % passed in variables or from global
@@ -164,11 +161,7 @@ mglSetParam('deviceHDirection',1);
 mglSetParam('deviceVDirection',1);
 
 % check to see if textures need to be recreated
-if (mglGetParam('numTextures') > 0) && ...
-      (oldDeviceHDirection ~= mglGetParam('deviceHDirection')) && ...
-      (oldDeviceVDirection ~= mglGetParam('deviceVDirection')) && ...
-      (oldXDeviceToPixels ~= mglGetParam('xDeviceToPixels')) && ...
-      (oldYDeviceToPixels ~= mglGetParam('yDeviceToPixels'))
-  disp(sprintf('(mglVisualAngleCoordinates) All previously created textures will need to be reoptimized with mglReoptimizeTexture'));
+newTransform = mglTransform('get');
+if mglGetParam('numTextures') > 0 && ~isequal(newTransform, oldTransform)
+    disp(sprintf('(mglVisualAngleCoordinates) All previously created textures will need to be reoptimized with mglReoptimizeTexture'));
 end
-
