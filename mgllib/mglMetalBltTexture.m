@@ -58,14 +58,15 @@ coords(2,:) = coords(2,:)+position(2);
 % now create vertices for 2 triangles to
 % represent the rectangle for the texture
 % with appropriate texture coordinates
+% Note: Metal texture coordinates have +Y going down, opposite of vertices!
 verticesWithTextureCoordinates = [...
-    coords(1,1) coords(2,1) 0 1 1;
-    coords(1,2) coords(2,2) 0 0 1;
-    coords(1,3) coords(2,3) 0 0 0;
+    coords(1,1) coords(2,1) 0 1 0;
+    coords(1,2) coords(2,2) 0 0 0;
+    coords(1,3) coords(2,3) 0 0 1;
 
-    coords(1,1) coords(2,1) 0 1 1;
-    coords(1,3) coords(2,3) 0 0 0;
-    coords(1,4) coords(2,4) 0 1 0;
+    coords(1,1) coords(2,1) 0 1 0;
+    coords(1,3) coords(2,3) 0 0 1;
+    coords(1,4) coords(2,4) 0 1 1;
 ]';
 
 % number of vertices
