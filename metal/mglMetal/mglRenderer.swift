@@ -33,6 +33,7 @@ class mglRenderer: NSObject {
     // Pipeline states for rendering different things
     var pipelineStateDots: MTLRenderPipelineState!
     var pipelineStateVertexWithColor: MTLRenderPipelineState!
+    var pipelineStateVertexWithColorForTexture: MTLRenderPipelineState!
     var pipelineStateTextures: MTLRenderPipelineState!
 
     // variable to hold mglCommunicator which
@@ -49,6 +50,9 @@ class mglRenderer: NSObject {
     var deg2metal = matrix_identity_float4x4
 
     var textures : [MTLTexture] = []
+
+    // target for rendering: either an index into textures, or else render off-screen.
+    var renderTarget = Array<MTLTexture>.Index(-1)
     
     // Set to not provide profiling information
     var profile = false
@@ -78,7 +82,7 @@ class mglRenderer: NSObject {
         // Set up several rendering pipelines, all will have a pixel format and alpha blending in common.
         let pipelineDescriptor = MTLRenderPipelineDescriptor()
         pipelineDescriptor.colorAttachments[0].pixelFormat = metalView.colorPixelFormat
-        pipelineDescriptor.colorAttachments[0].isBlendingEnabled             = true;
+        pipelineDescriptor.colorAttachments[0].isBlendingEnabled           = true;
         pipelineDescriptor.colorAttachments[0].rgbBlendOperation           = MTLBlendOperation.add;
         pipelineDescriptor.colorAttachments[0].alphaBlendOperation         = MTLBlendOperation.add;
         pipelineDescriptor.colorAttachments[0].sourceRGBBlendFactor        = MTLBlendFactor.sourceAlpha;
@@ -131,6 +135,13 @@ class mglRenderer: NSObject {
         // Setup the pipeline with the device
         do {
             pipelineStateVertexWithColor = try device.makeRenderPipelineState(descriptor: pipelineDescriptor)
+        } catch let error {
+            fatalError(error.localizedDescription)
+        }
+
+        pipelineDescriptor.colorAttachments[0].pixelFormat = .rgba32Float
+        do {
+            pipelineStateVertexWithColorForTexture = try device.makeRenderPipelineState(descriptor: pipelineDescriptor)
         } catch let error {
             fatalError(error.localizedDescription)
         }
@@ -202,6 +213,7 @@ extension mglRenderer: MTKViewDelegate {
             case mglWindowed: windowed(view: view)
             case mglCreateTexture: createTexture()
             case mglReadTexture: readTexture()
+            case mglSetRenderTarget: setRenderTarget()
             default: print("(mglRenderer) Unknown command code: \(command)")
             }
 
@@ -212,13 +224,31 @@ extension mglRenderer: MTKViewDelegate {
 
         // Set up to process one or more drawing commands.
         guard let drawable = view.currentDrawable else {
+            // We did nothing, but Matlab still expectes a command-processed ack.
+            _ = commandInterface.writeDouble(data: secs.get())
             return
         }
-        guard let descriptor = view.currentRenderPassDescriptor,
-              let commandBuffer = mglRenderer.commandQueue.makeCommandBuffer(),
-              let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: descriptor) else {
+
+        // Configure a render pass to target on-screen as usuaal, or an offscreen texture if one was chosen.
+        guard let descriptor = view.currentRenderPassDescriptor else {
+                  // We did nothing, but Matlab still expectes a command-processed ack.
+                  _ = commandInterface.writeDouble(data: secs.get())
                   return
               }
+        if (textures.indices.contains(renderTarget)) {
+            descriptor.colorAttachments[0].texture = textures[renderTarget]
+            descriptor.colorAttachments[0].loadAction = .clear
+            descriptor.colorAttachments[0].clearColor = view.clearColor
+            descriptor.colorAttachments[0].storeAction = .store
+        }
+
+        guard let commandBuffer = mglRenderer.commandQueue.makeCommandBuffer(),
+              let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: descriptor) else {
+                  // We did nothing, but Matlab still expectes a command-processed ack.
+                  _ = commandInterface.writeDouble(data: secs.get())
+                  return
+              }
+
         renderEncoder.setVertexBytes(&deg2metal, length: MemoryLayout<float4x4>.stride, index: 1)
 
         // Keep processing drawing commands until a flush command.
@@ -251,6 +281,13 @@ extension mglRenderer: MTKViewDelegate {
 
         // Finished a group of drawing commands, commit the frame and let Metal render it.
         renderEncoder.endEncoding()
+
+        if (textures.indices.contains(renderTarget)) {
+            let bltCommandEncoder = commandBuffer.makeBlitCommandEncoder()
+            bltCommandEncoder?.synchronize(resource: textures[renderTarget])
+            bltCommandEncoder?.endEncoding()
+        }
+
         commandBuffer.present(drawable)
         commandBuffer.commit()
     }
@@ -320,9 +357,9 @@ extension mglRenderer: MTKViewDelegate {
         samplerDescriptor.minFilter = .linear
         samplerDescriptor.magFilter = .linear
         samplerDescriptor.mipFilter = .linear
-        samplerDescriptor.sAddressMode = MTLSamplerAddressMode.repeat
-        samplerDescriptor.tAddressMode = MTLSamplerAddressMode.repeat
-        samplerDescriptor.rAddressMode = MTLSamplerAddressMode.repeat
+        samplerDescriptor.sAddressMode = MTLSamplerAddressMode.clampToEdge
+        samplerDescriptor.tAddressMode = MTLSamplerAddressMode.clampToEdge
+        samplerDescriptor.rAddressMode = MTLSamplerAddressMode.clampToEdge
         let samplerState = mglRenderer.device.makeSamplerState(descriptor:samplerDescriptor)
         
         // add the sampler to the renderEncoder
@@ -374,12 +411,21 @@ extension mglRenderer: MTKViewDelegate {
         _ = commandInterface.writeTexture(texture: texture)
     }
 
+    func setRenderTarget() {
+        renderTarget = Array<MTLTexture>.Index(commandInterface.readUInt32())
+    }
+
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     // drawVerticesWithColor
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     func drawVerticesWithColor(view: MTKView, renderEncoder: MTLRenderCommandEncoder, primitiveType: MTLPrimitiveType) {
         // set the pipeline state
-        renderEncoder.setRenderPipelineState(pipelineStateVertexWithColor)
+        if (textures.indices.contains(renderTarget)) {
+            renderEncoder.setRenderPipelineState(pipelineStateVertexWithColorForTexture)
+        } else {
+            renderEncoder.setRenderPipelineState(pipelineStateVertexWithColor)
+        }
+
         // read the vertices with 3 extra values for color
         let (vertexBufferWithColors, vertexCount) = commandInterface.readVertices(device: mglRenderer.device, extraVals: 3)
         // set the vertices in the renderEncoder

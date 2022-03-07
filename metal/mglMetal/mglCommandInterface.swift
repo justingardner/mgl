@@ -189,6 +189,9 @@ class mglCommandInterface {
             height: Int(textureHeight),
             mipmapped: false)
 
+        // For now, all textures can receive rendering output.
+        textureDescriptor.usage = [.renderTarget, .shaderRead, .shaderWrite]
+
         // Compute size of texture in bytes
         let expectedByteCount = Int(mglSizeOfFloatRgbaTexture(mglUInt32(textureWidth), mglUInt32(textureHeight)))
 

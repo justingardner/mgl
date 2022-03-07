@@ -49,7 +49,9 @@ end
 
 % close socket if one is already opened
 if isfield(mgl, 's')
-    mglSocketClose(mgl.s);
+    fprintf('Trying to close old socket.\n')
+    disp(mgl.s)
+    mgl.s = mglSocketClose(mgl.s);
 end
 
 % Open a new socket and wait for a connection to the mglMetal server.
