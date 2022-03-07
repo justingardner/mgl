@@ -29,6 +29,19 @@ end
 textureData = mglSocketRead(mgl.s, 'single', 4, width, height);
 processedTime = mglSocketRead(mgl.s, 'double');
 
-% Rearrange the texture data to Matlab image format.
-% See the corresponding shift in mglMetalCreateTexture.
-im = shiftdim(textureData, 1);
+% Rearrange the textre data into the Matlab image format.
+% See the corresponding rearragement in mglMetalCreateTexture.
+%
+% Some explanation:
+% When Metal textures are serialized they come out like this:
+%   [R1, G1, B1, A1, R2, G2, B2, A1, R3, G3, B3, A3 ... ]
+% This gives one complete pixel at a time.  This corresponds to a matrix
+% indexing scheme like (channel, row, column), where channel is the
+% fastest-moving dimension.
+%
+% But Matlab images are idexed by (row, column, channel).
+% When serialized they would have row and column as the fastest-moving:
+%   [R1, R2, R3, ..., G1, G2, G3, ..., B1, B2, B3, ..., A1, A2, A3, ... ]
+% And we get a whole channel at a time.
+% So we swap the dimensions to be indexed in Matlab image order.
+im = permute(textureData, [3,2,1]);

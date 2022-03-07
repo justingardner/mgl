@@ -27,9 +27,21 @@ if imageWidth ~= tex.imageWidth
   tex.imageWidth = imageWidth;
 end
 
-% Rearrange the image data to Metal texture format.
-% See the corresponding shift in mglMetalReadTexture.
-im = shiftdim(im,2);
+% Rearrange the image data into the Metal texture format.
+% See the corresponding rearragement in mglMetalReadTexture.
+%
+% Some explanation:
+% Matlab images are idexed by (row, column, channel),
+% When serialized they traverse rows and columns first and look like this:
+%   [R1, R2, R3, ..., G1, G2, G3, ..., B1, B2, B3, ..., A1, A2, A3, ... ]
+% The first thing that comes out complete is the entire red channel, for
+% all pixels.
+%
+% In Metal we want to get complete pixels at a time, more like this:
+%   [R1, G1, B1, A1, R2, G2, B2, A1, R3, G3, B3, A3 ... ]
+% So we swap the dimensions to be indexed by (channel, row, column)
+% That way when serialized we traverse channel and column first.
+im = permute(im, [3,2,1]);
 
 % send texture command
 mglSocketWrite(mgl.s, mgl.command.mglCreateTexture);
