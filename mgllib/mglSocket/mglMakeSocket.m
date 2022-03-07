@@ -13,6 +13,10 @@ socketSrc = dir([socketDir, '/*.c']);
 socketSrcFiles = {socketSrc.name};
 mexCommandPrefix = getMexCommand();
 
+oldPwd = pwd();
+restorePwd = onCleanup(@() cd(oldPwd));
+cd(socketDir);
+
 % loop over filenams
 for iFile = 1:length(socketSrcFiles)
     srcFile = socketSrcFiles{iFile};

@@ -131,13 +131,24 @@ class mglLocalServer : mglServer {
     }
 
     func sendData(buffer: UnsafeRawPointer, byteCount: Int) -> Int {
-        let bytesSent = send(acceptedSocketDescriptor, buffer, byteCount, 0)
-        if bytesSent < 0 {
-            print("(mglLocalServer) Error sending \(byteCount) bytes to client: \(bytesSent) errno: \(errno)")
-        } else if bytesSent != byteCount {
-            print("(mglLocalServer) Sent \(bytesSent) to client, but expected to send\(byteCount)")
+        var totalSent = 0
+        while totalSent < byteCount {
+            let sent = send(acceptedSocketDescriptor, buffer.advanced(by: totalSent), byteCount - totalSent, 0)
+            if (sent < 0) {
+                if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                    continue
+                } else {
+                    break
+                }
+            }
+            totalSent += sent
         }
-        return bytesSent
+        if totalSent < 0 {
+            print("(mglLocalServer) Error sending \(byteCount) bytes to client: \(totalSent) errno: \(errno)")
+        } else if totalSent != byteCount {
+            print("(mglLocalServer) Sent \(totalSent) to client, but expected to send \(byteCount) errno: \(errno)")
+        }
+        return totalSent
     }
 
 }

@@ -76,15 +76,26 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
         mexPrintf("(mglSocketWrite) Sending %d elements of type %s as %d bytes on connectionSocketDescriptor %d.\n", numElements, mxGetClassName(prhs[1]), numBytes, connectionSocketDescriptor);
     }
 
-    int sentBytes = write(connectionSocketDescriptor, mxGetPr(prhs[1]), numBytes);
+    int totalSent = 0;
+    while (totalSent < numBytes) {
+        int sent = send(connectionSocketDescriptor, mxGetPr(prhs[1]), numBytes, 0);
+        if (sent < 0) {
+            if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                continue;
+            } else {
+                break;
+            }
+        }
+        totalSent += sent;
+    }
     if (verbose) {
-        if (sentBytes < numBytes) {
-            mexPrintf("(mglSocketWrite) Expected to send %d bytes but sent %d, errno: %d\n", numBytes, sentBytes, errno);
+        if (totalSent < numBytes) {
+            mexPrintf("(mglSocketWrite) Expected to send %d bytes but sent %d, errno: %d\n", numBytes, totalSent, errno);
         } else {
-            mexPrintf("(mglSocketWrite) Sent %d bytes.\n", sentBytes);
+            mexPrintf("(mglSocketWrite) Sent %d bytes.\n", totalSent);
         }
     }
  
     // Return the number of bytes actually sent.
-    plhs[0] = mxCreateDoubleScalar(sentBytes);
+    plhs[0] = mxCreateDoubleScalar(totalSent);
 }
