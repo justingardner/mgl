@@ -26,8 +26,7 @@ end
 im = mglPrivateText(str);
 
 % need to reshape
-im.textImage = reshape(im.textImage,im.imageHeight,im.imageWidth,4);
-im.textImage = permute(im.textImage,[2 1 3]);
+im.textImage = reshape(flipud(im.textImage),im.imageHeight,im.imageWidth,4);
 
 % create the texture
 [tex, ackTime, processedTime] = mglMetalCreateTexture(im.textImage);

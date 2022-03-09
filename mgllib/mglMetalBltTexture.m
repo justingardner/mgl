@@ -75,8 +75,8 @@ nVertices = 6;
 % send blt command
 mglSocketWrite(mgl.s, mgl.command.mglBltTexture);
 ackTime = mglSocketRead(mgl.s, 'double');
-mglSocketWrite(mgl.s, tex.textureNumber);
 mglSocketWrite(mgl.s, uint32(nVertices));
 mglSocketWrite(mgl.s, single(verticesWithTextureCoordinates));
 mglSocketWrite(mgl.s, single(phase));
+mglSocketWrite(mgl.s, tex.textureNumber);
 processedTime = mglSocketRead(mgl.s, 'double');

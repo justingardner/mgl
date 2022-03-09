@@ -1,7 +1,7 @@
 function [ackTime, processedTime] = mglMetalSetRenderTarget(tex)
 
-if (nargin < 1) 
-    renderTarget = -1;
+if (nargin < 1)
+    renderTarget = uint32(0);
 else
     renderTarget = tex.textureNumber;
 end

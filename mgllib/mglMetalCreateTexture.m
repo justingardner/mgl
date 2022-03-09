@@ -14,14 +14,14 @@ function [tex, ackTime, processedTime] = mglMetalCreateTexture(im)
 
 global mgl
 
-[tex.imageWidth, tex.imageHeight, tex.colorDim] = size(im);
+[tex.imageHeight, tex.imageWidth, tex.colorDim] = size(im);
 
 % for now, imageWidth needs to be 16 byte aligned to 256
 imageWidth = ceil(tex.imageWidth*16/256)*16;
 if imageWidth ~= tex.imageWidth
   disp('(mglMetalCreateTexture) Resizing texture image to align to 256')
-  newim = zeros([imageWidth tex.imageHeight tex.colorDim]);
-  newim(1:tex.imageWidth,1:tex.imageHeight,:) = im;
+  newim = zeros([tex.imageHeight, imageWidth, tex.colorDim]);
+  newim(1:tex.imageHeight, 1:tex.imageWidth, :) = im;
   % and reset to this new padded image
   im = newim;
   tex.imageWidth = imageWidth;
@@ -39,7 +39,7 @@ end
 %
 % In Metal we want to get complete pixels at a time, more like this:
 %   [R1, G1, B1, A1, R2, G2, B2, A1, R3, G3, B3, A3 ... ]
-% So we swap the dimensions to be indexed by (channel, row, column)
+% So we swap the dimensions to be indexed by (channel, column, row)
 % That way when serialized we traverse channel and column first.
 im = permute(im, [3,2,1]);
 

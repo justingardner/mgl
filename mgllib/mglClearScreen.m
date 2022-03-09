@@ -46,7 +46,7 @@ end
 clearColor = clearColor(:);
 
 % write clear screen command
-mglSocketWrite(mgl.s, mgl.command.mglClearScreen);
+mglSocketWrite(mgl.s, mgl.command.mglSetClearColor);
 ackTime = mglSocketRead(mgl.s, 'double');
 mglSocketWrite(mgl.s, single(clearColor));
 processedTime = mglSocketRead(mgl.s, 'double');

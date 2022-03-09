@@ -36,8 +36,8 @@ processedTime = mglSocketRead(mgl.s, 'double');
 % When Metal textures are serialized they come out like this:
 %   [R1, G1, B1, A1, R2, G2, B2, A1, R3, G3, B3, A3 ... ]
 % This gives one complete pixel at a time.  This corresponds to a matrix
-% indexing scheme like (channel, row, column), where channel is the
-% fastest-moving dimension.
+% indexing scheme like (channel, column, row), where channel is the
+% fastest-moving dimension, then column, then row.
 %
 % But Matlab images are idexed by (row, column, channel).
 % When serialized they would have row and column as the fastest-moving:
