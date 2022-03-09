@@ -173,7 +173,7 @@ mglMetalBltTexture(tex);
 mglFlush;
 
 input('Hit ENTER to test blt with drifting phase (fullscreen): ');
-mglFullscreen;
+mglMetalFullscreen;
 
 nFrames = 300;
 phase = 0;
@@ -186,10 +186,10 @@ for iFrame = 1:nFrames
     frameTime(iFrame) = mglGetSecs(frameStart);
 end
 dispFrameTimes(frameTime);
-mglFullscreen(0);
+mglMetalFullscreen(0);
 
 input('Hit ENTER to test multiple blt with rotation and drifting phase (fullscreen): ');
-mglFullscreen;
+mglMetalFullscreen;
 
 nFrames = 300;
 phase = 0;rotation = 0;width = 0.25;height = 0.25;
@@ -216,7 +216,7 @@ for iFrame = 1:nFrames
     frameTime(iFrame) = mglGetSecs(frameStart);
 end
 dispFrameTimes(frameTime);
-mglFullscreen(0);
+mglMetalFullscreen(0);
 
 %%%%%%%%%%%%%%%%%%%%%
 % Test dots
@@ -243,7 +243,7 @@ mglFlush;
 input('Hit ENTER to test moving dots (fullscreen): ');
 mglClearScreen(0.5);
 mglFlush;
-mglFullscreen;
+mglMetalFullscreen;
 
 nVertices = 1000;
 deltaX = 0.005;
@@ -272,7 +272,7 @@ end
 
 dispFrameTimes(frameTime);
 
-mglFullscreen(0);
+mglMetalFullscreen(0);
 
 %%%%%%%%%%%%%%%%%%%%%%%%
 %    dispFrameTimes    %
@@ -288,28 +288,3 @@ disp(sprintf('(mglMetalTest) Number of frames over %0.4f: %i/%i',expectedFrameTi
 disp(sprintf('(mglMetalTest) Number of frames 5%% over %0.4f: %i/%i',expectedFrameTime,sum(frameTime>(expectedFrameTime*1.05)),nFrames));
 disp(sprintf('(mglMetalTest) Number of frames 10%% over %0.4f: %i/%i',expectedFrameTime,sum(frameTime>(expectedFrameTime*1.1)),nFrames));
 disp(sprintf('(mglMetalTest) Number of frames 20%% over %0.4f: %i/%i',expectedFrameTime,sum(frameTime>(expectedFrameTime*1.2)),nFrames));
-
-
-%%%%%%%%%%%%%%%%%%%%%%%
-%    mglFullscreen    %
-%%%%%%%%%%%%%%%%%%%%%%%
-function mglFullscreen(tf)
-
-if nargin < 1
-  tf = true;
-end
-
-global mgl;
-
-if tf
-    % go full screen
-    mglSocketWrite(mgl.s, mgl.command.mglFullscreen);
-    ackTime = mglSocketRead(mgl.s, 'double');
-    processedTime = mglSocketRead(mgl.s, 'double');
-    fprintf('Fullscreen ackTime %f processedTime %f\n', ackTime, processedTime);
-else
-    mglSocketWrite(mgl.s, mgl.command.mglWindowed);
-    ackTime = mglSocketRead(mgl.s, 'double');
-    processedTime = mglSocketRead(mgl.s, 'double');
-    fprintf('Windowed ackTime %f processedTime %f\n', ackTime, processedTime);
-end

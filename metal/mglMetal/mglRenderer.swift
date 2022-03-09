@@ -113,7 +113,7 @@ class mglRenderer: NSObject {
 
 extension mglRenderer: MTKViewDelegate {
     func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {
-        print("(mglMetal:mglRenderer) drawableSizeWillChange \(size)")
+        print("(mglRenderer) drawableSizeWillChange \(size)")
     }
 
     // This is the main "loop" for mglMetal.
@@ -164,6 +164,7 @@ extension mglRenderer: MTKViewDelegate {
             case mglCreateTexture: createTexture()
             case mglReadTexture: readTexture()
             case mglSetRenderTarget: setRenderTarget()
+            case mglSetWindowFrameInDisplay: setWindowFrameInDisplay(view: view)
             default: print("(mglRenderer) Unknown command code: \(command)")
             }
 
@@ -249,6 +250,10 @@ extension mglRenderer: MTKViewDelegate {
         commandBuffer.commit()
     }
 
+    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
+    // Non-drawing commands
+    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
+
     func drainSystemEvents(view: MTKView) {
         guard let window = view.window else {return}
         var event = window.nextEvent(matching: .any)
@@ -258,17 +263,119 @@ extension mglRenderer: MTKViewDelegate {
         }
     }
 
-    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
-    // clearScreen
-    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
+    func windowed(view: MTKView) {
+        NSCursor.unhide()
+
+        guard let window = view.window else {
+            print("(mglRenderer:windowed) Could not retrieve window")
+            return
+        }
+
+        if !window.styleMask.contains(.fullScreen) {
+            print("(mglRenderer:windowed) Is already windowed")
+        } else {
+            window.toggleFullScreen(nil)
+        }
+    }
+
+    func setWindowFrameInDisplay(view: MTKView) {
+        // Read from the command interface unconditionally to avoid leaving unused data behind.
+        let displayNumber = commandInterface.readUInt32()
+        let windowX = commandInterface.readUInt32()
+        let windowY = commandInterface.readUInt32()
+        let windowWidth = commandInterface.readUInt32()
+        let windowHeight = commandInterface.readUInt32()
+
+        // Location of the chosen display AKA screen, according to the system desktop manager.
+        // Units might be hi-res "points", convert to native display pixels AKA "backing" as needed.
+        let screenIndex = Array<NSScreen>.Index(displayNumber)
+        let screens = NSScreen.screens
+        let screen = screens.indices.contains(screenIndex) ? screens[screenIndex] : screens[0]
+        let screenNativeFrame = screen.convertRectToBacking(screen.frame)
+
+        // Location of the window relative to the chosen display, in native pixels
+        let x = Int(screenNativeFrame.origin.x) + Int(windowX)
+        let y = Int(screenNativeFrame.origin.y) + Int(windowY)
+        let windowNativeFrame = NSRect(x: x, y: y, width: Int(windowWidth), height: Int(windowHeight))
+
+        // Location of the window in hi-res "points", or whatever, depending on system config.
+        let windowScreenFrame = screen.convertRectFromBacking(windowNativeFrame)
+
+        guard let window = view.window else {
+            print("(mglRenderer:setWindowFrame) Could not retrieve window.")
+            return
+        }
+
+        if window.styleMask.contains(.fullScreen) {
+            print("(mglRenderer:setWindowFrame) Skipping, since window is in fullscreen.")
+            return
+        }
+
+        print("(mglRenderer:setWindowFrame) Setting window to display \(displayNumber) frame \(windowScreenFrame).")
+        window.setFrame(windowScreenFrame, display: true)
+    }
+
+    func fullscreen(view: MTKView) {
+        guard let window = view.window else {
+            print("(mglRenderer:fullscreen) Could not retrieve window")
+            return
+        }
+        if window.styleMask.contains(.fullScreen) {
+            print("(mglRenderer:fullscreen) Is already full screen")
+        } else {
+            window.toggleFullScreen(nil)
+            NSCursor.hide()
+        }
+    }
+
     func setClearColor(view: MTKView) {
         let color = commandInterface.readColor()
         view.clearColor = MTLClearColor(red: Double(color[0]), green: Double(color[1]), blue: Double(color[2]), alpha: 1)
     }
 
+    func createTexture() {
+        let texture = commandInterface.readTexture(device: mglRenderer.device)
+        textures.append(texture)
+
+        // Return the one-based textureNumber of the new texture, then the total number of textuers.
+        // At the moment these both have the the same value!
+        // But that could change, and they feel like different flavors of fact to report out.
+        let textureCount = mglUInt32(textures.count)
+        _ = commandInterface.writeUInt32(data: textureCount)
+        // Return the total number of textures.
+        _ = commandInterface.writeUInt32(data: textureCount)
+    }
+
+    func setRenderTarget() {
+        renderTarget = readTextureNumberAsIndex()
+    }
+
+    func readTextureNumberAsIndex() -> Array<MTLTexture>.Index {
+        let oneBasedTextureNumber = commandInterface.readUInt32()
+        if oneBasedTextureNumber == 0 {
+            return Array<MTLTexture>.Index(-1)
+        } else {
+            return Array<MTLTexture>.Index(oneBasedTextureNumber - 1)
+        }
+    }
+
+    func readTexture() {
+        let textureIndex = readTextureNumberAsIndex()
+        if (!textures.indices.contains(textureIndex)) {
+            print("(mglRenderer:readTexture) invalid textureIndex \(textureIndex), valid indices are \(textures.indices)")
+            // No data to return, but Matlab expects a response wiht width and height.
+            _ = commandInterface.writeUInt32(data: 0)
+            _ = commandInterface.writeUInt32(data: 0)
+            return;
+        }
+        let texture = textures[textureIndex]
+        _ = commandInterface.writeTexture(texture: texture)
+    }
+
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
-    // dots
+    // Drawing commands
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
+
     class func dotsPipelineStateDescriptor(pixelFormat:  MTLPixelFormat, library: MTLLibrary?) -> MTLRenderPipelineDescriptor {
         let pipelineDescriptor = MTLRenderPipelineDescriptor()
         pipelineDescriptor.colorAttachments[0].pixelFormat = pixelFormat
@@ -321,9 +428,6 @@ extension mglRenderer: MTKViewDelegate {
         renderEncoder.drawPrimitives(type: .point, vertexStart: 0, vertexCount: vertexCount)
     }
     
-    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
-    // bltTexture
-    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     class func bltTexturePipelineStateDescriptor(pixelFormat:  MTLPixelFormat, library: MTLLibrary?) -> MTLRenderPipelineDescriptor {
         let pipelineDescriptor = MTLRenderPipelineDescriptor()
         pipelineDescriptor.colorAttachments[0].pixelFormat = pixelFormat
@@ -393,51 +497,6 @@ extension mglRenderer: MTKViewDelegate {
         renderEncoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: vertexCount)
     }
 
-    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
-    // createTexture
-    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
-    func createTexture() {
-        let texture = commandInterface.readTexture(device: mglRenderer.device)
-        textures.append(texture)
-
-        // Return the one-based textureNumber of the new texture, then the total number of textuers.
-        // At the moment these both have the the same value!
-        // But that could change, and they feel like different flavors of fact to report out.
-        let textureCount = mglUInt32(textures.count)
-        _ = commandInterface.writeUInt32(data: textureCount)
-        // Return the total number of textures.
-        _ = commandInterface.writeUInt32(data: textureCount)
-    }
-
-    func setRenderTarget() {
-        renderTarget = readTextureNumberAsIndex()
-    }
-
-    func readTextureNumberAsIndex() -> Array<MTLTexture>.Index {
-        let oneBasedTextureNumber = commandInterface.readUInt32()
-        if oneBasedTextureNumber == 0 {
-            return Array<MTLTexture>.Index(-1)
-        } else {
-            return Array<MTLTexture>.Index(oneBasedTextureNumber - 1)
-        }
-    }
-
-    func readTexture() {
-        let textureIndex = readTextureNumberAsIndex()
-        if (!textures.indices.contains(textureIndex)) {
-            print("(mglRenderer:readTexture) invalid textureIndex \(textureIndex), valid indices are \(textures.indices)")
-            // No data to return, but Matlab expects a response wiht width and height.
-            _ = commandInterface.writeUInt32(data: 0)
-            _ = commandInterface.writeUInt32(data: 0)
-            return;
-        }
-        let texture = textures[textureIndex]
-        _ = commandInterface.writeTexture(texture: texture)
-    }
-
-    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
-    // drawVerticesWithColor
-    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     class func drawVerticesPipelineStateDescriptor(pixelFormat:  MTLPixelFormat, library: MTLLibrary?) -> MTLRenderPipelineDescriptor {
         let pipelineDescriptor = MTLRenderPipelineDescriptor()
         pipelineDescriptor.colorAttachments[0].pixelFormat = pixelFormat
@@ -484,42 +543,5 @@ extension mglRenderer: MTKViewDelegate {
     func setXform(renderEncoder: MTLRenderCommandEncoder) {
         deg2metal = commandInterface.readXform();
         renderEncoder.setVertexBytes(&deg2metal, length: MemoryLayout<float4x4>.stride, index: 1)
-    }
-
-    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
-    // windowed
-    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
-    func windowed(view: MTKView) {
-        guard let window = view.window else {
-            print("(mglRenderer:windowed) Could not retrieve window")
-            return
-        }
-
-        if !window.styleMask.contains(.fullScreen) {
-            print("(mglRenderer:windowed) Is already windowed")
-        } else {
-            window.toggleFullScreen(nil)
-            var windowFrame = window.frame
-            print(windowFrame)
-            windowFrame.size = NSMakeSize(400, 400)
-            window.setFrame(windowFrame, display: true)
-            NSCursor.unhide()
-        }
-    }
-
-    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
-    // fullscreen
-    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
-    func fullscreen(view: MTKView) {
-        guard let window = view.window else {
-            print("(mglRenderer:fullscreen) Could not retrieve window")
-            return
-        }
-        if window.styleMask.contains(.fullScreen) {
-            print("(mglRenderer:fullscreen) Is already full screen")
-        } else {
-            window.toggleFullScreen(nil)
-            NSCursor.hide()
-        }
     }
 }
