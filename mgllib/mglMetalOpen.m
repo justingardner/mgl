@@ -6,15 +6,31 @@
 %       date: 09/27/2021
 %  copyright: (c) 2021 Justin Gardner (GPL see mgl/COPYING)
 %    purpose: Opens an mgl Metal window - typically called from mglOpen
-%      usage: open 2nd monitor
-%             mglMetalOpen(2)
+%      usage: Open on secondary monitor
+%             mglMetalOpen(1)
 %
-%             Open with resolution 800x600 in a windowed context
-%             mglMetalOpen(0,800,600);
-function mglMetalOpen(whichScreen,screenWidth,screenHeight)
+%             Open on primary monitory in an 800x600 window
+%             mglMetalOpen(0, 800, 600);
+function mglMetalOpen(whichScreen, screenX, screenY, screenWidth, screenHeight)
 
-if nargin == 0
-    whichScreen = 1;
+if nargin < 1
+    whichScreen = 0;
+end
+
+if nargin < 2
+    screenX = 100;
+end
+
+if nargin < 3
+    screenY = 100;
+end
+
+if nargin < 4
+    screenWidth = 512;
+end
+
+if nargin < 5
+    screenHeight = 512;
 end
 
 % create the mgl global variable
@@ -72,12 +88,12 @@ else
     fprintf('(mglMetalOpen) Socket connection to mglMetal established in %f seconds\n', toc(timer));
 end
 
-% Make sure Matlab and metal agree on initial coordinate transform.
+% A fresh mglMetal process starts out with no textures.
+mglSetParam('numTextures', 0);
+
+% Move to the desired display and window location.
+mglMetalSetWindowFrameInDisplay(whichScreen, screenX, screenY, screenWidth, screenHeight);
+
+% Make sure Matlab and mglMetal agree on initial coordinate transform.
 mglTransform('set', eye(4));
 mglFlush();
-
-% BSH stubbing these out for now
-mglSetParam('displayNumber', 0);
-mglSetParam('screenWidth', 400);
-mglSetParam('screenHeight', 400);
-mglSetParam('numTextures', 0);

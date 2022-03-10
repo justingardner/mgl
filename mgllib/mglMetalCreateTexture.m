@@ -8,7 +8,6 @@
 %              to mglMetal application and return a structure to be
 %              used with mglMetalBltTexture to display - these
 %              functions are called by mglCreateTexture and mglBltTexture
-%       e.g.:
 %
 function [tex, ackTime, processedTime] = mglMetalCreateTexture(im)
 

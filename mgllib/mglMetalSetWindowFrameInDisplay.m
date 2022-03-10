@@ -9,3 +9,7 @@ mglSocketWrite(mgl.s, uint32(y));
 mglSocketWrite(mgl.s, uint32(width));
 mglSocketWrite(mgl.s, uint32(height));
 processedTime = mglSocketRead(mgl.s, 'double');
+
+mglSetParam('displayNumber', displayNumber);
+mglSetParam('screenWidth', width);
+mglSetParam('screenHeight', height);

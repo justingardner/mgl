@@ -161,7 +161,7 @@ if ~openDisplay
       mglMetalOpen(0);
     elseif whichScreen >= 0
       % open for a windowed mgl (i.e. whichScreen between 0 and 1
-      mglMetalOpen(whichScreen,screenWidth,screenHeight);
+      mglMetalOpen(whichScreen, 100, 100, screenWidth, screenHeight);
       % get the frameRate and bitDepth
       displayResolution = mglResolution;
       frameRate = displayResolution.frameRate;
@@ -179,7 +179,6 @@ if ~openDisplay
   % clear screen to black
   mglClearScreen(0);
   mglFlush;
-  mglFlush; % TODO, at the moment clear screen with Metal takes two flushes
 end
 
 % round down to remove any decimal alpha request

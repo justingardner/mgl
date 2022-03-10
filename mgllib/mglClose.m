@@ -22,7 +22,10 @@ if mglGetParam('displayNumber') == -1
 end
 
 % clear screen to avoid flickering 
-mglClearScreen(0);mglFlush;mglClearScreen(0);mglFlush;
+mglClearScreen(0);
+mglFlush;
+mglClearScreen(0);
+mglFlush;
 
 % restore gamma table, if any
 if ~isempty(mglGetParam('initialGammaTable'))
@@ -49,8 +52,13 @@ end
 % close movie window
 if mglGetParam('movieMode'), mglMovie('closeWindow');end
 
-% run mex function to actually close display
-mglPrivateClose;
+% Close the mglMetal app, and socket connection to it.
+global mgl
+if isfield(mgl, 's')
+    mgl.s = mglSocketClose(mgl.s);
+end
+mglMetalShutdown();
+mglSetParam('displayNumber', -1);
 
 % reset resolution if necessary
 originalResolution = mglGetParam('originalResolution');
