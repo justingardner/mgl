@@ -464,12 +464,12 @@ extension mglRenderer: MTKViewDelegate {
 
         // set up texture sampler
         let samplerDescriptor = MTLSamplerDescriptor()
-        samplerDescriptor.minFilter = .nearest
-        samplerDescriptor.magFilter = .nearest
-        samplerDescriptor.mipFilter = .nearest
-        samplerDescriptor.sAddressMode = MTLSamplerAddressMode.clampToEdge
-        samplerDescriptor.tAddressMode = MTLSamplerAddressMode.clampToEdge
-        samplerDescriptor.rAddressMode = MTLSamplerAddressMode.clampToEdge
+        samplerDescriptor.minFilter = .linear
+        samplerDescriptor.magFilter = .linear
+        samplerDescriptor.mipFilter = .linear
+        samplerDescriptor.sAddressMode = MTLSamplerAddressMode.repeat
+        samplerDescriptor.tAddressMode = MTLSamplerAddressMode.repeat
+        samplerDescriptor.rAddressMode = MTLSamplerAddressMode.repeat
         let samplerState = mglRenderer.device.makeSamplerState(descriptor:samplerDescriptor)
         
         // add the sampler to the renderEncoder
