@@ -17,6 +17,10 @@ if nargin < 1
     testNames = cellfun(@(s) erase(s, '.m'), {testsDir.name}, 'UniformOutput', false);
 end
 
+if ischar(testNames)
+    testNames = {testNames};
+end
+
 fprintf('\nRunning %d tests.\n', numel(testNames));
 
 % Run all the tests.
@@ -33,13 +37,14 @@ results = [resultCell{:}];
 toReport = find(~[results.isSuccess]);
 
 if isempty(toReport)
-    fprintf('\nAll tests passed.\n');
+    fprintf('\nAll tests passed!\n');
     return
 else
-    fprintf('\n%d tests failed.\n', numel(toReport));
+    fprintf('\n%d tests failed:\n', numel(toReport));
     for ii = toReport
         result = results(ii);
-        fprintf('%d: %s\n', ii, result.testName);
+        fprintf('  %d: %s\n', ii, result.testName);
+        fprintf('     snapshot data: %s\n', result.snapshotData);
         figure();
         subplot(1,2,1);
         imshow(result.snapshot(:,:,1:3));
@@ -48,6 +53,8 @@ else
         imshow(result.renderedImage(:,:,1:3));
         title(sprintf('Actual (%d x %d)', size(result.renderedImage, 1), size(result.renderedImage, 2)));
     end
+    fprintf('Despair not!\n');
+    fprintf('You can review Expected vs Actual images.  If the Actual is correct, delete the snapshot data file and run this again.\n');
 end
 
 

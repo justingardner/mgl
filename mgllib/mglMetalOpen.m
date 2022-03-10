@@ -65,8 +65,6 @@ end
 
 % close socket if one is already opened
 if isfield(mgl, 's')
-    fprintf('Trying to close old socket.\n')
-    disp(mgl.s)
     mgl.s = mglSocketClose(mgl.s);
 end
 
