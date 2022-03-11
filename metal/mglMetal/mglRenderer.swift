@@ -165,6 +165,7 @@ extension mglRenderer: MTKViewDelegate {
             case mglReadTexture: readTexture()
             case mglSetRenderTarget: setRenderTarget()
             case mglSetWindowFrameInDisplay: setWindowFrameInDisplay(view: view)
+            case mglGetWindowFrameInDisplay: getWindowFrameInDisplay(view: view)
             default: print("(mglRenderer) Unknown command code: \(command)")
             }
 
@@ -302,17 +303,60 @@ extension mglRenderer: MTKViewDelegate {
         let windowScreenFrame = screen.convertRectFromBacking(windowNativeFrame)
 
         guard let window = view.window else {
-            print("(mglRenderer:setWindowFrame) Could not retrieve window.")
+            print("(mglRenderer:setWindowFrameInDisplay) Could not retrieve window.")
             return
         }
 
         if window.styleMask.contains(.fullScreen) {
-            print("(mglRenderer:setWindowFrame) Skipping, since window is in fullscreen.")
+            print("(mglRenderer:setWindowFrameInDisplay) Skipping, since window is in fullscreen.")
             return
         }
 
-        print("(mglRenderer:setWindowFrame) Setting window to display \(displayNumber) frame \(windowScreenFrame).")
+        print("(mglRenderer:setWindowFrameInDisplay) Setting window to display \(displayNumber) frame \(windowScreenFrame).")
         window.setFrame(windowScreenFrame, display: true)
+    }
+
+    func getWindowFrameInDisplay(view: MTKView) {
+        guard let window = view.window else {
+            print("(mglRenderer:getWindowFrameInDisplay) Could not retrieve window from view.")
+            _ = commandInterface.writeUInt32(data: mglUInt32(0))
+            _ = commandInterface.writeUInt32(data: mglUInt32(0))
+            _ = commandInterface.writeUInt32(data: mglUInt32(0))
+            _ = commandInterface.writeUInt32(data: mglUInt32(0))
+            _ = commandInterface.writeUInt32(data: mglUInt32(0))
+            return
+        }
+
+        guard let screen = window.screen else {
+            print("(mglRenderer:getWindowFrameInDisplay) Could not retrieve screen from window.")
+            _ = commandInterface.writeUInt32(data: mglUInt32(0))
+            _ = commandInterface.writeUInt32(data: mglUInt32(0))
+            _ = commandInterface.writeUInt32(data: mglUInt32(0))
+            _ = commandInterface.writeUInt32(data: mglUInt32(0))
+            _ = commandInterface.writeUInt32(data: mglUInt32(0))
+            return
+        }
+
+        guard let screenIndex = NSScreen.screens.firstIndex(of: screen) else {
+            print("(mglRenderer:getWindowFrameInDisplay) Could not retrieve screen index from screens.")
+            _ = commandInterface.writeUInt32(data: mglUInt32(0))
+            _ = commandInterface.writeUInt32(data: mglUInt32(0))
+            _ = commandInterface.writeUInt32(data: mglUInt32(0))
+            _ = commandInterface.writeUInt32(data: mglUInt32(0))
+            _ = commandInterface.writeUInt32(data: mglUInt32(0))
+            return
+        }
+
+        // Return the position of the window relative to its screen, in pixel units not hi-res "points".
+        let windowNativeFrame = screen.convertRectToBacking(window.frame)
+        let screenNativeFrame = screen.convertRectToBacking(screen.frame)
+        let windowX = windowNativeFrame.origin.x - screenNativeFrame.origin.x
+        let windowY = windowNativeFrame.origin.y - screenNativeFrame.origin.y
+        _ = commandInterface.writeUInt32(data: mglUInt32(screenIndex))
+        _ = commandInterface.writeUInt32(data: mglUInt32(windowX))
+        _ = commandInterface.writeUInt32(data: mglUInt32(windowY))
+        _ = commandInterface.writeUInt32(data: mglUInt32(windowNativeFrame.width))
+        _ = commandInterface.writeUInt32(data: mglUInt32(windowNativeFrame.height))
     }
 
     func fullscreen(view: MTKView) {

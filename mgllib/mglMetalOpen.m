@@ -90,7 +90,7 @@ end
 mglSetParam('numTextures', 0);
 
 % Move to the desired display and window location.
-mglMetalSetWindowFrameInDisplay(whichScreen, screenX, screenY, screenWidth, screenHeight);
+mglMetalSetWindowFrameInDisplay(whichScreen, [screenX, screenY, screenWidth, screenHeight]);
 
 % Make sure Matlab and mglMetal agree on initial coordinate transform.
 mglTransform('set', eye(4));

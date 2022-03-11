@@ -13,3 +13,5 @@
 % mglOpen(0);
 % windowPos = mglGetWindowPos
 % 
+function windowPos = mglGetWindowPos()
+[~, windowPos] = mglMetalGetWindowFrameInDisplay();

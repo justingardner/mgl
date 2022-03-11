@@ -11,27 +11,20 @@
 %mglMoveWindow(100,100);
 function mglMoveWindow(leftPos, topPos)
 
-% check arguments
-if ~any(nargin == [2])
-  help mglMoveWindow
-  return
-end
-
 if nargin ~= 2
   help mglMoveWindow
   return
 end
 
-% Verify that the current display is an AGL window.
-if mglGetParam('displayNumber') ~= 0
-  disp('(mglMoveWindow) Current openGL context is not windowed (i.e. must open with mglOpen(0))');
+if ~isscalar(leftPos) || ~isscalar(topPos)
+  help mglMoveWindow
   return
 end
 
-% move the window
-if isscalar(leftPos) && isscalar(topPos)
-%  mglPrivateMoveWindow(leftPos, topPos);
-  disp(sprintf('(mglMoveWindow) Has been busted by some OS update - needs to be fixed. Window will not be moved.'));
-else
-  disp(sprintf('(mglMoveWindow) leftPos and topPos must both be scalars'));
-end
+% Get the current window position.
+[displayNumber, rect] = mglMetalGetWindowFrameInDisplay();
+
+% Modify the position of the rect.
+rect(1) = leftPos;
+rect(2) = topPos - rect(4);
+mglMetalSetWindowFrameInDisplay(displayNumber, rect);
