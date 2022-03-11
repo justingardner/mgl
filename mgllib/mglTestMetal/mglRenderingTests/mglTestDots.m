@@ -28,6 +28,9 @@ end
 mglClearScreen(0.5);
 disp('The background should be medium-gray.');
 
+% Set a consistent rng state so that dots come out the same each time.
+rng(4242, 'twister');
+
 % Make a Glass pattern.
 nDots = 1000;
 r = rand(1,nDots);
