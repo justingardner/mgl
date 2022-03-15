@@ -6,19 +6,19 @@
 	<dict>
 		<key>Resources/Assets.car</key>
 		<data>
-		ZVHHdUln+AbHmBv3rjpzwJH8Zdk=
+		O7mOjf1FNEUEe0Ps2uu7LZ8TKNU=
 		</data>
 		<key>Resources/Base.lproj/Main.storyboardc/Info.plist</key>
 		<data>
-		b8gGIjJkG+ZtRFplZblSQkez16o=
+		QR4PnSv0O56FZsaB9KniIV16tjM=
 		</data>
 		<key>Resources/Base.lproj/Main.storyboardc/MainMenu.nib</key>
 		<data>
-		9LCIOrvEyTp2UCVV3ooEM3i+QUw=
+		MdkXRIkeW0xbL7coZXV4O6YMZJs=
 		</data>
 		<key>Resources/Base.lproj/Main.storyboardc/NSWindowController-B8D-0N-5wS.nib</key>
 		<data>
-		W6uSgMsgwHimQyPdCIt4CHwqY+w=
+		dM7aKEewQneQ1NRZmgyK+7S94K8=
 		</data>
 		<key>Resources/Base.lproj/Main.storyboardc/XfG-lQ-9wD-view-m2S-Jp-Qdl.nib</key>
 		<data>
@@ -26,46 +26,37 @@
 		</data>
 		<key>Resources/default.metallib</key>
 		<data>
-		8+UqcXIlfUJvmKjwlrWf9k3Uoy8=
+		5pfrmKL5oMM+C+ZmZ+mvdyiASpA=
 		</data>
 	</dict>
 	<key>files2</key>
 	<dict>
-		<key>PlugIns/mglMetalTests.xctest</key>
-		<dict>
-			<key>cdhash</key>
-			<data>
-			pKpIVr4Oa2AFRb4+7vzxFa52KTY=
-			</data>
-			<key>requirement</key>
-			<string>cdhash H"a4aa4856be0e6b600545be3eeefcf115ae762936"</string>
-		</dict>
 		<key>Resources/Assets.car</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			brGFsk9ngu+bTOjO6s+NN/GMcTT8B7XYJIfpQlnXSrM=
+			ZphsJT8iqkCsmObnzsax0zgzDzISsfJ1qUQjzotXVMI=
 			</data>
 		</dict>
 		<key>Resources/Base.lproj/Main.storyboardc/Info.plist</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			kY/+RIq3bSXdSrVXhBIg5u5AGDg2YsnRw+8qX2RdH9A=
+			7gKrINQ/PvGVFguztAfhl0qMcW+wMgQ2+XpOPFhugoo=
 			</data>
 		</dict>
 		<key>Resources/Base.lproj/Main.storyboardc/MainMenu.nib</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			9q6o0YPtmit1JHEVumyZ+vsTKLmUtc+xBJpPirFcdwU=
+			PX5ljy1M5N92RxX3WM0ryNPtkKHd8qVj9h3NDOcsz2w=
 			</data>
 		</dict>
 		<key>Resources/Base.lproj/Main.storyboardc/NSWindowController-B8D-0N-5wS.nib</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			IDROf4GzmPiGRyuYc7iq0E140yfFVqf7YxVWuaYLVTs=
+			f1x1F1F1slk/W5GK35FL6WhUNHh+7FmpWAWV4ehASjk=
 			</data>
 		</dict>
 		<key>Resources/Base.lproj/Main.storyboardc/XfG-lQ-9wD-view-m2S-Jp-Qdl.nib</key>
@@ -79,7 +70,7 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			U8lIQz3t9+m/jmmRD8okeDlucSSMWMYjRHqWfw6MRWE=
+			q/NZrR6f/Pt7tG9eiCU9ptRcmtCXzj8DPEKKrzIb8Tg=
 			</data>
 		</dict>
 	</dict>
