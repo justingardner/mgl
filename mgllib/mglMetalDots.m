@@ -16,7 +16,7 @@
 %
 function [ackTime, processedTime] = mglMetalDots(xyz, rgba, wh, shape, border)
 
-if nargin < 3
+if nargin < 5
   help mglMetalDots
   return
 end
@@ -27,7 +27,7 @@ if size(xyz, 1) ~= 3 ...
     || ~isequal(size(wh), [2, nDots]) ...
     || ~isequal(size(shape), [1, nDots]) ...
     || ~isequal(size(border), [1, nDots])
-    fprintf('(mglMetalDots) All args must have specific number of columns and the same number of rows (%f).\n', nDots);
+    fprintf('(mglMetalDots) All args must have specific number of rows and the same number of columns(%f).\n', nDots);
       help mglMetalDots
   return
 end

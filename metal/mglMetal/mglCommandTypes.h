@@ -34,6 +34,7 @@ typedef enum mglCommandCode : uint16_t {
     mglLine = 1006,
     mglQuad = 1007,
     mglPolygon = 1008,
+    mglArcs = 1009,
     mglUnknownCommand = UINT16_MAX
 } mglCommandCode;
 
@@ -57,7 +58,8 @@ const mglCommandCode mglCommandCodes[] = {
     mglDots,
     mglLine,
     mglQuad,
-    mglPolygon
+    mglPolygon,
+    mglArcs
 };
 const char* mglCommandNames[] = {
     "mglPing",
@@ -76,7 +78,8 @@ const char* mglCommandNames[] = {
     "mglDots",
     "mglLine",
     "mglQuad",
-    "mglPolygon"
+    "mglPolygon",
+    "mglArcs"
 };
 
 // Type aliases for supported scalar data types of known, fixed sizes.

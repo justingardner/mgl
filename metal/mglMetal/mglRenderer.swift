@@ -29,11 +29,13 @@ class mglRenderer: NSObject {
 
     // Pipeline states for rendering to screen
     let pipelineStateDots: MTLRenderPipelineState!
+    let pipelineStateArcs: MTLRenderPipelineState!
     let pipelineStateVertexWithColor: MTLRenderPipelineState!
     let pipelineStateTextures: MTLRenderPipelineState!
 
     // Pipeline states for rendering to texture
     let pipelineStateDotsToTexture: MTLRenderPipelineState!
+    let pipelineStateArcsToTexture: MTLRenderPipelineState!
     let pipelineStateVertexWithColorToTexture: MTLRenderPipelineState!
     let pipelineStateTexturesToTexture: MTLRenderPipelineState!
 
@@ -83,7 +85,8 @@ class mglRenderer: NSObject {
         metalView.depthStencilPixelFormat = .depth32Float
         metalView.clearDepth = 1.0
 
-        // create the pipelines that will render to screen or texture.
+        // Create the pipelines that will render to screen or texture.
+        // TODO: this looks like a place to factor out common code and do some polymorphism...
         do {
             pipelineStateDots = try device.makeRenderPipelineState(
                 descriptor: mglRenderer.dotsPipelineStateDescriptor(
@@ -92,6 +95,17 @@ class mglRenderer: NSObject {
                     library: library))
             pipelineStateDotsToTexture = try device.makeRenderPipelineState(
                 descriptor: mglRenderer.dotsPipelineStateDescriptor(
+                    colorPixelFormat: .rgba32Float,
+                    depthPixelFormat: metalView.depthStencilPixelFormat,
+                    library: library))
+
+            pipelineStateArcs = try device.makeRenderPipelineState(
+                descriptor: mglRenderer.arcsPipelineStateDescriptor(
+                    colorPixelFormat: metalView.colorPixelFormat,
+                    depthPixelFormat: metalView.depthStencilPixelFormat,
+                    library: library))
+            pipelineStateArcsToTexture = try device.makeRenderPipelineState(
+                descriptor: mglRenderer.arcsPipelineStateDescriptor(
                     colorPixelFormat: .rgba32Float,
                     depthPixelFormat: metalView.depthStencilPixelFormat,
                     library: library))
@@ -256,10 +270,11 @@ extension mglRenderer: MTKViewDelegate {
             switch command {
             case mglBltTexture: bltTexture(view: view, renderEncoder: renderEncoder)
             case mglSetXform: setXform(renderEncoder: renderEncoder)
-            case mglDots: dots(view: view, renderEncoder: renderEncoder)
+            case mglDots: drawDots(view: view, renderEncoder: renderEncoder)
             case mglLine: drawVerticesWithColor(view: view, renderEncoder: renderEncoder, primitiveType: .line)
             case mglQuad: drawVerticesWithColor(view: view, renderEncoder: renderEncoder, primitiveType: .triangle)
             case mglPolygon: drawVerticesWithColor(view: view, renderEncoder: renderEncoder, primitiveType: .triangleStrip)
+            case mglArcs: drawArcs(view: view, renderEncoder: renderEncoder)
             default: print("(mglRenderer) Unknown command code: \(command)")
             }
 
@@ -530,7 +545,7 @@ extension mglRenderer: MTKViewDelegate {
         return pipelineDescriptor
     }
 
-    func dots(view: MTKView, renderEncoder: MTLRenderCommandEncoder) {
+    func drawDots(view: MTKView, renderEncoder: MTLRenderCommandEncoder) {
         // set the pipeline state
         if (textures.indices.contains(renderTarget)) {
             renderEncoder.setRenderPipelineState(pipelineStateDotsToTexture)
@@ -545,6 +560,58 @@ extension mglRenderer: MTKViewDelegate {
         // Draw all the vertices as points.
         renderEncoder.drawPrimitives(type: .point, vertexStart: 0, vertexCount: vertexCount)
     }
+
+    class func arcsPipelineStateDescriptor(colorPixelFormat:  MTLPixelFormat, depthPixelFormat:  MTLPixelFormat, library: MTLLibrary?) -> MTLRenderPipelineDescriptor {
+        let pipelineDescriptor = MTLRenderPipelineDescriptor()
+        pipelineDescriptor.depthAttachmentPixelFormat = depthPixelFormat
+        pipelineDescriptor.colorAttachments[0].pixelFormat = colorPixelFormat
+        pipelineDescriptor.colorAttachments[0].isBlendingEnabled = true;
+        pipelineDescriptor.colorAttachments[0].rgbBlendOperation = MTLBlendOperation.add;
+        pipelineDescriptor.colorAttachments[0].alphaBlendOperation = MTLBlendOperation.add;
+        pipelineDescriptor.colorAttachments[0].sourceRGBBlendFactor = MTLBlendFactor.sourceAlpha;
+        pipelineDescriptor.colorAttachments[0].sourceAlphaBlendFactor = MTLBlendFactor.sourceAlpha;
+        pipelineDescriptor.colorAttachments[0].destinationRGBBlendFactor = MTLBlendFactor.oneMinusSourceAlpha;
+        pipelineDescriptor.colorAttachments[0].destinationAlphaBlendFactor = MTLBlendFactor.oneMinusSourceAlpha;
+
+        let vertexDescriptor = MTLVertexDescriptor()
+        vertexDescriptor.attributes[0].format = .float3
+        vertexDescriptor.attributes[0].offset = 0
+        vertexDescriptor.attributes[0].bufferIndex = 0
+        vertexDescriptor.attributes[1].format = .float4
+        vertexDescriptor.attributes[1].offset = 3 * MemoryLayout<Float>.size
+        vertexDescriptor.attributes[1].bufferIndex = 0
+        vertexDescriptor.attributes[2].format = .float2
+        vertexDescriptor.attributes[2].offset = 7 * MemoryLayout<Float>.size
+        vertexDescriptor.attributes[2].bufferIndex = 0
+        vertexDescriptor.attributes[3].format = .float2
+        vertexDescriptor.attributes[3].offset = 9 * MemoryLayout<Float>.size
+        vertexDescriptor.attributes[3].bufferIndex = 0
+        vertexDescriptor.attributes[4].format = .float
+        vertexDescriptor.attributes[4].offset = 11 * MemoryLayout<Float>.size
+        vertexDescriptor.attributes[4].bufferIndex = 0
+        vertexDescriptor.layouts[0].stride = 12 * MemoryLayout<Float>.size
+        pipelineDescriptor.vertexDescriptor = vertexDescriptor
+        pipelineDescriptor.vertexFunction = library?.makeFunction(name: "vertex_arcs")
+        pipelineDescriptor.fragmentFunction = library?.makeFunction(name: "fragment_arcs")
+
+        return pipelineDescriptor
+    }
+
+    func drawArcs(view: MTKView, renderEncoder: MTLRenderCommandEncoder) {
+        if (textures.indices.contains(renderTarget)) {
+            renderEncoder.setRenderPipelineState(pipelineStateArcsToTexture)
+        } else {
+            renderEncoder.setRenderPipelineState(pipelineStateArcs)
+        }
+
+        // Set all the vertex data -- 11 per vertex: [xyz rgba inner outer start sweep].
+        let (vertexBufferDots, vertexCount) = commandInterface.readVertices(device: mglRenderer.device, extraVals: 9)
+        renderEncoder.setVertexBuffer(vertexBufferDots, offset: 0, index: 0)
+
+        // Draw all the vertices as points.
+        renderEncoder.drawPrimitives(type: .point, vertexStart: 0, vertexCount: vertexCount)
+    }
+
     
     class func bltTexturePipelineStateDescriptor(colorPixelFormat:  MTLPixelFormat, depthPixelFormat:  MTLPixelFormat, library: MTLLibrary?) -> MTLRenderPipelineDescriptor {
         let pipelineDescriptor = MTLRenderPipelineDescriptor()
