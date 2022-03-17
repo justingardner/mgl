@@ -1,47 +1,70 @@
 % mglPoints2.m
 %
 %        $Id$
-%      usage: [ackTime, processedTime] = mglPoints2()
-%         by: justin gardner & Jonas Larsson
-%       date: 04/03/06
+%      usage: [ackTime, processedTime] = mglPoints2(x, y, size, color, isRound, antialiasing)
+%         by: Benjamin Heasly
+%       date: 04/17/2022
 %  copyright: (c) 2006 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
 %    purpose: plot 2D points on an OpenGL screen opened with mglOpen
-%      usage: mglPoints2(x,y,size,color[,round])
+%      usage: [ackTime, processedTime] = mglPoints2(x, y, size, color, isRound, antialiasing)
 %             x,y = position of dots on screen
 %             size = size of dots (in pixels)
 %             color of dots
 %             isRound false = squares (default), true = circles
+%             antialiasing = size of border for antialiasing (default = 0)
+%
+%             See also mglMetalDots, with additional capability.
+%
 %       e.g.:
 %
-%mglOpen;
+%mglOpen();
 %mglVisualAngleCoordinates(57,[16 12]);
 %mglPoints2(16*rand(500,1)-8,12*rand(500,1)-6,2,1);
-%mglFlush
-function [ackTime, processedTime] = mglPoints2(x,y,size,color,varargin)
+%mglFlush();
+%mglClose();
+function [ackTime, processedTime] = mglPoints2(x, y, size, color, isRound, antialiasing)
+
+nDots = numel(x);
+if ~isequal(numel(y), nDots)
+    fprintf('(mglPoints2) Number of y values must match number of x values (%d)', nDots);
+    help mglPoints2
+    return;
+end
+xyz = zeros([3, nDots], 'single');
+xyz(1,:) = x;
+xyz(2,:) = y;
+
+if nargin < 3
+    size = 10;
+end
+wh = zeros([2, nDots], 'single');
+wh(:) = size;
+
+if nargin < 4
+    color = [1 1 1 1];
+end
+if numel(color) == 3
+    color = [color, 1];
+end
+if numel(color) < 3
+    color = [color(1), color(1), color(1), 1];
+end
+rgba = zeros(4, nDots, 'single');
+rgba(1,:) = color(1);
+rgba(2,:) = color(2);
+rgba(3,:) = color(3);
+rgba(4,:) = color(4);
 
 if nargin < 5
     isRound = false;
-else
-    isRound = logical(varargin{1}(1));
 end
+shape = zeros(1, nDots, 'single');
+shape(:) = isRound;
 
-if numel(color) == 1
-    color = [color, color, color];
+if nargin < 6
+    antialiasing = 0;
 end
+border = zeros(1, nDots, 'single');
+border(:) = antialiasing;
 
-global mgl;
-
-% create vertices
-v = [x(:) y(:)];
-v(:,3) = 0;
-v = v';
-
-% write dots command
-mglSocketWrite(mgl.s, mgl.command.mglDots);
-ackTime = mglSocketRead(mgl.s, 'double');
-mglSocketWrite(mgl.s, single(size(1)));
-mglSocketWrite(mgl.s, single(color(1:3)));
-mglSocketWrite(mgl.s, uint32(isRound(1)));
-mglSocketWrite(mgl.s, uint32(length(x)));
-mglSocketWrite(mgl.s, single(v(:)));
-processedTime = mglSocketRead(mgl.s, 'double');
+[ackTime, processedTime] = mglMetalDots(xyz, rgba, wh, shape, border);

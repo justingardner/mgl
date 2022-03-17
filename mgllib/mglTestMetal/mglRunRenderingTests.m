@@ -30,7 +30,7 @@ resultCell = cell(1, numel(testNames));
 for ii = 1:numel(testNames)
     testName = testNames{ii};
     snapshotData = fullfile(testsFolder, 'snapshots', [testName, '.mat']);
-    resultCell {ii} = assertSnapshot(testName, snapshotData);
+    resultCell{ii} = assertSnapshot(testName, snapshotData);
 end
 
 results = [resultCell{:}];

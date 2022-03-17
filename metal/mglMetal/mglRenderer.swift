@@ -37,6 +37,9 @@ class mglRenderer: NSObject {
     let pipelineStateVertexWithColorToTexture: MTLRenderPipelineState!
     let pipelineStateTexturesToTexture: MTLRenderPipelineState!
 
+    // Configuration for doing depth testing.
+    let depthState: MTLDepthStencilState!
+
     // variable to hold mglCommunicator which
     // communicates with matlab
     let commandInterface : mglCommandInterface
@@ -48,6 +51,7 @@ class mglRenderer: NSObject {
     var deg2metal = matrix_identity_float4x4
 
     var textures : [MTLTexture] = []
+    var depthTexture: MTLTexture?
 
     // What to render into: the index of the texture to render into, otherwise render on-screen.
     var renderTarget = Array<MTLTexture>.Index(-1)
@@ -75,25 +79,53 @@ class mglRenderer: NSObject {
         // create a library for storing the shaders
         let library = device.makeDefaultLibrary()
 
+        // Configure the view to do depth testing.
+        metalView.depthStencilPixelFormat = .depth32Float
+        metalView.clearDepth = 1.0
+
         // create the pipelines that will render to screen or texture.
         do {
-            pipelineStateDots = try device.makeRenderPipelineState(descriptor: mglRenderer.dotsPipelineStateDescriptor(
-                pixelFormat: metalView.colorPixelFormat, library: library))
-            pipelineStateDotsToTexture = try device.makeRenderPipelineState(descriptor: mglRenderer.dotsPipelineStateDescriptor(
-                pixelFormat: .rgba32Float, library: library))
+            pipelineStateDots = try device.makeRenderPipelineState(
+                descriptor: mglRenderer.dotsPipelineStateDescriptor(
+                    colorPixelFormat: metalView.colorPixelFormat,
+                    depthPixelFormat: metalView.depthStencilPixelFormat,
+                    library: library))
+            pipelineStateDotsToTexture = try device.makeRenderPipelineState(
+                descriptor: mglRenderer.dotsPipelineStateDescriptor(
+                    colorPixelFormat: .rgba32Float,
+                    depthPixelFormat: metalView.depthStencilPixelFormat,
+                    library: library))
 
-            pipelineStateVertexWithColor = try device.makeRenderPipelineState(descriptor: mglRenderer.drawVerticesPipelineStateDescriptor(
-                pixelFormat: metalView.colorPixelFormat, library: library))
-            pipelineStateVertexWithColorToTexture = try device.makeRenderPipelineState(descriptor: mglRenderer.drawVerticesPipelineStateDescriptor(
-                pixelFormat: .rgba32Float, library: library))
+            pipelineStateVertexWithColor = try device.makeRenderPipelineState(
+                descriptor: mglRenderer.drawVerticesPipelineStateDescriptor(
+                    colorPixelFormat: metalView.colorPixelFormat,
+                    depthPixelFormat: metalView.depthStencilPixelFormat,
+                    library: library))
+            pipelineStateVertexWithColorToTexture = try device.makeRenderPipelineState(
+                descriptor: mglRenderer.drawVerticesPipelineStateDescriptor(
+                    colorPixelFormat: .rgba32Float,
+                    depthPixelFormat: metalView.depthStencilPixelFormat,
+                    library: library))
 
-            pipelineStateTextures = try device.makeRenderPipelineState(descriptor: mglRenderer.bltTexturePipelineStateDescriptor(
-                pixelFormat: metalView.colorPixelFormat, library: library))
-            pipelineStateTexturesToTexture = try device.makeRenderPipelineState(descriptor: mglRenderer.bltTexturePipelineStateDescriptor(
-                pixelFormat: .rgba32Float, library: library))
+            pipelineStateTextures = try device.makeRenderPipelineState(
+                descriptor: mglRenderer.bltTexturePipelineStateDescriptor(
+                    colorPixelFormat: metalView.colorPixelFormat,
+                    depthPixelFormat: metalView.depthStencilPixelFormat,
+                    library: library))
+            pipelineStateTexturesToTexture = try device.makeRenderPipelineState(
+                descriptor: mglRenderer.bltTexturePipelineStateDescriptor(
+                    colorPixelFormat: .rgba32Float,
+                    depthPixelFormat: metalView.depthStencilPixelFormat,
+                    library: library))
         } catch let error {
             fatalError(error.localizedDescription)
         }
+
+        // Configure the depth tests to allow re-drawing when depth (ie z coord) is equal.
+        let depthDescriptor = MTLDepthStencilDescriptor()
+        depthDescriptor.depthCompareFunction = .lessEqual
+        depthDescriptor.isDepthWriteEnabled = true
+        depthState = device.makeDepthStencilState(descriptor: depthDescriptor)
 
         // Start with default clear color gray, used for on-screen as well as render to texture.
         metalView.clearColor = MTLClearColor(red: 0.5, green: 0.5, blue: 0.5, alpha: 1.0)
@@ -105,7 +137,7 @@ class mglRenderer: NSObject {
         // delegate - this makes it so that the view will call
         // the draw function each frame update and the resize function
         metalView.delegate = self
-        
+
         // Done. Print out that we did something.
         print("(mglMetal:mglRenderer) Init mglRenderer")
     }
@@ -163,7 +195,7 @@ extension mglRenderer: MTKViewDelegate {
             case mglSetClearColor: setClearColor(view: view)
             case mglCreateTexture: createTexture()
             case mglReadTexture: readTexture()
-            case mglSetRenderTarget: setRenderTarget()
+            case mglSetRenderTarget: setRenderTarget(view: view)
             case mglSetWindowFrameInDisplay: setWindowFrameInDisplay(view: view)
             case mglGetWindowFrameInDisplay: getWindowFrameInDisplay(view: view)
             default: print("(mglRenderer) Unknown command code: \(command)")
@@ -183,12 +215,16 @@ extension mglRenderer: MTKViewDelegate {
 
         // Set up a rendering pass, either to texture or to the view's default frame buffer.
         var descriptor: MTLRenderPassDescriptor
+        // TODO: lots of places are checking "textures.indices.contains", refactor to be less branch-y.
         if (textures.indices.contains(renderTarget)) {
             // Render to a texture.
             descriptor = MTLRenderPassDescriptor()
             descriptor.colorAttachments[0].texture = textures[renderTarget]
             descriptor.colorAttachments[0].loadAction = .clear
             descriptor.colorAttachments[0].storeAction = .store
+            descriptor.depthAttachment.clearDepth = 1.0
+            descriptor.depthAttachment.storeAction = .dontCare
+            descriptor.depthAttachment.texture = depthTexture
         } else {
             // On-screen rendering as usual.
             guard let currentDescriptor = view.currentRenderPassDescriptor else {
@@ -204,11 +240,15 @@ extension mglRenderer: MTKViewDelegate {
 
         guard let commandBuffer = mglRenderer.commandQueue.makeCommandBuffer(),
               let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: descriptor) else {
-                  // We did nothing, but Matlab still expectes a command-processed ack.
-                  _ = commandInterface.writeDouble(data: secs.get())
-                  return
-              }
+            // We did nothing, but Matlab still expectes a command-processed ack.
+            _ = commandInterface.writeDouble(data: secs.get())
+            return
+        }
 
+        // Enabel depth testing for this render pass.
+        renderEncoder.setDepthStencilState(depthState)
+
+        // Attach our view transform to the same location expected by all vertex shaders (our convention).
         renderEncoder.setVertexBytes(&deg2metal, length: MemoryLayout<float4x4>.stride, index: 1)
 
         // Keep processing drawing commands until a flush command.
@@ -249,6 +289,11 @@ extension mglRenderer: MTKViewDelegate {
 
         commandBuffer.present(drawable)
         commandBuffer.commit()
+
+        if (textures.indices.contains(renderTarget)) {
+            // Wait until the bltCommandEncoder is done syncing data from GPU to CPU.
+            commandBuffer.waitUntilCompleted()
+        }
     }
 
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
@@ -390,8 +435,37 @@ extension mglRenderer: MTKViewDelegate {
         _ = commandInterface.writeUInt32(data: textureCount)
     }
 
-    func setRenderTarget() {
+    func setRenderTarget(view: MTKView) {
         renderTarget = readTextureNumberAsIndex()
+        ensureMatchingDepthDexture(view: view)
+    }
+
+    func ensureMatchingDepthDexture(view: MTKView) {
+        if (!textures.indices.contains(renderTarget)) {
+            print("(mglRenderer:ensureMatchingDepthDexture) invalid renderTarget \(renderTarget), valid indices are \(textures.indices)")
+            return
+        }
+
+        let targetTexture = textures[renderTarget]
+        if (depthTexture == nil) {
+            print("(mglRenderer:ensureMatchingDepthDexture) creating new depth texture because we don't have one yet.")
+            depthTexture = createMatchingDepthTexture(texture: targetTexture, view: view)
+            return
+        }
+
+        if (depthTexture?.width != targetTexture.width || depthTexture?.height != targetTexture.height) {
+            print("(mglRenderer:ensureMatchingDepthDexture) replacing old depth texture because it doesn't match the current render target size.")
+            depthTexture = createMatchingDepthTexture(texture: targetTexture, view: view)
+        }
+    }
+
+    func createMatchingDepthTexture(texture: MTLTexture, view: MTKView) -> MTLTexture {
+        let descriptor = MTLTextureDescriptor.texture2DDescriptor(
+            pixelFormat: view.depthStencilPixelFormat,
+            width: texture.width, height: texture.height, mipmapped: false)
+        descriptor.storageMode = .private
+        descriptor.usage = .renderTarget
+        return mglRenderer.device.makeTexture(descriptor: descriptor)!
     }
 
     func readTextureNumberAsIndex() -> Array<MTLTexture>.Index {
@@ -420,9 +494,10 @@ extension mglRenderer: MTKViewDelegate {
     // Drawing commands
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
 
-    class func dotsPipelineStateDescriptor(pixelFormat:  MTLPixelFormat, library: MTLLibrary?) -> MTLRenderPipelineDescriptor {
+    class func dotsPipelineStateDescriptor(colorPixelFormat:  MTLPixelFormat, depthPixelFormat:  MTLPixelFormat, library: MTLLibrary?) -> MTLRenderPipelineDescriptor {
         let pipelineDescriptor = MTLRenderPipelineDescriptor()
-        pipelineDescriptor.colorAttachments[0].pixelFormat = pixelFormat
+        pipelineDescriptor.depthAttachmentPixelFormat = depthPixelFormat
+        pipelineDescriptor.colorAttachments[0].pixelFormat = colorPixelFormat
         pipelineDescriptor.colorAttachments[0].isBlendingEnabled = true;
         pipelineDescriptor.colorAttachments[0].rgbBlendOperation = MTLBlendOperation.add;
         pipelineDescriptor.colorAttachments[0].alphaBlendOperation = MTLBlendOperation.add;
@@ -435,7 +510,19 @@ extension mglRenderer: MTKViewDelegate {
         vertexDescriptor.attributes[0].format = .float3
         vertexDescriptor.attributes[0].offset = 0
         vertexDescriptor.attributes[0].bufferIndex = 0
-        vertexDescriptor.layouts[0].stride = MemoryLayout<SIMD3<Float>>.size
+        vertexDescriptor.attributes[1].format = .float4
+        vertexDescriptor.attributes[1].offset = 3 * MemoryLayout<Float>.size
+        vertexDescriptor.attributes[1].bufferIndex = 0
+        vertexDescriptor.attributes[2].format = .float2
+        vertexDescriptor.attributes[2].offset = 7 * MemoryLayout<Float>.size
+        vertexDescriptor.attributes[2].bufferIndex = 0
+        vertexDescriptor.attributes[3].format = .float
+        vertexDescriptor.attributes[3].offset = 9 * MemoryLayout<Float>.size
+        vertexDescriptor.attributes[3].bufferIndex = 0
+        vertexDescriptor.attributes[4].format = .float
+        vertexDescriptor.attributes[4].offset = 10 * MemoryLayout<Float>.size
+        vertexDescriptor.attributes[4].bufferIndex = 0
+        vertexDescriptor.layouts[0].stride = 11 * MemoryLayout<Float>.size
         pipelineDescriptor.vertexDescriptor = vertexDescriptor
         pipelineDescriptor.vertexFunction = library?.makeFunction(name: "vertex_dots")
         pipelineDescriptor.fragmentFunction = library?.makeFunction(name: "fragment_dots")
@@ -451,30 +538,18 @@ extension mglRenderer: MTKViewDelegate {
             renderEncoder.setRenderPipelineState(pipelineStateDots)
         }
 
-        // Set the point size to use for all vertices.
-        var pointSize = commandInterface.readFloat();
-        renderEncoder.setVertexBytes(&pointSize, length: MemoryLayout<Float>.size, index: 2);
-
-        // Set the color to use for all dots.
-        var color = commandInterface.readColor();
-        renderEncoder.setFragmentBytes(&color, length: MemoryLayout<simd_float3>.stride, index: 0)
-
-        // Set the shape to use for all dots.
-        var isRound = commandInterface.readUInt32();
-        renderEncoder.setFragmentBytes(&isRound, length: MemoryLayout<UInt32>.size, index: 1);
-
-        // read the vertices
-        let (vertexBufferDots, vertexCount) = commandInterface.readVertices(device: mglRenderer.device)
-
-        // set the vertices in the renderEncoder
+        // Set all the vertex data -- 11 per vertex: [xyz rgba wh isRound borderSize].
+        let (vertexBufferDots, vertexCount) = commandInterface.readVertices(device: mglRenderer.device, extraVals: 8)
         renderEncoder.setVertexBuffer(vertexBufferDots, offset: 0, index: 0)
-        // and draw them as points
+
+        // Draw all the vertices as points.
         renderEncoder.drawPrimitives(type: .point, vertexStart: 0, vertexCount: vertexCount)
     }
     
-    class func bltTexturePipelineStateDescriptor(pixelFormat:  MTLPixelFormat, library: MTLLibrary?) -> MTLRenderPipelineDescriptor {
+    class func bltTexturePipelineStateDescriptor(colorPixelFormat:  MTLPixelFormat, depthPixelFormat:  MTLPixelFormat, library: MTLLibrary?) -> MTLRenderPipelineDescriptor {
         let pipelineDescriptor = MTLRenderPipelineDescriptor()
-        pipelineDescriptor.colorAttachments[0].pixelFormat = pixelFormat
+        pipelineDescriptor.depthAttachmentPixelFormat = depthPixelFormat
+        pipelineDescriptor.colorAttachments[0].pixelFormat = colorPixelFormat
         pipelineDescriptor.colorAttachments[0].isBlendingEnabled = true;
         pipelineDescriptor.colorAttachments[0].rgbBlendOperation = MTLBlendOperation.add;
         pipelineDescriptor.colorAttachments[0].alphaBlendOperation = MTLBlendOperation.add;
@@ -541,9 +616,10 @@ extension mglRenderer: MTKViewDelegate {
         renderEncoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: vertexCount)
     }
 
-    class func drawVerticesPipelineStateDescriptor(pixelFormat:  MTLPixelFormat, library: MTLLibrary?) -> MTLRenderPipelineDescriptor {
+    class func drawVerticesPipelineStateDescriptor(colorPixelFormat:  MTLPixelFormat, depthPixelFormat:  MTLPixelFormat, library: MTLLibrary?) -> MTLRenderPipelineDescriptor {
         let pipelineDescriptor = MTLRenderPipelineDescriptor()
-        pipelineDescriptor.colorAttachments[0].pixelFormat = pixelFormat
+        pipelineDescriptor.depthAttachmentPixelFormat = depthPixelFormat
+        pipelineDescriptor.colorAttachments[0].pixelFormat = colorPixelFormat
         pipelineDescriptor.colorAttachments[0].isBlendingEnabled = true;
         pipelineDescriptor.colorAttachments[0].rgbBlendOperation = MTLBlendOperation.add;
         pipelineDescriptor.colorAttachments[0].alphaBlendOperation = MTLBlendOperation.add;

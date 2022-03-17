@@ -17,13 +17,21 @@ using namespace metal;
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
 // Vertex shader stucture
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
-struct VertexIn {
-  float4 position [[ attribute(0) ]];
+struct VertexDotsIn {
+    float4 position [[ attribute(0) ]];
+    float4 color [[ attribute(1) ]];
+    float2 size [[ attribute(2) ]];
+    float is_round [[ attribute(3) ]];
+    float border_pixels [[ attribute(4) ]];
 };
 
-struct VertexOut {
+struct VertexDotsOut {
     float4 position [[position]];
+    float4 color;
+    float2 half_size;
     float point_size [[point_size]];
+    bool is_round;
+    float half_border;
 };
 
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/
@@ -32,31 +40,84 @@ struct VertexOut {
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
 // Vertex shader for rendering dots
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
-vertex VertexOut vertex_dots(const device packed_float3* vertex_array [[ buffer(0) ]],
-                             constant float4x4 &deg2metal [[buffer(1)]],
-                             constant float &pointSize [[buffer(2)]],
-                             unsigned int vid [[ vertex_id ]])
+vertex VertexDotsOut vertex_dots(const VertexDotsIn vertexIn [[ stage_in ]],
+                                 constant float4x4 &deg2metal [[buffer(1)]])
 {
-    VertexOut vertex_out {
-        .position = deg2metal * float4(vertex_array[vid], 1),
-        .point_size = pointSize
+    float point_size = max(vertexIn.size[0], vertexIn.size[1]);
+    VertexDotsOut vertex_out {
+        .position = deg2metal * vertexIn.position,
+        .color = vertexIn.color,
+        .half_size = vertexIn.size / point_size / 2.0,
+        .point_size = point_size,
+        .is_round = bool(vertexIn.is_round),
+        .half_border = vertexIn.border_pixels / point_size / 2.0
     };
     return(vertex_out);
 }
 
+// basic square
+//    float a = 1.0;
+
+// rounded circle
+//    float pointRadius = length(pointCoord - float2(0.5f));
+//    float a = 1.0 - smoothstep(0.49, 0.5, pointRadius);
+
+// basic rectangle
+//    float half_width = 0.4;
+//    float half_height = 0.2;
+//    float a_x = 1.0 - smoothstep(half_width, half_width, abs(pointCoord[0] - 0.5));
+//    float a_y = 1.0 - smoothstep(half_height, half_height, abs(pointCoord[1] - 0.5));
+//    float a = a_x * a_y;
+
+// rounded annulus
+//    float inner_radius = 0.3;
+//    float pointRadius = length(pointCoord - float2(0.5f));
+//    float a_inner = smoothstep(inner_radius, inner_radius + 0.01, pointRadius);
+//    float a_outer = 1.0 - smoothstep(0.49, 0.5, pointRadius);
+//    float a = a_inner * a_outer;
+
+// rounded ellipse
+//    float half_width = 0.5;
+//    float half_height = 0.5;
+//    float2 pointCoordCentered = pointCoord - float2(0.5f);
+//    float ellipseDistance = (pointCoordCentered[0]*pointCoordCentered[0]) / (half_width*half_width) + (pointCoordCentered[1]*pointCoordCentered[1]) / (half_height*half_height);
+//    float a = 1.0 - smoothstep(0.99, 1.0, ellipseDistance);
+
+// partial disk
+// start_angle and sweep_angle in [0, 2pi]
+//    float start_angle = M_PI_F / 6.0 + 3.0 * M_PI_F / 2.0;
+//    float half_sweep = M_PI_F / 4.0;
+//    float2 pointCoordCentered = pointCoord - float2(0.5f);
+//    float point_angle = atan2(-pointCoordCentered[1], pointCoordCentered[0]);
+//    float point_deviation_positive = abs(point_angle - start_angle - half_sweep);
+//    float a_positive = 1.0 - smoothstep(half_sweep-0.01, half_sweep + 0.01, point_deviation_positive);
+//    float point_deviation_negative = abs(point_angle - (start_angle - 2.0 * M_PI_F) - half_sweep);
+//    float a_negative = 1.0 - smoothstep(half_sweep-0.01, half_sweep + 0.01, point_deviation_negative);
+//    float a = a_positive + a_negative;
+//
+//    return float4(color[0], color[1], color[2], a);
+
+
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
 // Fragment shader for rendering dots
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
-fragment float4 fragment_dots(const VertexOut in [[stage_in]],
-                              const float2 pointCoord [[point_coord]],
-                              constant simd_float3 &color [[buffer(0)]],
-                              constant uint32_t &isRound [[buffer(1)]]) {
-    if (isRound) {
-        float pointRadius = length(pointCoord - float2(0.5f));
-        float a = 1.0 - smoothstep(0.49, 0.5, pointRadius);
-        return float4(color[0], color[1], color[2], a);
+fragment float4 fragment_dots(const VertexDotsOut in [[stage_in]],
+                              const float2 point_coord [[point_coord]]) {
+
+    float2 centered_coord = abs(point_coord - 0.5);
+    if (in.is_round) {
+        // Make a rounded ellipse within the point.
+        float radius = (centered_coord[0] * centered_coord[0]) / (in.half_size[0] * in.half_size[0])
+                     + (centered_coord[1] * centered_coord[1]) / (in.half_size[1] * in.half_size[1]);
+        float a_r = 1.0 - smoothstep(1.0 - in.half_border, 1.0 + in.half_border, radius);
+        float a = in.color[3] * a_r;
+        return float4(in.color[0], in.color[1], in.color[2], a);
     } else {
-        return float4(color[0], color[1], color[2], 1);
+        // Make a rectangle within the point.
+        float a_x = 1.0 - smoothstep(in.half_size[0], in.half_size[0], centered_coord[0]);
+        float a_y = 1.0 - smoothstep(in.half_size[1], in.half_size[1], centered_coord[1]);
+        float a = in.color[3] * a_x * a_y;
+        return float4(in.color[0], in.color[1], in.color[2], a);
     }
 }
 
@@ -67,8 +128,8 @@ fragment float4 fragment_dots(const VertexOut in [[stage_in]],
 // Vertex In Structure for textures
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
 struct VertexTextureIn {
-  float4 position [[ attribute(0) ]];
-  float2 texCoords [[ attribute(1) ]];
+    float4 position [[ attribute(0) ]];
+    float2 texCoords [[ attribute(1) ]];
 };
 
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
@@ -83,12 +144,12 @@ struct VertexTextureOut {
 // Vertex shader for textures
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
 vertex VertexTextureOut vertex_textures(const VertexTextureIn vertexIn [[ stage_in ]],
-                             constant float4x4 &deg2metal [[buffer(1)]]) {
-  VertexTextureOut vertex_out {
-      .position = deg2metal * vertexIn.position,
-      .texCoords = vertexIn.texCoords
-  };
-  return(vertex_out);
+                                        constant float4x4 &deg2metal [[buffer(1)]]) {
+    VertexTextureOut vertex_out {
+        .position = deg2metal * vertexIn.position,
+        .texCoords = vertexIn.texCoords
+    };
+    return(vertex_out);
 }
 
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
@@ -110,8 +171,8 @@ fragment float4 fragment_textures(VertexTextureOut in [[stage_in]],
 // Vertex with color In Structure
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
 struct VertexWithColorIn {
-  float4 position [[ attribute(0) ]];
-  float3 c [[ attribute(1) ]];
+    float4 position [[ attribute(0) ]];
+    float3 c [[ attribute(1) ]];
 };
 
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
@@ -126,12 +187,12 @@ struct VertexWithColorOut {
 // Vertex with color shader
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
 vertex VertexWithColorOut vertex_with_color(const VertexWithColorIn vertexIn [[ stage_in ]],
-                             constant float4x4 &deg2metal [[buffer(1)]]) {
-  VertexWithColorOut vertex_out {
-      .position = deg2metal * vertexIn.position,
-      .c = vertexIn.c
-  };
-  return(vertex_out);
+                                            constant float4x4 &deg2metal [[buffer(1)]]) {
+    VertexWithColorOut vertex_out {
+        .position = deg2metal * vertexIn.position,
+        .c = vertexIn.c
+    };
+    return(vertex_out);
 }
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
 // Fragment shader with colors

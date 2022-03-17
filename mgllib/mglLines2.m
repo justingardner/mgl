@@ -23,6 +23,10 @@
 %mglFlush
 function [ackTime, processedTime] = mglLines2(x0, y0, x1, y1, size, color)
 
+if (size ~= 1)
+    fprintf('(mglLines2) TODO: size is currently unused in mgl v3.\n');
+end
+
 global mgl;
 
 if length(color) == 1
