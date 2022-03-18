@@ -1,12 +1,21 @@
 %     $Id$
-% program: mglPolygon.c
-%      by: denis schluppeck, based on mglQuad/mglPoints by eli,
-%          justin, jonas
-%    date: 05/10/06
+%
+%      by: Benjamin Heasly
+%    date: 03/18/2022
 %  copyright: (c) 2006 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
-% purpose: mex function to draw a polygon in an OpenGL screen
-%          opened with mglOpen.
-% 	   x and y can be vectors (the polygon will be closed)
+% purpose: Function to draw a polygon in a screen opened with mglOpen.
+% 	       x and y can be vectors (the polygon will be closed)
+%
+%          Note for MGL v3 with Metal:
+%          Metal doesn't support polygons quite like OpenGL GL_POLYGON.
+%          GL_POLYGON is fairly general and can support convex polygons.
+%          Metal only supports triangle strips.
+%          This works out fine as long as:
+%           - The given polygon is convex.
+%           - The given x,y pairs are wound sequentially, clockwise or
+%             counterclockwise around the polygon's perimiter.
+%          The code below assumes this is the case!
+%
 %   usage: mglPolygon(x, y, [color])
 %    e.g.:
 %
@@ -33,11 +42,6 @@ end
 if numel(color) == 1
     color = [color, color, color];
 end
-
-% Metal doesn't support "polygons" in the sense of "glBegin(GL_POLYGON)".
-% But Metal does support triangle strips.
-% Assuming the given polygon is convex and the vertices are wound
-% sequentially, we can reorder the vertices to work as a triangle strip.
 
 % Divide the vertices into halves, working from the front and the back.
 n = numel(x);
