@@ -54,15 +54,16 @@ if (isInteractive)
     pause(0.5);
 
     nFrames = 300;
-    frameTimes = zeros(1,nFrames);
+    ackTimes = zeros(1,nFrames);
+    processedTimes = zeros(1,nFrames);
     phase = 0;
     for iFrame = 1:nFrames
         mglMetalBltTexture(tex,[0 0],0,0,0,phase);
         phase = phase + (1/60)/4;
-        [~, frameTimes(iFrame)] = mglFlush();
+        [ackTimes(iFrame), processedTimes(iFrame)] = mglFlush();
     end
     mglMetalFullscreen(false);
-    mglPlotFrameTimes(frameTimes)
+    mglPlotFrameTimes(ackTimes, processedTimes, 'blt with drifting phase');
 
     input('Hit ENTER to test multiple blt with rotation and drifting phase (fullscreen): ');
     mglFlush();
@@ -70,7 +71,8 @@ if (isInteractive)
     pause(0.5);
 
     nFrames = 300;
-    frameTimes = zeros(1,nFrames);
+    ackTimes = zeros(1,nFrames);
+    processedTimes = zeros(1,nFrames);
     phase = 0;rotation = 0;width = 0.25;height = 0.25;
     for iFrame = 1:nFrames
         mglMetalBltTexture(tex,[-0.5 -0.5],0,0,rotation,phase,width,height);
@@ -89,10 +91,10 @@ if (isInteractive)
 
         phase = phase + (1/60)/4;
         rotation = rotation+360/nFrames;
-        [~, frameTimes(iFrame)] = mglFlush();
+        [ackTimes(iFrame), processedTimes(iFrame)] = mglFlush();
     end
     mglMetalFullscreen(false);
-    mglPlotFrameTimes(frameTimes)
+    mglPlotFrameTimes(ackTimes, processedTimes, 'blt with rotation and drifting phase');
 end
 
 % Delete will have little effect, since we're about to mglClose().

@@ -26,8 +26,8 @@ end
 %% How to:
 
 % Create a blank texture to start with.
-textureWidth = 256;
-textureHeight = 256;
+textureWidth = 640;
+textureHeight = 480;
 blankImage = ones([textureHeight, textureWidth, 4], 'single');
 tex = mglMetalCreateTexture(blankImage);
 
@@ -40,15 +40,33 @@ newImage(:,:,1) = gradient;
 newImage(:,:,2) = flipud(gradient);
 newImage(:,:,3) = fliplr(gradient);
 mglUpdateTexture(tex, newImage);
-mglBltTexture(tex);
+mglMetalBltTexture(tex,[0 0],0,0,0,0,2,2);
 disp('A texture with a smooth rainbow gradient should appear -- it should not be blank.');
 
 mglFlush();
 
+if (isInteractive)
+    input('Hit ENTER to test frame-by-frame texture updates (fullscreen): ');
+    mglFlush();
+    mglMetalFullscreen();
+    pause(0.5);
+
+    nFrames = 300;
+    ackTimes = zeros(1,nFrames);
+    processedTimes = zeros(1,nFrames);
+    shiftedImage = newImage;
+    for iFrame = 1:nFrames
+        shiftedImage(:,:,1) = circshift(shiftedImage(:,:,1), 1);
+        shiftedImage(:,:,2) = circshift(shiftedImage(:,:,2), 1);
+        shiftedImage(:,:,3) = circshift(shiftedImage(:,:,3), 1);
+        mglUpdateTexture(tex, shiftedImage);
+        mglMetalBltTexture(tex,[0 0],0,0,0,0,2,2);
+        [ackTimes(iFrame), processedTimes(iFrame)] = mglFlush();
+    end
+    mglMetalFullscreen(false);
+    mglPlotFrameTimes(ackTimes, processedTimes, 'frame-by-frame texture updates');
+end
+
 % Delete will have little effect, since we're about to mglClose().
 % But it's still good to exercise the code.
 mglDeleteTexture(tex);
-
-if (isInteractive)
-    pause();
-end

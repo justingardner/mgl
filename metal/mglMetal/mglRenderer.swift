@@ -214,7 +214,6 @@ extension mglRenderer: MTKViewDelegate {
             case mglSetWindowFrameInDisplay: setWindowFrameInDisplay(view: view)
             case mglGetWindowFrameInDisplay: getWindowFrameInDisplay(view: view)
             case mglDeleteTexture: deleteTexture()
-            case mglUpdateTexture: updateTexture()
             default: print("(mglRenderer) Unknown command code: \(command)")
             }
 
@@ -278,6 +277,7 @@ extension mglRenderer: MTKViewDelegate {
             case mglQuad: drawVerticesWithColor(view: view, renderEncoder: renderEncoder, primitiveType: .triangle)
             case mglPolygon: drawVerticesWithColor(view: view, renderEncoder: renderEncoder, primitiveType: .triangleStrip)
             case mglArcs: drawArcs(view: view, renderEncoder: renderEncoder)
+            case mglUpdateTexture: updateTexture()
             default: print("(mglRenderer) Unknown command code: \(command)")
             }
 
@@ -507,20 +507,22 @@ extension mglRenderer: MTKViewDelegate {
     }
 
     func updateTexture() {
+        // Always read the command params, since they're expected to be consumed.
         let textureNumber = commandInterface.readUInt32()
+        let textureWidth = commandInterface.readUInt32()
+        let textureHeight = commandInterface.readUInt32()
+
+        // Resolve the texture and its buffer.
         guard let texture = textures[textureNumber] else {
             print("(mglRenderer:updateTexture) invalid textureNumber \(textureNumber), valid numbers are \(textures.keys)")
             return;
         }
-
         guard let buffer = texture.buffer else {
             print("(mglRenderer:updateTexture) texture doesn't have a buffer to update: \(texture)")
             return;
         }
 
-        // Read the incoming texture width and height
-        let textureWidth = commandInterface.readUInt32()
-        let textureHeight = commandInterface.readUInt32()
+        // Read the actual image data into the texture.
         let expectedByteCount = Int(mglSizeOfFloatRgbaTexture(textureWidth, textureHeight))
         _ = commandInterface.readBuffer(buffer: buffer, expectedByteCount: expectedByteCount)
     }
