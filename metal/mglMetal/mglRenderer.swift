@@ -213,6 +213,8 @@ extension mglRenderer: MTKViewDelegate {
             case mglSetRenderTarget: setRenderTarget(view: view)
             case mglSetWindowFrameInDisplay: setWindowFrameInDisplay(view: view)
             case mglGetWindowFrameInDisplay: getWindowFrameInDisplay(view: view)
+            case mglDeleteTexture: deleteTexture()
+            case mglUpdateTexture: updateTexture()
             default: print("(mglRenderer) Unknown command code: \(command)")
             }
 
@@ -439,7 +441,7 @@ extension mglRenderer: MTKViewDelegate {
     }
 
     func createTexture() {
-        let texture = commandInterface.readTexture(device: mglRenderer.device)
+        let texture = commandInterface.createTexture(device: mglRenderer.device)
         textures[textureSequence] = texture
 
         // Return the new texture's number and the total count of textures.
@@ -448,6 +450,16 @@ extension mglRenderer: MTKViewDelegate {
 
         // Consume a texture number from the sequence.
         textureSequence += 1
+    }
+
+    func deleteTexture() {
+        let textureNumber = commandInterface.readUInt32()
+        let removed = textures.removeValue(forKey: textureNumber)
+        if removed == nil {
+            print("(mglRenderer:deleteTexture) invalid textureNumber \(textureNumber), valid numbers are \(textures.keys)")
+        } else {
+            print("(mglRenderer:deleteTexture) removed textureNumber \(textureNumber), remaining numbers are \(textures.keys)")
+        }
     }
 
     func setRenderTarget(view: MTKView) {
@@ -492,6 +504,25 @@ extension mglRenderer: MTKViewDelegate {
             return;
         }
         _ = commandInterface.writeTexture(texture: texture)
+    }
+
+    func updateTexture() {
+        let textureNumber = commandInterface.readUInt32()
+        guard let texture = textures[textureNumber] else {
+            print("(mglRenderer:updateTexture) invalid textureNumber \(textureNumber), valid numbers are \(textures.keys)")
+            return;
+        }
+
+        guard let buffer = texture.buffer else {
+            print("(mglRenderer:updateTexture) texture doesn't have a buffer to update: \(texture)")
+            return;
+        }
+
+        // Read the incoming texture width and height
+        let textureWidth = commandInterface.readUInt32()
+        let textureHeight = commandInterface.readUInt32()
+        let expectedByteCount = Int(mglSizeOfFloatRgbaTexture(textureWidth, textureHeight))
+        _ = commandInterface.readBuffer(buffer: buffer, expectedByteCount: expectedByteCount)
     }
 
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/

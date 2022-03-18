@@ -176,11 +176,11 @@ class mglCommandInterface {
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     // readTexture
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
-    func readTexture(device: MTLDevice) -> MTLTexture {
+    func createTexture(device: MTLDevice) -> MTLTexture {
         // Read the texture width and height
         let textureWidth = Int(readUInt32())
         let textureHeight = Int(readUInt32())
-        print("(mglCommandInterface:readTexture) textureWidth: \(textureWidth) textureHeight: \(textureHeight)")
+        print("(mglCommandInterface:createTexture) textureWidth: \(textureWidth) textureHeight: \(textureHeight)")
 
         // Set the texture descriptor
         let textureDescriptor = MTLTextureDescriptor.texture2DDescriptor(
@@ -198,25 +198,35 @@ class mglCommandInterface {
         // Get an MTLBuffer from the GPU to store image data in
         // With storageModeManaged, we must explicitly sync the data to the GPU, below.
         guard let textureBuffer = device.makeBuffer(length: expectedByteCount, options: .storageModeManaged) else {
-            fatalError("(mglCommandInterface:readTexture) Could not make texture buffer of size \(expectedByteCount) width: \(textureWidth) height: \(textureHeight)")
+            fatalError("(mglCommandInterface:createTexture) Could not make texture buffer of size \(expectedByteCount) width: \(textureWidth) height: \(textureHeight)")
         }
 
-        let bytesRead = server.readData(buffer: textureBuffer.contents(), expectedByteCount: expectedByteCount)
+        // Read from the socket into the texture memory.
+        let bytesRead = readBuffer(buffer: textureBuffer, expectedByteCount: expectedByteCount)
         if (bytesRead != expectedByteCount) {
-            fatalError("(mglCommandInterface:readTexture) Expected to read \(expectedByteCount) bytes but read \(bytesRead)")
+            fatalError("(mglCommandInterface:createTexture) Could not read expected \(expectedByteCount) bytes for texture, read \(bytesRead).")
         }
-
-        // With storageModeManaged above, we must explicitly sync the new data to the GPU.
-        textureBuffer.didModifyRange(0 ..< expectedByteCount)
 
         // Now make the buffer into a texture
         let bytesPerRow = expectedByteCount / textureHeight
         guard let texture = textureBuffer.makeTexture(descriptor: textureDescriptor, offset: 0, bytesPerRow: bytesPerRow) else {
-            fatalError("(mglCommandInterface:readTexture) Could not make texture from texture buffer of size \(expectedByteCount) width: \(textureWidth) height")
+            fatalError("(mglCommandInterface:createTexture) Could not make texture from texture buffer of size \(expectedByteCount) width: \(textureWidth) height")
         }
 
-        print("mglCommandInterface:readTexture) Created texture: \(textureWidth) x \(textureHeight)")
+        print("mglCommandInterface:createTexture) Created texture: \(textureWidth) x \(textureHeight)")
         return(texture)
+    }
+
+    func readBuffer(buffer: MTLBuffer, expectedByteCount: Int) -> Int {
+        let bytesRead = server.readData(buffer: buffer.contents(), expectedByteCount: expectedByteCount)
+        if (bytesRead != expectedByteCount) {
+            print("(mglCommandInterface:readBuffer) Expected to read \(expectedByteCount) bytes but read \(bytesRead)")
+        }
+
+        // With storageModeManaged above, we must explicitly sync the new data to the GPU.
+        buffer.didModifyRange(0 ..< expectedByteCount)
+
+        return bytesRead
     }
 
     func writeTexture(texture: MTLTexture) -> Int {

@@ -94,3 +94,7 @@ if (isInteractive)
     mglMetalFullscreen(false);
     mglPlotFrameTimes(frameTimes)
 end
+
+% Delete will have little effect, since we're about to mglClose().
+% But it's still good to exercise the code.
+mglDeleteTexture(tex);
