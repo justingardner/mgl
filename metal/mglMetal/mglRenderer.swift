@@ -52,11 +52,12 @@ class mglRenderer: NSObject {
     // keeps coordinate xform
     var deg2metal = matrix_identity_float4x4
 
-    var textures : [MTLTexture] = []
+    var textureSequence = UInt32(1)
+    var textures : [UInt32: MTLTexture] = [:]
     var depthTexture: MTLTexture?
 
-    // What to render into: the index of the texture to render into, otherwise render on-screen.
-    var renderTarget = Array<MTLTexture>.Index(-1)
+    // What to render into: the number of the texture to render into, otherwise render on-screen.
+    var renderTarget = UInt32(0)
 
     let secs = mglSecs()
     
@@ -229,8 +230,8 @@ extension mglRenderer: MTKViewDelegate {
 
         // Set up a rendering pass, either to texture or to the view's default frame buffer.
         var descriptor: MTLRenderPassDescriptor
-        // TODO: lots of places are checking "textures.indices.contains", refactor to be less branch-y.
-        if (textures.indices.contains(renderTarget)) {
+        // TODO: lots of places are checking "textures.keys.contains", refactor to be less branch-y.
+        if (textures.keys.contains(renderTarget)) {
             // Render to a texture.
             descriptor = MTLRenderPassDescriptor()
             descriptor.colorAttachments[0].texture = textures[renderTarget]
@@ -296,16 +297,16 @@ extension mglRenderer: MTKViewDelegate {
         // Finished a group of drawing commands, commit the frame and let Metal render it.
         renderEncoder.endEncoding()
 
-        if (textures.indices.contains(renderTarget)) {
+        if (textures.keys.contains(renderTarget)) {
             let bltCommandEncoder = commandBuffer.makeBlitCommandEncoder()
-            bltCommandEncoder?.synchronize(resource: textures[renderTarget])
+            bltCommandEncoder?.synchronize(resource: textures[renderTarget]!)
             bltCommandEncoder?.endEncoding()
         }
 
         commandBuffer.present(drawable)
         commandBuffer.commit()
 
-        if (textures.indices.contains(renderTarget)) {
+        if (textures.keys.contains(renderTarget)) {
             // Wait until the bltCommandEncoder is done syncing data from GPU to CPU.
             commandBuffer.waitUntilCompleted()
         }
@@ -439,37 +440,35 @@ extension mglRenderer: MTKViewDelegate {
 
     func createTexture() {
         let texture = commandInterface.readTexture(device: mglRenderer.device)
-        textures.append(texture)
+        textures[textureSequence] = texture
 
-        // Return the one-based textureNumber of the new texture, then the total number of textuers.
-        // At the moment these both have the the same value!
-        // But that could change, and they feel like different flavors of fact to report out.
-        let textureCount = mglUInt32(textures.count)
-        _ = commandInterface.writeUInt32(data: textureCount)
-        // Return the total number of textures.
-        _ = commandInterface.writeUInt32(data: textureCount)
+        // Return the new texture's number and the total count of textures.
+        _ = commandInterface.writeUInt32(data: textureSequence)
+        _ = commandInterface.writeUInt32(data: mglUInt32(textures.count))
+
+        // Consume a texture number from the sequence.
+        textureSequence += 1
     }
 
     func setRenderTarget(view: MTKView) {
-        renderTarget = readTextureNumberAsIndex()
+        renderTarget = commandInterface.readUInt32()
         ensureMatchingDepthDexture(view: view)
     }
 
     func ensureMatchingDepthDexture(view: MTKView) {
-        if (!textures.indices.contains(renderTarget)) {
-            print("(mglRenderer:ensureMatchingDepthDexture) invalid renderTarget \(renderTarget), valid indices are \(textures.indices)")
+        guard let targetTexture = textures[renderTarget] else {
+            print("(mglRenderer:ensureMatchingDepthDexture) invalid renderTarget \(renderTarget), valid targets are \(textures.keys)")
             return
         }
 
-        let targetTexture = textures[renderTarget]
-        if (depthTexture == nil) {
+        guard let depthTextureNotNull = depthTexture else {
             print("(mglRenderer:ensureMatchingDepthDexture) creating new depth texture because we don't have one yet.")
             depthTexture = createMatchingDepthTexture(texture: targetTexture, view: view)
             return
         }
 
-        if (depthTexture?.width != targetTexture.width || depthTexture?.height != targetTexture.height) {
-            print("(mglRenderer:ensureMatchingDepthDexture) replacing old depth texture because it doesn't match the current render target size.")
+        if (depthTextureNotNull.width != targetTexture.width || depthTextureNotNull.height != targetTexture.height) {
+            print("(mglRenderer:ensureMatchingDepthDexture) replacing old depth texture (\(depthTextureNotNull.width) x \(depthTextureNotNull.height)) because it doesn't match the current render target size (\(targetTexture.width) x \(targetTexture.height)).")
             depthTexture = createMatchingDepthTexture(texture: targetTexture, view: view)
         }
     }
@@ -483,25 +482,15 @@ extension mglRenderer: MTKViewDelegate {
         return mglRenderer.device.makeTexture(descriptor: descriptor)!
     }
 
-    func readTextureNumberAsIndex() -> Array<MTLTexture>.Index {
-        let oneBasedTextureNumber = commandInterface.readUInt32()
-        if oneBasedTextureNumber == 0 {
-            return Array<MTLTexture>.Index(-1)
-        } else {
-            return Array<MTLTexture>.Index(oneBasedTextureNumber - 1)
-        }
-    }
-
     func readTexture() {
-        let textureIndex = readTextureNumberAsIndex()
-        if (!textures.indices.contains(textureIndex)) {
-            print("(mglRenderer:readTexture) invalid textureIndex \(textureIndex), valid indices are \(textures.indices)")
+        let textureNumber = commandInterface.readUInt32()
+        guard let texture = textures[textureNumber] else {
+            print("(mglRenderer:readTexture) invalid textureNumber \(textureNumber), valid numbers are \(textures.keys)")
             // No data to return, but Matlab expects a response wiht width and height.
             _ = commandInterface.writeUInt32(data: 0)
             _ = commandInterface.writeUInt32(data: 0)
             return;
         }
-        let texture = textures[textureIndex]
         _ = commandInterface.writeTexture(texture: texture)
     }
 
@@ -547,7 +536,7 @@ extension mglRenderer: MTKViewDelegate {
 
     func drawDots(view: MTKView, renderEncoder: MTLRenderCommandEncoder) {
         // set the pipeline state
-        if (textures.indices.contains(renderTarget)) {
+        if (textures.keys.contains(renderTarget)) {
             renderEncoder.setRenderPipelineState(pipelineStateDotsToTexture)
         } else {
             renderEncoder.setRenderPipelineState(pipelineStateDots)
@@ -598,7 +587,7 @@ extension mglRenderer: MTKViewDelegate {
     }
 
     func drawArcs(view: MTKView, renderEncoder: MTLRenderCommandEncoder) {
-        if (textures.indices.contains(renderTarget)) {
+        if (textures.keys.contains(renderTarget)) {
             renderEncoder.setRenderPipelineState(pipelineStateArcsToTexture)
         } else {
             renderEncoder.setRenderPipelineState(pipelineStateArcs)
@@ -642,7 +631,7 @@ extension mglRenderer: MTKViewDelegate {
 
     func bltTexture(view: MTKView, renderEncoder: MTLRenderCommandEncoder) {
         // set the pipeline state
-        if (textures.indices.contains(renderTarget)) {
+        if (textures.keys.contains(renderTarget)) {
             renderEncoder.setRenderPipelineState(pipelineStateTexturesToTexture)
         } else {
             renderEncoder.setRenderPipelineState(pipelineStateTextures)
@@ -672,14 +661,12 @@ extension mglRenderer: MTKViewDelegate {
         renderEncoder.setFragmentBytes(&phase, length: MemoryLayout<Float>.stride, index: 2)
 
         // send the texture to the renderEncoder
-        let textureIndex = readTextureNumberAsIndex()
-        if (!textures.indices.contains(textureIndex)) {
-            print("(mglRenderer:bltTexture) invalid textureIndex \(textureIndex), valid indices are \(textures.indices)")
-            return;
+        let textureNumber = commandInterface.readUInt32()
+        guard let texture = textures[textureNumber] else {
+            print("(mglRenderer:bltTexture) invalid textureNumber \(textureNumber), valid numbers are \(textures.keys)")
+            return
         }
-        renderEncoder.setFragmentTexture(textures[textureIndex], index:0)
-
-        // and draw them as a triangle
+        renderEncoder.setFragmentTexture(texture, index:0)
         renderEncoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: vertexCount)
     }
 
@@ -712,7 +699,7 @@ extension mglRenderer: MTKViewDelegate {
 
     func drawVerticesWithColor(view: MTKView, renderEncoder: MTLRenderCommandEncoder, primitiveType: MTLPrimitiveType) {
         // set the pipeline state
-        if (textures.indices.contains(renderTarget)) {
+        if (textures.keys.contains(renderTarget)) {
             renderEncoder.setRenderPipelineState(pipelineStateVertexWithColorToTexture)
         } else {
             renderEncoder.setRenderPipelineState(pipelineStateVertexWithColor)
