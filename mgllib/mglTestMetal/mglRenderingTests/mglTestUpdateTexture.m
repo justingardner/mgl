@@ -26,8 +26,8 @@ end
 %% How to:
 
 % Create a blank texture to start with.
-textureWidth = 640;
-textureHeight = 480;
+textureWidth = 2240;
+textureHeight = 1260;
 blankImage = ones([textureHeight, textureWidth, 4], 'single');
 tex = mglMetalCreateTexture(blankImage);
 
@@ -64,7 +64,8 @@ if (isInteractive)
         [ackTimes(iFrame), processedTimes(iFrame)] = mglFlush();
     end
     mglMetalFullscreen(false);
-    mglPlotFrameTimes(ackTimes, processedTimes, 'frame-by-frame texture updates');
+    name = sprintf('frame-by-frame texture updates %d x %d', textureWidth, textureHeight);
+    mglPlotFrameTimes(ackTimes, processedTimes, name);
 end
 
 % Delete will have little effect, since we're about to mglClose().
