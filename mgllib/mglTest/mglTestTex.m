@@ -58,12 +58,12 @@ tex2dGaussWin = mglCreateTexture(m);
 startTime = mglGetSecs;
 rotation = 0;
 xpos = 0;
+% clear screen
+mglClearScreen;
 while mglGetSecs(startTime) < 5
-  % clear screen
-  mglClearScreen;
 
   % now blt the 1 dimensional texture and cover it with a gaussian
-  mglBltTexture(tex1drand,[-15 0 nan texHeight],0,0,360-rotation);
+  mglBltTexture(tex1drand, [-15 0], 0, 0, 360-rotation, 0, texWidth, texHeight);
   mglBltTexture(tex2dGaussWin,[-15 0]);
 
   % now blt the 1 dimensional texture and cover it with a gaussian
@@ -73,18 +73,18 @@ while mglGetSecs(startTime) < 5
   if xpos > (1/sf)
     xpos = xpos-(1/sf);
   end
-  mglBltTexture(tex1dsin,[xpos 0 nan texHeight]);
+  mglBltTexture(tex1dsin,[xpos 0], 0, 0, 360-rotation, 0, texWidth, texHeight);
   mglBltTexture(tex2dGaussWin,[0 0]);
 
   % now blt the 1 dimensional texture and cover it with a gaussian
-  mglBltTexture(tex1dsquare,[15 0 nan texHeight],0,0,rotation);
+  mglBltTexture(tex1dsquare,[15 0], 0, 0, 360-rotation, 0, texWidth, texHeight);
   mglBltTexture(tex2dGaussWin,[15 0]);
 
-  if ismac
-    % display wait text
-    mglTextSet('Helvetica',32,[1 1 1],0,0,0,0,0,0,0);
-    mglTextDraw('Testing 1D textures',[0 5]);
-  end
+%   if ismac
+%     % display wait text
+%     mglTextSet('Helvetica',32,[1 1 1],0,0,0,0,0,0,0);
+%     mglTextDraw('Testing 1D textures',[0 5]);
+%   end
 
   % update rotation
   rotation = rotation + 1;
@@ -99,7 +99,7 @@ end
 if ismac
   % display wait text
   mglTextSet('Helvetica',32,[1 1 1],0,0,0,0,0,0,0);
-  mglTextDraw('Calculating textures (0% done)',[0 0]);mglFlush;
+  %mglTextDraw('Calculating textures (0% done)',[0 0]);mglFlush;
 else
   mglStrokeText('Calculating textures (0 percent done)',-8,0,0.5,0.8,2);mglFlush;
 end
@@ -111,7 +111,7 @@ for i = 1:nsteps;
   % display percent done
   mglClearScreen;
   if ismac
-    mglTextDraw(sprintf('Calculating textures (%0.0f%% done)',99*i/nsteps),[0 0]);
+    %mglTextDraw(sprintf('Calculating textures (%0.0f%% done)',99*i/nsteps),[0 0]);
   else
     msg=sprintf('Calculating textures (%i percent done)',round(99*i/nsteps));
     mglStrokeText(msg,-8,0,0.5,0.8,2);
@@ -158,17 +158,22 @@ texPos(:,2) = texPos(:,2)*(texHeight/2+2);
 % this is the main display loop
 numsec = 5;
 starttime = mglGetSecs;
-for i = 1:mglGetParam('frameRate')*numsec
+frameRate = 60;
+nFrames = frameRate*numsec;
+% clear the screen
+mglClearScreen;
+for i = 1:nFrames
   % calculate next phase step to display
   thisPhase = mod(i,nsteps)+1;
   thisPhase2 = mod(nsteps-i,nsteps)+1;
-  % clear the screen
-  mglClearScreen;
   %startBlt = mglGetSecs;
   % and display four gabor patches
-  mglBltTexture(tex([thisPhase thisPhase2 thisPhase thisPhase2]),texPos,0,0,[0 45 90 135]);
+  mglBltTexture(tex(thisPhase), texPos(1,:), 0,0,0);
+  mglBltTexture(tex(thisPhase2), texPos(2,:), 0,0,45);
+  mglBltTexture(tex(thisPhase), texPos(3,:), 0,0,90);
+  mglBltTexture(tex(thisPhase2), texPos(4,:), 0,0,135);
   % and the rotating one at the center
-  mglBltTexture(tex(1),[0 0 6 6],0,0,360*i/(mglGetParam('frameRate')*numsec));
+  mglBltTexture(tex(1),[0 0],0,0,360*i/nFrames, 0, 6, 6);
   %disp(sprintf('mglBltTexture: %f',(mglGetSecs-startBlt)*1000));
   % flush buffers
   mglFlush;

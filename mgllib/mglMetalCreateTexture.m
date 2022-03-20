@@ -4,16 +4,20 @@
 %          by: justin gardner
 %        date: 09/28/2021
 %  copyright: (c) 2021 Justin Gardner (GPL see mgl/COPYING)
-%     purpose: Private mglMetal function to send texture information
+%     purpose: im -- mxnx4 rgba float image.
+%              Private mglMetal function to send texture information
 %              to mglMetal application and return a structure to be
 %              used with mglMetalBltTexture to display - these
-%              functions are called by mglCreateTexture and mglBltTexture
+%              functions are called by mglCreateTexture and mglBltTexture.
 %
 function [tex, ackTime, processedTime] = mglMetalCreateTexture(im)
 
 global mgl
 
 [tex.imageHeight, tex.imageWidth, tex.colorDim] = size(im);
+if (tex.colorDim ~= 4)
+    error('(mglMetalCreateTexture) im must be mxnx4 rgba float.\n')
+end
 
 % for now, imageWidth needs to be 16 byte aligned to 256
 imageWidth = ceil(tex.imageWidth*16/256)*16;

@@ -17,4 +17,17 @@ if nargin > 1 && warnOnce
     warnOnce = false;
 end
 
+maxVal = max(image(:));
+if maxVal > 1
+    fprintf('(mglCreateTexture) image shold be float-valued with elements in [0 1].  Normalizing by the max value: %f.\n', maxVal);
+    image = image / maxVal;
+end
+
+[imageHeight, imageWidth, imageSlices] = size(image);
+if imageSlices == 1
+    fprintf('(mglCreateTexture) image shold be h x w x 4 rgba.  Resizing (%d x %d) -> (%d x %d x 4).\n', ...
+        imageHeight, imageWidth, imageHeight, imageWidth);
+    image = cat(3, image, image, image, ones(size(image)));
+end
+
 [texture, ackTime, processedTime] = mglMetalCreateTexture(image);

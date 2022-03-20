@@ -154,6 +154,7 @@ mglSetParam('deviceRect',[minx miny maxx maxy]);
 deviceOrigin = mglGetParam('deviceOrigin');
 mglTransform('scale',[2/mglGetParam('deviceWidth'),2/mglGetParam('deviceHeight'),1]);
 mglTransform('translate',[deviceOrigin(1),deviceOrigin(2),deviceOrigin(3)]);
+mglFlush();
 
 mglSetParam('deviceCoords','visualAngle');
 mglSetParam('screenCoordinates',0);

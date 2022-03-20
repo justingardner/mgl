@@ -28,6 +28,7 @@ oldTransform = mglTransform('get');
 mglTransform('set', eye(4));
 mglTransform('scale', [2.0/mglGetParam('screenWidth'),-2.0/mglGetParam('screenHeight'),1]);
 mglTransform('translate', [-mglGetParam('screenWidth')/2.0,-mglGetParam('screenHeight')/2.0,0.0]);
+mglFlush();
 
 % set the globals appropriately
 mglSetParam('xDeviceToPixels',1.0);
