@@ -26,8 +26,8 @@ end
 %% How to:
 
 % Create a blank texture to start with.
-textureWidth = 2240;
-textureHeight = 1260;
+textureWidth = 640;
+textureHeight = 480;
 blankImage = ones([textureHeight, textureWidth, 4], 'single');
 tex = mglMetalCreateTexture(blankImage);
 

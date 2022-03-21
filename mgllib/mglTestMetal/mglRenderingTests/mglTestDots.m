@@ -56,7 +56,8 @@ if (isInteractive)
     deltaR = 0.005;
     deltaTheta = 0.03;
     nFrames = 1000;
-    frameTimes = zeros(1,nFrames);
+    ackTimes = zeros(1,nFrames);
+    processedTimes = zeros(1,nFrames);
     r = 0.25*rand(1,nVertices)+0.01;
     theta = rand(1,nVertices)*2*pi;
     x = cos(theta).*r;
@@ -64,7 +65,7 @@ if (isInteractive)
 
     for iFrame = 1:nFrames
         mglPoints2(x,y,5,[1 1 1]);
-        [~, frameTimes(iFrame)] = mglFlush();
+        [ackTimes(iFrame), processedTimes(iFrame)] = mglFlush();
 
         r = r + deltaR;
         theta = theta + deltaTheta;
@@ -74,5 +75,5 @@ if (isInteractive)
         y = sin(theta).*r;
     end
 
-    mglPlotFrameTimes(frameTimes)
+    mglPlotFrameTimes(ackTimes, processedTimes, 'moving dots');
 end
