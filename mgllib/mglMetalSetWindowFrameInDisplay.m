@@ -5,6 +5,7 @@
 %       date: 03/11/2022
 %  copyright: (c) 2006 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
 %    purpose: Set the mgl window's displayNumber and frame rectangle.
+%             Display number is 1-based in Matlab.
 %
 % mglOpen(0);
 % mglMetalSetWindowFrameInDisplay(1, [x, y, width, height])

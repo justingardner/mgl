@@ -1,12 +1,12 @@
 % mglMetalOpen: Open an mgl metal window (starts a separate standalone app which
 %               mgl communicates with via a socket). Typically called from mglOpen
 %
-%      usage: mglMetalOpen(whichScreen, screenWidth,screenHeight)
+%      usage: mglMetalOpen(whichScreen, screenX, screenY, screenWidth, screenHeight)
 %         by: justin gardner
 %       date: 09/27/2021
 %  copyright: (c) 2021 Justin Gardner (GPL see mgl/COPYING)
 %    purpose: Opens an mgl Metal window - typically called from mglOpen
-%      usage: Open on secondary monitor
+%      usage: Open on secondary monitor fullscreen
 %             mglMetalOpen(1)
 %
 %             Open on primary monitory in an 800x600 window
@@ -16,6 +16,7 @@ function mglMetalOpen(whichScreen, screenX, screenY, screenWidth, screenHeight)
 if nargin < 1
     whichScreen = 0;
 end
+isFullscreen = whichScreen > 0;
 
 if nargin < 2
     screenX = 100;
@@ -26,11 +27,11 @@ if nargin < 3
 end
 
 if nargin < 4
-    screenWidth = 512;
+    screenWidth = 800;
 end
 
 if nargin < 5
-    screenHeight = 512;
+    screenHeight = 600;
 end
 
 % create the mgl global variable
@@ -82,16 +83,30 @@ fprintf('\n');
 
 if isempty(mgl.s)
     fprintf('(mglMetalOpen) Socket connection to mglMetal timed out after %d seconds\n', timeout);
+    return;
 else
     fprintf('(mglMetalOpen) Socket connection to mglMetal established in %f seconds\n', toc(timer));
 end
 
-% A fresh mglMetal process starts out with no textures.
-mglSetParam('numTextures', 0);
-
 % Move to the desired display and window location.
 mglMetalSetWindowFrameInDisplay(whichScreen, [screenX, screenY, screenWidth, screenHeight]);
+mglMetalFullscreen(isFullscreen);
 
 % Make sure Matlab and mglMetal agree on initial coordinate transform.
 mglTransform('set', eye(4));
 mglFlush();
+
+% Populate several mgl params -- many used to be set in mglPrivateOpen.c.
+mglSetParam('numTextures', 0);
+
+mglSetParam('xPixelsToDevice', 2 / screenWidth);
+mglSetParam('yPixelsToDevice', 2 / screenHeight);
+mglSetParam('xDeviceToPixels', screenHeight / 2);
+mglSetParam('yDeviceToPixels', screenHeight / 2);
+mglSetParam('deviceWidth', 2);
+mglSetParam('deviceHeight', 2);
+mglSetParam('deviceCoords', 'default');
+mglSetParam('deviceRect', [-1 -1 1 1]);
+
+% placeholder for now in v3 with Metal
+mglSetParam('stencilBits', 0);

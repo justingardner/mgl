@@ -350,9 +350,11 @@ extension mglRenderer: MTKViewDelegate {
         let windowWidth = commandInterface.readUInt32()
         let windowHeight = commandInterface.readUInt32()
 
+        // Convert Matlab's 1-based display number to a zero-based screen index.
+        let screenIndex = displayNumber == 0 ? Array<NSScreen>.Index(0) : Array<NSScreen>.Index(displayNumber - 1)
+
         // Location of the chosen display AKA screen, according to the system desktop manager.
         // Units might be hi-res "points", convert to native display pixels AKA "backing" as needed.
-        let screenIndex = Array<NSScreen>.Index(displayNumber)
         let screens = NSScreen.screens
         let screen = screens.indices.contains(screenIndex) ? screens[screenIndex] : screens[0]
         let screenNativeFrame = screen.convertRectToBacking(screen.frame)
@@ -410,12 +412,15 @@ extension mglRenderer: MTKViewDelegate {
             return
         }
 
+        // Convert 0-based screen index to Matlab's 1-based display number.
+        let displayNumber = mglUInt32(screenIndex + 1)
+
         // Return the position of the window relative to its screen, in pixel units not hi-res "points".
         let windowNativeFrame = screen.convertRectToBacking(window.frame)
         let screenNativeFrame = screen.convertRectToBacking(screen.frame)
         let windowX = windowNativeFrame.origin.x - screenNativeFrame.origin.x
         let windowY = windowNativeFrame.origin.y - screenNativeFrame.origin.y
-        _ = commandInterface.writeUInt32(data: mglUInt32(screenIndex))
+        _ = commandInterface.writeUInt32(data: displayNumber)
         _ = commandInterface.writeUInt32(data: mglUInt32(windowX))
         _ = commandInterface.writeUInt32(data: mglUInt32(windowY))
         _ = commandInterface.writeUInt32(data: mglUInt32(windowNativeFrame.width))

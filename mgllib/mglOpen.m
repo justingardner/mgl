@@ -5,15 +5,24 @@
 %         by: justin gardner
 %       date: 04/10/06
 %  copyright: (c) 2006 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
-%    purpose: Opens an openGL window
-%      usage: open last monitor in list wwith current window settings
+%    purpose: Opens an a drawing window.
+%      usage:
+%             The first parameter, whichScreen, determines which display to
+%             open on:
+%              - mglOpen() - open up the last currently connected display fullscreen
+%              - mglOpen(1) - open up the primary display fullscreen
+%              - mglOpen(2) - open up the 2nd screen on a two display fullscreen
+%              - mglOpen(0) - open up in a window
+%
+%             % Use last connected monitor.
 %             mglOpen
 %
-%             Open with resolution 800x600 60Hz 32bit fullscreen
+%             % Open with resolution 800x600 60Hz 32bit fullscreen.
+%             % (size, frameRate, and bitDepth for fullscreen not currently configurable in MGL v3 with Metal)
 %             mglOpen(1,800,600,60,32);
 %
-%             Open in a window
-%             mglOpen(0);
+%             Open in a window 800 x 600.
+%             mglOpen(0, 800, 600);
 %
 function mglOpen(whichScreen,screenWidth,screenHeight,frameRate,bitDepth)
 
@@ -21,6 +30,10 @@ function mglOpen(whichScreen,screenWidth,screenHeight,frameRate,bitDepth)
 if ~any(nargin == [0 1 2 3 4 5])
   help mglOpen
   return
+end
+
+if nargin > 3
+    fprinft('(mglOpen) Sorry, frameRate and bitDepth are not currently configurable with MGL v3 and Metal.\n');
 end
 
 % default arguments
@@ -148,7 +161,7 @@ if ~openDisplay
 	      disp(sprintf('(mglOpen) Display number %i is out of range [0:%i]',whichScreen,displayResolution.numDisplays));
 	      return
       end
-      % and call mglPrivateOpen with the correct screen number
+      % and call mglMetalOpen with the correct screen number
       mglMetalOpen(whichScreen);
     elseif ~isempty(mglGetParam('spoofFullScreen')) && (mglGetParam('spoofFullScreen') > 0);
       % get the current resolution, so we can return to it on close
@@ -157,7 +170,7 @@ if ~openDisplay
       displayResolution = mglResolution(whichScreen,screenWidth,screenHeight,frameRate,bitDepth);
       frameRate = displayResolution.frameRate;
       bitDepth = displayResolution.bitDepth;
-      % and call mglPrivateOpen with the correct screen number
+      % and call mglMetalOpen with the correct screen number
       mglMetalOpen(0);
     elseif whichScreen >= 0
       % open for a windowed mgl (i.e. whichScreen between 0 and 1
