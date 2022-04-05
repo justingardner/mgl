@@ -41,5 +41,5 @@ disp('There shoud be four dots of different shapes and colors.')
 mglFlush();
 
 if (isInteractive)
-    pause();
+    mglPause();
 end

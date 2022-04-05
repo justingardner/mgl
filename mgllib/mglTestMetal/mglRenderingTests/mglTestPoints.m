@@ -38,5 +38,5 @@ mglPoints2(x, y, 50, [.25 .5 .75], true);
 mglFlush();
 
 if (isInteractive)
-    pause();
+    mglPause();
 end

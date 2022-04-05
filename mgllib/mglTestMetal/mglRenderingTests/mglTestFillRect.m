@@ -38,5 +38,5 @@ disp('Each red rectangle should have a tall, blue-gray rectangle in the middle.'
 mglFlush();
 
 if (isInteractive)
-    pause();
+    mglPause();
 end

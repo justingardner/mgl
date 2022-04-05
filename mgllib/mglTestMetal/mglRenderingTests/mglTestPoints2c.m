@@ -39,5 +39,5 @@ disp('There should be 5 squares of different colors.')
 mglFlush();
 
 if (isInteractive)
-    pause();
+    mglPause();
 end

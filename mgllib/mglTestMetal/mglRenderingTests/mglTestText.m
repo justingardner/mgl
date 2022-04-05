@@ -36,5 +36,5 @@ disp('It should say "Hello Text", in white, at a fun and jaunty angle, centered 
 mglFlush;
 
 if (isInteractive)
-    pause();
+    mglPause();
 end

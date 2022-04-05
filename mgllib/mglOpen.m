@@ -116,7 +116,6 @@ vInfo = ver('MATLAB');
 mglSetParam('matlabMajorVersion',str2num(majorVersion));
 mglSetParam('matlabMinorVersion',str2num(minorVersion));
 
-
 %mglSetParam('verbose',1);
 if ~openDisplay
   % clear the originalResolution
@@ -131,7 +130,11 @@ if ~openDisplay
     bitDepth = displayResolution.bitDepth;
     % set whichScreen
     if isempty(whichScreen)
-      whichScreen = displayResolution.displayNumber;
+      if displayResolution.numDisplays == 1
+         whichScreen = 0;
+      else
+        whichScreen = displayResolution.displayNumber;
+      end
     end
     % check to make sure that the whichScreen is within bounds
     if (whichScreen < 0) || (whichScreen > displayResolution.numDisplays)

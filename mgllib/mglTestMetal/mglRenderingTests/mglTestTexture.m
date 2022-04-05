@@ -48,10 +48,10 @@ disp('There should be a smoothly varying gray texture (Gabor) in the center.');
 mglFlush();
 
 if (isInteractive)
-    input('Hit ENTER to test blt with drifting phase (fullscreen): ');
+    disp('Hit ENTER to test blt with drifting phase (fullscreen): ');mglPause;
     mglFlush();
     mglMetalFullscreen();
-    pause(0.5);
+    mglPause(0.5);
 
     nFrames = 300;
     ackTimes = zeros(1,nFrames);
@@ -65,10 +65,11 @@ if (isInteractive)
     mglMetalFullscreen(false);
     mglPlotFrameTimes(ackTimes, processedTimes, 'blt with drifting phase');
 
-    input('Hit ENTER to test multiple blt with rotation and drifting phase (fullscreen): ');
+    disp('Hit any key to test multiple blt with rotation and drifting phase (fullscreen): ');
+    mglPause;
     mglFlush();
     mglMetalFullscreen();
-    pause(0.5);
+    mglPause(0.5);
 
     nFrames = 300;
     ackTimes = zeros(1,nFrames);

@@ -35,5 +35,5 @@ disp('The screen should be cleared to an orange-brown color.')
 mglFlush();
 
 if (isInteractive)
-    pause();
+    mglPause();
 end

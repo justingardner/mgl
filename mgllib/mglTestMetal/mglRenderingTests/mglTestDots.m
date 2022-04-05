@@ -50,7 +50,7 @@ if (isInteractive)
     input('Hit ENTER to test moving dots (fullscreen): ');
     mglFlush();
     mglMetalFullscreen;
-    pause(0.5)
+    mglPause(0.5)
 
     nVertices = 1000;
     deltaR = 0.005;

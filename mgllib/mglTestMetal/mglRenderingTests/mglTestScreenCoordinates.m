@@ -41,5 +41,5 @@ mglPoints2(x, y, 40, [0.5 0.75 0.5]);
 mglFlush();
 
 if (isInteractive)
-    pause();
+    mglPause();
 end

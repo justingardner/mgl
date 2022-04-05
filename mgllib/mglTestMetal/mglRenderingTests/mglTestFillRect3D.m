@@ -39,5 +39,5 @@ disp('There should be a smaller, rotated blue rectangle on top of each red squar
 mglFlush();
 
 if (isInteractive)
-    pause();
+    mglPause();
 end

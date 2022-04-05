@@ -48,5 +48,5 @@ disp('There should be 3 cyan circles in the same arrangement -- NOT on top of th
 mglFlush;
 
 if (isInteractive)
-    pause();
+    mglPause();
 end

@@ -38,5 +38,5 @@ disp('Each red oval should have a tall, blue-gray oval in the middle.')
 mglFlush();
 
 if (isInteractive)
-    pause();
+    mglPause();
 end

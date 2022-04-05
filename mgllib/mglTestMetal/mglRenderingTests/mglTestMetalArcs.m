@@ -49,5 +49,5 @@ disp('There shoud be three partial arcs across the bottom.')
 mglFlush();
 
 if (isInteractive)
-    pause();
+    mglPause();
 end

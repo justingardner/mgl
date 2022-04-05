@@ -49,7 +49,7 @@ if (isInteractive)
     input('Hit ENTER to test frame-by-frame texture updates (fullscreen): ');
     mglFlush();
     mglMetalFullscreen();
-    pause(0.5);
+    mglPause(0.5);
 
     nFrames = 300;
     ackTimes = zeros(1,nFrames);

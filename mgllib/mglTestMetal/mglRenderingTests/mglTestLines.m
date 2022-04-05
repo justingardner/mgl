@@ -38,5 +38,5 @@ disp('There should be 2 orange-yellow lines crossed in the center.')
 mglFlush();
 
 if (isInteractive)
-    pause();
+    mglPause();
 end

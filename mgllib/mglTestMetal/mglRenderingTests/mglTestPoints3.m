@@ -43,5 +43,5 @@ disp('Only the bottom two red squares should appear "on top" of the green ones.'
 mglFlush();
 
 if (isInteractive)
-    pause();
+    mglPause();
 end

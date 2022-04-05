@@ -37,5 +37,5 @@ disp('There should be a green or green-blue, irregular pentagon near the center.
 mglFlush();
 
 if (isInteractive)
-    pause();
+    mglPause();
 end

@@ -39,5 +39,5 @@ disp('There shoud be 5 rings across the diagonal.')
 mglFlush();
 
 if (isInteractive)
-    pause();
+    mglPause();
 end

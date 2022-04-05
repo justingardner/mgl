@@ -41,5 +41,5 @@ disp('There shoud be 5 partial rings across the diagonal.')
 mglFlush();
 
 if (isInteractive)
-    pause();
+    mglPause();
 end
