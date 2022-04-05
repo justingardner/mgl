@@ -33,7 +33,7 @@ if ~any(nargin == [0 1 2 3 4 5])
 end
 
 if nargin > 3
-    fprinft('(mglOpen) Sorry, frameRate and bitDepth are not currently configurable with MGL v3 and Metal.\n');
+    fprintf('(mglOpen) Sorry, frameRate and bitDepth are not currently configurable with MGL v3 and Metal.\n');
 end
 
 % default arguments
