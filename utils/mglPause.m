@@ -15,9 +15,22 @@ end
 
 if nargin < 1,waitTime = inf;end
 
+% get start time
 startTime = mglGetSecs;
 
-while(isempty(mglGetKeyEvent) && (mglGetSecs(startTime)<waitTime))
+% check keys
+keyEvent = [];
+while(isempty(keyEvent) && (mglGetSecs(startTime)<waitTime))
+  keyEvent = mglGetKeyEvent;
 end
+
+% check for ESC
+if ~isempty(keyEvent)
+  if keyEvent.keyCode == 54
+    disp(sprintf('(mglPause) Breaking out of pause. Type dbcont to continue, dbquit to end'));
+    keyboard
+  end
+end
+
 
 
