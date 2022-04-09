@@ -31,7 +31,7 @@ times = nan(5,n);
 % use mglBindText instead of creating
 % a texture every time. This keeps the
 % same memory buffer for the texture
-bindtex = true;
+bindtex = false;
 
 % set whether to use quick preformatted uint8 input to mglCreateTexture or not
 preformat = true;
