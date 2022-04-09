@@ -16,6 +16,14 @@
 %             If you want to change the message before calling with inf:
 %             disppercent(0.5,'New message to display');
 % 
+%             % this should print an updating disppercent
+%             disppercent(-inf,'Testing disppercent');
+%             for i = 1:100
+%               pause(0.1);
+%               disppercent(i/100);
+%             end
+%             disppercent(inf);
+%
 %             Also, if you have an inner loop within an outer loop, you
 %             can call like the following:
 %             n1 = 15;n2 = 10;
@@ -33,21 +41,6 @@
 %
 %disppercent(-inf,'Doing stuff');for i =  1:30;pause(0.1);disppercent(i/30);end;elapsedTime = disppercent(inf);
 function retval = disppercent(percentdone,mesg)
-
-% BSH stubbing this out for now.
-% Try not to spam the console every time this is called.
-persistent disppercentDeprecationWarning
-if isempty(disppercentDeprecationWarning)
-    disppercentDeprecationWarning = true;
-    fprintf('(disppercent) This seems to need updating, BSH is stubbing it out for now.\n');
-end
-
-if nargin < 2
-    mesg = '';
-end
-fprintf('(disppercent) percentdone: %f mesg: %s\n', percentdone, mesg)
-
-return
 
 retval = nan;
 % check command line arguments
@@ -70,10 +63,10 @@ if (percentdone < 0)
   gDisppercent.t0 = clock;
   % default to no message
   if (nargin < 2)
-    mydisp(sprintf('00%% (00:00:00)'));
+    fprintf(1,sprintf('00%% (00:00:00)'));
     gDisppercent.mesg = '';
   else
-    mydisp(sprintf('%s 00%% (00:00:00)',mesg));
+    fprintf(1,sprintf('%s 00%% (00:00:00)',mesg));
     gDisppercent.mesg = mesg;
   end    
   if isinf(percentdone)
@@ -111,7 +104,7 @@ elseif (percentdone == inf)
     timestr = sprintf('%i secs %i ms',numsecs,numms);
   end
   % display time string
-  mydisp(sprintf('\b\b\b\b\b\b\b\b\b\b\b\b\b\btook %s\n',timestr));
+  fprintf(1,sprintf('\b\b\b\b\b\b\b\b\b\b\b\b\b\btook %s\n',timestr));
   retval = elapsedTime;
 % otherwise show update
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -156,10 +149,10 @@ else
   % display percent done and estimated time to end
   if ~isempty(newmesg)
     % always display if there is a new message
-    mydisp(sprintf('\b\b\b\b\b\b\b\b\b\b\b\b\b\b%s%02i%% (%s)',newmesg,floor(100*percentdone),disptime(etime(clock,gDisppercent.t0)*(1/percentdone - 1))));
+    fprintf(1,sprintf('\b\b\b\b\b\b\b\b\b\b\b\b\b\b%s%02i%% (%s)',newmesg,floor(100*percentdone),disptime(etime(clock,gDisppercent.t0)*(1/percentdone - 1))));
   % display only if we have update by a percent or more
   elseif (gDisppercent.percentdone ~= floor(100*percentdone))
-    mydisp(sprintf('\b\b\b\b\b\b\b\b\b\b\b\b\b\b%02i%% (%s)',floor(100*percentdone),disptime(etime(clock,gDisppercent.t0)*(1/percentdone - 1))));
+    fprintf(1,sprintf('\b\b\b\b\b\b\b\b\b\b\b\b\b\b%02i%% (%s)',floor(100*percentdone),disptime(etime(clock,gDisppercent.t0)*(1/percentdone - 1))));
   end
 end
 % remember current percent done
@@ -188,12 +181,12 @@ newmesg = '';
 
 if ~strcmp(mesg,gDisppercent.mesg)
   % first clear old message
-  mydisp(sprintf('\b\b\b\b\b\b\b\b\b\b\b\b\b\b%s%s              ',repmat(sprintf('\b'),1,length(gDisppercent.mesg)+1),repmat(sprintf(' '),1,length(gDisppercent.mesg)+1)));
+  fprintf(1,sprintf('\b\b\b\b\b\b\b\b\b\b\b\b\b\b%s%s              ',repmat(sprintf('\b'),1,length(gDisppercent.mesg)+1),repmat(sprintf(' '),1,length(gDisppercent.mesg)+1)));
   % print <or return> new message
   if nargout == 1
     newmesg = sprintf('%s%s ',repmat(sprintf('\b'),1,length(gDisppercent.mesg)+1),mesg);
   else
-    mydisp(sprintf('\b\b\b\b\b\b\b\b\b\b\b\b\b\b%s%s               ',repmat(sprintf('\b'),1,length(gDisppercent.mesg)+1),mesg));
+    fprintf(1,sprintf('\b\b\b\b\b\b\b\b\b\b\b\b\b\b%s%s               ',repmat(sprintf('\b'),1,length(gDisppercent.mesg)+1),mesg));
   end
   gDisppercent.mesg = mesg;
 end
