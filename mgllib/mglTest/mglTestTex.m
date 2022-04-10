@@ -54,6 +54,10 @@ m(:,:,2) = 127;
 m(:,:,3) = 127;
 tex2dGaussWin = mglCreateTexture(m);
 
+% text
+mglTextSet('Helvetica',32,[1 1 1],0,0,0,0,0,0,0);
+testingText = mglText('Testing 1D textures');
+
 % display the three 1 dimensional textures inside a gaussian window for 10 secs
 startTime = mglGetSecs;
 rotation = 0;
@@ -80,11 +84,12 @@ while mglGetSecs(startTime) < 5
   mglBltTexture(tex1dsquare,[15 0], 0, 0, 360-rotation, 0, texWidth, texHeight);
   mglBltTexture(tex2dGaussWin,[15 0]);
 
-%   if ismac
-%     % display wait text
-%     mglTextSet('Helvetica',32,[1 1 1],0,0,0,0,0,0,0);
-%     mglTextDraw('Testing 1D textures',[0 5]);
-%   end
+  if ismac
+    % display wait text
+    mglTextSet('Helvetica',32,[1 1 1],0,0,0,0,0,0,0);
+    %mglTextDraw('Testing 1D textures',[0 5]);
+    mglBltTexture(testingText,[0 5]);
+  end
 
   % update rotation
   rotation = rotation + 1;
@@ -99,7 +104,7 @@ end
 if ismac
   % display wait text
   mglTextSet('Helvetica',32,[1 1 1],0,0,0,0,0,0,0);
-  %mglTextDraw('Calculating textures (0% done)',[0 0]);mglFlush;
+  mglTextDraw('Calculating textures (0% done)',[0 0]);mglFlush;
 else
   mglStrokeText('Calculating textures (0 percent done)',-8,0,0.5,0.8,2);mglFlush;
 end
