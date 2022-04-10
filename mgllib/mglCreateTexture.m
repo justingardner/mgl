@@ -10,10 +10,9 @@
 %             Please see mglMetalCreateTexture().
 %       e.g.: mglOpen;
 %             mglClearScreen
-%             %mglScreenCoordinates
+%             mglScreenCoordinates
 %             texture = mglCreateTexture(round(rand(100,100)*255));
-%             %%mglBltTexture(texture,[0 0]);
-%             mglBltTexture(texture);
+%             mglBltTexture(texture,[0 0]);
 %             mglFlush;
 %
 %             *******************
@@ -25,11 +24,10 @@
 %             Note that you can use 1D textures for example to display a 1D image like a sine wave grating
 %       e.g.: mglOpen;
 %             mglClearScreen(0.5)
-%             %mglScreenCoordinates
+%             mglScreenCoordinates
 %             x = 0:8*pi/99:8*pi;
 %             texture = mglCreateTexture(255*(sin(x)+1)/2);
-%             %%mglBltTexture(texture,[0 0 100 500]);
-%             mglBltTexture(texture);
+%             mglBltTexture(texture,[0 0 100 500]);
 %             mglFlush;
 %
 %             For fast creation (this routine can take some time to convert

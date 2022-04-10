@@ -20,12 +20,20 @@ if nargin < 4, vAlignment = 0; end
 if nargin < 5, rotation = 0; end
 if nargin < 6, phase = 0; end
 if nargin < 7
-  % get width in device coordinates
-  width = tex.imageWidth*mglGetParam('xPixelsToDevice');
+  if length(position)<3
+    % get width in device coordinates
+    width = tex.imageWidth*mglGetParam('xPixelsToDevice');
+  else
+    width = position(3);
+  end
 end
 if nargin < 8
-  % get height in device coordinates
-  height = tex.imageHeight*mglGetParam('yPixelsToDevice');
+  if length(position)<4
+    % get height in device coordinates
+    height = tex.imageHeight*mglGetParam('yPixelsToDevice');
+  else
+    height = position(4);
+  end
 end
 
 % get coordinates for each corner
