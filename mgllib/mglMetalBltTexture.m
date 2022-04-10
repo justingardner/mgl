@@ -19,8 +19,14 @@ if nargin < 3, hAlignment = 0; end
 if nargin < 4, vAlignment = 0; end
 if nargin < 5, rotation = 0; end
 if nargin < 6, phase = 0; end
-if nargin < 7, width = 1; end
-if nargin < 8, height = 1; end
+if nargin < 7
+  % get width in device coordinates
+  width = tex.imageWidth*mglGetParam('xPixelsToDevice');
+end
+if nargin < 8
+  % get height in device coordinates
+  height = tex.imageHeight*mglGetParam('yPixelsToDevice');
+end
 
 % get coordinates for each corner
 % of the rectangle we are going
