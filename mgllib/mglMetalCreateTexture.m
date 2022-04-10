@@ -20,7 +20,7 @@ if (tex.colorDim ~= 4)
 end
 
 % for now, imageWidth needs to be 16 byte aligned to 256
-imageWidth = ceil(tex.imageWidth*16/256)*16;
+imageWidth = ceil(tex.imageWidth/16)*16;
 if imageWidth ~= tex.imageWidth
   disp('(mglMetalCreateTexture) Resizing texture image to align to 256')
   newim = zeros([tex.imageHeight, imageWidth, tex.colorDim]);
