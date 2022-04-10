@@ -41,4 +41,4 @@ if ~exist('vAlignment'),vAlignment = 0;,end
 tex = mglText(str);
 mglMetalBltTexture(tex,pos,hAlignment,vAlignment);
 
-mglDeleteTexture(tex);
+%mglDeleteTexture(tex);

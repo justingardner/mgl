@@ -28,5 +28,8 @@ im = mglPrivateText(str);
 % need to reshape
 im.textImage = reshape(flipud(im.textImage),im.imageHeight,im.imageWidth,4);
 
+% set alpha to 255
+im.textImage(:,:,4) = 255*(im.textImage(:,:,1)>0 | im.textImage(:,:,2)>0 | im.textImage(:,:,3)>0);
+
 % create the texture
-[tex, ackTime, processedTime] = mglMetalCreateTexture(im.textImage);
+[tex, ackTime, processedTime] = mglCreateTexture(im.textImage);
