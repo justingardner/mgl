@@ -51,9 +51,9 @@ y = -2:4/(ysize-1):2;
 [xMesh,yMesh] = meshgrid(x,y);
 
 nsteps = 30;
-%disppercent(-inf,'Creating gratings');
+disppercent(-inf,'Creating gratings');
 for i = 1:nsteps;
-  %disppercent(i/nsteps);
+  disppercent(i/nsteps);
   phase = i*2*pi/nsteps;
   angle = d2r(45);
   f=0.8*2*pi; 
@@ -68,7 +68,7 @@ for i = 1:nsteps;
     tex(i) = Screen('MakeTexture', myscreen.screenNumber,m);
   end
 end
-%disppercent(inf);
+disppercent(inf);
 
 % run through once
 for i = 1:nsteps
@@ -90,7 +90,7 @@ if multi==0
     else
       Screen('DrawTexture', myscreen.w,tex(mod(i,nsteps)+1),[],SetRect(0,0,0+xsize-1,0+ysize-1));
     end
-    if mgl,mglFlush,else,Screen('flip',myscreen.w);,end
+    if mgl,mglFlush;,else,Screen('flip',myscreen.w);,end
   end
   endtime = mglGetSecs;
 else
@@ -120,7 +120,7 @@ else
 	end
       end
     end
-    if mgl,mglFlush,else,Screen('flip',myscreen.w);,end
+    if mgl,mglFlush;,else,Screen('flip',myscreen.w);,end
   end
   endtime = mglGetSecs;
 end  
