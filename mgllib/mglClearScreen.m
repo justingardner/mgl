@@ -38,12 +38,20 @@ end
 
 global mgl
 
+% if no clear color is given, then...
 if nargin < 1 || numel(clearColor) == 0
+  % set to the last clear color
+  clearColor = mglGetParam('clearColor');
+  % or if no clear color has ever been set, then
+  % set to black
+  if isempty(clearColor)
     clearColor = [0, 0, 0];
+  end
 elseif numel(clearColor) == 1
   clearColor = [clearColor clearColor clearColor];
 end
 clearColor = clearColor(:);
+mglSetParam('clearColor',clearColor);
 
 % write clear screen command
 mglSocketWrite(mgl.s, mgl.command.mglSetClearColor);
