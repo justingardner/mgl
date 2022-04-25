@@ -32,10 +32,6 @@ if ~any(nargin == [0 1 2 3 4 5])
   return
 end
 
-if nargin > 3
-    fprintf('(mglOpen) Sorry, frameRate and bitDepth are not currently configurable with MGL v3 and Metal.\n');
-end
-
 % default arguments
 if ~exist('whichScreen','var'), whichScreen = []; end
 if ~exist('screenWidth','var'), screenWidth = []; end

@@ -27,17 +27,18 @@ class mglRenderer: NSObject {
     // commandQueue which tells the device what to do
     static var commandQueue: MTLCommandQueue!
 
-    // Pipeline states for rendering to screen
-    let pipelineStateDots: MTLRenderPipelineState!
-    let pipelineStateArcs: MTLRenderPipelineState!
-    let pipelineStateVertexWithColor: MTLRenderPipelineState!
-    let pipelineStateTextures: MTLRenderPipelineState!
+    let library: MTLLibrary!
 
-    // Pipeline states for rendering to texture
-    let pipelineStateDotsToTexture: MTLRenderPipelineState!
-    let pipelineStateArcsToTexture: MTLRenderPipelineState!
-    let pipelineStateVertexWithColorToTexture: MTLRenderPipelineState!
-    let pipelineStateTexturesToTexture: MTLRenderPipelineState!
+    // Pipeline states for rendering to screen and texture.
+    // These get recreated by setUpPipelines() at init, and when we change the view's colorPixelFormat.
+    var pipelineStateDots: MTLRenderPipelineState!
+    var pipelineStateDotsToTexture: MTLRenderPipelineState!
+    var pipelineStateArcs: MTLRenderPipelineState!
+    var pipelineStateArcsToTexture: MTLRenderPipelineState!
+    var pipelineStateVertexWithColor: MTLRenderPipelineState!
+    var pipelineStateVertexWithColorToTexture: MTLRenderPipelineState!
+    var pipelineStateTextures: MTLRenderPipelineState!
+    var pipelineStateTexturesToTexture: MTLRenderPipelineState!
 
     // Configuration for doing depth testing.
     let depthState: MTLDepthStencilState!
@@ -80,61 +81,11 @@ class mglRenderer: NSObject {
         mglRenderer.commandQueue = device.makeCommandQueue()!
 
         // create a library for storing the shaders
-        let library = device.makeDefaultLibrary()
+        library = device.makeDefaultLibrary()
 
         // Configure the view to do depth testing.
         metalView.depthStencilPixelFormat = .depth32Float
         metalView.clearDepth = 1.0
-
-        // Create the pipelines that will render to screen or texture.
-        // TODO: this looks like a place to factor out common code and do some polymorphism...
-        do {
-            pipelineStateDots = try device.makeRenderPipelineState(
-                descriptor: mglRenderer.dotsPipelineStateDescriptor(
-                    colorPixelFormat: metalView.colorPixelFormat,
-                    depthPixelFormat: metalView.depthStencilPixelFormat,
-                    library: library))
-            pipelineStateDotsToTexture = try device.makeRenderPipelineState(
-                descriptor: mglRenderer.dotsPipelineStateDescriptor(
-                    colorPixelFormat: .rgba32Float,
-                    depthPixelFormat: metalView.depthStencilPixelFormat,
-                    library: library))
-
-            pipelineStateArcs = try device.makeRenderPipelineState(
-                descriptor: mglRenderer.arcsPipelineStateDescriptor(
-                    colorPixelFormat: metalView.colorPixelFormat,
-                    depthPixelFormat: metalView.depthStencilPixelFormat,
-                    library: library))
-            pipelineStateArcsToTexture = try device.makeRenderPipelineState(
-                descriptor: mglRenderer.arcsPipelineStateDescriptor(
-                    colorPixelFormat: .rgba32Float,
-                    depthPixelFormat: metalView.depthStencilPixelFormat,
-                    library: library))
-
-            pipelineStateVertexWithColor = try device.makeRenderPipelineState(
-                descriptor: mglRenderer.drawVerticesPipelineStateDescriptor(
-                    colorPixelFormat: metalView.colorPixelFormat,
-                    depthPixelFormat: metalView.depthStencilPixelFormat,
-                    library: library))
-            pipelineStateVertexWithColorToTexture = try device.makeRenderPipelineState(
-                descriptor: mglRenderer.drawVerticesPipelineStateDescriptor(
-                    colorPixelFormat: .rgba32Float,
-                    depthPixelFormat: metalView.depthStencilPixelFormat,
-                    library: library))
-
-            pipelineStateTextures = try device.makeRenderPipelineState(
-                descriptor: mglRenderer.bltTexturePipelineStateDescriptor(
-                    colorPixelFormat: metalView.colorPixelFormat,
-                    depthPixelFormat: metalView.depthStencilPixelFormat,
-                    library: library))
-            pipelineStateTexturesToTexture = try device.makeRenderPipelineState(
-                descriptor: mglRenderer.bltTexturePipelineStateDescriptor(
-                    colorPixelFormat: .rgba32Float,
-                    depthPixelFormat: metalView.depthStencilPixelFormat,
-                    library: library))
-        } catch let error {
-            fatalError(error.localizedDescription)
-        }
 
         // Configure the depth tests to allow re-drawing when depth (ie z coord) is equal.
         let depthDescriptor = MTLDepthStencilDescriptor()
@@ -148,6 +99,9 @@ class mglRenderer: NSObject {
         // init the super class
         super.init()
 
+        // Create the pipelines that will render to screen or texture.
+        recreatePipelineStates(metalView: metalView)
+
         // Tell the view that this class will be used as the
         // delegate - this makes it so that the view will call
         // the draw function each frame update and the resize function
@@ -155,6 +109,58 @@ class mglRenderer: NSObject {
 
         // Done. Print out that we did something.
         print("(mglMetal:mglRenderer) Init mglRenderer")
+    }
+
+    // Recreate rendering pipelines on init, and whenever we change the view's colorPixelFormat.
+    func recreatePipelineStates(metalView: MTKView, textureColorPixelFormat: MTLPixelFormat = .rgba32Float) {
+        // TODO: this looks like a place to factor out common code and do some polymorphism...
+        do {
+            pipelineStateDots = try mglRenderer.device.makeRenderPipelineState(
+                descriptor: mglRenderer.dotsPipelineStateDescriptor(
+                    colorPixelFormat: metalView.colorPixelFormat,
+                    depthPixelFormat: metalView.depthStencilPixelFormat,
+                    library: library))
+            pipelineStateDotsToTexture = try mglRenderer.device.makeRenderPipelineState(
+                descriptor: mglRenderer.dotsPipelineStateDescriptor(
+                    colorPixelFormat: textureColorPixelFormat,
+                    depthPixelFormat: metalView.depthStencilPixelFormat,
+                    library: library))
+
+            pipelineStateArcs = try mglRenderer.device.makeRenderPipelineState(
+                descriptor: mglRenderer.arcsPipelineStateDescriptor(
+                    colorPixelFormat: metalView.colorPixelFormat,
+                    depthPixelFormat: metalView.depthStencilPixelFormat,
+                    library: library))
+            pipelineStateArcsToTexture = try mglRenderer.device.makeRenderPipelineState(
+                descriptor: mglRenderer.arcsPipelineStateDescriptor(
+                    colorPixelFormat: textureColorPixelFormat,
+                    depthPixelFormat: metalView.depthStencilPixelFormat,
+                    library: library))
+
+            pipelineStateVertexWithColor = try mglRenderer.device.makeRenderPipelineState(
+                descriptor: mglRenderer.drawVerticesPipelineStateDescriptor(
+                    colorPixelFormat: metalView.colorPixelFormat,
+                    depthPixelFormat: metalView.depthStencilPixelFormat,
+                    library: library))
+            pipelineStateVertexWithColorToTexture = try mglRenderer.device.makeRenderPipelineState(
+                descriptor: mglRenderer.drawVerticesPipelineStateDescriptor(
+                    colorPixelFormat: textureColorPixelFormat,
+                    depthPixelFormat: metalView.depthStencilPixelFormat,
+                    library: library))
+
+            pipelineStateTextures = try mglRenderer.device.makeRenderPipelineState(
+                descriptor: mglRenderer.bltTexturePipelineStateDescriptor(
+                    colorPixelFormat: metalView.colorPixelFormat,
+                    depthPixelFormat: metalView.depthStencilPixelFormat,
+                    library: library))
+            pipelineStateTexturesToTexture = try mglRenderer.device.makeRenderPipelineState(
+                descriptor: mglRenderer.bltTexturePipelineStateDescriptor(
+                    colorPixelFormat: textureColorPixelFormat,
+                    depthPixelFormat: metalView.depthStencilPixelFormat,
+                    library: library))
+        } catch let error {
+            fatalError(error.localizedDescription)
+        }
     }
 }
 
@@ -214,6 +220,7 @@ extension mglRenderer: MTKViewDelegate {
             case mglSetWindowFrameInDisplay: setWindowFrameInDisplay(view: view)
             case mglGetWindowFrameInDisplay: getWindowFrameInDisplay(view: view)
             case mglDeleteTexture: deleteTexture()
+            case mglSetViewColorPixelFormat: setViewColorPixelFormat(view: view)
             default: print("(mglRenderer) Unknown command code: \(command)")
             }
 
@@ -319,6 +326,19 @@ extension mglRenderer: MTKViewDelegate {
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     // Non-drawing commands
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
+
+    func setViewColorPixelFormat(view: MTKView) {
+        let formatIndex = commandInterface.readUInt32()
+        switch formatIndex {
+        case 0: view.colorPixelFormat = .bgra8Unorm
+        case 1: view.colorPixelFormat = .bgra8Unorm_srgb
+        case 2: view.colorPixelFormat = .rgba16Float
+        case 3: view.colorPixelFormat = .rgb10a2Unorm
+        case 4: view.colorPixelFormat = .bgr10a2Unorm
+        default: view.colorPixelFormat = .bgra8Unorm
+        }
+        recreatePipelineStates(metalView: view)
+    }
 
     func drainSystemEvents(view: MTKView) {
         guard let window = view.window else {return}
