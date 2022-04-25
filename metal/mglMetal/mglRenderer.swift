@@ -267,10 +267,12 @@ extension mglRenderer: MTKViewDelegate {
         // Attach our view transform to the same location expected by all vertex shaders (our convention).
         renderEncoder.setVertexBytes(&deg2metal, length: MemoryLayout<float4x4>.stride, index: 1)
 
-        // Keep processing drawing commands until a flush command.
+        // Keep processing drawing and other related commands until a flush command.
         while (command != mglFlush) {
             switch command {
+            case mglCreateTexture: createTexture()
             case mglBltTexture: bltTexture(view: view, renderEncoder: renderEncoder)
+            case mglDeleteTexture: deleteTexture()
             case mglSetXform: setXform(renderEncoder: renderEncoder)
             case mglDots: drawDots(view: view, renderEncoder: renderEncoder)
             case mglLine: drawVerticesWithColor(view: view, renderEncoder: renderEncoder, primitiveType: .line)
