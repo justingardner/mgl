@@ -24,7 +24,6 @@
 %mglTextSet('Helvetica',32,[0 0.5 1 1],0,0,0,0,0,0,0);
 %mglTextDraw('Hello There',[0 0]);
 %mglFlush;
-
 function retval = mglTextDraw(str,pos,hAlignment,vAlignment)
 
 % check arguments

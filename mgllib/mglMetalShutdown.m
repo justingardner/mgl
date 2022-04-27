@@ -7,7 +7,7 @@
 %  copyright: (c) 2021 Justin Gardner (GPL see mgl/COPYING)
 %    purpose: Shutsdown any running mglMetal applications. Returns true if
 %             there were mglMetal applications to shutdown
-%      usage: mglMetalShutdown
+%      usage: mglMetalShutdown()
 function tf = mglMetalShutdown
 
 % get psid

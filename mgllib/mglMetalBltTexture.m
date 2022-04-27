@@ -5,9 +5,17 @@
 %        date: 09/28/2021
 %  copyright: (c) 2021 Justin Gardner (GPL see mgl/COPYING)
 %     purpose: Private mglMetal function to blt texture created by
-%              mglMetalBltTexture these functions are
-%              called by mglCreateTexture and mglBltTexture
-%       e.g.:
+%              mglMetalCreateTexture.  These these functions are
+%              called by mglCreateTexture and mglBltTexture.
+%       usage:
+%
+% mglOpen();
+% mglVisualAngleCoordinates(57,[16 12]);
+% image = ones(200, 200, 4);
+% image(:,:,1:3) = rand([200, 200, 3]);
+% imageTex = mglMetalCreateTexture(image);
+% mglMetalBltTexture(imageTex,[0 0]);
+% mglFlush();
 %
 function [ackTime, processedTime] = mglMetalBltTexture(tex, position, hAlignment, vAlignment, rotation, phase, width, height)
 

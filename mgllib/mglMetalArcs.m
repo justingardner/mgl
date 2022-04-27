@@ -14,6 +14,16 @@
 %             wedge-- 2 x n matriz of wedge angles [start, sweep]
 %             border-- 1 x n antialiasing pixel size
 %
+%      e.g.:
+% mglOpen()
+% mglVisualAngleCoordinates(50, [20, 20]);
+% xyz = [-5 0 0; 0 0 0; 5 0 0]';
+% rgba = [1 0 0 1; 0 1 1 1; 1 1 1 0.5]';
+% radii = [0 100; 0 100; 0 150]';
+% wedge = [0 2*pi; pi/4 pi; 7*pi/4 pi/3]';
+% border = [3 3 3];
+% mglMetalArcs(xyz, rgba, radii, wedge, border);
+% mglFlush();
 function [ackTime, processedTime] = mglMetalArcs(xyz, rgba, radii, wedge, border)
 
 if nargin < 5

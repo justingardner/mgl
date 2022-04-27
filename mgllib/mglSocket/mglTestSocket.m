@@ -6,6 +6,13 @@
 %       date: 03/02/2022
 %  copyright: (c) 2006 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
 %    purpose: Test socket connectivity, read, write, data integrity.
+%      usage:
+%             % It should be a one-liner to run these tests:
+%             mglTestSocket()
+%
+%             % You want to rebuild the socket functions first.
+%             mglMakeSocket()
+%             mglTestSocket()
 %
 function mglTestSocket(socketFile)
 

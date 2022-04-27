@@ -3,8 +3,22 @@
 %       usage: [im, ackTime, processedTime] = mglMetalReadTexture(tex)
 %          by: Ben Heasly
 %        date: 03/04/2022
-%  copyright: (c) 2021 Justin Gardner (GPL see mgl/COPYING)
+%   copyright: (c) 2021 Justin Gardner (GPL see mgl/COPYING)
 %     purpose: read texture data from mglMetal, back into a Matlab image.
+%       usage:
+%
+% % Create and show a random texture in mglMetal.
+% mglOpen();
+% mglVisualAngleCoordinates(57,[16 12]);
+% image = ones(256, 256, 4);
+% image(:,:,1:3) = rand([256, 256, 3]);
+% imageTex = mglMetalCreateTexture(image);
+% mglMetalBltTexture(imageTex,[0 0]);
+% mglFlush();
+%
+% % Read back the same texture and display it in Matlab, too.
+% imageAgain = mglMetalReadTexture(imageTex);
+% imshow(imageAgain(:,:,1:3));
 %
 function [im, ackTime, processedTime] = mglMetalReadTexture(tex)
 

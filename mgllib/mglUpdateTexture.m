@@ -9,6 +9,33 @@
 %             texture - a texture struct from mglCreateTexture().
 %             image - a new mxnx4 image of the same size as texture.
 %
+%             This is indended for when you want to update a texture as
+%             fast as possible, say once per frame.  We can't avoid sending
+%             the new image contents, but we can avoid allocating and
+%             deleting a texture each time, which should improve speed and
+%             memory usage.
+%
+%      usage:
+%             mglOpen();
+%
+%             % Create a blank texture to start with.
+%             blankImage = ones([480, 640, 4], 'single');
+%             tex = mglMetalCreateTexture(blankImage);
+%             mglBltTexture(tex,[0 0]);
+%             mglFlush();
+%
+%             % Update the texture image contents.
+%             x = linspace(0, 1, 640);
+%             y = linspace(0, 1, 480);
+%             gradient= y'*x;
+%             newImage = ones([480, 640, 4], 'single');
+%             newImage(:,:,1) = gradient;
+%             newImage(:,:,2) = flipud(gradient);
+%             newImage(:,:,3) = fliplr(gradient);
+%             mglUpdateTexture(tex, newImage);
+%             mglBltTexture(tex,[0 0]);
+%             mglFlush();
+%
 function [ackTime, processedTime] = mglUpdateTexture(texture, im)
 
 if nargin ~= 2

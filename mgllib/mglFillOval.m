@@ -22,7 +22,7 @@
 %mglVisualAngleCoordinates(57,[16 12]);
 %x = [-1 -4 -3 0 3 4 1];
 %y = [-1 -4 -3 0 3 4 1];
-%sz = [1 1]; 
+%sz = [100 100];
 %mglFillOval(x, y, sz,  [1 0 0]);
 %mglFlush();
 % 

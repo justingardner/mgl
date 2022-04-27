@@ -4,8 +4,9 @@
 %     program: mglClose.m
 %          by: justin gardner
 %        date: 04/03/06
-%  copyright: (c) 2006 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
-%     purpose: close OpenGL screen
+%   copyright: (c) 2006 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
+%     purpose: Shut down the mglMetal app
+%       usage: mglClose()
 %
 function retval = mglClose()
 
