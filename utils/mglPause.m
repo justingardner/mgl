@@ -7,6 +7,8 @@
 %
 function retval = mglPause(waitTime)
 
+% call mgl listener with all events to drain queue
+
 % check arguments
 if ~any(nargin == [0 1])
   help mglPause
@@ -17,6 +19,10 @@ if nargin < 1,waitTime = inf;end
 
 % get start time
 startTime = mglGetSecs;
+
+% Consume any previous key events before waiting.
+% This way, mglPause won't return immediately.
+mglListener(5);
 
 % check keys
 keyEvent = [];
