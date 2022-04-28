@@ -698,13 +698,20 @@ extension mglRenderer: MTKViewDelegate {
         }
 
         // set up texture sampler
+        let minMagFilterRawValue = commandInterface.readUInt32()
+        let minMagFilter = chooseMinMagFilter(rawValue: UInt(minMagFilterRawValue))
+        let mipFilterRawValue = commandInterface.readUInt32()
+        let mipFilter = chooseMipFilter(rawValue: UInt(mipFilterRawValue))
+        let addressModeRawValue = commandInterface.readUInt32()
+        let addressMode = chooseAddressMode(rawValue: UInt(addressModeRawValue))
+
         let samplerDescriptor = MTLSamplerDescriptor()
-        samplerDescriptor.minFilter = .linear
-        samplerDescriptor.magFilter = .linear
-        samplerDescriptor.mipFilter = .linear
-        samplerDescriptor.sAddressMode = MTLSamplerAddressMode.repeat
-        samplerDescriptor.tAddressMode = MTLSamplerAddressMode.repeat
-        samplerDescriptor.rAddressMode = MTLSamplerAddressMode.repeat
+        samplerDescriptor.minFilter = minMagFilter
+        samplerDescriptor.magFilter = minMagFilter
+        samplerDescriptor.mipFilter = mipFilter
+        samplerDescriptor.sAddressMode = addressMode
+        samplerDescriptor.tAddressMode = addressMode
+        samplerDescriptor.rAddressMode = addressMode
         let samplerState = mglRenderer.device.makeSamplerState(descriptor:samplerDescriptor)
         
         // add the sampler to the renderEncoder
@@ -728,6 +735,27 @@ extension mglRenderer: MTKViewDelegate {
         }
         renderEncoder.setFragmentTexture(texture, index:0)
         renderEncoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: vertexCount)
+    }
+
+    func chooseMinMagFilter(rawValue: UInt, defaultValue: MTLSamplerMinMagFilter = .linear) -> MTLSamplerMinMagFilter {
+        guard let filter = MTLSamplerMinMagFilter(rawValue: rawValue) else {
+            return defaultValue
+        }
+        return filter
+    }
+
+    func chooseMipFilter(rawValue: UInt, defaultValue: MTLSamplerMipFilter = .linear) -> MTLSamplerMipFilter {
+        guard let filter = MTLSamplerMipFilter(rawValue: rawValue) else {
+            return defaultValue
+        }
+        return filter
+    }
+
+    func chooseAddressMode(rawValue: UInt, defaultValue: MTLSamplerAddressMode = .repeat) -> MTLSamplerAddressMode {
+        guard let filter = MTLSamplerAddressMode(rawValue: rawValue) else {
+            return defaultValue
+        }
+        return filter
     }
 
     class func drawVerticesPipelineStateDescriptor(colorPixelFormat:  MTLPixelFormat, depthPixelFormat:  MTLPixelFormat, library: MTLLibrary?) -> MTLRenderPipelineDescriptor {

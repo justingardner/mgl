@@ -94,9 +94,29 @@ verticesWithTextureCoordinates = [...
 % number of vertices
 nVertices = 6;
 
+% Default to linear min/mag and mip filtering.
+minMagFilter = 1;
+if (isfield(tex, 'minMagFilter'))
+    minMagFilter = tex.minMagFilter;
+end
+
+mipFilter = 2;
+if (isfield(tex, 'mipFilter'))
+    mipFilter = tex.mipFilter;
+end
+
+% Default to wrapping address mode.
+addressMode = 2;
+if (isfield(tex, 'addressMode'))
+    addressMode = tex.addressMode;
+end
+
 % send blt command
 mglSocketWrite(mgl.s, mgl.command.mglBltTexture);
 ackTime = mglSocketRead(mgl.s, 'double');
+mglSocketWrite(mgl.s, uint32(minMagFilter));
+mglSocketWrite(mgl.s, uint32(mipFilter));
+mglSocketWrite(mgl.s, uint32(addressMode));
 mglSocketWrite(mgl.s, uint32(nVertices));
 mglSocketWrite(mgl.s, single(verticesWithTextureCoordinates));
 mglSocketWrite(mgl.s, single(phase));

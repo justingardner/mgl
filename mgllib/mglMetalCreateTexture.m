@@ -1,16 +1,43 @@
 % mglMetalCreateTexture.m
 %
-%       usage: [tex, ackTime, processedTime] = mglMetalCreateTexture(im)
+%       usage: [tex, ackTime, processedTime] = mglMetalCreateTexture(im, [minMagFilter, mipFilter, addressMode])
 %          by: justin gardner
 %        date: 09/28/2021
 %  copyright: (c) 2021 Justin Gardner (GPL see mgl/COPYING)
-%     purpose: im -- mxnx4 rgba float image.
-%              Private mglMetal function to send texture information
+%     purpose: Private mglMetal function to send texture information
 %              to mglMetal application and return a structure to be
 %              used with mglMetalBltTexture to display - these
 %              functions are called by mglCreateTexture and mglBltTexture.
 %
-function [tex, ackTime, processedTime] = mglMetalCreateTexture(im)
+%              im -- m x n x 4 rgba single precision float image.
+%              minMagFilter -- optional value to choose sampler filtering:
+%                              0: nearest
+%                              1: linear (default)
+%              mipFilter -- optional value to choose sampler filtering:
+%                              0: not mipmapped
+%                              1: nearest
+%                              2: linear (default)
+%              addressMode -- optional value to choose sampler addressing:
+%                              0: clamp to edge
+%                              1: mirror clamp to edge
+%                              2: repeat (default)
+%                              3: mirror repeat
+%                              4: clamp to zero
+%                              5: clamp to border color
+%
+function [tex, ackTime, processedTime] = mglMetalCreateTexture(im, minMagFilter, mipFilter, addressMode)
+
+if nargin < 2
+    minMagFilter = 1;
+end
+
+if nargin < 3
+    mipFilter = 2;
+end
+
+if nargin < 4
+    addressMode = 2;
+end
 
 global mgl
 
@@ -19,16 +46,18 @@ if (tex.colorDim ~= 4)
     error('(mglMetalCreateTexture) im must be mxnx4 rgba float.\n')
 end
 
-% for now, imageWidth needs to be 16 byte aligned to 256
-imageWidth = ceil(tex.imageWidth/16)*16;
-if imageWidth ~= tex.imageWidth
-  disp('(mglMetalCreateTexture) Resizing texture image to align to 256')
-  newim = zeros([tex.imageHeight, imageWidth, tex.colorDim]);
-  newim(1:tex.imageHeight, 1:tex.imageWidth, :) = im;
-  % and reset to this new padded image
-  im = newim;
-  tex.imageWidth = imageWidth;
-end
+% BSH: previously we paded out textures here, to be 16 byte aligned to 256.
+% I can't find where that's required, and tests seem to run OK without it.
+% Maybe Metal is able to handle this for us now and we can simplify here?
+% imageWidth = ceil(tex.imageWidth/16)*16;
+% if imageWidth ~= tex.imageWidth
+%   disp('(mglMetalCreateTexture) Resizing texture image to align to 256')
+%   newim = zeros([tex.imageHeight, imageWidth, tex.colorDim]);
+%   newim(1:tex.imageHeight, 1:tex.imageWidth, :) = im;
+%   % and reset to this new padded image
+%   im = newim;
+%   tex.imageWidth = imageWidth;
+% end
 
 % Rearrange the image data into the Metal texture format.
 % See the corresponding rearragement in mglMetalReadTexture.
@@ -56,7 +85,12 @@ tex.textureNumber = mglSocketRead(mgl.s, 'uint32');
 numTextures = mglSocketRead(mgl.s, 'uint32');
 processedTime = mglSocketRead(mgl.s, 'double');
 
+mglSetParam('numTextures', numTextures);
+
 % set the textureType (this was used in openGL to differntiate 1D and 2D textures)
 tex.textureType = 1;
 
-mglSetParam('numTextures', numTextures);
+% set sampler configuration
+tex.minMagFilter = minMagFilter;
+tex.mipFilter = mipFilter;
+tex.addressMode = addressMode;
