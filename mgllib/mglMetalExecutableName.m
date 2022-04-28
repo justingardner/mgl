@@ -33,5 +33,6 @@ fprintf('(mglMetalExecutableName) Using mglMetal app at %s\n', mglMetalApp);
 % We could parse out the "CFBundleIdentifier" from here if we need to.
 % But the value seems unlikely to change, so for now here it is.
 mglMetalAppId = 'gru.mglMetal';
-sandboxDirInfo = dir(fullfile('~', 'Library', 'Containers', mglMetalAppId, 'Data'));
-mglMetalSandbox = sandboxDirInfo(1).folder;
+homeDirInfo = dir('~');
+homeDir = homeDirInfo(1).folder;
+mglMetalSandbox = fullfile(homeDir, 'Library', 'Containers', mglMetalAppId, 'Data');
