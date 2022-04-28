@@ -45,12 +45,11 @@ else
         result = results(ii);
         fprintf('  %d: %s\n', ii, result.testName);
         fprintf('     snapshot data: %s\n', result.snapshotData);
-        figure();
-        subplot(1,2,1);
-        imshow(result.snapshot(:,:,1:3));
+        figure('Name', sprintf('%s Expected', result.testName));
+        imshow(result.snapshot(:,:,1:3), 'InitialMagnification', 100);
         title(sprintf('Expected (%d x %d)', size(result.snapshot, 1), size(result.snapshot, 2)));
-        subplot(1,2,2);
-        imshow(result.renderedImage(:,:,1:3));
+        figure('Name', sprintf('%s Actual', result.testName));
+        imshow(result.renderedImage(:,:,1:3), 'InitialMagnification', 100);
         title(sprintf('Actual (%d x %d)', size(result.renderedImage, 1), size(result.renderedImage, 2)));
     end
     fprintf('Despair not!\n');
