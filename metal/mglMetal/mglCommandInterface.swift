@@ -196,7 +196,7 @@ class mglCommandInterface {
         let imageRowByteCount = Int(mglSizeOfFloatRgbaTexture(mglUInt32(textureWidth), 1))
 
         // "Round up" this row size to the next multiple of the system-dependent required alignment (perhaps 16 or 256).
-        let rowAlignment = device.minimumTextureBufferAlignment(for: textureDescriptor.pixelFormat)
+        let rowAlignment = device.minimumLinearTextureAlignment(for: textureDescriptor.pixelFormat)
         let alignedRowByteCount = ((imageRowByteCount + rowAlignment - 1) / rowAlignment) * rowAlignment
 
         // Get an MTLBuffer from the GPU to store image data in
