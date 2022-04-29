@@ -120,14 +120,26 @@ class mglLocalServer : mglServer {
             // Keep polling every pollMilliseconds
         }
 
-        let bytesRead = recv(acceptedSocketDescriptor, buffer, expectedByteCount, MSG_WAITALL);
-        if bytesRead < 0 {
-            print("(mglLocalServer) Error reading \(expectedByteCount) bytes from client: \(bytesRead) errno: \(errno)")
-        } else if bytesRead == 0 {
+        var totalRead = 0
+        while totalRead < expectedByteCount {
+            let bytesRead = recv(acceptedSocketDescriptor, buffer, expectedByteCount, MSG_WAITALL);
+            if (bytesRead < 0) {
+                if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                    continue
+                } else {
+                    break
+                }
+            }
+            totalRead += bytesRead
+        }
+
+        if totalRead < 0 {
+            print("(mglLocalServer) Error reading \(expectedByteCount) bytes from client: \(totalRead) errno: \(errno)")
+        } else if totalRead == 0 {
             print("(mglLocalServer) Client disconnected before sending \(expectedByteCount) bytes, disconnecting on this end, too.")
             disconnect()
         }
-        return bytesRead
+        return totalRead
     }
 
     func sendData(buffer: UnsafeRawPointer, byteCount: Int) -> Int {
