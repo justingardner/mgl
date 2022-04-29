@@ -6,11 +6,17 @@
 %       date: 09/27/2021
 %  copyright: (c) 2021 Justin Gardner (GPL see mgl/COPYING)
 %    purpose: Opens an mgl Metal window - typically called from mglOpen
-%      usage: Open on secondary monitor fullscreen
+%      usage: % Open on secondary monitor fullscreen
 %             mglMetalOpen(1)
 %
-%             Open on primary monitory in an 800x600 window
+%             % Open on primary monitory in an 800x600 window
 %             mglMetalOpen(0, 800, 600);
+%
+%             % For debugging you might want to connect to an
+%             already-running mglMetal app, like one attached to Xcode
+%             mglSetParam('reuseMglMetal', 1);
+%             mglMetalOpen(0);
+%
 function mglMetalOpen(whichScreen, screenX, screenY, screenWidth, screenHeight)
 
 if nargin < 1
@@ -48,7 +54,7 @@ if ~isfolder(mglMetalApp)
 end
 
 % check if mglMetal is running
-if mglMetalIsRunning && ~isnan(whichScreen)
+if mglMetalIsRunning && ~mglGetParam('reuseMglMetal')
     fprintf('(mglMetalOpen) mglMetal executable is already running\n');
     % then kill it
     mglMetalShutdown;
@@ -64,7 +70,7 @@ socketAddress = fullfile(mglMetalSandbox, 'mglMetal.socket');
 fprintf('(mglMetalOpen) Using socket address: %s\n', socketAddress);
 
 % Start up mglMetal!
-if ~isnan(whichScreen)
+if ~mglGetParam('reuseMglMetal')
     fprintf('(mglMetalOpen) Starting up mglMetal executable: %s\n', mglMetalApp);
     system(sprintf('open %s --args -mglConnectionAddress %s', mglMetalApp, socketAddress));
 end
