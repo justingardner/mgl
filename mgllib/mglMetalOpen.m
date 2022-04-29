@@ -54,7 +54,11 @@ if ~isfolder(mglMetalApp)
 end
 
 % check if mglMetal is running
-if mglMetalIsRunning && ~mglGetParam('reuseMglMetal')
+reuseMglMetal = mglGetParam('reuseMglMetal');
+if isempty(reuseMglMetal)
+    reuseMglMetal = false;
+end
+if mglMetalIsRunning && ~reuseMglMetal
     fprintf('(mglMetalOpen) mglMetal executable is already running\n');
     % then kill it
     mglMetalShutdown;
@@ -70,7 +74,7 @@ socketAddress = fullfile(mglMetalSandbox, 'mglMetal.socket');
 fprintf('(mglMetalOpen) Using socket address: %s\n', socketAddress);
 
 % Start up mglMetal!
-if ~mglGetParam('reuseMglMetal')
+if ~reuseMglMetal
     fprintf('(mglMetalOpen) Starting up mglMetal executable: %s\n', mglMetalApp);
     system(sprintf('open %s --args -mglConnectionAddress %s', mglMetalApp, socketAddress));
 end
