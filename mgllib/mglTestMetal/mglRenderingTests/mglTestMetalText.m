@@ -1,18 +1,18 @@
-% mglTestText: an automated and/or interactive test for rendering.
+% mglTestMetalText: an automated and/or interactive test for rendering.
 %
-%      usage: mglTestText(isInteractive)
+%      usage: mglTestMetalText(isInteractive)
 %         by: Benjamin Heasly
 %       date: 03/10/2022
 %  copyright: (c) 2006 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
 %    purpose: Test rendering some text as an image.
 %      usage:
 %             % You can run it by hand with no args.
-%             mglTestText();
+%             mglTestMetalText();
 %
 %             % Or mglRunRenderingTests can run it, in non-interactive mode.
-%             mglTestText(false);
+%             mglTestMetalText(false);
 %
-function mglTestText(isInteractive)
+function mglTestMetalText(isInteractive)
 
 if nargin < 1
     isInteractive = true;
