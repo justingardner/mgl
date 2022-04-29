@@ -46,19 +46,6 @@ if (tex.colorDim ~= 4)
     error('(mglMetalCreateTexture) im must be mxnx4 rgba float.\n')
 end
 
-% BSH: previously we paded out textures here, to be 16 byte aligned to 256.
-% I can't find where that's required, and tests seem to run OK without it.
-% Maybe Metal is able to handle this for us now and we can simplify here?
-% imageWidth = ceil(tex.imageWidth/16)*16;
-% if imageWidth ~= tex.imageWidth
-%   disp('(mglMetalCreateTexture) Resizing texture image to align to 256')
-%   newim = zeros([tex.imageHeight, imageWidth, tex.colorDim]);
-%   newim(1:tex.imageHeight, 1:tex.imageWidth, :) = im;
-%   % and reset to this new padded image
-%   im = newim;
-%   tex.imageWidth = imageWidth;
-% end
-
 % Rearrange the image data into the Metal texture format.
 % See the corresponding rearragement in mglMetalReadTexture.
 %

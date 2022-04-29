@@ -530,14 +530,14 @@ extension mglRenderer: MTKViewDelegate {
             _ = commandInterface.writeUInt32(data: 0)
             return;
         }
-        _ = commandInterface.writeTexture(texture: texture)
+        _ = commandInterface.imageRowsFromTextureBuffer(texture: texture)
     }
 
     func updateTexture() {
         // Always read the command params, since they're expected to be consumed.
         let textureNumber = commandInterface.readUInt32()
         let textureWidth = commandInterface.readUInt32()
-        let textureHeight = commandInterface.readUInt32()
+        let textureHeight = Int(commandInterface.readUInt32())
 
         // Resolve the texture and its buffer.
         guard let texture = textures[textureNumber] else {
@@ -550,8 +550,8 @@ extension mglRenderer: MTKViewDelegate {
         }
 
         // Read the actual image data into the texture.
-        let expectedByteCount = Int(mglSizeOfFloatRgbaTexture(textureWidth, textureHeight))
-        _ = commandInterface.readBuffer(buffer: buffer, expectedByteCount: expectedByteCount)
+        let imageRowByteCount = Int(mglSizeOfFloatRgbaTexture(textureWidth, 1))
+        _ = commandInterface.imageRowsToBuffer(buffer: buffer, imageRowByteCount: imageRowByteCount, alignedRowByteCount: texture.bufferBytesPerRow, rowCount: textureHeight)
     }
 
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/

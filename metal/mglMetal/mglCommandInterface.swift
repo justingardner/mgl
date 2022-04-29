@@ -185,66 +185,86 @@ class mglCommandInterface {
         // Set the texture descriptor
         let textureDescriptor = MTLTextureDescriptor.texture2DDescriptor(
             pixelFormat: .rgba32Float,
-            width: Int(textureWidth),
-            height: Int(textureHeight),
+            width: textureWidth,
+            height: textureHeight,
             mipmapped: false)
 
         // For now, all textures can receive rendering output.
         textureDescriptor.usage = [.renderTarget, .shaderRead, .shaderWrite]
 
-        // Compute size of texture in bytes
-        let expectedByteCount = Int(mglSizeOfFloatRgbaTexture(mglUInt32(textureWidth), mglUInt32(textureHeight)))
+        // Get the size in bytes of each row of the actual incoming image.
+        let imageRowByteCount = Int(mglSizeOfFloatRgbaTexture(mglUInt32(textureWidth), 1))
+
+        // "Round up" this row size to the next multiple of the system-dependent required alignment (perhaps 16 or 256).
+        let rowAlignment = device.minimumTextureBufferAlignment(for: textureDescriptor.pixelFormat)
+        let alignedRowByteCount = ((imageRowByteCount + rowAlignment - 1) / rowAlignment) * rowAlignment
 
         // Get an MTLBuffer from the GPU to store image data in
+        // Use the rounded-up/aligned row size instead of the nominal image size.
         // With storageModeManaged, we must explicitly sync the data to the GPU, below.
-        guard let textureBuffer = device.makeBuffer(length: expectedByteCount, options: .storageModeManaged) else {
-            fatalError("(mglCommandInterface:createTexture) Could not make texture buffer of size \(expectedByteCount) width: \(textureWidth) height: \(textureHeight)")
+        let bufferByteSize = alignedRowByteCount * textureHeight
+        guard let textureBuffer = device.makeBuffer(length: bufferByteSize, options: .storageModeManaged) else {
+            fatalError("(mglCommandInterface:createTexture) Could not make texture buffer of size \(bufferByteSize) image width: \(textureWidth) aligned buffer row size: \(alignedRowByteCount) image height: \(textureHeight)")
         }
 
         // Read from the socket into the texture memory.
-        let bytesRead = readBuffer(buffer: textureBuffer, expectedByteCount: expectedByteCount)
+        // Copy image rows one at a time, only taking the nominal row size and leaving the rest of the buffer row as padding.
+        let bytesRead = imageRowsToBuffer(buffer: textureBuffer, imageRowByteCount: imageRowByteCount, alignedRowByteCount: alignedRowByteCount, rowCount: textureHeight)
+        let expectedByteCount = imageRowByteCount * textureHeight
         if (bytesRead != expectedByteCount) {
             fatalError("(mglCommandInterface:createTexture) Could not read expected \(expectedByteCount) bytes for texture, read \(bytesRead).")
         }
 
-        // Now make the buffer into a texture
-        let bytesPerRow = expectedByteCount / textureHeight
-        guard let texture = textureBuffer.makeTexture(descriptor: textureDescriptor, offset: 0, bytesPerRow: bytesPerRow) else {
-            fatalError("(mglCommandInterface:createTexture) Could not make texture from texture buffer of size \(expectedByteCount) width: \(textureWidth) height")
+        // Now make the buffer into a texture.
+        guard let texture = textureBuffer.makeTexture(descriptor: textureDescriptor, offset: 0, bytesPerRow: alignedRowByteCount) else {
+            fatalError("(mglCommandInterface:createTexture) Could not make texture from texture buffer of ssize \(bufferByteSize) image width: \(textureWidth) aligned buffer row size: \(alignedRowByteCount) image height: \(textureHeight)")
         }
 
         print("mglCommandInterface:createTexture) Created texture: \(textureWidth) x \(textureHeight)")
         return(texture)
     }
 
-    func readBuffer(buffer: MTLBuffer, expectedByteCount: Int) -> Int {
-        let bytesRead = server.readData(buffer: buffer.contents(), expectedByteCount: expectedByteCount)
-        if (bytesRead != expectedByteCount) {
-            print("(mglCommandInterface:readBuffer) Expected to read \(expectedByteCount) bytes but read \(bytesRead)")
+    func imageRowsToBuffer(buffer: MTLBuffer, imageRowByteCount: Int, alignedRowByteCount: Int, rowCount: Int) -> Int {
+        var imageBytesRead = 0
+        for row in 0 ..< rowCount {
+            let bufferRow = buffer.contents().advanced(by: row * alignedRowByteCount)
+            let rowBytesRead = server.readData(buffer: bufferRow, expectedByteCount: imageRowByteCount)
+            if (rowBytesRead != imageRowByteCount) {
+                print("(mglCommandInterface:imageRowsToBuffer) Expected to read \(imageRowByteCount) bytes but read \(rowBytesRead) for row \(row) of \(rowCount)")
+            }
+            imageBytesRead += rowBytesRead
         }
 
         // With storageModeManaged above, we must explicitly sync the new data to the GPU.
-        buffer.didModifyRange(0 ..< expectedByteCount)
+        buffer.didModifyRange(0 ..< alignedRowByteCount * rowCount)
 
-        return bytesRead
+        return imageBytesRead
     }
 
-    func writeTexture(texture: MTLTexture) -> Int {
-        guard let textureData = texture.buffer?.contents() else {
-            print("(mglCommandInterface:writeTexture) unable to access buffer contents of texture \(texture)")
+    func imageRowsFromTextureBuffer(texture: MTLTexture) -> Int {
+        guard let buffer = texture.buffer else {
+            print("(mglCommandInterface:imageRowsFromTextureBuffer) unable to access buffer of texture \(texture)")
             // No data to return, but Matlab expects a response with width and height.
             _ = writeUInt32(data: 0)
             _ = writeUInt32(data: 0)
             return 0
         }
 
-        print("(mglCommandInterface:writeTexture) width: \(texture.width) height: \(texture.height)")
+        print("(mglCommandInterface:imageRowsFromTextureBuffer) width: \(texture.width) height: \(texture.height)")
         _ = writeUInt32(data: mglUInt32(texture.width))
         _ = writeUInt32(data: mglUInt32(texture.height))
 
-        // Compute size of texture in bytes
-        let expectedByteCount = Int(mglSizeOfFloatRgbaTexture(mglUInt32(texture.width), mglUInt32(texture.height)))
-        return server.sendData(buffer: textureData, byteCount: expectedByteCount)
+        let imageRowByteCount = Int(mglSizeOfFloatRgbaTexture(mglUInt32(texture.width), 1))
+        var imageBytesSent = 0
+        for row in 0 ..< texture.height {
+            let bufferRow = buffer.contents().advanced(by: row * texture.bufferBytesPerRow)
+            let rowBytesSent = server.sendData(buffer: bufferRow, byteCount: imageRowByteCount)
+            if (rowBytesSent != imageRowByteCount) {
+                print("(mglCommandInterface:imageRowsFromTextureBuffer) Expected to send \(imageRowByteCount) bytes but sent \(rowBytesSent) for row \(row) of \(texture.height)")
+            }
+            imageBytesSent += rowBytesSent
+        }
+        return imageBytesSent
     }
 
     func writeDouble(data: Double) -> Int {
