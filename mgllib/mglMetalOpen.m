@@ -54,6 +54,11 @@ if mglMetalIsRunning && ~isnan(whichScreen)
     mglMetalShutdown;
 end
 
+% Register a cleanup callback.
+% Matlab will call this when deleting the global mgl struct.
+% This should happen if you "clear all", or when exiting Matlab.
+mgl.onCleanup = onCleanup(@mglMetalShutdown);
+
 % Choose a socket address that's inside the mglMetal.app runtime sandbox.
 socketAddress = fullfile(mglMetalSandbox, 'mglMetal.socket');
 fprintf('(mglMetalOpen) Using socket address: %s\n', socketAddress);
