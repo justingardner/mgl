@@ -7,6 +7,7 @@
 //
 
 import Foundation
+import os.log
 
 class mglLocalServer : mglServer {
 
@@ -18,7 +19,7 @@ class mglLocalServer : mglServer {
     var acceptedSocketDescriptor: Int32 = -1
 
     init(pathToBind: String, maxConnections: Int32 = Int32(500), pollMilliseconds: Int32 = Int32(10)) {
-        print("(mglLocalServer) Starting with path to bind: \(pathToBind)")
+        os_log("(mglLocalServer) Starting with path to bind: %{public}@", log: .default, type: .info, String(describing: pathToBind))
         self.pathToBind = pathToBind
 
         if FileManager.default.fileExists(atPath: pathToBind) {
@@ -26,17 +27,20 @@ class mglLocalServer : mglServer {
             do {
                 try FileManager.default.removeItem(at: url)
             } catch let error as NSError {
+                os_log("(mglLocalServer) Unable to remove existing file: %{public}@", log: .default, type: .error, String(describing: pathToBind))
                 fatalError("(mglLocalServer) Unable to remove existing file\(pathToBind): \(error)")
             }
         }
 
         boundSocketDescriptor = socket(AF_UNIX, SOCK_STREAM, 0)
         if boundSocketDescriptor < 0 {
+            os_log("(mglLocalServer) Could not create socket, got descriptor: %{public}d, errno %{public}d", log: .default, type: .error, boundSocketDescriptor, errno)
             fatalError("(mglLocalServer) Could not create socket: \(boundSocketDescriptor) errno: \(errno)")
         }
 
         let nonblockingResult = fcntl(boundSocketDescriptor, F_SETFL, O_NONBLOCK)
         if nonblockingResult < 0 {
+            os_log("(mglLocalServer) Could not set socket to nonblocking, got result: %{public}d, errno %{public}d", log: .default, type: .error, nonblockingResult, errno)
             fatalError("(mglLocalServer) Could not set socket to nonblocking: \(nonblockingResult) errno: \(errno)")
         }
 
@@ -57,15 +61,17 @@ class mglLocalServer : mglServer {
         }
 
         if bindResult < 0 {
+            os_log("(mglLocalServer) Could not bind the path %{public}@, got result: %{public}d, errno %{public}d", log: .default, type: .error, String(describing: pathToBind), bindResult, errno)
             fatalError("(mglLocalServer) Could not bind the path \(pathToBind) with result: \(bindResult) errno: \(errno)")
         }
 
         let listenResult = listen(boundSocketDescriptor, maxConnections)
         if listenResult < 0 {
+            os_log("(mglLocalServer) Could not listen for connections, got result: %{public}d, errno %{public}d", log: .default, type: .error, listenResult, errno)
             fatalError("(mglLocalServer) Could not listen for connections: \(listenResult) errno: \(errno)")
         }
 
-        print("(mglLocalServer) ready and listening for connections at path: \(pathToBind)")
+        os_log("(mglLocalServer) Ready and listening for connections at path: %{public}@", log: .default, type: .info, String(describing: pathToBind))
     }
 
     deinit {
@@ -93,12 +99,13 @@ class mglLocalServer : mglServer {
 
         acceptedSocketDescriptor = accept(boundSocketDescriptor, nil, nil)
         if (acceptedSocketDescriptor >= 0) {
-            print("(mglLocalServer) Accepted a new client connection at path: \(pathToBind)")
+            os_log("(mglLocalServer) Accepted a new client connection at path: %{public}@", log: .default, type: .info, String(describing: pathToBind))
             return true
         }
 
         // Since this is a nonblockign socket, it's OK for accept to return -1 -- as long as errno is EAGAIN or EWOULDBLOCK.
         if (errno != EAGAIN && errno != EWOULDBLOCK) {
+            os_log("(mglLocalServer) Could not accept client connection, got result %{public}d, errno %{public}d", log: .default, type: .info, acceptedSocketDescriptor, errno)
             fatalError("(mglLocalServer) Could not accept client connection: \(acceptedSocketDescriptor) errno: \(errno)")
         }
         return false;
@@ -134,9 +141,9 @@ class mglLocalServer : mglServer {
         }
 
         if totalRead < 0 {
-            print("(mglLocalServer) Error reading \(expectedByteCount) bytes from client: \(totalRead) errno: \(errno)")
+            os_log("(mglLocalServer) Error reading %{public}d bytes from server, read %{public}d, errno %{public}d", log: .default, type: .error, expectedByteCount, totalRead, errno)
         } else if totalRead == 0 {
-            print("(mglLocalServer) Client disconnected before sending \(expectedByteCount) bytes, disconnecting on this end, too.")
+            os_log("(mglLocalServer) Client disconnected before sending %{public}d bytes, disconnecting this end, too.", log: .default, type: .error, expectedByteCount)
             disconnect()
         }
         return totalRead
@@ -156,9 +163,10 @@ class mglLocalServer : mglServer {
             totalSent += sent
         }
         if totalSent < 0 {
-            print("(mglLocalServer) Error sending \(byteCount) bytes to client: \(totalSent) errno: \(errno)")
+            os_log("(mglLocalServer) Error sending %{public}d bytes, sent %{public}d, errno %{public}d", log: .default, type: .error, byteCount, totalSent, errno)
         } else if totalSent != byteCount {
-            print("(mglLocalServer) Sent \(totalSent) to client, but expected to send \(byteCount) errno: \(errno)")
+            os_log("(mglLocalServer) Sent %{public}d bytes, but expected to send %{public}d, errno %{public}d", log: .default, type: .error, totalSent, byteCount, errno)
+
         }
         return totalSent
     }
