@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		4D53454D28205AA400B61D3D /* mglColorRenderingConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D53454C28205AA400B61D3D /* mglColorRenderingConfig.swift */; };
 		4D56190B27628883009AB2E2 /* mglLocalServer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D56190A27628883009AB2E2 /* mglLocalServer.swift */; };
 		4D56190D27629A39009AB2E2 /* mglLocalClientServerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D56190C27629A39009AB2E2 /* mglLocalClientServerTests.swift */; };
 		4D5619112762A8F4009AB2E2 /* mglLocalClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D5619102762A8F4009AB2E2 /* mglLocalClient.swift */; };
@@ -42,6 +43,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		4D53454C28205AA400B61D3D /* mglColorRenderingConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglColorRenderingConfig.swift; sourceTree = "<group>"; };
 		4D56190A27628883009AB2E2 /* mglLocalServer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglLocalServer.swift; sourceTree = "<group>"; };
 		4D56190C27629A39009AB2E2 /* mglLocalClientServerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglLocalClientServerTests.swift; sourceTree = "<group>"; };
 		4D5619102762A8F4009AB2E2 /* mglLocalClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglLocalClient.swift; sourceTree = "<group>"; };
@@ -134,6 +136,7 @@
 				D0F6B96F23B6D9E700B45409 /* mglViewController.swift */,
 				D0F6B97123B6D9E800B45409 /* Assets.xcassets */,
 				D0F6B97323B6D9E800B45409 /* Main.storyboard */,
+				4D53454C28205AA400B61D3D /* mglColorRenderingConfig.swift */,
 			);
 			path = mglMetal;
 			sourceTree = "<group>";
@@ -289,6 +292,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				4DA4671F2763CB8E00B65B9F /* mglServer.swift in Sources */,
+				4D53454D28205AA400B61D3D /* mglColorRenderingConfig.swift in Sources */,
 				4D56190B27628883009AB2E2 /* mglLocalServer.swift in Sources */,
 				4D5619112762A8F4009AB2E2 /* mglLocalClient.swift in Sources */,
 				D08D4BBE23B8834C00A27C79 /* mglCommandInterface.swift in Sources */,

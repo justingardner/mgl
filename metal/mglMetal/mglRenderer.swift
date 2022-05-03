@@ -14,6 +14,8 @@
 import Foundation
 import MetalKit
 import AppKit
+import os.log
+
 
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
 // mglRenderer: Class does most of the work
@@ -55,10 +57,9 @@ class mglRenderer: NSObject {
 
     var textureSequence = UInt32(1)
     var textures : [UInt32: MTLTexture] = [:]
-    var depthTexture: MTLTexture?
 
-    // What to render into: the number of the texture to render into, otherwise render on-screen.
-    var renderTarget = UInt32(0)
+    var onscreenRenderingConfig: mglColorRenderingConfig
+    var currentColorRenderingConfig: mglColorRenderingConfig
 
     let secs = mglSecs()
     
@@ -96,11 +97,15 @@ class mglRenderer: NSObject {
         // Start with default clear color gray, used for on-screen as well as render to texture.
         metalView.clearColor = MTLClearColor(red: 0.5, green: 0.5, blue: 0.5, alpha: 1.0)
 
+        // Default to onscreen rendering config.
+        guard let onscreenRenderingConfig = mglOnscreenRenderingConfig(device: device, library: library, view: metalView) else {
+            fatalError("Could not create onscreen rendering config, got nil!")
+        }
+        self.onscreenRenderingConfig = onscreenRenderingConfig
+        self.currentColorRenderingConfig = onscreenRenderingConfig
+
         // init the super class
         super.init()
-
-        // Create the pipelines that will render to screen or texture.
-        recreatePipelineStates(metalView: metalView)
 
         // Tell the view that this class will be used as the
         // delegate - this makes it so that the view will call
@@ -108,65 +113,13 @@ class mglRenderer: NSObject {
         metalView.delegate = self
 
         // Done. Print out that we did something.
-        print("(mglMetal:mglRenderer) Init mglRenderer")
-    }
-
-    // Recreate rendering pipelines on init, and whenever we change the view's colorPixelFormat.
-    func recreatePipelineStates(metalView: MTKView, textureColorPixelFormat: MTLPixelFormat = .rgba32Float) {
-        // TODO: this looks like a place to factor out common code and do some polymorphism...
-        do {
-            pipelineStateDots = try mglRenderer.device.makeRenderPipelineState(
-                descriptor: mglRenderer.dotsPipelineStateDescriptor(
-                    colorPixelFormat: metalView.colorPixelFormat,
-                    depthPixelFormat: metalView.depthStencilPixelFormat,
-                    library: library))
-            pipelineStateDotsToTexture = try mglRenderer.device.makeRenderPipelineState(
-                descriptor: mglRenderer.dotsPipelineStateDescriptor(
-                    colorPixelFormat: textureColorPixelFormat,
-                    depthPixelFormat: metalView.depthStencilPixelFormat,
-                    library: library))
-
-            pipelineStateArcs = try mglRenderer.device.makeRenderPipelineState(
-                descriptor: mglRenderer.arcsPipelineStateDescriptor(
-                    colorPixelFormat: metalView.colorPixelFormat,
-                    depthPixelFormat: metalView.depthStencilPixelFormat,
-                    library: library))
-            pipelineStateArcsToTexture = try mglRenderer.device.makeRenderPipelineState(
-                descriptor: mglRenderer.arcsPipelineStateDescriptor(
-                    colorPixelFormat: textureColorPixelFormat,
-                    depthPixelFormat: metalView.depthStencilPixelFormat,
-                    library: library))
-
-            pipelineStateVertexWithColor = try mglRenderer.device.makeRenderPipelineState(
-                descriptor: mglRenderer.drawVerticesPipelineStateDescriptor(
-                    colorPixelFormat: metalView.colorPixelFormat,
-                    depthPixelFormat: metalView.depthStencilPixelFormat,
-                    library: library))
-            pipelineStateVertexWithColorToTexture = try mglRenderer.device.makeRenderPipelineState(
-                descriptor: mglRenderer.drawVerticesPipelineStateDescriptor(
-                    colorPixelFormat: textureColorPixelFormat,
-                    depthPixelFormat: metalView.depthStencilPixelFormat,
-                    library: library))
-
-            pipelineStateTextures = try mglRenderer.device.makeRenderPipelineState(
-                descriptor: mglRenderer.bltTexturePipelineStateDescriptor(
-                    colorPixelFormat: metalView.colorPixelFormat,
-                    depthPixelFormat: metalView.depthStencilPixelFormat,
-                    library: library))
-            pipelineStateTexturesToTexture = try mglRenderer.device.makeRenderPipelineState(
-                descriptor: mglRenderer.bltTexturePipelineStateDescriptor(
-                    colorPixelFormat: textureColorPixelFormat,
-                    depthPixelFormat: metalView.depthStencilPixelFormat,
-                    library: library))
-        } catch let error {
-            fatalError(error.localizedDescription)
-        }
+        os_log("Init mglRenderer OK.", log: .default, type: .info)
     }
 }
 
 extension mglRenderer: MTKViewDelegate {
     func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {
-        print("(mglRenderer) drawableSizeWillChange \(size)")
+        os_log("drawableSizeWillChange %{public}@", log: .default, type: .info, String(describing: size))
     }
 
     // This is the main "loop" for mglMetal.
@@ -221,7 +174,7 @@ extension mglRenderer: MTKViewDelegate {
             case mglGetWindowFrameInDisplay: getWindowFrameInDisplay(view: view)
             case mglDeleteTexture: deleteTexture()
             case mglSetViewColorPixelFormat: setViewColorPixelFormat(view: view)
-            default: print("(mglRenderer) Unknown command code: \(command)")
+            default: os_log("unknown command code %{public}@", log: .default, type: .error, String(describing: command))
             }
 
             // Write a timestamp to Matlab as a command-processed ack.
@@ -237,25 +190,11 @@ extension mglRenderer: MTKViewDelegate {
         }
 
         // Set up a rendering pass, either to texture or to the view's default frame buffer.
-        var descriptor: MTLRenderPassDescriptor
-        // TODO: lots of places are checking "textures.keys.contains", refactor to be less branch-y.
-        if (textures.keys.contains(renderTarget)) {
-            // Render to a texture.
-            descriptor = MTLRenderPassDescriptor()
-            descriptor.colorAttachments[0].texture = textures[renderTarget]
-            descriptor.colorAttachments[0].loadAction = .clear
-            descriptor.colorAttachments[0].storeAction = .store
-            descriptor.depthAttachment.clearDepth = 1.0
-            descriptor.depthAttachment.storeAction = .dontCare
-            descriptor.depthAttachment.texture = depthTexture
-        } else {
-            // On-screen rendering as usual.
-            guard let currentDescriptor = view.currentRenderPassDescriptor else {
-                // We did nothing, but Matlab still expectes a command-processed ack.
-                _ = commandInterface.writeDouble(data: secs.get())
-                return
-            }
-            descriptor = currentDescriptor
+        guard let descriptor = currentColorRenderingConfig.getRenderPassDescriptor(view: view) else {
+            // We did nothing, but Matlab still expects a command-processed ack.
+            os_log("Could not get render pass descriptor from current color rendering config, skipping render pass.", log: .default, type: .error)
+            _ = commandInterface.writeDouble(data: secs.get())
+            return
         }
 
         // Apply the clear color to all rendering passes, before they start.
@@ -287,7 +226,7 @@ extension mglRenderer: MTKViewDelegate {
             case mglPolygon: drawVerticesWithColor(view: view, renderEncoder: renderEncoder, primitiveType: .triangleStrip)
             case mglArcs: drawArcs(view: view, renderEncoder: renderEncoder)
             case mglUpdateTexture: updateTexture()
-            default: print("(mglRenderer) Unknown command code: \(command)")
+            default: os_log("unknown drawing command code %{public}@", log: .default, type: .error, String(describing: command))
             }
 
             // Write a timestamp to Matlab as a command-processed ack.
@@ -308,19 +247,8 @@ extension mglRenderer: MTKViewDelegate {
         // Finished a group of drawing commands, commit the frame and let Metal render it.
         renderEncoder.endEncoding()
 
-        if (textures.keys.contains(renderTarget)) {
-            let bltCommandEncoder = commandBuffer.makeBlitCommandEncoder()
-            bltCommandEncoder?.synchronize(resource: textures[renderTarget]!)
-            bltCommandEncoder?.endEncoding()
-        }
-
-        commandBuffer.present(drawable)
-        commandBuffer.commit()
-
-        if (textures.keys.contains(renderTarget)) {
-            // Wait until the bltCommandEncoder is done syncing data from GPU to CPU.
-            commandBuffer.waitUntilCompleted()
-        }
+        // Present the drawable, and do other things like synchronize texture buffers, if needed.
+        currentColorRenderingConfig.finishDrawing(commandBuffer: commandBuffer, drawable: drawable)
     }
 
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
@@ -337,14 +265,27 @@ extension mglRenderer: MTKViewDelegate {
         case 4: view.colorPixelFormat = .bgr10a2Unorm
         default: view.colorPixelFormat = .bgra8Unorm
         }
-        recreatePipelineStates(metalView: view)
+
+        // Recreate the onscreen color rendering config so that render pipelines will use the new color pixel format.
+        guard let newOnscreenRenderingConfig = mglOnscreenRenderingConfig(device: mglRenderer.device, library: library, view: view) else {
+            os_log("Could not create onscreen rendering config for pixel format %{public}@!", log: .default, type: .error, String(describing: view.colorPixelFormat))
+            return
+        }
+
+        if (self.currentColorRenderingConfig is mglOnscreenRenderingConfig) {
+            // Start using the new config right away!
+            self.currentColorRenderingConfig = newOnscreenRenderingConfig
+        }
+
+        // Remember the new config for later, even if we're currently rendering offscreen.
+        self.onscreenRenderingConfig = newOnscreenRenderingConfig
     }
 
     func drainSystemEvents(view: MTKView) {
         guard let window = view.window else {return}
         var event = window.nextEvent(matching: .any)
         while (event != nil) {
-            print("(mglRenderer) Processing OS event: \(String(describing: event))")
+            os_log("Processing OS event: %{public}@", log: .default, type: .info, String(describing: event))
             event = window.nextEvent(matching: .any)
         }
     }
@@ -353,12 +294,12 @@ extension mglRenderer: MTKViewDelegate {
         NSCursor.unhide()
 
         guard let window = view.window else {
-            print("(mglRenderer:windowed) Could not retrieve window")
+            os_log("Could not get window, got nil, skipping windowed command.", log: .default, type: .error)
             return
         }
 
         if !window.styleMask.contains(.fullScreen) {
-            print("(mglRenderer:windowed) Is already windowed")
+            os_log("App is already windowed, skipping windowed command.", log: .default, type: .info)
         } else {
             window.toggleFullScreen(nil)
         }
@@ -390,22 +331,22 @@ extension mglRenderer: MTKViewDelegate {
         let windowScreenFrame = screen.convertRectFromBacking(windowNativeFrame)
 
         guard let window = view.window else {
-            print("(mglRenderer:setWindowFrameInDisplay) Could not retrieve window.")
+            os_log("Could not get window, got nil, skipping set window frame command.", log: .default, type: .error)
             return
         }
 
         if window.styleMask.contains(.fullScreen) {
-            print("(mglRenderer:setWindowFrameInDisplay) Skipping, since window is in fullscreen.")
+            os_log("App is fullscreen, skipping set window frame command.", log: .default, type: .info)
             return
         }
 
-        print("(mglRenderer:setWindowFrameInDisplay) Setting window to display \(displayNumber) frame \(windowScreenFrame).")
+        os_log("Setting window to display %d frame %{public}@.", log: .default, type: .info, displayNumber, String(describing: windowScreenFrame))
         window.setFrame(windowScreenFrame, display: true)
     }
 
     func getWindowFrameInDisplay(view: MTKView) {
         guard let window = view.window else {
-            print("(mglRenderer:getWindowFrameInDisplay) Could not retrieve window from view.")
+            os_log("Could get window from view, skipping get window frame command.", log: .default, type: .error)
             _ = commandInterface.writeUInt32(data: mglUInt32(0))
             _ = commandInterface.writeUInt32(data: mglUInt32(0))
             _ = commandInterface.writeUInt32(data: mglUInt32(0))
@@ -415,7 +356,7 @@ extension mglRenderer: MTKViewDelegate {
         }
 
         guard let screen = window.screen else {
-            print("(mglRenderer:getWindowFrameInDisplay) Could not retrieve screen from window.")
+            os_log("Could get screen from window, skipping get window frame command.", log: .default, type: .error)
             _ = commandInterface.writeUInt32(data: mglUInt32(0))
             _ = commandInterface.writeUInt32(data: mglUInt32(0))
             _ = commandInterface.writeUInt32(data: mglUInt32(0))
@@ -425,7 +366,7 @@ extension mglRenderer: MTKViewDelegate {
         }
 
         guard let screenIndex = NSScreen.screens.firstIndex(of: screen) else {
-            print("(mglRenderer:getWindowFrameInDisplay) Could not retrieve screen index from screens.")
+            os_log("Could get screen index from screens, skipping get window frame command.", log: .default, type: .error)
             _ = commandInterface.writeUInt32(data: mglUInt32(0))
             _ = commandInterface.writeUInt32(data: mglUInt32(0))
             _ = commandInterface.writeUInt32(data: mglUInt32(0))
@@ -451,11 +392,11 @@ extension mglRenderer: MTKViewDelegate {
 
     func fullscreen(view: MTKView) {
         guard let window = view.window else {
-            print("(mglRenderer:fullscreen) Could not retrieve window")
+            os_log("Could not get window, got nil, skipping fullscreen command.", log: .default, type: .error)
             return
         }
         if window.styleMask.contains(.fullScreen) {
-            print("(mglRenderer:fullscreen) Is already full screen")
+            os_log("App is already fullscreen, skipping windowed command.", log: .default, type: .info)
         } else {
             window.toggleFullScreen(nil)
             NSCursor.hide()
@@ -490,35 +431,19 @@ extension mglRenderer: MTKViewDelegate {
     }
 
     func setRenderTarget(view: MTKView) {
-        renderTarget = commandInterface.readUInt32()
-        ensureMatchingDepthDexture(view: view)
-    }
-
-    func ensureMatchingDepthDexture(view: MTKView) {
-        guard let targetTexture = textures[renderTarget] else {
-            print("(mglRenderer:ensureMatchingDepthDexture) invalid renderTarget \(renderTarget), valid targets are \(textures.keys)")
+        let textureNumber = commandInterface.readUInt32()
+        guard let targetTexture = textures[textureNumber] else {
+            os_log("Got textureNumber %d, choosing onscreen rendering", log: .default, type: .info, textureNumber)
+            currentColorRenderingConfig = onscreenRenderingConfig
             return
         }
 
-        guard let depthTextureNotNull = depthTexture else {
-            print("(mglRenderer:ensureMatchingDepthDexture) creating new depth texture because we don't have one yet.")
-            depthTexture = createMatchingDepthTexture(texture: targetTexture, view: view)
+        os_log("Got textureNumber %d, choosing offscree rendering to texture", log: .default, type: .info, textureNumber)
+        guard let newTextureRenderingConfig = mglOffScreenTextureRenderingConfig(device: mglRenderer.device, library: library, view: view, texture: targetTexture) else {
+            os_log("Could not create offscreen rendering config for textureNumber %d, got nil!", log: .default, type: .error, textureNumber)
             return
         }
-
-        if (depthTextureNotNull.width != targetTexture.width || depthTextureNotNull.height != targetTexture.height) {
-            print("(mglRenderer:ensureMatchingDepthDexture) replacing old depth texture (\(depthTextureNotNull.width) x \(depthTextureNotNull.height)) because it doesn't match the current render target size (\(targetTexture.width) x \(targetTexture.height)).")
-            depthTexture = createMatchingDepthTexture(texture: targetTexture, view: view)
-        }
-    }
-
-    func createMatchingDepthTexture(texture: MTLTexture, view: MTKView) -> MTLTexture {
-        let descriptor = MTLTextureDescriptor.texture2DDescriptor(
-            pixelFormat: view.depthStencilPixelFormat,
-            width: texture.width, height: texture.height, mipmapped: false)
-        descriptor.storageMode = .private
-        descriptor.usage = .renderTarget
-        return mglRenderer.device.makeTexture(descriptor: descriptor)!
+        currentColorRenderingConfig = newTextureRenderingConfig
     }
 
     func readTexture() {
@@ -596,11 +521,7 @@ extension mglRenderer: MTKViewDelegate {
 
     func drawDots(view: MTKView, renderEncoder: MTLRenderCommandEncoder) {
         // set the pipeline state
-        if (textures.keys.contains(renderTarget)) {
-            renderEncoder.setRenderPipelineState(pipelineStateDotsToTexture)
-        } else {
-            renderEncoder.setRenderPipelineState(pipelineStateDots)
-        }
+        renderEncoder.setRenderPipelineState(currentColorRenderingConfig.dotsPipelineState)
 
         // Set all the vertex data -- 11 per vertex: [xyz rgba wh isRound borderSize].
         let (vertexBufferDots, vertexCount) = commandInterface.readVertices(device: mglRenderer.device, extraVals: 8)
@@ -647,11 +568,7 @@ extension mglRenderer: MTKViewDelegate {
     }
 
     func drawArcs(view: MTKView, renderEncoder: MTLRenderCommandEncoder) {
-        if (textures.keys.contains(renderTarget)) {
-            renderEncoder.setRenderPipelineState(pipelineStateArcsToTexture)
-        } else {
-            renderEncoder.setRenderPipelineState(pipelineStateArcs)
-        }
+        renderEncoder.setRenderPipelineState(currentColorRenderingConfig.arcsPipelineState)
 
         // Set all the vertex data -- 11 per vertex: [xyz rgba inner outer start sweep].
         let (vertexBufferDots, vertexCount) = commandInterface.readVertices(device: mglRenderer.device, extraVals: 9)
@@ -691,11 +608,7 @@ extension mglRenderer: MTKViewDelegate {
 
     func bltTexture(view: MTKView, renderEncoder: MTLRenderCommandEncoder) {
         // set the pipeline state
-        if (textures.keys.contains(renderTarget)) {
-            renderEncoder.setRenderPipelineState(pipelineStateTexturesToTexture)
-        } else {
-            renderEncoder.setRenderPipelineState(pipelineStateTextures)
-        }
+        renderEncoder.setRenderPipelineState(currentColorRenderingConfig.texturePipelineState)
 
         // set up texture sampler
         let minMagFilterRawValue = commandInterface.readUInt32()
@@ -786,12 +699,7 @@ extension mglRenderer: MTKViewDelegate {
     }
 
     func drawVerticesWithColor(view: MTKView, renderEncoder: MTLRenderCommandEncoder, primitiveType: MTLPrimitiveType) {
-        // set the pipeline state
-        if (textures.keys.contains(renderTarget)) {
-            renderEncoder.setRenderPipelineState(pipelineStateVertexWithColorToTexture)
-        } else {
-            renderEncoder.setRenderPipelineState(pipelineStateVertexWithColor)
-        }
+        renderEncoder.setRenderPipelineState(currentColorRenderingConfig.verticesWithColorPipelineState)
 
         // read the vertices with 3 extra values for color
         let (vertexBufferWithColors, vertexCount) = commandInterface.readVertices(device: mglRenderer.device, extraVals: 3)
