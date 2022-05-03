@@ -10,6 +10,7 @@
 
 import Foundation
 import MetalKit
+import os.log
 
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
 // This class combines an mglServer instance with
@@ -32,10 +33,10 @@ class mglCommandInterface {
         let arguments = CommandLine.arguments
         let optionIndex = arguments.firstIndex(of: "-mglConnectionAddress") ?? -2
         if optionIndex < 0 {
-            print("(mglCommandInterface) no command line option passed for -mglConnectionAddress, using a default address.")
+            os_log("(mglCommandInterface) No command line option passed for -mglConnectionAddress, using a default address.", log: .default, type: .info)
         }
         let address = arguments.indices.contains(optionIndex + 1) ? arguments[optionIndex + 1] : "mglMetal.socket"
-        print("(mglCommandInterface) using connection address \(address)")
+        os_log("(mglCommandInterface) using connection addresss %{public}@", log: .default, type: .info, address)
 
         // In the future we might inspect the address to decide what kind of server to create,
         // like local socket vs internet socket, vs shared memory, etc.
@@ -150,7 +151,7 @@ class mglCommandInterface {
     func readVertices(device: MTLDevice, extraVals: Int = 0) -> (buffer: MTLBuffer, vertexCount: Int) {
         // Get the number of vertices
         let vertexCount = Int(readUInt32())
-        print("(mglCommandInterface:readVertices) vertexCount: \(vertexCount)")
+        os_log("(mglCommandInterface) Reading vertex count %{public}d", log: .default, type: .info, vertexCount)
 
         // Calculate how many floats we have per vertex.
         // Start with 3 for XYZ, plus extraVals which can be used for things like color or texture coordinates.
@@ -160,11 +161,13 @@ class mglCommandInterface {
         // get an MTLBuffer from the GPU
         // With storageModeManaged, we must explicitly sync the data to the GPU, below.
         guard let vertexBuffer = device.makeBuffer(length: expectedByteCount, options: .storageModeManaged) else {
+            os_log("(mglCommandInterface) Could not make vertex buffer of size %{public}d", log: .default, type: .error, expectedByteCount)
             fatalError("(mglCommandInterface:readVertices) Could not make vertex buffer of size \(expectedByteCount)")
         }
 
         let bytesRead = server.readData(buffer: vertexBuffer.contents(), expectedByteCount: expectedByteCount)
         if (bytesRead != expectedByteCount) {
+            os_log("(mglCommandInterface) Expected to read vertex buffer of size %{public}d but read %{public}d", log: .default, type: .error, expectedByteCount, bytesRead)
             fatalError("(mglCommandInterface:readVertices) Expected to read \(expectedByteCount) bytes but read \(bytesRead)")
         }
 
@@ -180,7 +183,7 @@ class mglCommandInterface {
         // Read the texture width and height
         let textureWidth = Int(readUInt32())
         let textureHeight = Int(readUInt32())
-        print("(mglCommandInterface:createTexture) textureWidth: \(textureWidth) textureHeight: \(textureHeight)")
+        os_log("(mglCommandInterface) Creating texture of width %{public}d and height %{public}d", log: .default, type: .info, textureWidth, textureHeight)
 
         // Set the texture descriptor
         let textureDescriptor = MTLTextureDescriptor.texture2DDescriptor(
@@ -204,6 +207,7 @@ class mglCommandInterface {
         // With storageModeManaged, we must explicitly sync the data to the GPU, below.
         let bufferByteSize = alignedRowByteCount * textureHeight
         guard let textureBuffer = device.makeBuffer(length: bufferByteSize, options: .storageModeManaged) else {
+            os_log("(mglCommandInterface) Could not make texture buffer of size %{public}d image width %{public}d aligned buffer width %{public}d and image height %{public}d", log: .default, type: .error, bufferByteSize, textureWidth, alignedRowByteCount, textureHeight)
             fatalError("(mglCommandInterface:createTexture) Could not make texture buffer of size \(bufferByteSize) image width: \(textureWidth) aligned buffer row size: \(alignedRowByteCount) image height: \(textureHeight)")
         }
 
@@ -212,15 +216,17 @@ class mglCommandInterface {
         let bytesRead = imageRowsToBuffer(buffer: textureBuffer, imageRowByteCount: imageRowByteCount, alignedRowByteCount: alignedRowByteCount, rowCount: textureHeight)
         let expectedByteCount = imageRowByteCount * textureHeight
         if (bytesRead != expectedByteCount) {
+            os_log("(mglCommandInterface) Could not read expected bytes %{public}d for texture, read %{public}d", log: .default, type: .error, expectedByteCount, bytesRead)
             fatalError("(mglCommandInterface:createTexture) Could not read expected \(expectedByteCount) bytes for texture, read \(bytesRead).")
         }
 
         // Now make the buffer into a texture.
         guard let texture = textureBuffer.makeTexture(descriptor: textureDescriptor, offset: 0, bytesPerRow: alignedRowByteCount) else {
+            os_log("(mglCommandInterface) Could not make texture from texture buffer of size %{public}d image width %{public}d aligned buffer width %{public}d and image height %{public}d", log: .default, type: .error, bufferByteSize, textureWidth, alignedRowByteCount, textureHeight)
             fatalError("(mglCommandInterface:createTexture) Could not make texture from texture buffer of ssize \(bufferByteSize) image width: \(textureWidth) aligned buffer row size: \(alignedRowByteCount) image height: \(textureHeight)")
         }
 
-        print("mglCommandInterface:createTexture) Created texture: \(textureWidth) x \(textureHeight)")
+        os_log("(mglCommandInterface) Created texture of width %{public}d and height %{public}d", log: .default, type: .info, textureWidth, textureHeight)
         return(texture)
     }
 
@@ -230,7 +236,7 @@ class mglCommandInterface {
             let bufferRow = buffer.contents().advanced(by: row * alignedRowByteCount)
             let rowBytesRead = server.readData(buffer: bufferRow, expectedByteCount: imageRowByteCount)
             if (rowBytesRead != imageRowByteCount) {
-                print("(mglCommandInterface:imageRowsToBuffer) Expected to read \(imageRowByteCount) bytes but read \(rowBytesRead) for row \(row) of \(rowCount)")
+                os_log("(mglCommandInterface) Expected to read %{public}d bytes but read %{public}d for image row %{public}d of %{public}d", log: .default, type: .error, imageRowByteCount, rowBytesRead, row, rowCount)
             }
             imageBytesRead += rowBytesRead
         }
@@ -243,14 +249,13 @@ class mglCommandInterface {
 
     func imageRowsFromTextureBuffer(texture: MTLTexture) -> Int {
         guard let buffer = texture.buffer else {
-            print("(mglCommandInterface:imageRowsFromTextureBuffer) unable to access buffer of texture \(texture)")
+            os_log("(mglCommandInterface) Unable to access buffer of texture %{public}@", log: .default, type: .error, String(describing: texture))
             // No data to return, but Matlab expects a response with width and height.
             _ = writeUInt32(data: 0)
             _ = writeUInt32(data: 0)
             return 0
         }
 
-        print("(mglCommandInterface:imageRowsFromTextureBuffer) width: \(texture.width) height: \(texture.height)")
         _ = writeUInt32(data: mglUInt32(texture.width))
         _ = writeUInt32(data: mglUInt32(texture.height))
 
@@ -260,7 +265,7 @@ class mglCommandInterface {
             let bufferRow = buffer.contents().advanced(by: row * texture.bufferBytesPerRow)
             let rowBytesSent = server.sendData(buffer: bufferRow, byteCount: imageRowByteCount)
             if (rowBytesSent != imageRowByteCount) {
-                print("(mglCommandInterface:imageRowsFromTextureBuffer) Expected to send \(imageRowByteCount) bytes but sent \(rowBytesSent) for row \(row) of \(texture.height)")
+                os_log("(mglCommandInterface) Expected to send %{public}d bytes but sent %{public}d for image row %{public}d of %{public}d", log: .default, type: .error, imageRowByteCount, rowBytesSent, row, texture.height)
             }
             imageBytesSent += rowBytesSent
         }
