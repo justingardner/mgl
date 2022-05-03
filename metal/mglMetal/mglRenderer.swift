@@ -112,14 +112,13 @@ class mglRenderer: NSObject {
         // the draw function each frame update and the resize function
         metalView.delegate = self
 
-        // Done. Print out that we did something.
-        os_log("Init mglRenderer OK.", log: .default, type: .info)
+        os_log("(mglRenderer) Init OK.", log: .default, type: .info)
     }
 }
 
 extension mglRenderer: MTKViewDelegate {
     func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {
-        os_log("drawableSizeWillChange %{public}@", log: .default, type: .info, String(describing: size))
+        os_log("(mglRenderer) drawableSizeWillChange %{public}@", log: .default, type: .info, String(describing: size))
     }
 
     // This is the main "loop" for mglMetal.
@@ -174,7 +173,7 @@ extension mglRenderer: MTKViewDelegate {
             case mglGetWindowFrameInDisplay: getWindowFrameInDisplay(view: view)
             case mglDeleteTexture: deleteTexture()
             case mglSetViewColorPixelFormat: setViewColorPixelFormat(view: view)
-            default: os_log("unknown command code %{public}@", log: .default, type: .error, String(describing: command))
+            default: os_log("(mglRenderer) Unknown non-drawing command code %{public}@", log: .default, type: .error, String(describing: command))
             }
 
             // Write a timestamp to Matlab as a command-processed ack.
@@ -192,7 +191,7 @@ extension mglRenderer: MTKViewDelegate {
         // Set up a rendering pass, either to texture or to the view's default frame buffer.
         guard let descriptor = currentColorRenderingConfig.getRenderPassDescriptor(view: view) else {
             // We did nothing, but Matlab still expects a command-processed ack.
-            os_log("Could not get render pass descriptor from current color rendering config, skipping render pass.", log: .default, type: .error)
+            os_log("(mglRenderer) Could not get render pass descriptor from current color rendering config, skipping render pass.", log: .default, type: .error)
             _ = commandInterface.writeDouble(data: secs.get())
             return
         }
@@ -226,7 +225,7 @@ extension mglRenderer: MTKViewDelegate {
             case mglPolygon: drawVerticesWithColor(view: view, renderEncoder: renderEncoder, primitiveType: .triangleStrip)
             case mglArcs: drawArcs(view: view, renderEncoder: renderEncoder)
             case mglUpdateTexture: updateTexture()
-            default: os_log("unknown drawing command code %{public}@", log: .default, type: .error, String(describing: command))
+            default: os_log("(mglRenderer) Unknown drawing command code %{public}@", log: .default, type: .error, String(describing: command))
             }
 
             // Write a timestamp to Matlab as a command-processed ack.
@@ -268,7 +267,7 @@ extension mglRenderer: MTKViewDelegate {
 
         // Recreate the onscreen color rendering config so that render pipelines will use the new color pixel format.
         guard let newOnscreenRenderingConfig = mglOnscreenRenderingConfig(device: mglRenderer.device, library: library, view: view) else {
-            os_log("Could not create onscreen rendering config for pixel format %{public}@!", log: .default, type: .error, String(describing: view.colorPixelFormat))
+            os_log("(mglRenderer) Could not create onscreen rendering config for pixel format %{public}@.", log: .default, type: .error, String(describing: view.colorPixelFormat))
             return
         }
 
@@ -285,7 +284,7 @@ extension mglRenderer: MTKViewDelegate {
         guard let window = view.window else {return}
         var event = window.nextEvent(matching: .any)
         while (event != nil) {
-            os_log("Processing OS event: %{public}@", log: .default, type: .info, String(describing: event))
+            os_log("(mglRenderer) Processing OS event: %{public}@", log: .default, type: .info, String(describing: event))
             event = window.nextEvent(matching: .any)
         }
     }
@@ -294,12 +293,12 @@ extension mglRenderer: MTKViewDelegate {
         NSCursor.unhide()
 
         guard let window = view.window else {
-            os_log("Could not get window, got nil, skipping windowed command.", log: .default, type: .error)
+            os_log("(mglRenderer) Could not get window from view, skipping windowed command.", log: .default, type: .error)
             return
         }
 
         if !window.styleMask.contains(.fullScreen) {
-            os_log("App is already windowed, skipping windowed command.", log: .default, type: .info)
+            os_log("(mglRenderer) App is already windowed, skipping windowed command.", log: .default, type: .info)
         } else {
             window.toggleFullScreen(nil)
         }
@@ -331,22 +330,22 @@ extension mglRenderer: MTKViewDelegate {
         let windowScreenFrame = screen.convertRectFromBacking(windowNativeFrame)
 
         guard let window = view.window else {
-            os_log("Could not get window, got nil, skipping set window frame command.", log: .default, type: .error)
+            os_log("(mglRenderer) Could not get window from view, skipping set window frame command.", log: .default, type: .error)
             return
         }
 
         if window.styleMask.contains(.fullScreen) {
-            os_log("App is fullscreen, skipping set window frame command.", log: .default, type: .info)
+            os_log("(mglRenderer) App is fullscreen, skipping set window frame command.", log: .default, type: .info)
             return
         }
 
-        os_log("Setting window to display %d frame %{public}@.", log: .default, type: .info, displayNumber, String(describing: windowScreenFrame))
+        os_log("(mglRenderer) Setting window to display %{public}d frame %{public}@.", log: .default, type: .info, displayNumber, String(describing: windowScreenFrame))
         window.setFrame(windowScreenFrame, display: true)
     }
 
     func getWindowFrameInDisplay(view: MTKView) {
         guard let window = view.window else {
-            os_log("Could get window from view, skipping get window frame command.", log: .default, type: .error)
+            os_log("(mglRenderer) Could get window from view, skipping get window frame command.", log: .default, type: .error)
             _ = commandInterface.writeUInt32(data: mglUInt32(0))
             _ = commandInterface.writeUInt32(data: mglUInt32(0))
             _ = commandInterface.writeUInt32(data: mglUInt32(0))
@@ -356,7 +355,7 @@ extension mglRenderer: MTKViewDelegate {
         }
 
         guard let screen = window.screen else {
-            os_log("Could get screen from window, skipping get window frame command.", log: .default, type: .error)
+            os_log("(mglRenderer) Could get screen from window, skipping get window frame command.", log: .default, type: .error)
             _ = commandInterface.writeUInt32(data: mglUInt32(0))
             _ = commandInterface.writeUInt32(data: mglUInt32(0))
             _ = commandInterface.writeUInt32(data: mglUInt32(0))
@@ -366,7 +365,7 @@ extension mglRenderer: MTKViewDelegate {
         }
 
         guard let screenIndex = NSScreen.screens.firstIndex(of: screen) else {
-            os_log("Could get screen index from screens, skipping get window frame command.", log: .default, type: .error)
+            os_log("(mglRenderer) Could get screen index from screens, skipping get window frame command.", log: .default, type: .error)
             _ = commandInterface.writeUInt32(data: mglUInt32(0))
             _ = commandInterface.writeUInt32(data: mglUInt32(0))
             _ = commandInterface.writeUInt32(data: mglUInt32(0))
@@ -392,11 +391,11 @@ extension mglRenderer: MTKViewDelegate {
 
     func fullscreen(view: MTKView) {
         guard let window = view.window else {
-            os_log("Could not get window, got nil, skipping fullscreen command.", log: .default, type: .error)
+            os_log("(mglRenderer) Could not get window from view, skipping fullscreen command.", log: .default, type: .error)
             return
         }
         if window.styleMask.contains(.fullScreen) {
-            os_log("App is already fullscreen, skipping windowed command.", log: .default, type: .info)
+            os_log("(mglRenderer) App is already fullscreen, skipping fullscreen command.", log: .default, type: .info)
         } else {
             window.toggleFullScreen(nil)
             NSCursor.hide()
@@ -424,23 +423,23 @@ extension mglRenderer: MTKViewDelegate {
         let textureNumber = commandInterface.readUInt32()
         let removed = textures.removeValue(forKey: textureNumber)
         if removed == nil {
-            print("(mglRenderer:deleteTexture) invalid textureNumber \(textureNumber), valid numbers are \(textures.keys)")
+            os_log("(mglRenderer) Invalid texture number %{public}d, valid numbers are %{public}@.", log: .default, type: .error, String(describing: textures.keys))
         } else {
-            print("(mglRenderer:deleteTexture) removed textureNumber \(textureNumber), remaining numbers are \(textures.keys)")
+            os_log("(mglRenderer) Removed texture number %{public}d, remaining numbers are %{public}@.", log: .default, type: .info, String(describing: textures.keys))
         }
     }
 
     func setRenderTarget(view: MTKView) {
         let textureNumber = commandInterface.readUInt32()
         guard let targetTexture = textures[textureNumber] else {
-            os_log("Got textureNumber %d, choosing onscreen rendering", log: .default, type: .info, textureNumber)
+            os_log("(mglRenderer) Got textureNumber %{public}d, choosing onscreen rendering.", log: .default, type: .info, textureNumber)
             currentColorRenderingConfig = onscreenRenderingConfig
             return
         }
 
-        os_log("Got textureNumber %d, choosing offscree rendering to texture", log: .default, type: .info, textureNumber)
+        os_log("(mglRenderer) Got textureNumber %{public}d, choosing offscreen rendering to texture.", log: .default, type: .info, textureNumber)
         guard let newTextureRenderingConfig = mglOffScreenTextureRenderingConfig(device: mglRenderer.device, library: library, view: view, texture: targetTexture) else {
-            os_log("Could not create offscreen rendering config for textureNumber %d, got nil!", log: .default, type: .error, textureNumber)
+            os_log("(mglRenderer) Could not create offscreen rendering config for textureNumber %{public]d, got nil.", log: .default, type: .error, textureNumber)
             return
         }
         currentColorRenderingConfig = newTextureRenderingConfig
@@ -449,7 +448,7 @@ extension mglRenderer: MTKViewDelegate {
     func readTexture() {
         let textureNumber = commandInterface.readUInt32()
         guard let texture = textures[textureNumber] else {
-            print("(mglRenderer:readTexture) invalid textureNumber \(textureNumber), valid numbers are \(textures.keys)")
+            os_log("(mglRenderer) Invalid texture number %{public}d, valid numbers are %{public}@.", log: .default, type: .error, String(describing: textures.keys))
             // No data to return, but Matlab expects a response wiht width and height.
             _ = commandInterface.writeUInt32(data: 0)
             _ = commandInterface.writeUInt32(data: 0)
@@ -466,11 +465,11 @@ extension mglRenderer: MTKViewDelegate {
 
         // Resolve the texture and its buffer.
         guard let texture = textures[textureNumber] else {
-            print("(mglRenderer:updateTexture) invalid textureNumber \(textureNumber), valid numbers are \(textures.keys)")
+            os_log("(mglRenderer) Invalid texture number %{public}d, valid numbers are %{public}@.", log: .default, type: .error, String(describing: textures.keys))
             return;
         }
         guard let buffer = texture.buffer else {
-            print("(mglRenderer:updateTexture) texture doesn't have a buffer to update: \(texture)")
+            os_log("(mglRenderer) Texture has no buffer to update: %{public}@", log: .default, type: .error, String(describing: texture))
             return;
         }
 
@@ -643,7 +642,7 @@ extension mglRenderer: MTKViewDelegate {
         // send the texture to the renderEncoder
         let textureNumber = commandInterface.readUInt32()
         guard let texture = textures[textureNumber] else {
-            print("(mglRenderer:bltTexture) invalid textureNumber \(textureNumber), valid numbers are \(textures.keys)")
+            os_log("(mglRenderer) Invalid texture number %{public}d, valid numbers are %{public}@.", log: .default, type: .error, String(describing: textures.keys))
             return
         }
         renderEncoder.setFragmentTexture(texture, index:0)
