@@ -29,52 +29,43 @@ class mglRenderer: NSObject {
     // commandQueue which tells the device what to do
     static var commandQueue: MTLCommandQueue!
 
+    // library holds compiled vertex and fragment shader programs
     let library: MTLLibrary!
 
-    // Pipeline states for rendering to screen and texture.
-    // These get recreated by setUpPipelines() at init, and when we change the view's colorPixelFormat.
-    var pipelineStateDots: MTLRenderPipelineState!
-    var pipelineStateDotsToTexture: MTLRenderPipelineState!
-    var pipelineStateArcs: MTLRenderPipelineState!
-    var pipelineStateArcsToTexture: MTLRenderPipelineState!
-    var pipelineStateVertexWithColor: MTLRenderPipelineState!
-    var pipelineStateVertexWithColorToTexture: MTLRenderPipelineState!
-    var pipelineStateTextures: MTLRenderPipelineState!
-    var pipelineStateTexturesToTexture: MTLRenderPipelineState!
-
-    // Configuration for doing depth testing.
+    // configuration for doing depth testing
     let depthState: MTLDepthStencilState!
 
-    // variable to hold mglCommunicator which
-    // communicates with matlab
+    // command interface communicates with the client process like Matlab
     let commandInterface : mglCommandInterface
     
-    // sets whether to send a flush confirm back to matlab
+    // a flag used to send post-flush acknowledgements back to Matlab
     var acknowledgeFlush = false
 
     // keeps coordinate xform
     var deg2metal = matrix_identity_float4x4
 
+    // a collection of user-managed textures to render to and/or blt to screen
     var textureSequence = UInt32(1)
     var textures : [UInt32: MTLTexture] = [:]
 
+    // pipeline and other configuration to render to the screen or a texture
     var onscreenRenderingConfig: mglColorRenderingConfig
     var currentColorRenderingConfig: mglColorRenderingConfig
 
+    // utility to get system nano time
     let secs = mglSecs()
     
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     // init
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     init(metalView: MTKView) {
-        // init mglCommunicator
+        // bind an address and start listening for client process to connect
         commandInterface = mglCommandInterface()
         
         // Initialize the GPU device
         guard let device = MTLCreateSystemDefaultDevice() else {
             fatalError("GPU not available")
         }
-        // tell the view aand renderer about the device
         metalView.device = device
         mglRenderer.device = device
 
@@ -84,15 +75,13 @@ class mglRenderer: NSObject {
         // create a library for storing the shaders
         library = device.makeDefaultLibrary()
 
-        // Configure the view to do depth testing.
-        metalView.depthStencilPixelFormat = .depth32Float
-        metalView.clearDepth = 1.0
-
-        // Configure the depth tests to allow re-drawing when depth (ie z coord) is equal.
+        // set up for depth testing
         let depthDescriptor = MTLDepthStencilDescriptor()
         depthDescriptor.depthCompareFunction = .lessEqual
         depthDescriptor.isDepthWriteEnabled = true
         depthState = device.makeDepthStencilState(descriptor: depthDescriptor)
+        metalView.depthStencilPixelFormat = .depth32Float
+        metalView.clearDepth = 1.0
 
         // Start with default clear color gray, used for on-screen as well as render to texture.
         metalView.clearColor = MTLClearColor(red: 0.5, green: 0.5, blue: 0.5, alpha: 1.0)
@@ -151,8 +140,6 @@ extension mglRenderer: MTKViewDelegate {
             // Nothing to do until Matlab sends us a command to work on.
             return;
         }
-
-        // We know data is waiting, it should be a command code.
         var command = readAndAcknowledgeNextCommand()
 
         // Process non-drawing commands one at a time.
@@ -182,42 +169,39 @@ extension mglRenderer: MTKViewDelegate {
         }
 
         // From here below, we will process the next command as a drawing command.
-        // This means setting up a rendering pass and continuing to proecess commands until mglFlush.
-        // Or, if there's an error, we'll abandon rendering on this frame and return a negative ack.
+        // This means setting up a Metal rendering pass and continuing to process commands until an mglFlush command.
+        // Or, if there's an error, we'll abandon the rendering pass and return a negative ack.
 
-        // Set up to process one or more drawing commands.
         guard let drawable = view.currentDrawable else {
             os_log("(mglRenderer) Could not get current drawable from the view, skipping render pass.", log: .default, type: .error)
             acknowledgePreviousCommandProcessed(isSuccess: false)
             return
         }
 
-        // Set up a rendering pass, either to texture or to the view's default frame buffer.
-        guard let descriptor = currentColorRenderingConfig.getRenderPassDescriptor(view: view) else {
+        guard let renderPassDescriptor = currentColorRenderingConfig.getRenderPassDescriptor(view: view) else {
             os_log("(mglRenderer) Could not get render pass descriptor from current color rendering config, skipping render pass.", log: .default, type: .error)
             acknowledgePreviousCommandProcessed(isSuccess: false)
             return
         }
-
-        // Apply the clear color to all rendering passes, before they start.
-        descriptor.colorAttachments[0].clearColor = view.clearColor
+        renderPassDescriptor.colorAttachments[0].clearColor = view.clearColor
 
         guard let commandBuffer = mglRenderer.commandQueue.makeCommandBuffer(),
-              let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: descriptor) else {
+              let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor) else {
             os_log("(mglRenderer) Could not get command buffer and renderEncoder from the command queue, skipping render pass.", log: .default, type: .error)
             acknowledgePreviousCommandProcessed(isSuccess: false)
             return
         }
 
-        // Enabel depth testing for this render pass.
+        // Enable depth testing.
         renderEncoder.setDepthStencilState(depthState)
 
         // Attach our view transform to the same location expected by all vertex shaders (our convention).
         renderEncoder.setVertexBytes(&deg2metal, length: MemoryLayout<float4x4>.stride, index: 1)
 
         // Keep processing drawing and other related commands until a flush command.
-        var commandSuccess = false
         while (command != mglFlush) {
+            var commandSuccess = false
+
             switch command {
             case mglCreateTexture: commandSuccess = createTexture()
             case mglBltTexture: commandSuccess = bltTexture(view: view, renderEncoder: renderEncoder)
@@ -242,23 +226,24 @@ extension mglRenderer: MTKViewDelegate {
             }
 
             // This will block until the next command arrives.
-            // The idea is to process a sequence of drawing commands as fast as we can.
+            // The idea is to process a sequence of drawing commands as fast as we can within a frame.
             command = readAndAcknowledgeNextCommand()
         }
 
         // If we got here, we just did some drawing, ending with a flush command.
-        // We'll acknowledge that the flush command was processed when we get to the start of the next frame, above.
+        // We'll wait until the next frame starts before acknowledging that the render pass was fully processed.
         acknowledgeFlush = true
 
-        // Finished a group of drawing commands, commit the frame and let Metal render it.
-        renderEncoder.endEncoding()
-
         // Present the drawable, and do other things like synchronize texture buffers, if needed.
+        renderEncoder.endEncoding()
         currentColorRenderingConfig.finishDrawing(commandBuffer: commandBuffer, drawable: drawable)
     }
 
     private func readAndAcknowledgeNextCommand() -> mglCommandCode {
-        let command = commandInterface.readCommand()
+        guard let command = commandInterface.readCommand() else {
+            _ = commandInterface.writeDouble(data: -secs.get())
+            return mglUnknownCommand
+        }
         _ = commandInterface.writeDouble(data: secs.get())
         return command
     }
@@ -284,7 +269,9 @@ extension mglRenderer: MTKViewDelegate {
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
 
     func setViewColorPixelFormat(view: MTKView) -> Bool {
-        let formatIndex = commandInterface.readUInt32()
+        guard let formatIndex = commandInterface.readUInt32() else {
+            return false
+        }
 
         switch formatIndex {
         case 0: view.colorPixelFormat = .bgra8Unorm
@@ -306,7 +293,7 @@ extension mglRenderer: MTKViewDelegate {
             self.currentColorRenderingConfig = newOnscreenRenderingConfig
         }
 
-        // Remember the new config for later, even if we're currently rendering offscreen.
+        // Remember the new onscreen config for later, even if we're currently rendering offscreen.
         self.onscreenRenderingConfig = newOnscreenRenderingConfig
 
         return true
@@ -317,11 +304,13 @@ extension mglRenderer: MTKViewDelegate {
             os_log("(mglRenderer) Could not get window from view, skipping drain events command.", log: .default, type: .error)
             return false
         }
+
         var event = window.nextEvent(matching: .any)
         while (event != nil) {
             os_log("(mglRenderer) Processing OS event: %{public}@", log: .default, type: .info, String(describing: event))
             event = window.nextEvent(matching: .any)
         }
+
         return true
     }
 
@@ -338,16 +327,19 @@ extension mglRenderer: MTKViewDelegate {
         } else {
             window.toggleFullScreen(nil)
         }
+
         return true
     }
 
     func setWindowFrameInDisplay(view: MTKView) -> Bool {
         // Read all inputs first.
-        let displayNumber = commandInterface.readUInt32()
-        let windowX = commandInterface.readUInt32()
-        let windowY = commandInterface.readUInt32()
-        let windowWidth = commandInterface.readUInt32()
-        let windowHeight = commandInterface.readUInt32()
+        guard let displayNumber = commandInterface.readUInt32(),
+              let windowX = commandInterface.readUInt32(),
+              let windowY = commandInterface.readUInt32(),
+              let windowWidth = commandInterface.readUInt32(),
+              let windowHeight = commandInterface.readUInt32() else {
+            return false
+        }
 
         // Convert Matlab's 1-based display number to a zero-based screen index.
         let screenIndex = displayNumber == 0 ? Array<NSScreen>.Index(0) : Array<NSScreen>.Index(displayNumber - 1)
@@ -423,25 +415,32 @@ extension mglRenderer: MTKViewDelegate {
             os_log("(mglRenderer) Could not get window from view, skipping fullscreen command.", log: .default, type: .error)
             return false
         }
+
         if window.styleMask.contains(.fullScreen) {
             os_log("(mglRenderer) App is already fullscreen, skipping fullscreen command.", log: .default, type: .info)
         } else {
             window.toggleFullScreen(nil)
             NSCursor.hide()
         }
+
         return true
     }
 
     func setClearColor(view: MTKView) -> Bool {
-        let color = commandInterface.readColor()
+        guard let color = commandInterface.readColor() else {
+            return false
+        }
+
         view.clearColor = MTLClearColor(red: Double(color[0]), green: Double(color[1]), blue: Double(color[2]), alpha: 1)
         return true
     }
 
     func createTexture() -> Bool {
-        let texture = commandInterface.createTexture(device: mglRenderer.device)
+        guard let texture = commandInterface.createTexture(device: mglRenderer.device) else {
+            return false
+        }
 
-        // Consume a texture number from the sequence.
+        // Consume a texture number from the bookkeeping sequence.
         let newTextureNumber = textureSequence
         textureSequence += 1
         textures[newTextureNumber] = texture
@@ -454,7 +453,9 @@ extension mglRenderer: MTKViewDelegate {
     }
 
     func deleteTexture() -> Bool {
-        let textureNumber = commandInterface.readUInt32()
+        guard let textureNumber = commandInterface.readUInt32() else {
+            return false
+        }
 
         let removed = textures.removeValue(forKey: textureNumber)
         if removed == nil {
@@ -467,7 +468,9 @@ extension mglRenderer: MTKViewDelegate {
     }
 
     func setRenderTarget(view: MTKView) -> Bool {
-        let textureNumber = commandInterface.readUInt32()
+        guard let textureNumber = commandInterface.readUInt32() else {
+            return false
+        }
 
         guard let targetTexture = textures[textureNumber] else {
             os_log("(mglRenderer) Got textureNumber %{public}d, choosing onscreen rendering.", log: .default, type: .info, textureNumber)
@@ -482,11 +485,15 @@ extension mglRenderer: MTKViewDelegate {
             return false
         }
         currentColorRenderingConfig = newTextureRenderingConfig
+
         return true
     }
 
     func readTexture() -> Bool {
-        let textureNumber = commandInterface.readUInt32()
+        guard let textureNumber = commandInterface.readUInt32() else {
+            acknowledgeReturnDataOnItsWay(isOnItsWay: false)
+            return false
+        }
 
         guard let texture = textures[textureNumber] else {
             os_log("(mglRenderer) Invalid texture number %{public}d, valid numbers are %{public}@.", log: .default, type: .error, String(describing: textures.keys))
@@ -494,15 +501,27 @@ extension mglRenderer: MTKViewDelegate {
             return false
         }
 
+        guard let buffer = texture.buffer else {
+            os_log("(mglCommandInterface) Unable to access buffer of texture %{public}@", log: .default, type: .error, String(describing: texture))
+            acknowledgeReturnDataOnItsWay(isOnItsWay: false)
+            return false
+        }
+
+        let imageRowByteCount = Int(mglSizeOfFloatRgbaTexture(mglUInt32(texture.width), 1))
         acknowledgeReturnDataOnItsWay(isOnItsWay: true)
-        _ = commandInterface.imageRowsFromTextureBuffer(texture: texture)
-        return true
+        _ = commandInterface.writeUInt32(data: mglUInt32(texture.width))
+        _ = commandInterface.writeUInt32(data: mglUInt32(texture.height))
+        let totalByteCount = commandInterface.imageRowsFromBuffer(buffer: buffer, imageRowByteCount: imageRowByteCount, alignedRowByteCount: texture.bufferBytesPerRow, rowCount: texture.height)
+
+        return totalByteCount == imageRowByteCount * texture.height
     }
 
     func updateTexture() -> Bool {
-        let textureNumber = commandInterface.readUInt32()
-        let textureWidth = commandInterface.readUInt32()
-        let textureHeight = Int(commandInterface.readUInt32())
+        guard let textureNumber = commandInterface.readUInt32(),
+              let textureWidth = commandInterface.readUInt32(),
+              let textureHeight = commandInterface.readUInt32() else {
+            return false
+        }
 
         // Resolve the texture and its buffer.
         guard let texture = textures[textureNumber] else {
@@ -517,8 +536,9 @@ extension mglRenderer: MTKViewDelegate {
 
         // Read the actual image data into the texture.
         let imageRowByteCount = Int(mglSizeOfFloatRgbaTexture(textureWidth, 1))
-        let totalByteCount = commandInterface.imageRowsToBuffer(buffer: buffer, imageRowByteCount: imageRowByteCount, alignedRowByteCount: texture.bufferBytesPerRow, rowCount: textureHeight)
-        return totalByteCount == imageRowByteCount * textureHeight
+        let totalByteCount = commandInterface.imageRowsToBuffer(buffer: buffer, imageRowByteCount: imageRowByteCount, alignedRowByteCount: texture.bufferBytesPerRow, rowCount: Int(textureHeight))
+
+        return totalByteCount == imageRowByteCount * Int(textureHeight)
     }
 
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
@@ -562,7 +582,9 @@ extension mglRenderer: MTKViewDelegate {
     }
 
     func drawDots(view: MTKView, renderEncoder: MTLRenderCommandEncoder) -> Bool {
-        let (vertexBufferDots, vertexCount) = commandInterface.readVertices(device: mglRenderer.device, extraVals: 8)
+        guard let (vertexBufferDots, vertexCount) = commandInterface.readVertices(device: mglRenderer.device, extraVals: 8) else {
+            return false
+        }
 
         // Draw all the vertices as points with 11 values per vertex: [xyz rgba wh isRound borderSize].
         renderEncoder.setRenderPipelineState(currentColorRenderingConfig.dotsPipelineState)
@@ -608,7 +630,9 @@ extension mglRenderer: MTKViewDelegate {
     }
 
     func drawArcs(view: MTKView, renderEncoder: MTLRenderCommandEncoder) -> Bool {
-        let (vertexBufferDots, vertexCount) = commandInterface.readVertices(device: mglRenderer.device, extraVals: 9)
+        guard let (vertexBufferDots, vertexCount) = commandInterface.readVertices(device: mglRenderer.device, extraVals: 9) else {
+            return false
+        }
 
         // Draw all the vertices as points with 11 values per vertex: [xyz rgba inner outer start sweep].
         renderEncoder.setRenderPipelineState(currentColorRenderingConfig.arcsPipelineState)
@@ -646,13 +670,15 @@ extension mglRenderer: MTKViewDelegate {
     }
 
     func bltTexture(view: MTKView, renderEncoder: MTLRenderCommandEncoder) -> Bool {
-        // Read all expected data, since it's expected to be consumed.
-        let minMagFilterRawValue = commandInterface.readUInt32()
-        let mipFilterRawValue = commandInterface.readUInt32()
-        let addressModeRawValue = commandInterface.readUInt32()
-        let (vertexBufferTexture, vertexCount) = commandInterface.readVertices(device: mglRenderer.device, extraVals: 2)
-        var phase = commandInterface.readFloat()
-        let textureNumber = commandInterface.readUInt32()
+        // Read all data up front, since it's expected to be consumed.
+        guard let minMagFilterRawValue = commandInterface.readUInt32(),
+              let mipFilterRawValue = commandInterface.readUInt32(),
+              let addressModeRawValue = commandInterface.readUInt32(),
+              let (vertexBufferTexture, vertexCount) = commandInterface.readVertices(device: mglRenderer.device, extraVals: 2),
+              var phase = commandInterface.readFloat(),
+              let textureNumber = commandInterface.readUInt32() else {
+            return false
+        }
 
         // Make sure we have the actual requested texture.
         guard let texture = textures[textureNumber] else {
@@ -732,7 +758,9 @@ extension mglRenderer: MTKViewDelegate {
     }
 
     func drawVerticesWithColor(view: MTKView, renderEncoder: MTLRenderCommandEncoder, primitiveType: MTLPrimitiveType) -> Bool {
-        let (vertexBufferWithColors, vertexCount) = commandInterface.readVertices(device: mglRenderer.device, extraVals: 3)
+        guard let (vertexBufferWithColors, vertexCount) = commandInterface.readVertices(device: mglRenderer.device, extraVals: 3) else {
+            return false
+        }
 
         // Render vertices as points with 6 values per vertex: [xyz rgb]
         renderEncoder.setRenderPipelineState(currentColorRenderingConfig.verticesWithColorPipelineState)
@@ -742,9 +770,12 @@ extension mglRenderer: MTKViewDelegate {
     }
 
     func setXform(renderEncoder: MTLRenderCommandEncoder) -> Bool {
-        deg2metal = commandInterface.readXform();
+        guard let newDeg2Metal = commandInterface.readXform() else {
+            return false
+        }
+        deg2metal = newDeg2Metal
 
-        // Attach the latest view transform to the same location expected by all vertex shaders (our convention).
+        // Attach this new view transform to the same location expected by all vertex shaders (our convention).
         renderEncoder.setVertexBytes(&deg2metal, length: MemoryLayout<float4x4>.stride, index: 1)
         return true
     }

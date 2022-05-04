@@ -61,13 +61,13 @@ class mglCommandInterface {
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     // readCommand
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
-    func readCommand() -> mglCommandCode {
+    func readCommand() -> mglCommandCode? {
         var data = mglUnknownCommand
         let expectedByteCount = MemoryLayout<mglCommandCode>.size
         let bytesRead = server.readData(buffer: &data, expectedByteCount: expectedByteCount)
         if (bytesRead != expectedByteCount) {
-            // TODO: return nil instead of fatal, let caller decide what make sense
-            fatalError("(mglCommandInterface:readCommand) Expected to read \(expectedByteCount) bytes but read \(bytesRead)")
+            os_log("(mglCommandInterface) Expeted to read command code ${public}d bytes but read %{public}d.", log: .default, type: .error, expectedByteCount, bytesRead)
+            return nil
         }
         return data
     }
@@ -75,13 +75,13 @@ class mglCommandInterface {
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     // readUINT32
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
-    func readUInt32() -> mglUInt32 {
+    func readUInt32() -> mglUInt32? {
         var data = mglUInt32(0)
         let expectedByteCount = MemoryLayout<mglUInt32>.size
         let bytesRead = server.readData(buffer: &data, expectedByteCount: expectedByteCount)
         if (bytesRead != expectedByteCount) {
-            // TODO: return nil instead of fatal, let caller decide what make sense
-            fatalError("(mglCommandInterface:readUInt32) Expected to read \(expectedByteCount) bytes but read \(bytesRead)")
+            os_log("(mglCommandInterface) Expeted to read uint32 ${public}d bytes but read %{public}d.", log: .default, type: .error, expectedByteCount, bytesRead)
+            return nil
         }
         return data
     }
@@ -95,13 +95,13 @@ class mglCommandInterface {
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     // readFloat
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
-    func readFloat() -> mglFloat {
+    func readFloat() -> mglFloat? {
         var data = mglFloat(0)
         let expectedByteCount = MemoryLayout<mglFloat>.size
         let bytesRead = server.readData(buffer: &data, expectedByteCount: expectedByteCount)
         if (bytesRead != expectedByteCount) {
-            // TODO: return nil instead of fatal, let caller decide what make sense
-            fatalError("(mglCommandInterface:readFloat) Expected to read \(expectedByteCount) bytes but read \(bytesRead)")
+            os_log("(mglCommandInterface) Expeted to read float ${public}d bytes but read %{public}d.", log: .default, type: .error, expectedByteCount, bytesRead)
+            return nil
         }
         return data
     }
@@ -109,7 +109,7 @@ class mglCommandInterface {
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     // readColor
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
-    func readColor() -> simd_float3 {
+    func readColor() -> simd_float3? {
         let data = UnsafeMutablePointer<Float>.allocate(capacity: 3)
         defer {
             data.deallocate()
@@ -118,8 +118,8 @@ class mglCommandInterface {
         let expectedByteCount = Int(mglSizeOfFloatRgbColor())
         let bytesRead = server.readData(buffer: data, expectedByteCount: expectedByteCount)
         if (bytesRead != expectedByteCount) {
-            // TODO: return nil instead of fatal, let caller decide what make sense
-            fatalError("(mglCommandInterface:readColor) Expected to read \(expectedByteCount) bytes but read \(bytesRead)")
+            os_log("(mglCommandInterface) Expeted to read rgb color ${public}d bytes but read %{public}d.", log: .default, type: .error, expectedByteCount, bytesRead)
+            return nil
         }
 
         // Let the library decide how simd vectors are packed.
@@ -129,7 +129,7 @@ class mglCommandInterface {
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     // readXform
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
-    func readXform() -> simd_float4x4 {
+    func readXform() -> simd_float4x4? {
         let data = UnsafeMutablePointer<Float>.allocate(capacity: 16)
         defer {
             data.deallocate()
@@ -138,8 +138,8 @@ class mglCommandInterface {
         let expectedByteCount = Int(mglSizeOfFloat4x4Matrix())
         let bytesRead = server.readData(buffer: data, expectedByteCount: expectedByteCount)
         if (bytesRead != expectedByteCount) {
-            // TODO: return nil instead of fatal, let caller decide what make sense
-            fatalError("(mglCommandInterface:readXform) Expected to read \(expectedByteCount) bytes but read \(bytesRead)")
+            os_log("(mglCommandInterface) Expeted to read 4x4 float ${public}d bytes but read %{public}d.", log: .default, type: .error, expectedByteCount, bytesRead)
+            return nil
         }
 
         // Let the library decide how simd vectors are packed.
@@ -153,50 +153,52 @@ class mglCommandInterface {
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     // readVertices
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
-    func readVertices(device: MTLDevice, extraVals: Int = 0) -> (buffer: MTLBuffer, vertexCount: Int) {
-        // Get the number of vertices
-        let vertexCount = Int(readUInt32())
+    func readVertices(device: MTLDevice, extraVals: Int = 0) -> (buffer: MTLBuffer, vertexCount: Int)? {
+        guard let vertexCount = readUInt32() else {
+            return nil
+        }
         os_log("(mglCommandInterface) Reading vertex count %{public}d", log: .default, type: .info, vertexCount)
 
         // Calculate how many floats we have per vertex.
-        // Start with 3 for XYZ, plus extraVals which can be used for things like color or texture coordinates.
+        // Start with 3 for XYZ, plus extraVals which can be used for things like color channels or texture coordinates.
         let valsPerVertex = mglUInt32(3 + extraVals)
-        let expectedByteCount = Int(mglSizeOfFloatVertexArray(mglUInt32(vertexCount), valsPerVertex))
+        let expectedByteCount = Int(mglSizeOfFloatVertexArray(vertexCount, valsPerVertex))
 
         // get an MTLBuffer from the GPU
         // With storageModeManaged, we must explicitly sync the data to the GPU, below.
         guard let vertexBuffer = device.makeBuffer(length: expectedByteCount, options: .storageModeManaged) else {
             os_log("(mglCommandInterface) Could not make vertex buffer of size %{public}d", log: .default, type: .error, expectedByteCount)
-            // TODO: return nil instead of fatal, let caller decide what make sense
-            fatalError("(mglCommandInterface:readVertices) Could not make vertex buffer of size \(expectedByteCount)")
+            return nil
         }
 
         let bytesRead = server.readData(buffer: vertexBuffer.contents(), expectedByteCount: expectedByteCount)
         if (bytesRead != expectedByteCount) {
             os_log("(mglCommandInterface) Expected to read vertex buffer of size %{public}d but read %{public}d", log: .default, type: .error, expectedByteCount, bytesRead)
-            // TODO: return nil instead of fatal, let caller decide what make sense
-            fatalError("(mglCommandInterface:readVertices) Expected to read \(expectedByteCount) bytes but read \(bytesRead)")
+            return nil
         }
 
         // With storageModeManaged above, we must explicitly sync the new data to the GPU.
         vertexBuffer.didModifyRange( 0 ..< expectedByteCount)
-        return (vertexBuffer, vertexCount)
+        return (vertexBuffer, Int(vertexCount))
     }
 
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     // readTexture
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
-    func createTexture(device: MTLDevice) -> MTLTexture {
-        // Read the texture width and height
-        let textureWidth = Int(readUInt32())
-        let textureHeight = Int(readUInt32())
+    func createTexture(device: MTLDevice) -> MTLTexture? {
+        guard let textureWidth = readUInt32() else {
+            return nil
+        }
+        guard let textureHeight = readUInt32() else {
+            return nil
+        }
         os_log("(mglCommandInterface) Creating texture of width %{public}d and height %{public}d", log: .default, type: .info, textureWidth, textureHeight)
 
         // Set the texture descriptor
         let textureDescriptor = MTLTextureDescriptor.texture2DDescriptor(
             pixelFormat: .rgba32Float,
-            width: textureWidth,
-            height: textureHeight,
+            width: Int(textureWidth),
+            height: Int(textureHeight),
             mipmapped: false)
 
         // For now, all textures can receive rendering output.
@@ -212,28 +214,25 @@ class mglCommandInterface {
         // Get an MTLBuffer from the GPU to store image data in
         // Use the rounded-up/aligned row size instead of the nominal image size.
         // With storageModeManaged, we must explicitly sync the data to the GPU, below.
-        let bufferByteSize = alignedRowByteCount * textureHeight
+        let bufferByteSize = alignedRowByteCount * Int(textureHeight)
         guard let textureBuffer = device.makeBuffer(length: bufferByteSize, options: .storageModeManaged) else {
             os_log("(mglCommandInterface) Could not make texture buffer of size %{public}d image width %{public}d aligned buffer width %{public}d and image height %{public}d", log: .default, type: .error, bufferByteSize, textureWidth, alignedRowByteCount, textureHeight)
-            // TODO: return nil instead of fatal, let caller decide what make sense
-            fatalError("(mglCommandInterface:createTexture) Could not make texture buffer of size \(bufferByteSize) image width: \(textureWidth) aligned buffer row size: \(alignedRowByteCount) image height: \(textureHeight)")
+            return nil
         }
 
         // Read from the socket into the texture memory.
         // Copy image rows one at a time, only taking the nominal row size and leaving the rest of the buffer row as padding.
-        let bytesRead = imageRowsToBuffer(buffer: textureBuffer, imageRowByteCount: imageRowByteCount, alignedRowByteCount: alignedRowByteCount, rowCount: textureHeight)
-        let expectedByteCount = imageRowByteCount * textureHeight
+        let bytesRead = imageRowsToBuffer(buffer: textureBuffer, imageRowByteCount: imageRowByteCount, alignedRowByteCount: alignedRowByteCount, rowCount: Int(textureHeight))
+        let expectedByteCount = imageRowByteCount * Int(textureHeight)
         if (bytesRead != expectedByteCount) {
             os_log("(mglCommandInterface) Could not read expected bytes %{public}d for texture, read %{public}d", log: .default, type: .error, expectedByteCount, bytesRead)
-            // TODO: return nil instead of fatal, let caller decide what make sense
-            fatalError("(mglCommandInterface:createTexture) Could not read expected \(expectedByteCount) bytes for texture, read \(bytesRead).")
+            return nil
         }
 
         // Now make the buffer into a texture.
         guard let texture = textureBuffer.makeTexture(descriptor: textureDescriptor, offset: 0, bytesPerRow: alignedRowByteCount) else {
             os_log("(mglCommandInterface) Could not make texture from texture buffer of size %{public}d image width %{public}d aligned buffer width %{public}d and image height %{public}d", log: .default, type: .error, bufferByteSize, textureWidth, alignedRowByteCount, textureHeight)
-            // TODO: return nil instead of fatal, let caller decide what make sense
-            fatalError("(mglCommandInterface:createTexture) Could not make texture from texture buffer of ssize \(bufferByteSize) image width: \(textureWidth) aligned buffer row size: \(alignedRowByteCount) image height: \(textureHeight)")
+            return nil
         }
 
         os_log("(mglCommandInterface) Created texture of width %{public}d and height %{public}d", log: .default, type: .info, textureWidth, textureHeight)
@@ -257,25 +256,13 @@ class mglCommandInterface {
         return imageBytesRead
     }
 
-    func imageRowsFromTextureBuffer(texture: MTLTexture) -> Int {
-        guard let buffer = texture.buffer else {
-            os_log("(mglCommandInterface) Unable to access buffer of texture %{public}@", log: .default, type: .error, String(describing: texture))
-            // No data to return, but Matlab expects a response with width and height.
-            _ = writeUInt32(data: 0)
-            _ = writeUInt32(data: 0)
-            return 0
-        }
-
-        _ = writeUInt32(data: mglUInt32(texture.width))
-        _ = writeUInt32(data: mglUInt32(texture.height))
-
-        let imageRowByteCount = Int(mglSizeOfFloatRgbaTexture(mglUInt32(texture.width), 1))
+    func imageRowsFromBuffer(buffer: MTLBuffer, imageRowByteCount: Int, alignedRowByteCount: Int, rowCount: Int) -> Int {
         var imageBytesSent = 0
-        for row in 0 ..< texture.height {
-            let bufferRow = buffer.contents().advanced(by: row * texture.bufferBytesPerRow)
+        for row in 0 ..< rowCount {
+            let bufferRow = buffer.contents().advanced(by: row * alignedRowByteCount)
             let rowBytesSent = server.sendData(buffer: bufferRow, byteCount: imageRowByteCount)
             if (rowBytesSent != imageRowByteCount) {
-                os_log("(mglCommandInterface) Expected to send %{public}d bytes but sent %{public}d for image row %{public}d of %{public}d", log: .default, type: .error, imageRowByteCount, rowBytesSent, row, texture.height)
+                os_log("(mglCommandInterface) Expected to send %{public}d bytes but sent %{public}d for image row %{public}d of %{public}d", log: .default, type: .error, imageRowByteCount, rowBytesSent, row, rowCount)
             }
             imageBytesSent += rowBytesSent
         }
