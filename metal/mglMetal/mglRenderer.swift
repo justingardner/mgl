@@ -142,7 +142,7 @@ extension mglRenderer: MTKViewDelegate {
 
         // Write a post-flush timestamp, which is the command-processed ack for the previous draw.
         if acknowledgeFlush {
-            _ = commandInterface.writeDouble(data: secs.get())
+            acknowledgePreviousCommandProcessed(isSuccess: true)
             acknowledgeFlush = false
         }
 
@@ -152,9 +152,8 @@ extension mglRenderer: MTKViewDelegate {
             return;
         }
 
-        // Write a timestamp to Matlab as a command-received ack.
-        var command = commandInterface.readCommand()
-        _ = commandInterface.writeDouble(data: secs.get())
+        // We know data is waiting, it should be a command code.
+        var command = readAndAcknowledgeNextCommand()
 
         // Process non-drawing commands one at a time.
         // This avoids holding expensive drawing resources until we need to (below) as described here:
@@ -176,23 +175,25 @@ extension mglRenderer: MTKViewDelegate {
             default: os_log("(mglRenderer) Unknown non-drawing command code %{public}@", log: .default, type: .error, String(describing: command))
             }
 
-            // Write a timestamp to Matlab as a command-processed ack.
-            _ = commandInterface.writeDouble(data: secs.get())
+            acknowledgePreviousCommandProcessed(isSuccess: true)
             return
         }
 
+        // From here below, we will process the next command as a drawing command.
+        // This means setting up a rendering pass and continuing to proecess commands until mglFlush.
+        // Or, if there's an error, we'll abandon rendering on this frame and return a negative ack.
+
         // Set up to process one or more drawing commands.
         guard let drawable = view.currentDrawable else {
-            // We did nothing, but Matlab still expectes a command-processed ack.
-            _ = commandInterface.writeDouble(data: secs.get())
+            os_log("(mglRenderer) Could not get current drawable from the view, skipping render pass.", log: .default, type: .error)
+            acknowledgePreviousCommandProcessed(isSuccess: false)
             return
         }
 
         // Set up a rendering pass, either to texture or to the view's default frame buffer.
         guard let descriptor = currentColorRenderingConfig.getRenderPassDescriptor(view: view) else {
-            // We did nothing, but Matlab still expects a command-processed ack.
             os_log("(mglRenderer) Could not get render pass descriptor from current color rendering config, skipping render pass.", log: .default, type: .error)
-            _ = commandInterface.writeDouble(data: secs.get())
+            acknowledgePreviousCommandProcessed(isSuccess: false)
             return
         }
 
@@ -201,8 +202,8 @@ extension mglRenderer: MTKViewDelegate {
 
         guard let commandBuffer = mglRenderer.commandQueue.makeCommandBuffer(),
               let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: descriptor) else {
-            // We did nothing, but Matlab still expectes a command-processed ack.
-            _ = commandInterface.writeDouble(data: secs.get())
+            os_log("(mglRenderer) Could not get command buffer and renderEncoder from the command queue, skipping render pass.", log: .default, type: .error)
+            acknowledgePreviousCommandProcessed(isSuccess: false)
             return
         }
 
@@ -229,14 +230,11 @@ extension mglRenderer: MTKViewDelegate {
             }
 
             // Write a timestamp to Matlab as a command-processed ack.
-            _ = commandInterface.writeDouble(data: secs.get())
+            acknowledgePreviousCommandProcessed(isSuccess: true)
 
             // This will block until the next command arrives.
             // The idea is to process a sequence of drawing commands as fast as we can.
-            command = commandInterface.readCommand()
-
-            // Write a timestamp to Matlab as a command-received ack.
-            _ = commandInterface.writeDouble(data: secs.get())
+            command = readAndAcknowledgeNextCommand()
         }
 
         // If we got here, we just did some drawing, ending with a flush command.
@@ -248,6 +246,20 @@ extension mglRenderer: MTKViewDelegate {
 
         // Present the drawable, and do other things like synchronize texture buffers, if needed.
         currentColorRenderingConfig.finishDrawing(commandBuffer: commandBuffer, drawable: drawable)
+    }
+
+    private func readAndAcknowledgeNextCommand() -> mglCommandCode {
+        let command = commandInterface.readCommand()
+        _ = commandInterface.writeDouble(data: secs.get())
+        return command
+    }
+
+    private func acknowledgePreviousCommandProcessed(isSuccess: Bool) {
+        if isSuccess {
+            _ = commandInterface.writeDouble(data: secs.get())
+        } else {
+            _ = commandInterface.writeDouble(data: -secs.get())
+        }
     }
 
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/

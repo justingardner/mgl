@@ -66,6 +66,7 @@ class mglCommandInterface {
         let expectedByteCount = MemoryLayout<mglCommandCode>.size
         let bytesRead = server.readData(buffer: &data, expectedByteCount: expectedByteCount)
         if (bytesRead != expectedByteCount) {
+            // TODO: return nil instead of fatal, let caller decide what make sense
             fatalError("(mglCommandInterface:readCommand) Expected to read \(expectedByteCount) bytes but read \(bytesRead)")
         }
         return data
@@ -79,6 +80,7 @@ class mglCommandInterface {
         let expectedByteCount = MemoryLayout<mglUInt32>.size
         let bytesRead = server.readData(buffer: &data, expectedByteCount: expectedByteCount)
         if (bytesRead != expectedByteCount) {
+            // TODO: return nil instead of fatal, let caller decide what make sense
             fatalError("(mglCommandInterface:readUInt32) Expected to read \(expectedByteCount) bytes but read \(bytesRead)")
         }
         return data
@@ -98,6 +100,7 @@ class mglCommandInterface {
         let expectedByteCount = MemoryLayout<mglFloat>.size
         let bytesRead = server.readData(buffer: &data, expectedByteCount: expectedByteCount)
         if (bytesRead != expectedByteCount) {
+            // TODO: return nil instead of fatal, let caller decide what make sense
             fatalError("(mglCommandInterface:readFloat) Expected to read \(expectedByteCount) bytes but read \(bytesRead)")
         }
         return data
@@ -115,6 +118,7 @@ class mglCommandInterface {
         let expectedByteCount = Int(mglSizeOfFloatRgbColor())
         let bytesRead = server.readData(buffer: data, expectedByteCount: expectedByteCount)
         if (bytesRead != expectedByteCount) {
+            // TODO: return nil instead of fatal, let caller decide what make sense
             fatalError("(mglCommandInterface:readColor) Expected to read \(expectedByteCount) bytes but read \(bytesRead)")
         }
 
@@ -134,6 +138,7 @@ class mglCommandInterface {
         let expectedByteCount = Int(mglSizeOfFloat4x4Matrix())
         let bytesRead = server.readData(buffer: data, expectedByteCount: expectedByteCount)
         if (bytesRead != expectedByteCount) {
+            // TODO: return nil instead of fatal, let caller decide what make sense
             fatalError("(mglCommandInterface:readXform) Expected to read \(expectedByteCount) bytes but read \(bytesRead)")
         }
 
@@ -162,12 +167,14 @@ class mglCommandInterface {
         // With storageModeManaged, we must explicitly sync the data to the GPU, below.
         guard let vertexBuffer = device.makeBuffer(length: expectedByteCount, options: .storageModeManaged) else {
             os_log("(mglCommandInterface) Could not make vertex buffer of size %{public}d", log: .default, type: .error, expectedByteCount)
+            // TODO: return nil instead of fatal, let caller decide what make sense
             fatalError("(mglCommandInterface:readVertices) Could not make vertex buffer of size \(expectedByteCount)")
         }
 
         let bytesRead = server.readData(buffer: vertexBuffer.contents(), expectedByteCount: expectedByteCount)
         if (bytesRead != expectedByteCount) {
             os_log("(mglCommandInterface) Expected to read vertex buffer of size %{public}d but read %{public}d", log: .default, type: .error, expectedByteCount, bytesRead)
+            // TODO: return nil instead of fatal, let caller decide what make sense
             fatalError("(mglCommandInterface:readVertices) Expected to read \(expectedByteCount) bytes but read \(bytesRead)")
         }
 
@@ -208,6 +215,7 @@ class mglCommandInterface {
         let bufferByteSize = alignedRowByteCount * textureHeight
         guard let textureBuffer = device.makeBuffer(length: bufferByteSize, options: .storageModeManaged) else {
             os_log("(mglCommandInterface) Could not make texture buffer of size %{public}d image width %{public}d aligned buffer width %{public}d and image height %{public}d", log: .default, type: .error, bufferByteSize, textureWidth, alignedRowByteCount, textureHeight)
+            // TODO: return nil instead of fatal, let caller decide what make sense
             fatalError("(mglCommandInterface:createTexture) Could not make texture buffer of size \(bufferByteSize) image width: \(textureWidth) aligned buffer row size: \(alignedRowByteCount) image height: \(textureHeight)")
         }
 
@@ -217,12 +225,14 @@ class mglCommandInterface {
         let expectedByteCount = imageRowByteCount * textureHeight
         if (bytesRead != expectedByteCount) {
             os_log("(mglCommandInterface) Could not read expected bytes %{public}d for texture, read %{public}d", log: .default, type: .error, expectedByteCount, bytesRead)
+            // TODO: return nil instead of fatal, let caller decide what make sense
             fatalError("(mglCommandInterface:createTexture) Could not read expected \(expectedByteCount) bytes for texture, read \(bytesRead).")
         }
 
         // Now make the buffer into a texture.
         guard let texture = textureBuffer.makeTexture(descriptor: textureDescriptor, offset: 0, bytesPerRow: alignedRowByteCount) else {
             os_log("(mglCommandInterface) Could not make texture from texture buffer of size %{public}d image width %{public}d aligned buffer width %{public}d and image height %{public}d", log: .default, type: .error, bufferByteSize, textureWidth, alignedRowByteCount, textureHeight)
+            // TODO: return nil instead of fatal, let caller decide what make sense
             fatalError("(mglCommandInterface:createTexture) Could not make texture from texture buffer of ssize \(bufferByteSize) image width: \(textureWidth) aligned buffer row size: \(alignedRowByteCount) image height: \(textureHeight)")
         }
 

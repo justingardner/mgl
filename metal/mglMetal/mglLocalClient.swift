@@ -22,7 +22,6 @@ class mglLocalClient {
 
         socketDescriptor = socket(AF_UNIX, SOCK_STREAM, 0)
         if socketDescriptor < 0 {
-            os_log("(mglLocalClient) Could not create socket, got descriptor: %{public}d, errno %{public}d", log: .default, type: .error, socketDescriptor, errno)
             fatalError("(mglLocalClient) Could not create socket: \(socketDescriptor) errno: \(errno)")
         }
 
@@ -43,7 +42,6 @@ class mglLocalClient {
         }
 
         if connectResult < 0 {
-            os_log("(mglLocalClient) Could not connect to the path, got result: %{public}d, errno %{public}d", log: .default, type: .error, connectResult, errno)
             fatalError("(mglLocalClient) Could not connect to the path: \(connectResult) errno: \(errno)")
         }
 

@@ -27,20 +27,17 @@ class mglLocalServer : mglServer {
             do {
                 try FileManager.default.removeItem(at: url)
             } catch let error as NSError {
-                os_log("(mglLocalServer) Unable to remove existing file: %{public}@", log: .default, type: .error, String(describing: pathToBind))
                 fatalError("(mglLocalServer) Unable to remove existing file\(pathToBind): \(error)")
             }
         }
 
         boundSocketDescriptor = socket(AF_UNIX, SOCK_STREAM, 0)
         if boundSocketDescriptor < 0 {
-            os_log("(mglLocalServer) Could not create socket, got descriptor: %{public}d, errno %{public}d", log: .default, type: .error, boundSocketDescriptor, errno)
             fatalError("(mglLocalServer) Could not create socket: \(boundSocketDescriptor) errno: \(errno)")
         }
 
         let nonblockingResult = fcntl(boundSocketDescriptor, F_SETFL, O_NONBLOCK)
         if nonblockingResult < 0 {
-            os_log("(mglLocalServer) Could not set socket to nonblocking, got result: %{public}d, errno %{public}d", log: .default, type: .error, nonblockingResult, errno)
             fatalError("(mglLocalServer) Could not set socket to nonblocking: \(nonblockingResult) errno: \(errno)")
         }
 
@@ -61,13 +58,11 @@ class mglLocalServer : mglServer {
         }
 
         if bindResult < 0 {
-            os_log("(mglLocalServer) Could not bind the path %{public}@, got result: %{public}d, errno %{public}d", log: .default, type: .error, String(describing: pathToBind), bindResult, errno)
             fatalError("(mglLocalServer) Could not bind the path \(pathToBind) with result: \(bindResult) errno: \(errno)")
         }
 
         let listenResult = listen(boundSocketDescriptor, maxConnections)
         if listenResult < 0 {
-            os_log("(mglLocalServer) Could not listen for connections, got result: %{public}d, errno %{public}d", log: .default, type: .error, listenResult, errno)
             fatalError("(mglLocalServer) Could not listen for connections: \(listenResult) errno: \(errno)")
         }
 
@@ -105,8 +100,7 @@ class mglLocalServer : mglServer {
 
         // Since this is a nonblockign socket, it's OK for accept to return -1 -- as long as errno is EAGAIN or EWOULDBLOCK.
         if (errno != EAGAIN && errno != EWOULDBLOCK) {
-            os_log("(mglLocalServer) Could not accept client connection, got result %{public}d, errno %{public}d", log: .default, type: .info, acceptedSocketDescriptor, errno)
-            fatalError("(mglLocalServer) Could not accept client connection: \(acceptedSocketDescriptor) errno: \(errno)")
+            os_log("(mglLocalServer) Could not accept client connection, got result %{public}d, errno %{public}d", log: .default, type: .error, acceptedSocketDescriptor, errno)
         }
         return false;
     }
