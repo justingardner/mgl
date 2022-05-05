@@ -33,7 +33,8 @@ class mglRenderer: NSObject {
     let library: MTLLibrary!
 
     // configuration for doing depth testing
-    let depthState: MTLDepthStencilState!
+    let currentDepthStencilConfig: mglDepthStencilConfig
+    let depthStencilState: MTLDepthStencilState!
 
     // command interface communicates with the client process like Matlab
     let commandInterface : mglCommandInterface
@@ -75,13 +76,17 @@ class mglRenderer: NSObject {
         // create a library for storing the shaders
         library = device.makeDefaultLibrary()
 
-        // set up for depth testing
-        let depthDescriptor = MTLDepthStencilDescriptor()
-        depthDescriptor.depthCompareFunction = .lessEqual
-        depthDescriptor.isDepthWriteEnabled = true
-        depthState = device.makeDepthStencilState(descriptor: depthDescriptor)
-        metalView.depthStencilPixelFormat = .depth32Float
+        // Set up to enable depth testing and stenciling.
+        // Confusingly, some parts of the Metal API treat these as one feature,
+        // while other parts treat depth and stenciling as separate features.
+        // In this case, the view treates them as one, with one big pixel format (and one buffer/texture) that handles both.
+        metalView.depthStencilPixelFormat = .depth32Float_stencil8
         metalView.clearDepth = 1.0
+
+        // Additional config specifically for stencils will change over time
+        // by swapping different implementations of mglDepthStencilConfig into currentDepthStencilConfig.
+        currentDepthStencilConfig = mglNoStencil()
+        depthStencilState = device.makeDepthStencilState(descriptor: currentDepthStencilConfig.depthStencilDescriptor())
 
         // Start with default clear color gray, used for on-screen as well as render to texture.
         metalView.clearColor = MTLClearColor(red: 0.5, green: 0.5, blue: 0.5, alpha: 1.0)
@@ -192,8 +197,10 @@ extension mglRenderer: MTKViewDelegate {
             return
         }
 
-        // Enable depth testing.
-        renderEncoder.setDepthStencilState(depthState)
+        // Enable depth testing, and maybe stenciling as well.
+        view.clearStencil = currentDepthStencilConfig.stencilClearValue()
+        renderEncoder.setStencilReferenceValue(currentDepthStencilConfig.stencilReferenceValue())
+        renderEncoder.setDepthStencilState(depthStencilState)
 
         // Attach our view transform to the same location expected by all vertex shaders (our convention).
         renderEncoder.setVertexBytes(&deg2metal, length: MemoryLayout<float4x4>.stride, index: 1)
@@ -545,9 +552,10 @@ extension mglRenderer: MTKViewDelegate {
     // Drawing commands
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
 
-    class func dotsPipelineStateDescriptor(colorPixelFormat:  MTLPixelFormat, depthPixelFormat:  MTLPixelFormat, library: MTLLibrary?) -> MTLRenderPipelineDescriptor {
+    class func dotsPipelineStateDescriptor(colorPixelFormat:  MTLPixelFormat, depthPixelFormat:  MTLPixelFormat, stencilPixelFormat:  MTLPixelFormat, library: MTLLibrary?) -> MTLRenderPipelineDescriptor {
         let pipelineDescriptor = MTLRenderPipelineDescriptor()
         pipelineDescriptor.depthAttachmentPixelFormat = depthPixelFormat
+        pipelineDescriptor.stencilAttachmentPixelFormat = stencilPixelFormat
         pipelineDescriptor.colorAttachments[0].pixelFormat = colorPixelFormat
         pipelineDescriptor.colorAttachments[0].isBlendingEnabled = true;
         pipelineDescriptor.colorAttachments[0].rgbBlendOperation = MTLBlendOperation.add;
@@ -593,9 +601,10 @@ extension mglRenderer: MTKViewDelegate {
         return true
     }
 
-    class func arcsPipelineStateDescriptor(colorPixelFormat:  MTLPixelFormat, depthPixelFormat:  MTLPixelFormat, library: MTLLibrary?) -> MTLRenderPipelineDescriptor {
+    class func arcsPipelineStateDescriptor(colorPixelFormat:  MTLPixelFormat, depthPixelFormat:  MTLPixelFormat, stencilPixelFormat:  MTLPixelFormat, library: MTLLibrary?) -> MTLRenderPipelineDescriptor {
         let pipelineDescriptor = MTLRenderPipelineDescriptor()
         pipelineDescriptor.depthAttachmentPixelFormat = depthPixelFormat
+        pipelineDescriptor.stencilAttachmentPixelFormat = stencilPixelFormat
         pipelineDescriptor.colorAttachments[0].pixelFormat = colorPixelFormat
         pipelineDescriptor.colorAttachments[0].isBlendingEnabled = true;
         pipelineDescriptor.colorAttachments[0].rgbBlendOperation = MTLBlendOperation.add;
@@ -642,9 +651,10 @@ extension mglRenderer: MTKViewDelegate {
     }
 
     
-    class func bltTexturePipelineStateDescriptor(colorPixelFormat:  MTLPixelFormat, depthPixelFormat:  MTLPixelFormat, library: MTLLibrary?) -> MTLRenderPipelineDescriptor {
+    class func bltTexturePipelineStateDescriptor(colorPixelFormat:  MTLPixelFormat, depthPixelFormat:  MTLPixelFormat, stencilPixelFormat:  MTLPixelFormat, library: MTLLibrary?) -> MTLRenderPipelineDescriptor {
         let pipelineDescriptor = MTLRenderPipelineDescriptor()
         pipelineDescriptor.depthAttachmentPixelFormat = depthPixelFormat
+        pipelineDescriptor.stencilAttachmentPixelFormat = stencilPixelFormat
         pipelineDescriptor.colorAttachments[0].pixelFormat = colorPixelFormat
         pipelineDescriptor.colorAttachments[0].isBlendingEnabled = true;
         pipelineDescriptor.colorAttachments[0].rgbBlendOperation = MTLBlendOperation.add;
@@ -730,9 +740,10 @@ extension mglRenderer: MTKViewDelegate {
         return filter
     }
 
-    class func drawVerticesPipelineStateDescriptor(colorPixelFormat:  MTLPixelFormat, depthPixelFormat:  MTLPixelFormat, library: MTLLibrary?) -> MTLRenderPipelineDescriptor {
+    class func drawVerticesPipelineStateDescriptor(colorPixelFormat:  MTLPixelFormat, depthPixelFormat:  MTLPixelFormat, stencilPixelFormat:  MTLPixelFormat, library: MTLLibrary?) -> MTLRenderPipelineDescriptor {
         let pipelineDescriptor = MTLRenderPipelineDescriptor()
         pipelineDescriptor.depthAttachmentPixelFormat = depthPixelFormat
+        pipelineDescriptor.stencilAttachmentPixelFormat = stencilPixelFormat
         pipelineDescriptor.colorAttachments[0].pixelFormat = colorPixelFormat
         pipelineDescriptor.colorAttachments[0].isBlendingEnabled = true;
         pipelineDescriptor.colorAttachments[0].rgbBlendOperation = MTLBlendOperation.add;

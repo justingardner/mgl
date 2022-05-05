@@ -52,21 +52,25 @@ class mglOnscreenRenderingConfig : mglColorRenderingConfig {
                 descriptor: mglRenderer.dotsPipelineStateDescriptor(
                     colorPixelFormat: view.colorPixelFormat,
                     depthPixelFormat: view.depthStencilPixelFormat,
+                    stencilPixelFormat: view.depthStencilPixelFormat,
                     library: library))
             arcsPipelineState = try device.makeRenderPipelineState(
                 descriptor: mglRenderer.arcsPipelineStateDescriptor(
                     colorPixelFormat: view.colorPixelFormat,
                     depthPixelFormat: view.depthStencilPixelFormat,
+                    stencilPixelFormat: view.depthStencilPixelFormat,
                     library: library))
             verticesWithColorPipelineState = try device.makeRenderPipelineState(
                 descriptor: mglRenderer.drawVerticesPipelineStateDescriptor(
                     colorPixelFormat: view.colorPixelFormat,
                     depthPixelFormat: view.depthStencilPixelFormat,
+                    stencilPixelFormat: view.depthStencilPixelFormat,
                     library: library))
             texturePipelineState = try device.makeRenderPipelineState(
                 descriptor: mglRenderer.bltTexturePipelineStateDescriptor(
                     colorPixelFormat: view.colorPixelFormat,
                     depthPixelFormat: view.depthStencilPixelFormat,
+                    stencilPixelFormat: view.depthStencilPixelFormat,
                     library: library))
         } catch let error {
             os_log("Could not create onscreen pipeline state: %@", log: .default, type: .error, String(describing: error))
@@ -91,59 +95,67 @@ class mglOffScreenTextureRenderingConfig : mglColorRenderingConfig {
     let texturePipelineState: MTLRenderPipelineState
 
     let colorTexture: MTLTexture
-    let depthTexture: MTLTexture
+    let depthStencilTexture: MTLTexture
     let renderPassDescriptor: MTLRenderPassDescriptor
 
     init?(device: MTLDevice, library: MTLLibrary, view: MTKView, texture: MTLTexture) {
         self.colorTexture = texture
 
-        let depthTextureDescriptor = MTLTextureDescriptor.texture2DDescriptor(
+        let depthStencilTextureDescriptor = MTLTextureDescriptor.texture2DDescriptor(
             pixelFormat: view.depthStencilPixelFormat,
             width: texture.width,
             height: texture.height,
             mipmapped: false)
-        depthTextureDescriptor.storageMode = .private
-        depthTextureDescriptor.usage = .renderTarget
-        guard let depthTexture = device.makeTexture(descriptor: depthTextureDescriptor) else {
-            os_log("Could not create offscreen depth texture, got nil!", log: .default, type: .error)
+        depthStencilTextureDescriptor.storageMode = .private
+        depthStencilTextureDescriptor.usage = .renderTarget
+        guard let depthStencilTexture = device.makeTexture(descriptor: depthStencilTextureDescriptor) else {
+            os_log("Could not create offscreen depth-and-stencil texture, got nil!", log: .default, type: .error)
             return nil
         }
-        self.depthTexture = depthTexture
+        self.depthStencilTexture = depthStencilTexture
 
         renderPassDescriptor = MTLRenderPassDescriptor()
         renderPassDescriptor.colorAttachments[0].texture = texture
         renderPassDescriptor.colorAttachments[0].loadAction = .clear
         renderPassDescriptor.colorAttachments[0].storeAction = .store
-        renderPassDescriptor.depthAttachment.clearDepth = 1.0
+        renderPassDescriptor.depthAttachment.clearDepth = view.clearDepth
+        renderPassDescriptor.depthAttachment.loadAction = .clear
         renderPassDescriptor.depthAttachment.storeAction = .dontCare
-        renderPassDescriptor.depthAttachment.texture = depthTexture
+        renderPassDescriptor.depthAttachment.texture = depthStencilTexture
+        renderPassDescriptor.stencilAttachment.clearStencil = view.clearStencil
+        renderPassDescriptor.stencilAttachment.loadAction = .clear
+        renderPassDescriptor.stencilAttachment.storeAction = .store
+        renderPassDescriptor.stencilAttachment.texture = depthStencilTexture
 
         do {
             dotsPipelineState = try device.makeRenderPipelineState(
                 descriptor: mglRenderer.dotsPipelineStateDescriptor(
                     colorPixelFormat: texture.pixelFormat,
                     depthPixelFormat: view.depthStencilPixelFormat,
+                    stencilPixelFormat: view.depthStencilPixelFormat,
                     library: library))
             arcsPipelineState = try device.makeRenderPipelineState(
                 descriptor: mglRenderer.arcsPipelineStateDescriptor(
                     colorPixelFormat: texture.pixelFormat,
                     depthPixelFormat: view.depthStencilPixelFormat,
+                    stencilPixelFormat: view.depthStencilPixelFormat,
                     library: library))
             verticesWithColorPipelineState = try device.makeRenderPipelineState(
                 descriptor: mglRenderer.drawVerticesPipelineStateDescriptor(
                     colorPixelFormat: texture.pixelFormat,
                     depthPixelFormat: view.depthStencilPixelFormat,
+                    stencilPixelFormat: view.depthStencilPixelFormat,
                     library: library))
             texturePipelineState = try device.makeRenderPipelineState(
                 descriptor: mglRenderer.bltTexturePipelineStateDescriptor(
                     colorPixelFormat: texture.pixelFormat,
                     depthPixelFormat: view.depthStencilPixelFormat,
+                    stencilPixelFormat: view.depthStencilPixelFormat,
                     library: library))
         } catch let error {
             os_log("Could not create offscreen pipeline state: %@", log: .default, type: .error, String(describing: error))
             return nil
         }
-
     }
 
     func getRenderPassDescriptor(view: MTKView) -> MTLRenderPassDescriptor? {
