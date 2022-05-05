@@ -29,6 +29,17 @@ mglSocketWrite(mgl.s, mgl.command.mglReadTexture);
 ackTime = mglSocketRead(mgl.s, 'double');
 mglSocketWrite(mgl.s, tex.textureNumber);
 
+% Check if the command was processed OK or with error.
+responseIncoming = mglSocketRead(mgl.s, 'double');
+if (responseIncoming < 0)
+    im = [];
+    processedTime = mglSocketRead(mgl.s, 'double');
+    disp('Error reading Metal texture, you might try again with Console running, or: log stream --level info --process mglMetal')
+    return
+end
+
+% Processing was OK, read the response.
+
 % How big is the texture?
 width = mglSocketRead(mgl.s, 'uint32');
 height = mglSocketRead(mgl.s, 'uint32');

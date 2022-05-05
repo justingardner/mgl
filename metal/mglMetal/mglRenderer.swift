@@ -463,7 +463,7 @@ extension mglRenderer: MTKViewDelegate {
             return false
         }
 
-        os_log("(mglRenderer) Removed texture number %{public}d, remaining numbers are %{public}@.", log: .default, type: .info, String(describing: textures.keys))
+        os_log("(mglRenderer) Removed texture number %{public}d, remaining numbers are %{public}@.", log: .default, type: .info, textureNumber, String(describing: textures.keys))
         return true
     }
 
@@ -496,7 +496,7 @@ extension mglRenderer: MTKViewDelegate {
         }
 
         guard let texture = textures[textureNumber] else {
-            os_log("(mglRenderer) Invalid texture number %{public}d, valid numbers are %{public}@.", log: .default, type: .error, String(describing: textures.keys))
+            os_log("(mglRenderer) Invalid texture number %{public}d, valid numbers are %{public}@.", log: .default, type: .error, textureNumber, String(describing: textures.keys))
             acknowledgeReturnDataOnItsWay(isOnItsWay: false)
             return false
         }
@@ -525,7 +525,7 @@ extension mglRenderer: MTKViewDelegate {
 
         // Resolve the texture and its buffer.
         guard let texture = textures[textureNumber] else {
-            os_log("(mglRenderer) Invalid texture number %{public}d, valid numbers are %{public}@.", log: .default, type: .error, String(describing: textures.keys))
+            os_log("(mglRenderer) Invalid texture number %{public}d, valid numbers are %{public}@.", log: .default, type: .error, textureNumber, String(describing: textures.keys))
             return false
         }
 
@@ -682,7 +682,7 @@ extension mglRenderer: MTKViewDelegate {
 
         // Make sure we have the actual requested texture.
         guard let texture = textures[textureNumber] else {
-            os_log("(mglRenderer) Invalid texture number %{public}d, valid numbers are %{public}@.", log: .default, type: .error, String(describing: textures.keys))
+            os_log("(mglRenderer) Invalid texture number %{public}d, valid numbers are %{public}@.", log: .default, type: .error, textureNumber, String(describing: textures.keys))
             return false
         }
 

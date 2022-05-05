@@ -49,7 +49,9 @@ else
         imshow(result.snapshot(:,:,1:3), 'InitialMagnification', 100);
         title(sprintf('Expected (%d x %d)', size(result.snapshot, 1), size(result.snapshot, 2)));
         figure('Name', sprintf('%s Actual', result.testName));
-        imshow(result.renderedImage(:,:,1:3), 'InitialMagnification', 100);
+        if size(result.renderedImage, 3) >= 3
+            imshow(result.renderedImage(:,:,1:3), 'InitialMagnification', 100);
+        end
         title(sprintf('Actual (%d x %d)', size(result.renderedImage, 1), size(result.renderedImage, 2)));
     end
     fprintf('Despair not!\n');

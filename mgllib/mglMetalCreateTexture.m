@@ -46,6 +46,14 @@ if (tex.colorDim ~= 4)
     error('(mglMetalCreateTexture) im must be mxnx4 rgba float.\n')
 end
 
+% set the textureType (this was used in openGL to differntiate 1D and 2D textures)
+tex.textureType = 1;
+
+% set sampler configuration
+tex.minMagFilter = minMagFilter;
+tex.mipFilter = mipFilter;
+tex.addressMode = addressMode;
+
 % Rearrange the image data into the Metal texture format.
 % See the corresponding rearragement in mglMetalReadTexture.
 %
@@ -68,16 +76,18 @@ ackTime = mglSocketRead(mgl.s, 'double');
 mglSocketWrite(mgl.s, uint32(tex.imageWidth));
 mglSocketWrite(mgl.s, uint32(tex.imageHeight));
 mglSocketWrite(mgl.s, single(im(:)));
+
+% Check if the command was processed OK or with error.
+responseIncoming = mglSocketRead(mgl.s, 'double');
+if (responseIncoming < 0)
+    tex.textureNumber = -1;
+    processedTime = mglSocketRead(mgl.s, 'double');
+    disp('Error creating Metal texture, you might try again with Console running, or: log stream --level info --process mglMetal')
+    return
+end
+
+% Processing was OK, read the response.
 tex.textureNumber = mglSocketRead(mgl.s, 'uint32');
 numTextures = mglSocketRead(mgl.s, 'uint32');
 processedTime = mglSocketRead(mgl.s, 'double');
-
 mglSetParam('numTextures', numTextures);
-
-% set the textureType (this was used in openGL to differntiate 1D and 2D textures)
-tex.textureType = 1;
-
-% set sampler configuration
-tex.minMagFilter = minMagFilter;
-tex.mipFilter = mipFilter;
-tex.addressMode = addressMode;

@@ -29,7 +29,7 @@ end
 textureWidth = 640;
 textureHeight = 480;
 blankImage = ones([textureHeight, textureWidth, 4], 'single');
-tex = mglMetalCreateTexture(blankImage);
+tex = mglMetalCreateTexture(blankImage, 0, 1, 0);
 
 % Update the texture with a new, more interesting image.
 x = linspace(0, 1, textureWidth);

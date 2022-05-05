@@ -15,6 +15,18 @@ global mgl
 
 mglSocketWrite(mgl.s, mgl.command.mglGetWindowFrameInDisplay);
 ackTime = mglSocketRead(mgl.s, 'double');
+
+% Check if the command was processed OK or with error.
+responseIncoming = mglSocketRead(mgl.s, 'double');
+if (responseIncoming < 0)
+    displayNumber = 0;
+    rect = [0 0 0 0];
+    processedTime = mglSocketRead(mgl.s, 'double');
+    disp('Error getting Metal window and display info, you might try again with Console running, or: log stream --level info --process mglMetal')
+    return
+end
+
+% Processing was OK, read the response.
 displayNumber = mglSocketRead(mgl.s, 'uint32');
 x = mglSocketRead(mgl.s, 'uint32');
 y = mglSocketRead(mgl.s, 'uint32');

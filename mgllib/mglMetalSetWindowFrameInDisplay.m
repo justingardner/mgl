@@ -8,7 +8,7 @@
 %             Display number is 1-based in Matlab.
 %
 % mglOpen(0);
-% mglMetalSetWindowFrameInDisplay(1, [x, y, width, height])
+% mglMetalSetWindowFrameInDisplay(1, [100, 200, 64, 48])
 % 
 function [ackTime, processedTime] = mglMetalSetWindowFrameInDisplay(displayNumber, rect)
 

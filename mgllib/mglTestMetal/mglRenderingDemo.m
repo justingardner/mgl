@@ -22,14 +22,13 @@ if ischar(testNames)
 end
 
 fprintf('\nRunning %d demos.\n', numel(testNames));
-mglGetKeyEvent(0,1)
+
 % Run all the demos with pauses in between.
 for ii = 1:numel(testNames)
     testName = testNames{ii};
-    prompt = sprintf('\n%d: Hit any key to continue for %s.\n', ii, testName);
-    disp(prompt);
+    fprintf('\n%d: Hit any key to continue for %s.\n', ii, testName);
+
     mglPause;
-    %input(prompt);
 
     feval(testName, true);
 end
