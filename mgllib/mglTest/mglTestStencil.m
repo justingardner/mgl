@@ -30,13 +30,13 @@ if (mglGetParam('stencilBits')==0)
   mglClose;
   return
   end
-mglFillOval(0,0,[5 4]);
+mglFillOval(0,0,[5*mglGetParam('xDeviceToPixels') 4*mglGetParam('yDeviceToPixels')]);
 mglStencilCreateEnd;
 mglClearScreen;
 
 % Draw an oval stencil
 mglStencilCreateBegin(2,1);
-mglFillOval(0,0,[8 8]);
+mglFillOval(0,0,[8*mglGetParam('xDeviceToPixels') 8*mglGetParam('yDeviceToPixels')]);
 mglStencilCreateEnd;
 mglClearScreen;
 
@@ -56,7 +56,7 @@ numsec = 5;
 starttime = mglGetSecs;
 for i = 1:mglGetParam('frameRate')*numsec
   % now draw the dots using the two stencil's we'ver created
-  mglStencilSelect(1);
+  %mglStencilSelect(1);
   mglPoints2(dots(1).x,dots(1).y,dotSize,[0.8 0.4 0.5]);
   mglStencilSelect(2);
   mglPoints2(dots(2).x,dots(2).y,dotSize,[0.2 0.8 0.4]);

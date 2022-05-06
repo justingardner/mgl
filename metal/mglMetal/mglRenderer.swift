@@ -33,8 +33,9 @@ class mglRenderer: NSObject {
     let library: MTLLibrary!
 
     // configuration for doing depth testing
-    let currentDepthStencilConfig: mglDepthStencilConfig
-    let depthStencilState: MTLDepthStencilState!
+    let noStencilDepthStencilConfig: mglDepthStencilConfig
+    var currentDepthStencilConfig: mglDepthStencilConfig
+    var depthStencilState: MTLDepthStencilState!
 
     // command interface communicates with the client process like Matlab
     let commandInterface : mglCommandInterface
@@ -83,10 +84,12 @@ class mglRenderer: NSObject {
         metalView.depthStencilPixelFormat = .depth32Float_stencil8
         metalView.clearDepth = 1.0
 
-        // Additional config specifically for stencils will change over time
-        // by swapping different implementations of mglDepthStencilConfig into currentDepthStencilConfig.
-        currentDepthStencilConfig = mglNoStencil()
+        // Default to depth test enabled, but no stenciling enabled.
+        // But currentDepthStencilConfig can be swapped out later to create and select stencils by number.
+        noStencilDepthStencilConfig = mglDisableStencils()
+        currentDepthStencilConfig = noStencilDepthStencilConfig
         depthStencilState = device.makeDepthStencilState(descriptor: currentDepthStencilConfig.depthStencilDescriptor())
+        metalView.clearStencil = currentDepthStencilConfig.stencilClearValue
 
         // Start with default clear color gray, used for on-screen as well as render to texture.
         metalView.clearColor = MTLClearColor(red: 0.5, green: 0.5, blue: 0.5, alpha: 1.0)
@@ -166,6 +169,8 @@ extension mglRenderer: MTKViewDelegate {
             case mglGetWindowFrameInDisplay: commandSuccess = getWindowFrameInDisplay(view: view)
             case mglDeleteTexture: commandSuccess = deleteTexture()
             case mglSetViewColorPixelFormat: commandSuccess = setViewColorPixelFormat(view: view)
+            case mglCreateStencil: commandSuccess = createStencil(view: view)
+            case mglSelectStencil: commandSuccess = selectStencil(view: view)
             default: os_log("(mglRenderer) Unknown non-drawing command code %{public}@", log: .default, type: .error, String(describing: command))
             }
 
@@ -189,6 +194,8 @@ extension mglRenderer: MTKViewDelegate {
             return
         }
         renderPassDescriptor.colorAttachments[0].clearColor = view.clearColor
+        renderPassDescriptor.stencilAttachment.loadAction = currentDepthStencilConfig.stencilLoadAction
+        renderPassDescriptor.stencilAttachment.storeAction = currentDepthStencilConfig.stencilStoreAction
 
         guard let commandBuffer = mglRenderer.commandQueue.makeCommandBuffer(),
               let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor) else {
@@ -198,8 +205,7 @@ extension mglRenderer: MTKViewDelegate {
         }
 
         // Enable depth testing, and maybe stenciling as well.
-        view.clearStencil = currentDepthStencilConfig.stencilClearValue()
-        renderEncoder.setStencilReferenceValue(currentDepthStencilConfig.stencilReferenceValue())
+        renderEncoder.setStencilReferenceValue(currentDepthStencilConfig.stencilRefValue)
         renderEncoder.setDepthStencilState(depthStencilState)
 
         // Attach our view transform to the same location expected by all vertex shaders (our convention).
@@ -220,6 +226,7 @@ extension mglRenderer: MTKViewDelegate {
             case mglPolygon: commandSuccess = drawVerticesWithColor(view: view, renderEncoder: renderEncoder, primitiveType: .triangleStrip)
             case mglArcs: commandSuccess = drawArcs(view: view, renderEncoder: renderEncoder)
             case mglUpdateTexture: commandSuccess = updateTexture()
+            case mglSelectStencil: commandSuccess = selectStencil(view: view)
             default: os_log("(mglRenderer) Unknown drawing command code %{public}@", log: .default, type: .error, String(describing: command))
             }
 
@@ -488,7 +495,7 @@ extension mglRenderer: MTKViewDelegate {
         os_log("(mglRenderer) Got textureNumber %{public}d, choosing offscreen rendering to texture.", log: .default, type: .info, textureNumber)
 
         guard let newTextureRenderingConfig = mglOffScreenTextureRenderingConfig(device: mglRenderer.device, library: library, view: view, texture: targetTexture) else {
-            os_log("(mglRenderer) Could not create offscreen rendering config for textureNumber %{public]d, got nil.", log: .default, type: .error, textureNumber)
+            os_log("(mglRenderer) Could not create offscreen rendering config for textureNumber %{public}d, got nil.", log: .default, type: .error, textureNumber)
             return false
         }
         currentColorRenderingConfig = newTextureRenderingConfig
@@ -521,6 +528,51 @@ extension mglRenderer: MTKViewDelegate {
         let totalByteCount = commandInterface.imageRowsFromBuffer(buffer: buffer, imageRowByteCount: imageRowByteCount, alignedRowByteCount: texture.bufferBytesPerRow, rowCount: texture.height)
 
         return totalByteCount == imageRowByteCount * texture.height
+    }
+
+    func createStencil(view: MTKView) -> Bool {
+        guard let stencilNumber = commandInterface.readUInt32(),
+              let isInverted = commandInterface.readUInt32() else {
+            return false
+        }
+
+        if (stencilNumber < 1 || stencilNumber > 8) {
+            os_log("(mglRenderer) Got stencil number to create %{public}d but only numbers 1-8 are supported.", log: .default, type: .error, stencilNumber)
+            return false
+        }
+
+        os_log("(mglRenderer) Creating stencil number %{public}d, with isInverted %{public}d.", log: .default, type: .info, stencilNumber, isInverted)
+        let depthStencilConfig = mglEnableStencilCreate(stencilNumber: stencilNumber, isInverted: isInverted != 0)
+        enableDepthStencilConfig(view: view, depthStencilConfig: depthStencilConfig)
+        return true
+    }
+
+    private func enableDepthStencilConfig(view: MTKView, depthStencilConfig: mglDepthStencilConfig) {
+        currentDepthStencilConfig = depthStencilConfig
+        depthStencilState = mglRenderer.device.makeDepthStencilState(descriptor: depthStencilConfig.depthStencilDescriptor())
+        view.clearStencil = depthStencilConfig.stencilClearValue
+    }
+
+    func selectStencil(view: MTKView) -> Bool {
+        guard let stencilNumber = commandInterface.readUInt32() else {
+            return false
+        }
+
+        if (stencilNumber > 8) {
+            os_log("(mglRenderer) Got stencil number to select %{public}d but only numbers 0-8 are supported.", log: .default, type: .error, stencilNumber)
+            return false
+        }
+
+        if (stencilNumber == 0) {
+            os_log("(mglRenderer) Selecting stencil number 0, which means no stencil.", log: .default, type: .info)
+            enableDepthStencilConfig(view: view, depthStencilConfig: noStencilDepthStencilConfig)
+            return true
+        }
+
+        os_log("(mglRenderer) Selecting stencil number %{public}d.", log: .default, type: .info, stencilNumber)
+        let depthStencilConfig = mglEnableStencilSelect(stencilNumber: stencilNumber)
+        enableDepthStencilConfig(view: view, depthStencilConfig: depthStencilConfig)
+        return true
     }
 
     func updateTexture() -> Bool {

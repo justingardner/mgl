@@ -1,8 +1,8 @@
 % mglStencilCreateBegin
 %
 %        $Id$
-%      usage: mglStencilCreateBegin(stencilNumber,invert)
-%         by: justin gardner
+%      usage: [ackTime, processedTime] = mglStencilCreateBegin(stencilNumber,invert)
+%         by: justin gardner and ben heasly
 %       date: 05/26/2006
 %  copyright: (c) 2006 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
 %    purpose: Begin drawing to stencil. Until mglStencilCreateEnd
@@ -26,5 +26,16 @@
 %mglPoints2(rand(1,5000)*500,rand(1,5000)*500);
 %mglFlush;
 %mglStencilSelect(0);
+function [ackTime, processedTime] = mglStencilCreateBegin(stencilNumber, invert)
 
+if nargin < 2
+    invert = 0;
+end
+
+global mgl
+mglSocketWrite(mgl.s, mgl.command.mglCreateStencil);
+ackTime = mglSocketRead(mgl.s, 'double');
+mglSocketWrite(mgl.s, uint32(stencilNumber));
+mglSocketWrite(mgl.s, uint32(invert));
+processedTime = mglSocketRead(mgl.s, 'double');
 

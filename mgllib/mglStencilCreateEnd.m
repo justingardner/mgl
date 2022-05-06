@@ -1,7 +1,7 @@
 % mglStencilCreateEnd
 %
 %        $Id$
-%      usage: mglStencilCreateEnd
+%      usage: [ackTime, processedTime] = mglStencilCreateEnd()
 %         by: justin gardner
 %       date: 05/26/2006
 %  copyright: (c) 2006 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
@@ -22,3 +22,10 @@
 %mglPoints2(rand(1,5000)*500,rand(1,5000)*500);
 %mglFlush;
 %mglStencilSelect(0);
+function [ackTime, processedTime] = mglStencilCreateEnd()
+
+% Flush to complete the render pass where we wrote to the texture.
+mglFlush();
+
+% Selecting stencil 0 disables stencil stuff until mglStencilSelect.
+[ackTime, processedTime] = mglStencilSelect(0);

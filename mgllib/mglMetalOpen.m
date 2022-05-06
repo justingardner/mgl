@@ -123,5 +123,6 @@ mglSetParam('deviceHeight', 2);
 mglSetParam('deviceCoords', 'default');
 mglSetParam('deviceRect', [-1 -1 1 1]);
 
-% placeholder for now in v3 with Metal
-mglSetParam('stencilBits', 0);
+% mglMetal uses a depth/stencil pixel format called depth32Float_stencil8.
+% So, 8 stencil bits.
+mglSetParam('stencilBits', 8);

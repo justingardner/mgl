@@ -1,8 +1,8 @@
 % mglStencilSelect 
 %
 %        $Id$
-%      usage:  = mglStencilSelect(stencilNumber)
-%         by: justin gardner
+%      usage: [ackTime, processedTime] = mglStencilSelect(stencilNumber)
+%         by: justin gardner and ben heasly
 %       date: 05/26/2006
 %  copyright: (c) 2006 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
 %    purpose: Sets which stencil to use, 0 for no stencil
@@ -22,3 +22,10 @@
 %mglPoints2(rand(1,5000)*500,rand(1,5000)*500);
 %mglFlush;
 %mglStencilSelect(0);
+function [ackTime, processedTime] = mglStencilSelect(stencilNumber)
+
+global mgl
+mglSocketWrite(mgl.s, mgl.command.mglSelectStencil);
+ackTime = mglSocketRead(mgl.s, 'double');
+mglSocketWrite(mgl.s, uint32(stencilNumber));
+processedTime = mglSocketRead(mgl.s, 'double');
