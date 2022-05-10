@@ -2256,7 +2256,6 @@ end
 %%%%%%%%%%%%%%%%%
 function calib = bitTest(calib,portNum,photometerNum,bitTestType,bitTestMode)
 
-keyboard
 dispMessage(sprintf('Testing for %i bit gamma table',calib.bittest.bits));
 
 % test to see how many bits we have in the gamma table
@@ -2645,7 +2644,7 @@ if todo.testTable
 end
 
 if todo.bitTest
-  disp(sprintf('%i: Test for %i bit gamma card with numRepeats: %i n: %i baseValue: %0.3f',i,calib.bittest.bits,calib.bittest.numRepeats,calib.bittest.n,calib.bittest.base));
+  disp(sprintf('%i: Test for %i bit with numRepeats: %i n: %i baseValue: %0.3f',i,calib.bittest.bits,calib.bittest.numRepeats,calib.bittest.n,calib.bittest.base));
   i = i+1;
 end
 
