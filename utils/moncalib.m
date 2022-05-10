@@ -17,7 +17,14 @@
 %               gammaEachChannel = Set to 1 to measure the monitor gamma for each color channel separately, default is 0
 %               exponent = Set to 1 to fit the gamma with an exponential, default is 0
 %               tableTest = Test the inverted table for linearization, default = 1
-%               bitTest = Test for 10 bit gamma, default = 0
+%               bitTest = Test for 10 bit gamma/display, default = 0
+%               bitTestType = (default 1) Set to 1 to test if gamma table
+%                             is 10 bit, i.e. step through gamma table
+%                             values or set to 2 to test if display mode is
+%                             10 bit, i.e. step through color values and
+%                             see if the display supports deep color
+%               bitTestMode = (default 4) Mode to use for
+%                             mglMetalSetViewPixelFormat (see help), only used for bitTestType=2
 %               bitTestBits = Change number of bits to test gamma table for, default=10
 %               bitTestNumRepeats = Number of repeated measurements to take, default = 16
 %               bitTestN = Number of increments in luminance to test, default=12
@@ -77,7 +84,9 @@
 %             if your display card supports 10 bit gamma tables (the graph on
 %             the right should look like a linear rise in luminance as we
 %             step in units of 1/1024 the output. If it is 8 bit, it will look like
-%             a step function.
+%             a step function. If you set bitTestType=2, it will test for deep color
+%             (i.e. not the gamma output, but that the display mode allows
+%             for 10 bits)
 %
 %             initWaitTime can be set so that you have however many seconds you set
 %             it to to leave the room before the calibration starts. (default 0)
@@ -180,7 +189,7 @@ if todo.displayTestTable,displayTestTable(calib);end
 
 if todo.bitTest
   % run the bit test
-  calib = bitTest(calib,portNum,photometerNum);
+  calib = bitTest(calib,portNum,photometerNum,todo.bitTestType,todo.bitTestMode);
   % save the file
   saveCalib(calib);
 end
@@ -236,6 +245,7 @@ if ~calib.fastSearch
       else
         if (verbose>1),disp(sprintf('Setting screen output to %f',val));end
         mglClearScreen(val);mglFlush;
+        disp(sprintf('(moncalib) Clearing screen to value: %f',val));
       end
       % wait a bit to make sure it has changed
       mglWaitSecs(0.1);
@@ -1943,13 +1953,13 @@ else
   verbose = 0;
   % ask the user if they want to do these things, since they
   % take a long time
-  if todo.testTable
+  if todo.testTable && todo.measureGamma
     todo.testTable = askuser('After calibration you can test the calibration, but this will force you to measure the luminances twice, do you want to test the calibration');
   end
   if todo.bitTest
     todo.bitTest = askuser('Do you want to test whether you have a 10 bit gamma table (this also will require a lot of measurements)');
   end
-  if (calib.numRepeats>1) && askuser(sprintf('Number of repeats is set to %i. Would you rather collect only 1 repeat of each measurement',calib.numRepeats))
+  if (todo.measureGamma && (calib.numRepeats>1)) && askuser(sprintf('Number of repeats is set to %i. Would you rather collect only 1 repeat of each measurement',calib.numRepeats))
     calib.numRepeats = 1;
   end
 end
@@ -2244,8 +2254,9 @@ end
 %%%%%%%%%%%%%%%%%
 %    bitTest    %
 %%%%%%%%%%%%%%%%%
-function calib = bitTest(calib,portNum,photometerNum)
+function calib = bitTest(calib,portNum,photometerNum,bitTestType,bitTestMode)
 
+keyboard
 dispMessage(sprintf('Testing for %i bit gamma table',calib.bittest.bits));
 
 % test to see how many bits we have in the gamma table
@@ -2254,7 +2265,17 @@ if ~isfield(calib.bittest,'data')
   % steps of size 1/(2^bittest.bits). A 10 bit monitor should step up
   % luninance for every output increment of 1/1024
   bitTestRange = calib.bittest.base:(1/(2^calib.bittest.bits)):calib.bittest.base+(calib.bittest.n-1)*(1/(2^calib.bittest.bits));
-  calib.bittest.data = measureOutput(portNum,photometerNum,bitTestRange,calib.bittest.numRepeats);
+  if bitTestType == 1
+    disp(sprintf('(moncalib) Running bittest on gamma table'));
+    calib.bittest.data = measureOutput(portNum,photometerNum,bitTestRange,calib);
+  else
+    disp(sprintf('(moncalib) Running bittest on actual display values to test for deep color'));
+    % set metal color pixel format
+    disp(sprintf('(moncalib) Using mode: %i for mglMetalSetViewColorPixelFormat',bitTestMode));
+    mglMetalSetViewColorPixelFormat(bitTestMode);
+    % test the monitor
+    calib.bittest.data = measureOutput(portNum,photometerNum,bitTestRange,calib,0);
+  end      
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%
@@ -2306,6 +2327,8 @@ bitTestBits = 10;
 bitTestN = 12;
 bitTestNumRepeats = 16;
 bitTestBase = 0.8;
+bitTestType = 1;
+bitTestMode = 4;
 
 calib = [];
 % see if we were actually passed in a calib structure
@@ -2355,7 +2378,7 @@ if oldStyleArgs
   if nargs < 6,initWaitTime = 0; else initWaitTime = vars{6};end
 else
   if exist('getArgs') == 2
-    getArgs(vars,{'numRepeats=4','stepsize=1/256','initWaitTime=0','screenNumber=[]','spectrum=0','gamma=1','exponent=0','tableTest=1','bitTest=0','reset=0','gammaEachChannel=0','verbose=1','bitTestBits=10','bitTestNumRepeats=4','bitTestN=12','bitTestBase=0.5','serialPortFun',serialPortFun,'commTest=0','fastSearch=0'});
+    getArgs(vars,{'numRepeats=4','stepsize=1/256','initWaitTime=0','screenNumber=[]','spectrum=0','gamma=1','exponent=0','tableTest=1','bitTest=0','reset=0','gammaEachChannel=0','verbose=1','bitTestBits=10','bitTestNumRepeats=16','bitTestN=12','bitTestBase=0.5','serialPortFun',serialPortFun,'commTest=0','fastSearch=0','bitTestType=1','bitTestMode=4'});
   else
     disp(sprintf('(moncalib) To parse string arguments you need getArgs from the mrTools distribution. \nSee here: http://gru.brain.riken.jp/doku.php/mgl/gettingStarted#initial_setup'));
     todo = [];
@@ -2390,6 +2413,8 @@ todo.displayTestExponent = exponent;
 todo.testTable = tableTest;
 todo.displayTestTable = tableTest;
 todo.bitTest = bitTest;
+todo.bitTestType = bitTestType;
+todo.bitTestMode = bitTestMode;
 todo.displayBitTest = bitTest;
 
 % settings used to setup photometer and serial port
