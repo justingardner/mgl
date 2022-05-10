@@ -25,7 +25,13 @@
 function [ackTime, processedTime] = mglStencilCreateEnd()
 
 % Flush to complete the render pass where we wrote to the texture.
+% This causes Metal to store the new stencil buffer for later.
 mglFlush();
 
-% Selecting stencil 0 disables stencil stuff until mglStencilSelect.
-[ackTime, processedTime] = mglStencilSelect(0);
+% Transition back to stencils-enabled mode rather than create-stencil mode.
+% Select stencil 0
+
+global mgl
+mglSocketWrite(mgl.s, mgl.command.mglFinishStencilCreation);
+ackTime = mglSocketRead(mgl.s, 'double');
+processedTime = mglSocketRead(mgl.s, 'double');

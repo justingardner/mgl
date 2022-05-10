@@ -24,6 +24,8 @@
 %mglStencilSelect(0);
 function [ackTime, processedTime] = mglStencilSelect(stencilNumber)
 
+% select stencil by number, expect 0 is special
+
 global mgl
 mglSocketWrite(mgl.s, mgl.command.mglSelectStencil);
 ackTime = mglSocketRead(mgl.s, 'double');

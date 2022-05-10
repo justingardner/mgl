@@ -32,10 +32,32 @@ if nargin < 2
     invert = 0;
 end
 
+% With Metal, we need our own logic to clear each stencil plane.
+% We can do this with an extra render pass that fills the whole screen,
+% and populates the chosen stencil plane with a clear (or inverse) value.
+% Then we can let the user draw in whatever stencil values they need.
+
+% Select the "clear" value for the requested stencil plane.
+startStencilCreation(stencilNumber, ~invert);
+
+% Draw a huge quad to cover the whole screen.
+deviceRect = mglGetParam('deviceRect');
+x = deviceRect([1 3 3 1]) * 2;
+y = deviceRect([2 2 4 4]) * 2;
+rgb = [1 1 1];
+mglQuad(x', y', rgb');
+
+% Flush and store the plane of cleared values to the stencil buffer.
+mglStencilCreateEnd();
+
+% Now let the caller draw into the requested stencil plane.
+[ackTime, processedTime] = startStencilCreation(stencilNumber, invert);
+
+
+function [ackTime, processedTime] = startStencilCreation(stencilNumber, invert)
 global mgl
-mglSocketWrite(mgl.s, mgl.command.mglCreateStencil);
+mglSocketWrite(mgl.s, mgl.command.mglStartStencilCreation);
 ackTime = mglSocketRead(mgl.s, 'double');
 mglSocketWrite(mgl.s, uint32(stencilNumber));
 mglSocketWrite(mgl.s, uint32(invert));
 processedTime = mglSocketRead(mgl.s, 'double');
-

@@ -76,6 +76,8 @@ fprintf('(mglMetalOpen) Using socket address: %s\n', socketAddress);
 % Start up mglMetal!
 if ~reuseMglMetal
     fprintf('(mglMetalOpen) Starting up mglMetal executable: %s\n', mglMetalApp);
+    fprintf('(mglMetalOpen) You can tail the app log with "log stream --level info --process mglMetal"\n');
+    fprintf('(mglMetalOpen) You can also try the macOS Console app and search for PROCESS "mglMetal"\n');
     system(sprintf('open %s --args -mglConnectionAddress %s', mglMetalApp, socketAddress));
 end
 
@@ -107,13 +109,6 @@ end
 mglMetalSetWindowFrameInDisplay(whichScreen, [screenX, screenY, screenWidth, screenHeight]);
 mglMetalFullscreen(isFullscreen);
 
-% Make sure Matlab and mglMetal agree on initial coordinate transform.
-mglTransform('set', eye(4));
-mglFlush();
-
-% Populate several mgl params -- many used to be set in mglPrivateOpen.c.
-mglSetParam('numTextures', 0);
-
 mglSetParam('xPixelsToDevice', 2 / screenWidth);
 mglSetParam('yPixelsToDevice', 2 / screenHeight);
 mglSetParam('xDeviceToPixels', screenHeight / 2);
@@ -123,6 +118,19 @@ mglSetParam('deviceHeight', 2);
 mglSetParam('deviceCoords', 'default');
 mglSetParam('deviceRect', [-1 -1 1 1]);
 
+% Init the Metal stencil buffer, clearing all stencil planes.
+% This is a special case for stencil number 0.
+% Normally, selecting stencil number 0 means "no stencil test".
+mglStencilCreateBegin(0);
+mglStencilCreateEnd();
+
 % mglMetal uses a depth/stencil pixel format called depth32Float_stencil8.
 % So, 8 stencil bits.
 mglSetParam('stencilBits', 8);
+
+% Make sure Matlab and mglMetal agree on initial coordinate transform.
+mglTransform('set', eye(4));
+mglFlush();
+
+% Populate several mgl params -- many used to be set in mglPrivateOpen.c.
+mglSetParam('numTextures', 0);

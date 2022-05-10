@@ -118,13 +118,9 @@ class mglOffScreenTextureRenderingConfig : mglColorRenderingConfig {
         renderPassDescriptor.colorAttachments[0].texture = texture
         renderPassDescriptor.colorAttachments[0].loadAction = .clear
         renderPassDescriptor.colorAttachments[0].storeAction = .store
-        renderPassDescriptor.depthAttachment.clearDepth = view.clearDepth
         renderPassDescriptor.depthAttachment.loadAction = .clear
         renderPassDescriptor.depthAttachment.storeAction = .dontCare
         renderPassDescriptor.depthAttachment.texture = depthStencilTexture
-        renderPassDescriptor.stencilAttachment.clearStencil = view.clearStencil
-        renderPassDescriptor.stencilAttachment.loadAction = .clear
-        renderPassDescriptor.stencilAttachment.storeAction = .store
         renderPassDescriptor.stencilAttachment.texture = depthStencilTexture
 
         do {
@@ -159,6 +155,8 @@ class mglOffScreenTextureRenderingConfig : mglColorRenderingConfig {
     }
 
     func getRenderPassDescriptor(view: MTKView) -> MTLRenderPassDescriptor? {
+        renderPassDescriptor.colorAttachments[0].clearColor = view.clearColor
+        renderPassDescriptor.depthAttachment.clearDepth = view.clearDepth
         return renderPassDescriptor
     }
 
