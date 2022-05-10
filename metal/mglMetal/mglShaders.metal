@@ -60,12 +60,20 @@ fragment float4 fragment_dots(const VertexDotsOut in [[stage_in]],
         + (centered_coord[1] * centered_coord[1]) / (in.half_size[1] * in.half_size[1]);
         float a_r = 1.0 - smoothstep(1.0 - in.half_border, 1.0 + in.half_border, radius);
         float a = in.color[3] * a_r;
+        if (a == 0) {
+            // Discard invisible fragment so it won't show up in stencil operations.
+            discard_fragment();
+        }
         return float4(in.color[0], in.color[1], in.color[2], a);
     } else {
         // Make a rectangle within the point.
         float a_x = 1.0 - smoothstep(in.half_size[0], in.half_size[0], centered_coord[0]);
         float a_y = 1.0 - smoothstep(in.half_size[1], in.half_size[1], centered_coord[1]);
         float a = in.color[3] * a_x * a_y;
+        if (a == 0) {
+            // Discard invisible fragment so it won't show up in stencil operations.
+            discard_fragment();
+        }
         return float4(in.color[0], in.color[1], in.color[2], a);
     }
 }
@@ -128,6 +136,10 @@ fragment float4 fragment_arcs(const VertexArcsOut in [[stage_in]],
     float a_wedge = a_positive + a_negative;
 
     float a = in.color[3] * a_inner * a_outer * a_wedge;
+    if (a == 0) {
+        // Discard invisible fragment so it won't show up in stencil operations.
+        discard_fragment();
+    }
     return float4(in.color[0], in.color[1], in.color[2], a);
 }
 
