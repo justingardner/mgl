@@ -56,7 +56,7 @@ numsec = 5;
 starttime = mglGetSecs;
 for i = 1:mglGetParam('frameRate')*numsec
   % now draw the dots using the two stencil's we'ver created
-  %mglStencilSelect(1);
+  mglStencilSelect(1);
   mglPoints2(dots(1).x,dots(1).y,dotSize,[0.8 0.4 0.5]);
   mglStencilSelect(2);
   mglPoints2(dots(2).x,dots(2).y,dotSize,[0.2 0.8 0.4]);
