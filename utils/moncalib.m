@@ -87,6 +87,8 @@
 %             a step function. If you set bitTestType=2, it will test for deep color
 %             (i.e. not the gamma output, but that the display mode allows
 %             for 10 bits)
+%             e.g. to run a bitTest for deep color
+%             moncalib(‘gamma=0’,‘bitTest=2’,‘bitTestMode=2’,‘bitTestType=2’,‘bitTestNumRepeats=64’)
 %
 %             initWaitTime can be set so that you have however many seconds you set
 %             it to to leave the room before the calibration starts. (default 0)
