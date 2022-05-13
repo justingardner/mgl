@@ -27,7 +27,7 @@ if ~any(nargin == [0])
 end
 
 % these are the versions needed
-majorVersionNeeded = 16;
+majorVersionNeeded = 10;
 minorVersionNeeded = 15;
 matlabMajorVersionNeeded = 9;
 matlabMinorVersionNeeded = 3;

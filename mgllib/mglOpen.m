@@ -35,9 +35,9 @@ end
 % check os
 if ~mglCheckOS
   disp(sprintf('(mglOpen) mgl metal is not supported on your system. You might try using the OpenGL v2 mgl'));
-  disp(sprintf('(mglOpen) If you want to force this to run, run again, but at your own risk!'));
+  disp(sprintf('(mglOpen) If you want to force this to run type dbcont, but at your own risk! (dbquit to abort)'));
+  keyboard
   mglSetParam('forceCheckOS',true);
-  return
 end
 
 % default arguments
