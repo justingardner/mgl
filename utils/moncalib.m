@@ -2262,7 +2262,7 @@ dispMessage(sprintf('Testing for %i bit gamma table',calib.bittest.bits));
 
 % set up calib structure to use bittestnumerpeats
 calibNumRepeats = calib.numRepeats;
-calib.numRepeats = calib.bitTest.numRepeats;
+calib.numRepeats = calib.bittest.numRepeats;
 
 % test to see how many bits we have in the gamma table
 if ~isfield(calib.bittest,'data')
