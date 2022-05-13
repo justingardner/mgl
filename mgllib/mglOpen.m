@@ -32,6 +32,14 @@ if ~any(nargin == [0 1 2 3 4 5])
   return
 end
 
+% check os
+if ~mglCheckOS
+  disp(sprintf('(mglOpen) mgl metal is not supported on your system. You might try using the OpenGL v2 mgl'));
+  disp(sprintf('(mglOpen) If you want to force this to run, run again, but at your own risk!'));
+  mglSetParam('forceCheckOS',true);
+  return
+end
+
 % default arguments
 if ~exist('whichScreen','var'), whichScreen = []; end
 if ~exist('screenWidth','var'), screenWidth = []; end
@@ -104,13 +112,6 @@ if mglGetParam('movieMode')
   %%end
   %%whichScreen = 0;
 end
-
-% set version of matlab
-vInfo = ver('MATLAB');
-[majorVersion theRest] = strtok(vInfo.Version,'.');
-[minorVersion theRest] = strtok(theRest,'.');
-mglSetParam('matlabMajorVersion',str2num(majorVersion));
-mglSetParam('matlabMinorVersion',str2num(minorVersion));
 
 %mglSetParam('verbose',1);
 if ~openDisplay
@@ -230,3 +231,4 @@ if mglGetParam('matlabDesktop')
   % always show the cursor from the desktop.
   mglDisplayCursor(1);
 end
+

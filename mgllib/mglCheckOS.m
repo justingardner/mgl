@@ -6,14 +6,20 @@
 %  copyright: (c) 2006 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
 %    purpose: Checks os version and returns t/f if equal or better to
 %    arguments. Will also set mglGetParams to have the version of the os
-%    and matlab
+%    and matlab as majorVersion, minorVersion, matlabMajorVersion,
+%    matlabMinorVersion%
+%    If you want to force this to return true, you can do:
+%      mglSetParam('forceCheckOS',true);
+%
 %      usage: tf = mglCheckOS
 % e.g.
-% if mglCheckOS(10,15)
-%    disp('pass');
-%end
 function tf = mglCheckOS(majorVersion,minorVersion)
 
+% force to be true
+if isequal(mglGetParam('forceCheckOS'),true)
+  tf = true;
+  return
+end
 % check arguments
 if ~any(nargin == [0])
   help mglCheckOS
@@ -21,7 +27,7 @@ if ~any(nargin == [0])
 end
 
 % these are the versions needed
-majorVersionNeeded = 10;
+majorVersionNeeded = 16;
 minorVersionNeeded = 15;
 matlabMajorVersionNeeded = 9;
 matlabMinorVersionNeeded = 3;
