@@ -1,6 +1,6 @@
 % moncalib.m
 %
-%      usage: To run a calibration:
+%      usage: To run a monitor calibration:
 %             calib = moncalib; 
 %
 %             To display a previously run calibration
