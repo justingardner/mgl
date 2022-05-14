@@ -2298,7 +2298,13 @@ if isfield(calib,'bittest') && isfield(calib.bittest,'data')
     subplot(1,2,2);
   end
   dispLuminanceFigure(calib.bittest.data);
-  title(sprintf('%i bit test: Values should increase linearly\nOutput starting at %0.2f in steps of 1/%i (n=%i)',calib.bittest.bits,calib.bittest.base,2^calib.bittest.bits,calib.bittest.numRepeats));
+  titleStr = sprintf('%i bit test: Values should increase linearly\nOutput starting at %0.2f in steps of 1/%i (n=%i)',calib.bittest.bits,calib.bittest.base,2^calib.bittest.bits,calib.bittest.numRepeats);
+  if isfield(calib.bittest,'type') && (calib.bittest.type>1)     
+    titleStr = sprintf('DeepColor test using screenMode %i\n%s',calib.bittest.screenMode,titleStr);
+  else
+    titleStr = sprintf('GammaTable test\n%s',titleStr);
+  end
+  title(titleStr);
 end
 
 %%%%%%%%%%%%%%%%%%%
