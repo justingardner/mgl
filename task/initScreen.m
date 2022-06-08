@@ -631,6 +631,10 @@ if isfield(myscreen,'background')
       myscreen.background = myscreen.black;
     end
   end
+  if myscreen.background > 1
+    disp(sprintf('(initScreen) Background color was set to: %0.1f, but should be in range 0-1 for mglMetal. Resetting to: %0.3f',myscreen.background, myscreen.background/255));
+    myscreen.background = myscreen.background/255;
+  end
 else
   myscreen.background = myscreen.black;
 end
