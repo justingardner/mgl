@@ -14,7 +14,7 @@
 function [] = mglTestRenderPipeline(varargin)
 
 % number of test
-d.numTests = 2;
+d.numTests =3;
 
 % arguments
 d = parseArgs(varargin,d);
@@ -38,6 +38,8 @@ for testNum = d.runTests
     d = testFlush(d);
   elseif testNum == 2
     d = testQuads(d);
+  elseif testNum == 3
+    d = testPoints(d);
   end
   % display output
   dispTimeTest(d);
@@ -51,7 +53,7 @@ mglClose;
 %%%%%%%%%%%%%%
 function d = parseArgs(args,d)
 
-getArgs(args,{'screenNum=1','runTests=[]','testLen=5','dropThreshold=0.1','numQuads=500','initWaitTime=1'});
+getArgs(args,{'screenNum=1','runTests=[]','testLen=5','dropThreshold=0.1','numQuads=500','numPoints=50000','initWaitTime=1'});
 
 % set some parameters
 d.screenNum = screenNum;
@@ -59,6 +61,7 @@ d.runTests = runTests;
 d.testLen = testLen;
 d.dropThreshold = dropThreshold;
 d.numQuads = numQuads;
+d.numPoints = numPoints;
 d.initWaitTime = initWaitTime;
 
 % set number of test
@@ -109,6 +112,28 @@ end
 
 disppercent(inf);
 
+%%%%%%%%%%%%%%
+% testDots
+%%%%%%%%%%%%%%
+function d = testPoints(d)
+
+d.testName = sprintf('%i dots test',d.numPoints);
+disppercent(-inf,sprintf('(mglTestRenderPipeline) Testing dots. Please wait %0.1f secs',d.testLen));
+
+% do the appropriate number of flush
+for iFrame = 1:d.numFrames
+  % get start time of frame
+  d.timeVec(1,iFrame) = mglGetSecs;
+  % draw quads
+  [d.timeVec(2,iFrame) d.timeVec(3,iFrame)] = mglPoints2c(2*rand(1,d.numPoints)-1,2*rand(1,d.numPoints)-1,2*ones(d.numPoints,2),rand(1,d.numPoints),rand(1,d.numPoints),rand(1,d.numPoints));
+  % and flush
+  [d.timeVec(4,iFrame) d.timeVec(5,iFrame)] = mglFlush;
+  % and record time
+  d.timeVec(6,iFrame) = mglGetSecs;
+end
+
+disppercent(inf);
+
 %%%%%%%%%%%%%%%%
 % dispTimeTest
 %%%%%%%%%%%%%%%%
@@ -126,6 +151,9 @@ hline(1000/d.frameRate,'r');
 hline((1+d.dropThreshold)*(1000/d.frameRate),'r:');
 xlabel('Frame number');
 ylabel('Time elasped (msec)');
+YLim = get(gca,'YLim');
+YLim(1) = 0;
+set(gca,'YLim',YLim);
 
 % count number of frames over the expected amount of time
 dropFrames = sum((d.timeVec(end,:)-d.timeVec(1,:)) > ((1+d.dropThreshold)/d.frameRate));
