@@ -109,6 +109,21 @@ end
 mglMetalSetWindowFrameInDisplay(whichScreen, [screenX, screenY, screenWidth, screenHeight]);
 mglMetalFullscreen(isFullscreen);
 
+% get new screenWidth and screenHeight for fullscreen
+if isFullscreen
+  % get display info
+  displays = mglDescribeDisplays;
+  % get the screen we have been resized to
+  if (whichScreen >= 1) && whichScreen <= length(displays)
+    % and get it's pixel dimensions
+    screenSize = displays(whichScreen).screenSizePixel;
+    screenWidth = screenSize(1);
+    screenHeight = screenSize(2);
+  end
+end
+
+mglSetParam('screenWidth', screenWidth);
+mglSetParam('screenHeight', screenHeight);
 mglSetParam('xPixelsToDevice', 2 / screenWidth);
 mglSetParam('yPixelsToDevice', 2 / screenHeight);
 mglSetParam('xDeviceToPixels', screenHeight / 2);
