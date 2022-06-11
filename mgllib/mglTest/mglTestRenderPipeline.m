@@ -14,7 +14,7 @@
 function [] = mglTestRenderPipeline(varargin)
 
 % number of test
-d.numTests =3;
+d.numTests = 4;
 
 % arguments
 d = parseArgs(varargin,d);
@@ -40,6 +40,8 @@ for testNum = d.runTests
     d = testQuads(d);
   elseif testNum == 3
     d = testPoints(d);
+  elseif testNum == 4
+    d = testBlt(d);
   end
   % display output
   dispTimeTest(d);
@@ -53,7 +55,7 @@ mglClose;
 %%%%%%%%%%%%%%
 function d = parseArgs(args,d)
 
-getArgs(args,{'screenNum=1','runTests=[]','testLen=5','dropThreshold=0.1','numQuads=500','numPoints=50000','initWaitTime=1'});
+getArgs(args,{'screenNum=1','runTests=[]','testLen=5','dropThreshold=0.1','numQuads=500','numPoints=50000','bltSize=[]','numBlt=1','initWaitTime=1'});
 
 % set some parameters
 d.screenNum = screenNum;
@@ -63,6 +65,8 @@ d.dropThreshold = dropThreshold;
 d.numQuads = numQuads;
 d.numPoints = numPoints;
 d.initWaitTime = initWaitTime;
+d.numBlt = numBlt;
+d.bltSize = bltSize;
 
 % set number of test
 if isempty(runTests),d.runTests = 1:d.numTests;end
@@ -126,6 +130,39 @@ for iFrame = 1:d.numFrames
   d.timeVec(1,iFrame) = mglGetSecs;
   % draw quads
   [d.timeVec(2,iFrame) d.timeVec(3,iFrame)] = mglPoints2c(2*rand(1,d.numPoints)-1,2*rand(1,d.numPoints)-1,2*ones(d.numPoints,2),rand(1,d.numPoints),rand(1,d.numPoints),rand(1,d.numPoints));
+  % and flush
+  [d.timeVec(4,iFrame) d.timeVec(5,iFrame)] = mglFlush;
+  % and record time
+  d.timeVec(6,iFrame) = mglGetSecs;
+end
+
+disppercent(inf);
+
+%%%%%%%%%%%%%%
+% testBlt
+%%%%%%%%%%%%%%
+function d = testBlt(d)
+
+% set to a full screen size texture if bltSize is empty
+if isempty(d.bltSize) || length(d.bltSize) ~= 2
+  d.bltSize = [mglGetParam('screenWidth') mglGetParam('screenHeight')];
+  disp(sprintf('(mglTestRenderPipeline) Using full size Blt: %i x %i',d.bltSize(1),d.bltSize(2)));
+end
+
+% create the texture
+for iBlt = 1:d.numBlt
+  tex(iBlt) = mglCreateTexture(rand(d.bltSize(1),d.bltSize(2),4));
+end
+
+d.testName = sprintf('%ix%i n=%i Blt test',d.bltSize(1),d.bltSize(2),d.numBlt);
+disppercent(-inf,sprintf('(mglTestRenderPipeline) Testing %s. Please wait %0.1f secs',d.testName,d.testLen));
+
+% do the appropriate number of flush
+for iFrame = 1:d.numFrames
+  % get start time of frame
+  d.timeVec(1,iFrame) = mglGetSecs;
+  % draw quads
+  [d.timeVec(2,iFrame) d.timeVec(3,iFrame)] = mglBltTexture(tex);
   % and flush
   [d.timeVec(4,iFrame) d.timeVec(5,iFrame)] = mglFlush;
   % and record time
