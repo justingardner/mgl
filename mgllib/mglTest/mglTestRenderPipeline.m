@@ -16,11 +16,11 @@
 %             % just do a flush
 %             mglTestRenderPipeline('runTests=1');
 %
-%             % draw 1000 quads each frame
-%             mglTestRenderPipeline('runTests=2','numQuads=1000');
+%             % draw 250 quads each frame
+%             mglTestRenderPipeline('runTests=2','n=250');
 %
-%             % draw 50000 points each frame
-%             mglTestRenderPipeline('runTests=3','numPoints=50000');
+%             % draw 25000 points each frame
+%             mglTestRenderPipeline('runTests=3','n=10000');
 %
 %             % disaply a full size texture map (or set bltSize to [n k]
 %             for a corresponding size bitmap)
@@ -75,7 +75,7 @@ mglClose;
 %%%%%%%%%%%%%%
 function d = parseArgs(args,d)
 
-getArgs(args,{'screenNum=1','runTests=[]','testLen=5','dropThreshold=0.1','numQuads=500','numPoints=50000','bltSize=[]','numBlt=30','initWaitTime=1'});
+getArgs(args,{'screenNum=1','runTests=[]','testLen=5','dropThreshold=0.1','numQuads=250','numPoints=10000','bltSize=[]','numBlt=30','initWaitTime=1','n=[]'});
 
 % set some parameters
 d.screenNum = screenNum;
@@ -87,6 +87,10 @@ d.numPoints = numPoints;
 d.initWaitTime = initWaitTime;
 d.numBlt = numBlt;
 d.bltSize = bltSize;
+if ~isempty(n)
+  numQuads = n;
+  numPoints = n;
+end
 
 % set number of test
 if isempty(runTests),d.runTests = 1:d.numTests;end
