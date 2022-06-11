@@ -51,6 +51,8 @@ d.numFrames = d.testLen * d.frameRate;
 for testNum = d.runTests
   % initialize time vector
   d.timeVec = zeros(6,d.numFrames);
+  % flush the screen to get everything started
+  mglFlush;mglFlush;mglFlush;mglFlush;
   % run test
   if testNum == 1
     d = testFlush(d);
