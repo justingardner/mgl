@@ -32,7 +32,7 @@
 function [] = mglTestRenderPipeline(varargin)
 
 % number of test
-d.numTests = 4;
+d.numTests = 5;
 
 % arguments
 d = parseArgs(varargin,d);
