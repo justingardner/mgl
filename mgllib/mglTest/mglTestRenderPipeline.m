@@ -22,8 +22,9 @@
 %             % draw 50000 points each frame
 %             mglTestRenderPipeline('runTests=3','numPoints=50000');
 %
-%             % disaply a 640 x 480 texture map
-%             mglTestRenderPipeline('runTests=4','bltSize=[640 480]');
+%             % disaply a full size texture map (or set bltSize to [n k]
+%             for a corresponding size bitmap)
+%             mglTestRenderPipeline('runTests=4','bltSize=[]');
 %
 %             % Clear screen to a random color
 %             mglTestRenderPipeline('runTests=5');
