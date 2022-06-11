@@ -11,6 +11,23 @@
 %             runTests=[], an int array with numbers for which test to run
 %             testLen=5, sets the length in seconds of the tests
 %
+%             some calls for specific tests
+%
+%             % just do a flush
+%             mglTestRenderPipeline('runTests=1');
+%
+%             % draw 1000 quads each frame
+%             mglTestRenderPipeline('runTests=2','numQuads=1000');
+%
+%             % draw 50000 points each frame
+%             mglTestRenderPipeline('runTests=3','numPoints=50000');
+%
+%             % disaply a 640 x 480 texture map
+%             mglTestRenderPipeline('runTests=4','bltSize=[640 480]');
+%
+%             % Clear screen to a random color
+%             mglTestRenderPipeline('runTests=5');
+%
 function [] = mglTestRenderPipeline(varargin)
 
 % number of test
@@ -42,6 +59,8 @@ for testNum = d.runTests
     d = testPoints(d);
   elseif testNum == 4
     d = testBlt(d);
+  elseif testNum == 5
+    d = testClearScreen(d);
   end
   % display output
   dispTimeTest(d);
@@ -55,7 +74,7 @@ mglClose;
 %%%%%%%%%%%%%%
 function d = parseArgs(args,d)
 
-getArgs(args,{'screenNum=1','runTests=[]','testLen=5','dropThreshold=0.1','numQuads=500','numPoints=50000','bltSize=[]','numBlt=1','initWaitTime=1'});
+getArgs(args,{'screenNum=1','runTests=[]','testLen=5','dropThreshold=0.1','numQuads=500','numPoints=50000','bltSize=[]','numBlt=30','initWaitTime=1'});
 
 % set some parameters
 d.screenNum = screenNum;
@@ -150,9 +169,11 @@ if isempty(d.bltSize) || length(d.bltSize) ~= 2
 end
 
 % create the texture
+disppercent(-inf,sprintf('(mglTestRenderPipeline) Making %i test textures',d.numBlt));
 for iBlt = 1:d.numBlt
   tex(iBlt) = mglCreateTexture(rand(d.bltSize(1),d.bltSize(2),4));
 end
+disppercent(inf);
 
 d.testName = sprintf('%ix%i n=%i Blt test',d.bltSize(1),d.bltSize(2),d.numBlt);
 disppercent(-inf,sprintf('(mglTestRenderPipeline) Testing %s. Please wait %0.1f secs',d.testName,d.testLen));
@@ -161,8 +182,30 @@ disppercent(-inf,sprintf('(mglTestRenderPipeline) Testing %s. Please wait %0.1f 
 for iFrame = 1:d.numFrames
   % get start time of frame
   d.timeVec(1,iFrame) = mglGetSecs;
+  % draw texture
+  [d.timeVec(2,iFrame) d.timeVec(3,iFrame)] = mglBltTexture(tex(mod(iFrame,d.numBlt)+1),[0 0 2 2]);
+  % and flush
+  [d.timeVec(4,iFrame) d.timeVec(5,iFrame)] = mglFlush;
+  % and record time
+  d.timeVec(6,iFrame) = mglGetSecs;
+end
+
+disppercent(inf);
+
+%%%%%%%%%%%%%%
+% testClearScreen
+%%%%%%%%%%%%%%
+function d = testClearScreen(d)
+
+d.testName = sprintf('Clear screen test');
+disppercent(-inf,sprintf('(mglTestRenderPipeline) Testing clear screen. Please wait %0.1f secs',d.testLen));
+
+% do the appropriate number of flush
+for iFrame = 1:d.numFrames
+  % get start time of frame
+  d.timeVec(1,iFrame) = mglGetSecs;
   % draw quads
-  [d.timeVec(2,iFrame) d.timeVec(3,iFrame)] = mglBltTexture(tex);
+  [d.timeVec(2,iFrame) d.timeVec(3,iFrame)] = mglClearScreen(rand(1,3));
   % and flush
   [d.timeVec(4,iFrame) d.timeVec(5,iFrame)] = mglFlush;
   % and record time
@@ -176,7 +219,7 @@ disppercent(inf);
 %%%%%%%%%%%%%%%%
 function dispTimeTest(d)
 
-mlrSmartfig('mglTestRenderPipeline','reuse');clf
+figure;
 
 % plot the data
 plot(1000*(d.timeVec(2,:)-d.timeVec(1,:)),'k.'); hold on
