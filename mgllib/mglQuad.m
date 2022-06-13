@@ -1,7 +1,7 @@
 % mglQuad.m
 %
 %      $Id$
-%    usage: [ackTime, processedTime] = mglQuad( vX, vY, rgbColor, [antiAliasFlag] );
+%    usage: [ackTime, processedTime, setupTime] = mglQuad( vX, vY, rgbColor, [antiAliasFlag] );
 %       by: justin gardner
 %     date: 09/28/2021
 %  copyright: (c) 2021 Justin Gardner (GPL see mgl/COPYING)
@@ -18,7 +18,7 @@
 %mglScreenCoordinates
 %mglQuad([100; 600; 600; 100], [100; 200; 600; 100], [1; 1; 1], 1);
 %mglFlush();
-function [ackTime, processedTime] = mglQuad(vX, vY, rgbColor, antiAliasFlag)
+function [ackTime, processedTime, setupTime] = mglQuad(vX, vY, rgbColor, antiAliasFlag)
 
 % Not currently used, but let's maintain compatibility with v2.
 if nargin < 4
@@ -50,6 +50,10 @@ for iQuad = 1:nQuads
     v(4:6, iQuad * 6) = rgbColor(:, iQuad);
 
 end
+
+% Setup timestamp can be used for measuring MGL frame timing,
+% for example with mglTestRenderingPipeline.
+setupTime = mglGetSecs();
 
 % send quad command
 mglSocketWrite(mgl.s, mgl.command.mglQuad);

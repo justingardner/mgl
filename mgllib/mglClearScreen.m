@@ -1,7 +1,7 @@
 % mglClearScreen.m
 %
 %        $Id$
-%      usage: [ackTime, processedTime] = mglClearScreen([clearColor], [clearBits])
+%      usage: [ackTime, processedTime, setupTime] = mglClearScreen([clearColor], [clearBits])
 %         by: Justin Gardner
 %       date: 09/27/2021
 %  copyright: (c) 2021 Justin Gardner (GPL see mgl/COPYING)
@@ -29,7 +29,7 @@
 % mglClearScreen([0.7 0.2 0.5]);
 % mglFlush();
 %
-function [ackTime, processedTime] = mglClearScreen(clearColor, clearBits)
+function [ackTime, processedTime, setupTime] = mglClearScreen(clearColor, clearBits)
 
 if nargin == 2
   disp(sprintf('(mglClearScreen) clearBits not implemented in mgl 3.0'));
@@ -57,6 +57,10 @@ mglSetParam('clearColor',clearColor);
 % send quad command (as clear command takes two flushes)
 %deviceRect = mglGetParam('deviceRect');
 %[ackTime processedTime] = mglQuad([deviceRect(1) ;deviceRect(1) ;deviceRect(3) ;deviceRect(3)], [deviceRect(2) ;deviceRect(4) ;deviceRect(4) ;deviceRect(2)], clearColor);
+
+% Setup timestamp can be used for measuring MGL frame timing,
+% for example with mglTestRenderingPipeline.
+setupTime = mglGetSecs();
 
 % write clear screen command
 mglSocketWrite(mgl.s, mgl.command.mglSetClearColor);

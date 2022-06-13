@@ -50,7 +50,7 @@ d.numFrames = d.testLen * d.frameRate;
 % run through each test
 for testNum = d.runTests
   % initialize time vector
-  d.timeVec = zeros(6,d.numFrames);
+  d.timeVec = zeros(7,d.numFrames);
   % flush the screen to get everything started
   mglFlush;mglFlush;mglFlush;mglFlush;
   % run test
@@ -109,13 +109,14 @@ disppercent(-inf,sprintf('(mglTestRenderPipeline) Testing flush. Please wait %0.
 for iFrame = 1:d.numFrames
   % get start time of frame
   d.timeVec(1,iFrame) = mglGetSecs;
-  % get time after draw commands (even though there are none in this test)
+  % get time before and after draw commands (even though there are none in this test)
   d.timeVec(2,iFrame) = mglGetSecs;
   d.timeVec(3,iFrame) = mglGetSecs;
+  d.timeVec(4,iFrame) = mglGetSecs;
   % and flush
-  [d.timeVec(4,iFrame) d.timeVec(5,iFrame)] = mglFlush;
+  [d.timeVec(5,iFrame) d.timeVec(6,iFrame)] = mglFlush;
   % and record time
-  d.timeVec(6,iFrame) = mglGetSecs;
+  d.timeVec(7,iFrame) = mglGetSecs;
 end
 
 disppercent(inf);
@@ -133,11 +134,11 @@ for iFrame = 1:d.numFrames
   % get start time of frame
   d.timeVec(1,iFrame) = mglGetSecs;
   % draw quads
-  [d.timeVec(2,iFrame) d.timeVec(3,iFrame)] = mglQuad(2*rand(4,d.numQuads)-1,2*rand(4,d.numQuads)-1,rand(3,d.numQuads));
+  [d.timeVec(3,iFrame) d.timeVec(4,iFrame) d.timeVec(2,iFrame)] = mglQuad(2*rand(4,d.numQuads)-1,2*rand(4,d.numQuads)-1,rand(3,d.numQuads));
   % and flush
-  [d.timeVec(4,iFrame) d.timeVec(5,iFrame)] = mglFlush;
+  [d.timeVec(5,iFrame) d.timeVec(6,iFrame)] = mglFlush;
   % and record time
-  d.timeVec(6,iFrame) = mglGetSecs;
+  d.timeVec(7,iFrame) = mglGetSecs;
 end
 
 disppercent(inf);
@@ -154,12 +155,12 @@ disppercent(-inf,sprintf('(mglTestRenderPipeline) Testing dots. Please wait %0.1
 for iFrame = 1:d.numFrames
   % get start time of frame
   d.timeVec(1,iFrame) = mglGetSecs;
-  % draw quads
-  [d.timeVec(2,iFrame) d.timeVec(3,iFrame)] = mglPoints2c(2*rand(1,d.numPoints)-1,2*rand(1,d.numPoints)-1,2*ones(d.numPoints,2),rand(1,d.numPoints),rand(1,d.numPoints),rand(1,d.numPoints));
+  % draw dots
+  [d.timeVec(3,iFrame) d.timeVec(4,iFrame) d.timeVec(2,iFrame)] = mglPoints2c(2*rand(1,d.numPoints)-1,2*rand(1,d.numPoints)-1,2*ones(d.numPoints,2),rand(1,d.numPoints),rand(1,d.numPoints),rand(1,d.numPoints));
   % and flush
-  [d.timeVec(4,iFrame) d.timeVec(5,iFrame)] = mglFlush;
+  [d.timeVec(5,iFrame) d.timeVec(6,iFrame)] = mglFlush;
   % and record time
-  d.timeVec(6,iFrame) = mglGetSecs;
+  d.timeVec(7,iFrame) = mglGetSecs;
 end
 
 disppercent(inf);
@@ -190,11 +191,11 @@ for iFrame = 1:d.numFrames
   % get start time of frame
   d.timeVec(1,iFrame) = mglGetSecs;
   % draw texture
-  [d.timeVec(2,iFrame) d.timeVec(3,iFrame)] = mglBltTexture(tex(mod(iFrame,d.numBlt)+1),[0 0 2 2]);
+  [d.timeVec(3,iFrame) d.timeVec(4,iFrame) d.timeVec(2,iFrame)] = mglBltTexture(tex(mod(iFrame,d.numBlt)+1),[0 0 2 2]);
   % and flush
-  [d.timeVec(4,iFrame) d.timeVec(5,iFrame)] = mglFlush;
+  [d.timeVec(5,iFrame) d.timeVec(6,iFrame)] = mglFlush;
   % and record time
-  d.timeVec(6,iFrame) = mglGetSecs;
+  d.timeVec(7,iFrame) = mglGetSecs;
 end
 
 disppercent(inf);
@@ -211,12 +212,12 @@ disppercent(-inf,sprintf('(mglTestRenderPipeline) Testing clear screen. Please w
 for iFrame = 1:d.numFrames
   % get start time of frame
   d.timeVec(1,iFrame) = mglGetSecs;
-  % draw quads
-  [d.timeVec(2,iFrame) d.timeVec(3,iFrame)] = mglClearScreen(rand(1,3));
+  % set the clear color
+  [d.timeVec(3,iFrame) d.timeVec(4,iFrame) d.timeVec(2,iFrame)] = mglClearScreen(rand(1,3));
   % and flush
-  [d.timeVec(4,iFrame) d.timeVec(5,iFrame)] = mglFlush;
+  [d.timeVec(5,iFrame) d.timeVec(6,iFrame)] = mglFlush;
   % and record time
-  d.timeVec(6,iFrame) = mglGetSecs;
+  d.timeVec(7,iFrame) = mglGetSecs;
 end
 
 disppercent(inf);
@@ -229,10 +230,11 @@ function dispTimeTest(d)
 figure;
 
 % plot the data
-plot(1000*(d.timeVec(2,:)-d.timeVec(1,:)),'k.'); hold on
-plot(1000*(d.timeVec(3,:)-d.timeVec(1,:)),'g.');
-plot(1000*(d.timeVec(4,:)-d.timeVec(1,:)),'b.');
-plot(1000*(d.timeVec(5,:)-d.timeVec(1,:)),'bo');
+plot(1000*(d.timeVec(2,:)-d.timeVec(1,:)),'c.'); hold on
+plot(1000*(d.timeVec(3,:)-d.timeVec(1,:)),'k.');
+plot(1000*(d.timeVec(4,:)-d.timeVec(1,:)),'g.');
+plot(1000*(d.timeVec(5,:)-d.timeVec(1,:)),'b.');
+plot(1000*(d.timeVec(6,:)-d.timeVec(1,:)),'bo');
 plot(1000*(d.timeVec(end,:)-d.timeVec(1,:)),'r.');
 hline(1000/d.frameRate,'r');
 hline((1+d.dropThreshold)*(1000/d.frameRate),'r:');
@@ -246,4 +248,4 @@ set(gca,'YLim',YLim);
 dropFrames = sum((d.timeVec(end,:)-d.timeVec(1,:)) > ((1+d.dropThreshold)/d.frameRate));
 title(sprintf('(%s) %i fames took longer than %0.1f%% than expected at %i Hz',d.testName,dropFrames,100*d.dropThreshold,d.frameRate));
 
-legend('Draw commands Ack','Draw commands Processed','Flush Ack','Flush processed','End of frame loop');
+legend('Matlab setup','Draw commands Ack','Draw commands Processed','Flush Ack','Flush processed','End of frame loop');

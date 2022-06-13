@@ -1,7 +1,7 @@
 % mglMetalDots.m
 %
 %        $Id$
-%      usage: [ackTime, processedTime] = mglMetalDots(xyz, rgba, wh, shape, border)
+%      usage: [ackTime, processedTime, setupTime] = mglMetalDots(xyz, rgba, wh, shape, border)
 %         by: Benjamin heasly
 %       date: 03/16/2022
 %  copyright: (c) 2006 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
@@ -14,7 +14,7 @@
 %             shape -- 1 x n shape 0 -> rectangle, 1-> oval
 %             border-- 1 x n antialiasing pixel size
 %
-function [ackTime, processedTime] = mglMetalDots(xyz, rgba, wh, shape, border)
+function [ackTime, processedTime, setupTime] = mglMetalDots(xyz, rgba, wh, shape, border)
 
 if nargin < 5
   help mglMetalDots
@@ -36,6 +36,10 @@ end
 vertexData = single(cat(1, xyz, rgba, wh, shape, border));
 
 global mgl
+
+% Setup timestamp can be used for measuring MGL frame timing,
+% for example with mglTestRenderingPipeline.
+setupTime = mglGetSecs();
 mglSocketWrite(mgl.s, mgl.command.mglDots);
 ackTime = mglSocketRead(mgl.s, 'double');
 mglSocketWrite(mgl.s, uint32(nDots));

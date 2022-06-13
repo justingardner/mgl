@@ -1,6 +1,6 @@
 % mglMetalBltTexture.m
 %
-%       usage: [ackTime, processedTime] = mglMetalBltTexture(tex)
+%       usage: [ackTime, processedTime, setupTime] = mglMetalBltTexture(tex)
 %          by: justin gardner
 %        date: 09/28/2021
 %  copyright: (c) 2021 Justin Gardner (GPL see mgl/COPYING)
@@ -17,7 +17,7 @@
 % mglMetalBltTexture(imageTex,[0 0]);
 % mglFlush();
 %
-function [ackTime, processedTime] = mglMetalBltTexture(tex, position, hAlignment, vAlignment, rotation, phase, width, height)
+function [ackTime, processedTime, setupTime] = mglMetalBltTexture(tex, position, hAlignment, vAlignment, rotation, phase, width, height)
 
 global mgl
 
@@ -110,6 +110,10 @@ addressMode = 2;
 if (isfield(tex, 'addressMode'))
     addressMode = tex.addressMode;
 end
+
+% Setup timestamp can be used for measuring MGL frame timing,
+% for example with mglTestRenderingPipeline.
+setupTime = mglGetSecs();
 
 % send blt command
 mglSocketWrite(mgl.s, mgl.command.mglBltTexture);

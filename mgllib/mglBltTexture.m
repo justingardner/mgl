@@ -1,7 +1,7 @@
 % mglBltTexture.m
 %
 %        $Id$
-%      usage: [ackTime, processedTime] = mglBltTexture(tex, position, hAlignment, vAlignment, rotation, phase, width, height)
+%      usage: [ackTime, processedTime, setupTime] = mglBltTexture(tex, position, hAlignment, vAlignment, rotation, phase, width, height)
 %         by: justin gardner
 %       date: 05/10/06
 %  copyright: (c) 2006 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
@@ -52,7 +52,7 @@
 % imageTex = mglCreateTexture(image1d);
 % mglBltTexture(imageTex,[0 0 5]);
 % mglFlush;
-function [ackTime, processedTime] = mglBltTexture(tex, position, hAlignment, vAlignment, rotation, phase, width, height)
+function [ackTime, processedTime, setupTime] = mglBltTexture(tex, position, hAlignment, vAlignment, rotation, phase, width, height)
 
 % if nargin < 2, position = [0 0]; end
 % if nargin < 3, hAlignment = 0; end
@@ -133,8 +133,9 @@ end
 
 ackTime = zeros([1, textureCount]);
 processedTime = zeros([1, textureCount]);
+setupTime = zeros([1, textureCount]);
 for ii = 1:textureCount
-    [ackTime(ii), processedTime(ii)] = mglMetalBltTexture( ...
+    [ackTime(ii), processedTime(ii), setupTime(ii)] = mglMetalBltTexture( ...
         tex(ii), ...
         position(ii,:), ...
         hAlignment(ii), ...
