@@ -21,10 +21,15 @@
 %mglVisualAngleCoordinates(57,[16 12]);
 %mglLines2(rand(1,100)*5-2.5, rand(1,100)*10-5, rand(1,100)*5-2.5, rand(1,100)*3-1.5, 3, [0 0.6 1],1);
 %mglFlush
-function [ackTime, processedTime] = mglLines2(x0, y0, x1, y1, size, color)
+function [ackTime, processedTime] = mglLines2(x0, y0, x1, y1, size, color, antialiasing)
 
-if (size ~= 1)
-    fprintf('(mglLines2) TODO: size is currently unused in mgl v3.\n');
+% antialiasing is ignored, but included for v2 parameter compatibility.
+antialiasing = [];
+
+persistent mglLines2DeprecationWarning
+if (size ~= 1 || nargin >= 7) && isempty(mglLines2DeprecationWarning)
+    mglLines2DeprecationWarning = true;
+    fprintf("(mglLines2) Line size and antialiasing are no longer supported in v3 with Metal, please consider using mglMetalLines instead.\n")
 end
 
 global mgl;

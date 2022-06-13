@@ -31,7 +31,7 @@ x1 = [0.1 0];
 y1 = [0 0.1];
 size = 5;
 color = [1.0 0.8 0.6];
-mglLines2(x0, y0, x1, y1, size, color);
+mglLines2(x0, y0, x1, y1, size, color, 'ignored');
 
 disp('There should be 2 orange-yellow lines crossed in the center.')
 
