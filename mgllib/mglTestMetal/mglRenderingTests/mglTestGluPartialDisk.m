@@ -35,7 +35,7 @@ osize = linspace(50, 100, nRings);
 startAngles = linspace(0, 270, nRings);
 sweepAngles = linspace(45, 180, nRings);
 color = [0.25, 0.5, 0.75, 1.0];
-mglGluPartialDisk(x, y, isize, osize, startAngles, sweepAngles, color);
+mglGluPartialDisk(x, y, isize, osize, startAngles, sweepAngles, color, 'ignored', 'ignored', 0);
 disp('There shoud be 5 partial rings across the diagonal.')
 
 mglFlush();

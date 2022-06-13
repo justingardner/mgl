@@ -1,7 +1,7 @@
 % mglGluPartialDisk - draw partial disk(s) at location x,y
 %
 %        $Id$ 
-%      usage: [ackTime, processedTime] = mglGluPartialDisk(x, y, isize, osize, startAngles, sweepAngles, color, antialiasing)
+%      usage: [ackTime, processedTime] = mglGluPartialDisk(x, y, isize, osize, startAngles, sweepAngles, color, [nslices], [nloops], antialiasing)
 %         by: Benjamin Heasly
 %       date: 2022-03-17
 %  copyright: (c) 2006 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
@@ -11,6 +11,8 @@
 %             startAngles - start angle of partial disk (deg)
 %             sweepAngles - sweep angle of partial disk (deg)
 %             color - rgb or rgba
+%             nSlices - ignored, included for compatibility
+%             nLoops - ignored, included for compatibility
 %             antialiasing - width of edge to smooth with alpha
 %
 %             Note: old params nslices and nloops are no longer used.
@@ -29,12 +31,16 @@
 %colors = jet(10)';
 %mglGluPartialDisk(x, y, isize, osize, startAngles, sweepAngles, colors, 60, 2);
 %mglFlush();
-function [ackTime, processedTime] = mglGluPartialDisk(x, y, isize, osize, startAngles, sweepAngles, color, antialiasing)
+function [ackTime, processedTime] = mglGluPartialDisk(x, y, isize, osize, startAngles, sweepAngles, color, nSlices, nLoops, antialiasing)
+
+% These are no longer needed in Metal, but included for v2 code compatibility.
+nSlices = [];
+nLoops = [];
 
 persistent mglGlupartialDiskDeprecationWarning
 if (nargin > 7) && isempty(mglGlupartialDiskDeprecationWarning)
     mglGlupartialDiskDeprecationWarning = true;
-    fprintf("(mglGluPartialDisk) nslices and nloops are longer supported, the last param is for antialiasing now.\n")
+    fprintf("(mglGluPartialDisk) nslices and nloops are longer supported, consider using mglMetalArcs instead.\n")
 end
 
 nDots = numel(x);
@@ -82,7 +88,7 @@ rgba(2,:) = color(2);
 rgba(3,:) = color(3);
 rgba(4,:) = color(4);
 
-if nargin < 8
+if nargin < 10
     antialiasing = 0;
 end
 border = zeros(1, nDots, 'single');
