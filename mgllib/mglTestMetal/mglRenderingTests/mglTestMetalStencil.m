@@ -19,8 +19,6 @@ if nargin < 1
 end
 
 if (isInteractive)
-    mglSetParam('reuseMglMetal', 1);
-    mglSetParam('reuseMglMetal', 0);
     mglOpen();
     cleanup = onCleanup(@() mglClose());
 end
@@ -29,6 +27,7 @@ end
 
 mglVisualAngleCoordinates(50, [20, 20]);
 mglClearScreen(0.5);
+mglFlush();
 
 % Stencil 1 hides everything except a circle on the left side of the screen.
 mglStencilCreateBegin(1);

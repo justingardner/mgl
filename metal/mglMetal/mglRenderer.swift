@@ -164,7 +164,6 @@ extension mglRenderer: MTKViewDelegate {
             case mglDrainSystemEvents: commandSuccess = drainSystemEvents(view: view)
             case mglFullscreen: commandSuccess = fullscreen(view: view)
             case mglWindowed: commandSuccess = windowed(view: view)
-            case mglSetClearColor: commandSuccess = setClearColor(view: view)
             case mglCreateTexture: commandSuccess = createTexture()
             case mglReadTexture: commandSuccess = readTexture()
             case mglSetRenderTarget: commandSuccess = setRenderTarget(view: view)
@@ -184,6 +183,21 @@ extension mglRenderer: MTKViewDelegate {
         // From here below, we will process the next command as a drawing command.
         // This means setting up a Metal rendering pass and continuing to process commands until an mglFlush command.
         // Or, if there's an error, we'll abandon the rendering pass and return a negative ack.
+
+        // Clear color is a unique case.
+        // We need to process it before setting up the rendering pass, so that the frame buffer texture can be cleared to the correct color when it gets loaded at the start of the rendering pass.
+        // We don't want to return immediately, as we do with non-drawing commands above, because that incurs a frame wait.
+        // Instead we want to fall into the rendering tight loop below.
+        // But we don't want to process the clear command along with other drawing commands becasue by then it's too late to clear the frame buffer texture with the correct color -- the texture will have been loaded and cleared already.
+        // So we process it here in the middle, a special case here.
+        if command == mglSetClearColor {
+            let commandSuccess = setClearColor(view: view)
+            acknowledgePreviousCommandProcessed(isSuccess: commandSuccess)
+            if (!commandSuccess) {
+                os_log("(mglRenderer) Error setting clear color, skipping render pass.", log: .default, type: .error)
+                return
+            }
+        }
 
         guard let drawable = view.currentDrawable else {
             os_log("(mglRenderer) Could not get current drawable from the view, skipping render pass.", log: .default, type: .error)
@@ -211,8 +225,15 @@ extension mglRenderer: MTKViewDelegate {
 
         // Keep processing drawing and other related commands until a flush command.
         while (command != mglFlush) {
-            var commandSuccess = false
+            // Clear color is processed as a special case above.
+            // All we need to do now is wait for other drawing commands, or a flush command.
+            if command == mglSetClearColor {
+                command = readAndAcknowledgeNextCommand()
+                continue
+            }
 
+            // Proces the next drawing command within the current render pass.
+            var commandSuccess = false
             switch command {
             case mglCreateTexture: commandSuccess = createTexture()
             case mglBltTexture: commandSuccess = bltTexture(view: view, renderEncoder: renderEncoder)

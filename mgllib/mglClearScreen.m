@@ -53,12 +53,13 @@ end
 clearColor = clearColor(:);
 mglSetParam('clearColor',clearColor);
 
+% BSH: I think the clear command is down to one frame now.
 % send quad command (as clear command takes two flushes)
-deviceRect = mglGetParam('deviceRect');
-[ackTime processedTime] = mglQuad([deviceRect(1) ;deviceRect(1) ;deviceRect(3) ;deviceRect(3)], [deviceRect(2) ;deviceRect(4) ;deviceRect(4) ;deviceRect(2)], clearColor);
+%deviceRect = mglGetParam('deviceRect');
+%[ackTime processedTime] = mglQuad([deviceRect(1) ;deviceRect(1) ;deviceRect(3) ;deviceRect(3)], [deviceRect(2) ;deviceRect(4) ;deviceRect(4) ;deviceRect(2)], clearColor);
 
 % write clear screen command
-%mglSocketWrite(mgl.s, mgl.command.mglSetClearColor);
-%ackTime = mglSocketRead(mgl.s, 'double');
-%mglSocketWrite(mgl.s, single(clearColor));
-%processedTime = mglSocketRead(mgl.s, 'double');
+mglSocketWrite(mgl.s, mgl.command.mglSetClearColor);
+ackTime = mglSocketRead(mgl.s, 'double');
+mglSocketWrite(mgl.s, single(clearColor));
+processedTime = mglSocketRead(mgl.s, 'double');

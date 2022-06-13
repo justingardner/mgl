@@ -20,7 +20,6 @@ typedef enum mglCommandCode : uint16_t {
     mglDrainSystemEvents = 1,
     mglFullscreen = 2,
     mglWindowed = 3,
-    mglSetClearColor = 4,
     mglCreateTexture = 5,
     mglReadTexture = 6,
     mglSetRenderTarget = 7,
@@ -41,6 +40,7 @@ typedef enum mglCommandCode : uint16_t {
     mglArcs = 1009,
     mglUpdateTexture = 1010,
     mglSelectStencil = 1011,
+    mglSetClearColor = 1012,
     mglUnknownCommand = UINT16_MAX
 } mglCommandCode;
 
@@ -52,7 +52,6 @@ const mglCommandCode mglCommandCodes[] = {
     mglDrainSystemEvents,
     mglFullscreen,
     mglWindowed,
-    mglSetClearColor,
     mglCreateTexture,
     mglReadTexture,
     mglSetRenderTarget,
@@ -71,14 +70,14 @@ const mglCommandCode mglCommandCodes[] = {
     mglPolygon,
     mglArcs,
     mglUpdateTexture,
-    mglSelectStencil
+    mglSelectStencil,
+    mglSetClearColor
 };
 const char* mglCommandNames[] = {
     "mglPing",
     "mglDrainSystemEvents",
     "mglFullscreen",
     "mglWindowed",
-    "mglSetClearColor",
     "mglCreateTexture",
     "mglReadTexture",
     "mglSetRenderTarget",
@@ -97,7 +96,8 @@ const char* mglCommandNames[] = {
     "mglPolygon",
     "mglArcs",
     "mglUpdateTexture",
-    "mglSelectStencil"
+    "mglSelectStencil",
+    "mglSetClearColor"
 };
 
 // Type aliases for supported scalar data types of known, fixed sizes.
