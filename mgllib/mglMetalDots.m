@@ -10,7 +10,7 @@
 %             This is a common interface to mglMeal for points, dots, etc.
 %             xyz -- 3 x n matrix of point positions [x, y, z]
 %             rgba -- 4 x n matrix of point colors [r, g, b, a]
-%             wh -- 2 x n matrix of point sizes [width, height]
+%             wh -- 2 x n matrix of point sizes [width, height] (device units, not pixels)
 %             shape -- 1 x n shape 0 -> rectangle, 1-> oval
 %             border-- 1 x n antialiasing pixel size
 %
@@ -31,6 +31,10 @@ if size(xyz, 1) ~= 3 ...
       help mglMetalDots
   return
 end
+
+% Convert width and height from user device units to pixels used in Metal.
+wh(1,:) = wh(1,:) * mglGetParam('xDeviceToPixels');
+wh(2,:) = wh(2,:) * mglGetParam('yDeviceToPixels');
 
 % Stack up all the per-vertex data as a big matrix.
 vertexData = single(cat(1, xyz, rgba, wh, shape, border));

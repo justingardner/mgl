@@ -34,15 +34,15 @@ mglTextSet('Helvetica', 32, [1 1 1 1], 1, 0, 0, 0, 1, 0, 0);
 % drawing command blt, along with any other drawing commands on the same
 % frame.  Test that commands that are "out of order" from a performance
 % point of view are nevertheless workable.
-mglFillRect(-0.5, 0.5, [300, 200], [0.25 0 0]);
+mglFillRect(-0.5, 0.5, [1, 2/3], [0.25 0 0]);
 mglTextDraw('Top Left', [-0.5, 0.5]);
 disp('There should be text in a red box in the top left.')
 
-mglFillRect(0, 0, [300, 200], [0 0.25 0]);
+mglFillRect(0, 0, [1, 2/3], [0 0.25 0]);
 mglTextDraw('mglTestTextDraw!', [0, 0]);
 disp('There should be text in a green box in the center.')
 
-mglFillRect(0.5, -0.5, [300, 200], [0 0 0.25]);
+mglFillRect(0.5, -0.5, [1, 2/3], [0 0 0.25]);
 mglTextDraw('Bottom Right', [0.5, -0.5]);
 disp('There should be text in a blue box in the bottom right.')
 

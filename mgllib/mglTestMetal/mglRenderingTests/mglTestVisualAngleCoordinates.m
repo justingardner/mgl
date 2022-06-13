@@ -30,12 +30,12 @@ end
 mglVisualAngleCoordinates(50, [20, 20]);
 
 disp('There should be a big red circle at the origin, in the center.')
-mglPoints2(0, 0, 100, [0.75 0.25 0.25], true);
+mglPoints2(0, 0, 4, [0.75 0.25 0.25], true);
 
 disp('There should be 10 smaller squares, spanning the top-right quadrant.')
 x = linspace(0, 10, 10);
 y = linspace(0, 10, 10);
-mglPoints2(x, y, 40, [0.5 0.75 0.5]);
+mglPoints2(x, y, 1.5, [0.5 0.75 0.5]);
 
 mglFlush();
 

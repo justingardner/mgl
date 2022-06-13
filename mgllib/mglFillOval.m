@@ -6,7 +6,7 @@
 %       date: 03-17.2022
 %  copyright: (c) 2006 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
 %     inputs: x,y - vectors of x and y coordinates of center
-%             size - [width height] of oval
+%             size - [width height] of oval (device units, not pixels)
 %             color - [r g b] triplet for color
 %             antialiasing = size of border for antialiasing (default = 0)
 %
@@ -39,7 +39,7 @@ xyz(1,:) = x;
 xyz(2,:) = y;
 
 if nargin < 3
-    size = [10, 10];
+    size = [1, 1];
 end
 wh = zeros([2, nDots], 'single');
 wh(1,:) = size(1);

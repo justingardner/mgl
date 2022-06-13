@@ -8,7 +8,7 @@
 %    purpose: plot 2D points on an OpenGL screen opened with mglOpen
 %      usage: [ackTime, processedTime] = mglPoints2(x, y, size, color, isRound, antialiasing)
 %             x,y = position of dots on screen
-%             size = size of dots (in pixels)
+%             size = size of dots (device units, not pixels)
 %             color of dots
 %             isRound false = squares (default), true = circles
 %             antialiasing = size of border for antialiasing (default = 0)
@@ -35,7 +35,7 @@ xyz(1,:) = x;
 xyz(2,:) = y;
 
 if nargin < 3
-    size = 10;
+    size = 1;
 end
 wh = zeros([2, nDots], 'single');
 wh(:) = size;

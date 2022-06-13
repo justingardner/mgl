@@ -34,7 +34,7 @@ mglTransform('set', xform);
 % Draw some points in a triangle arrangement.
 x = [0 -0.5 0.5];
 y = [0.5 -0.5 -0.5];
-mglPoints2(x, y, 30, [1 1 1]);
+mglPoints2(x, y, .2, [1 1 1]);
 disp('There should be 3 white squares in a triangle arrangement.')
 
 % Pick a different, known coordinate transform.
@@ -42,7 +42,7 @@ xform = eye(4);
 mglTransform('set', xform);
 
 % Re-draw the same arrangement, this time offset from before.
-mglPoints2(x, y, 20, [0 1 1], true);
+mglPoints2(x, y, .1, [0 1 1], true);
 disp('There should be 3 cyan circles in the same arrangement -- NOT on top of the squares.')
 
 mglFlush;

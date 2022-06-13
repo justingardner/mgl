@@ -30,13 +30,13 @@ mglVisualAngleCoordinates(50, [20, 20]);
 x = linspace(-5, 5, 5);
 y = linspace(-5, 5, 5);
 z = linspace(0, 1, 5);
-mglPoints3(x, y, z, 100, [1 .25 .25]);
+mglPoints3(x, y, z, 4, [1 .25 .25]);
 disp('There should be 5 red squares along the x=y diagonal.')
 
 x2 = x + 1;
 y2 = y - 1;
 z2 = [0.5 0.5 0.5 0.5 0.5];
-mglPoints3(x2, y2, z2, 100, [.25 1 .25]);
+mglPoints3(x2, y2, z2, 4, [.25 1 .25]);
 disp('There should be 5 green squares slightly offset from the red squares.')
 disp('Only the bottom two red squares should appear "on top" of the green ones.')
 

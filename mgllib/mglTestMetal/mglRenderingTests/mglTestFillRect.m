@@ -29,10 +29,10 @@ mglVisualAngleCoordinates(50, [20, 20]);
 
 x = [-5 -6 -3  4 5];
 y = [ 5  1 -4 -2 3];
-mglFillRect(x, y, [100, 80], [1 .25 .25], 5);
+mglFillRect(x, y, [4, 3], [1 .25 .25], 5);
 disp('There should be 5 wide, red rectangles clustered roughly near the center.')
 
-mglFillRect(x, y, [40, 60], [.25 .5 .75], 5);
+mglFillRect(x, y, [1, 2], [.25 .5 .75], 5);
 disp('Each red rectangle should have a tall, blue-gray rectangle in the middle.')
 
 mglFlush();

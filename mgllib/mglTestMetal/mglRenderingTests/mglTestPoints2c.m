@@ -33,7 +33,7 @@ r = linspace(0, 1, 5);
 g = circshift(r, 1);
 b = circshift(r, 2);
 a = [1 1 1 1 1];
-mglPoints2c(x, y, 100, r, g, b, a);
+mglPoints2c(x, y, 4, r, g, b, a);
 disp('There should be 5 squares of different colors.')
 
 mglFlush();

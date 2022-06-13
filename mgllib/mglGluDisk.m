@@ -6,7 +6,7 @@
 %       date: 03-17-2022
 %  copyright: (c) 2006 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
 %     inputs: x,y - position
-%             size - radius
+%             size - radius (device units, not pixels)
 %             color - rgb or rgba
 %             nSlices - ignored, included for compatibility
 %             nLoops - ignored, included for compatibility

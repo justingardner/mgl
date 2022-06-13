@@ -41,7 +41,7 @@ deltaTheta = pi*(2/180);
 x(end+1:end+nDots) = r.*cos(theta+deltaTheta);
 y(end+1:end+nDots) = r.*sin(theta+deltaTheta);
 
-mglPoints2(x,y,1,[1 1 1]);
+mglPoints2(x,y,0.01,[1 1 1]);
 disp('There should be 1000 dots in a circular pattern (Glass) centered in the window.');
 
 mglFlush();
@@ -64,7 +64,7 @@ if (isInteractive)
     y = sin(theta).*r;
 
     for iFrame = 1:nFrames
-        mglPoints2(x,y,5,[1 1 1]);
+        mglPoints2(x,y,0.01,[1 1 1]);
         [ackTimes(iFrame), processedTimes(iFrame)] = mglFlush();
 
         r = r + deltaR;

@@ -31,12 +31,12 @@ mglFlush();
 
 % Stencil 1 hides everything except a circle on the left side of the screen.
 mglStencilCreateBegin(1);
-mglFillOval(-4, 0, [200, 200]);
+mglFillOval(-4, 0, [8, 8]);
 mglStencilCreateEnd();
 
 % Stencil 2 shows everything except a circle on the right side of the screen.
 mglStencilCreateBegin(2, 1);
-mglFillOval(4, 0, [200, 200]);
+mglFillOval(4, 0, [8, 8]);
 mglStencilCreateEnd();
 
 % Stencil 3 is initialized to clear, hiding all regions.
@@ -45,23 +45,23 @@ mglStencilCreateEnd();
 
 disp('We should be able to select and un-select multiple stencils during one frame AKA "render pass".')
 
-mglFillRect(0, -5, [150 150], [0 1 1]);
+mglFillRect(0, -5, [6 6], [0 1 1]);
 disp('No stencil: a cyan square near the bottom middle should appear since no stencil is selected yet.')
 
 mglStencilSelect(1);
-mglFillRect(-4, 0, [175 175], [1 0 0]);
+mglFillRect(-4, 0, [7 7], [1 0 0]);
 disp('Stencil 1: a red square on the left should have its corners stenciled off.')
 
 mglStencilSelect(0);
-mglFillRect(0, 5, [150 150], [1 0 1]);
+mglFillRect(0, 5, [6 6], [1 0 1]);
 disp('Stencil 0: a magenta square near the top middle should appear since since stencil 0 means "no stencil".')
 
 mglStencilSelect(2);
-mglFillRect(4, 0, [175 175], [0 1 0]);
+mglFillRect(4, 0, [7 7], [0 1 0]);
 disp('Stencil 2: a green square on the right should have corners *only*, with all the rest stenciled out.')
 
 mglStencilSelect(3);
-mglFillRect(0, 0, [350 350], [1 1 1]);
+mglFillRect(0, 0, [14 14], [1 1 1]);
 disp('Stencil 3: a large white square in the middle should *not* appear since stencil 3 is all cleared out.')
 
 mglFlush();

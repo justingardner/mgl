@@ -8,7 +8,7 @@
 %    purpose: plot 3D points on a screen opened with mglOpen
 %      usage: [ackTime, processedTime] = mglPoints3(x, y, z, size, color, isRound, antialiasing)
 %             x,y,z = position of dots on screen
-%             size = size of dots (in pixels)
+%             size = size of dots (device units, not pixels)
 %             color of dots
 %             isRound false = squares (default), true = circles
 %             antialiasing = size of border for antialiasing (default = 0)
@@ -39,7 +39,7 @@ xyz(2,:) = y;
 xyz(3,:) = z;
 
 if nargin < 4
-    size = 10;
+    size = 1;
 end
 wh = zeros([2, nDots], 'single');
 wh(:) = size;
