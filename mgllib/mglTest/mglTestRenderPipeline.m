@@ -156,7 +156,7 @@ for iFrame = 1:d.numFrames
   % get start time of frame
   d.timeVec(1,iFrame) = mglGetSecs;
   % draw dots
-  [d.timeVec(3,iFrame) d.timeVec(4,iFrame) d.timeVec(2,iFrame)] = mglPoints2c(2*rand(1,d.numPoints)-1,2*rand(1,d.numPoints)-1,2*ones(d.numPoints,2),rand(1,d.numPoints),rand(1,d.numPoints),rand(1,d.numPoints));
+  [d.timeVec(3,iFrame) d.timeVec(4,iFrame) d.timeVec(2,iFrame)] = mglPoints2c(2*rand(1,d.numPoints)-1,2*rand(1,d.numPoints)-1,0.005*ones(d.numPoints,2),rand(1,d.numPoints),rand(1,d.numPoints),rand(1,d.numPoints));
   % and flush
   [d.timeVec(5,iFrame) d.timeVec(6,iFrame)] = mglFlush;
   % and record time
