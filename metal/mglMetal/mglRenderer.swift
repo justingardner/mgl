@@ -15,6 +15,7 @@ import Foundation
 import MetalKit
 import AppKit
 import os.log
+import GameplayKit
 
 
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
@@ -43,6 +44,14 @@ class mglRenderer: NSObject {
     
     // a flag used to send post-flush acknowledgements back to Matlab
     var acknowledgeFlush = false
+
+    // State to manage commands that repeat themselves over multiple frames/render passes.
+    // These drive several different conditionals below that are coupled and need to work in concert.
+    // If/when we develop an explicit OOP model for commands,
+    // it might be good to refactor these areas using polymorphism, something like the strategy pattern.
+    var repeatingCommandCount: UInt32 = 0
+    var repeatingCommandCode: mglCommandCode = mglUnknownCommand
+    var randomSource: GKRandomSource = GKMersenneTwisterRandomSource(seed: 0)
 
     // keeps coordinate xform
     var deg2metal = matrix_identity_float4x4
@@ -146,12 +155,18 @@ extension mglRenderer: MTKViewDelegate {
             acknowledgeFlush = false
         }
 
-        // Check if Matlab sent us a command.
-        if !commandInterface.dataWaiting() {
-            // Nothing to do until Matlab sends us a command to work on.
+        // Do we have a command to process?
+        var command: mglCommandCode
+        if repeatingCommandCount > 0 {
+            // Yes, were in a repeated command sequence.
+            command = repeatingCommandCode
+        } else if commandInterface.dataWaiting() {
+            // Yes, we have a new command from Matlab.
+            command = readAndAcknowledgeNextCommand()
+        } else {
+            // No, we'll check again on the next frame / draw() call.
             return;
         }
-        var command = readAndAcknowledgeNextCommand()
 
         // Process non-drawing commands one at a time.
         // This avoids holding expensive drawing resources until we need to (below) as described here:
@@ -246,17 +261,25 @@ extension mglRenderer: MTKViewDelegate {
             case mglArcs: commandSuccess = drawArcs(view: view, renderEncoder: renderEncoder)
             case mglUpdateTexture: commandSuccess = updateTexture()
             case mglSelectStencil: commandSuccess = selectStencil(view: view, renderEncoder: renderEncoder)
+            case mglRepeatFlicker: commandSuccess = testFlicker(view: view, renderEncoder: renderEncoder)
             default: os_log("(mglRenderer) Unknown drawing command code %{public}@", log: .default, type: .error, String(describing: command))
             }
-
-            // Write a timestamp to Matlab as a command-processed ack.
-            acknowledgePreviousCommandProcessed(isSuccess: commandSuccess)
 
             if !commandSuccess {
                 os_log("(mglRenderer) Error processing drawing command %{public}@, abandoning this render pass.", log: .default, type: .error, String(describing: command))
                 renderEncoder.endEncoding()
+                acknowledgePreviousCommandProcessed(isSuccess: false)
                 return
             }
+
+            // We're in a repeating command sequence, so flush to the next frame automatically without an explicit flush command.
+            if repeatingCommandCount > 0 {
+                repeatingCommandCount -= 1
+                break
+            }
+
+            // Acknowledge this command was processed OK.
+            acknowledgePreviousCommandProcessed(isSuccess: true)
 
             // This will block until the next command arrives.
             // The idea is to process a sequence of drawing commands as fast as we can within a frame.
@@ -856,4 +879,30 @@ extension mglRenderer: MTKViewDelegate {
         renderEncoder.setVertexBytes(&deg2metal, length: MemoryLayout<float4x4>.stride, index: 1)
         return true
     }
+
+    func testFlicker(view: MTKView, renderEncoder: MTLRenderCommandEncoder) -> Bool {
+        if (repeatingCommandCount == 0) {
+            guard let repeatCount = commandInterface.readUInt32() else {
+                return false
+            }
+            repeatingCommandCount = UInt32(repeatCount)
+
+            guard let randomSeed = commandInterface.readUInt32() else {
+                return false
+            }
+            randomSource = GKMersenneTwisterRandomSource(seed: UInt64(randomSeed))
+
+            repeatingCommandCode = mglRepeatFlicker
+        }
+
+        // Choose a new, random color for the view to use on the next render pass.
+        let r = Double(randomSource.nextUniform())
+        let g = Double(randomSource.nextUniform())
+        let b = Double(randomSource.nextUniform())
+        let clearColor = MTLClearColor(red: r, green: g, blue: b, alpha: 1)
+        view.clearColor = clearColor
+
+        return true
+    }
+
 }

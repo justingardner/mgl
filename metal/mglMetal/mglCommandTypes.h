@@ -41,6 +41,7 @@ typedef enum mglCommandCode : uint16_t {
     mglUpdateTexture = 1010,
     mglSelectStencil = 1011,
     mglSetClearColor = 1012,
+    mglRepeatFlicker = 1013,
     mglUnknownCommand = UINT16_MAX
 } mglCommandCode;
 
@@ -71,7 +72,8 @@ const mglCommandCode mglCommandCodes[] = {
     mglArcs,
     mglUpdateTexture,
     mglSelectStencil,
-    mglSetClearColor
+    mglSetClearColor,
+    mglRepeatFlicker
 };
 const char* mglCommandNames[] = {
     "mglPing",
@@ -97,7 +99,8 @@ const char* mglCommandNames[] = {
     "mglArcs",
     "mglUpdateTexture",
     "mglSelectStencil",
-    "mglSetClearColor"
+    "mglSetClearColor",
+    "mglRepeatFlicker"
 };
 
 // Type aliases for supported scalar data types of known, fixed sizes.
