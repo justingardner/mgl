@@ -10,7 +10,7 @@
 %             This is a common interface to mglMeal for circular arcs.
 %             xyz -- 3 x n matrix of point positions [x, y, z]
 %             rgba -- 4 x n matrix of point colors [r, g, b, a]
-%             radii -- 2 x n matrix of annulus radii [inner, outer]
+%             radii -- 2 x n matrix of annulus radii [inner, outer] (device units, not pixels)
 %             wedge-- 2 x n matriz of wedge angles [start, sweep]
 %             border-- 1 x n antialiasing pixel size
 %
@@ -41,6 +41,11 @@ if size(xyz, 1) ~= 3 ...
       help mglMetalArcs
   return
 end
+
+% Convert inner and outer radius user device units to Metal pixels.
+% Scale based on the x-direction, as an arbitrary but consistent choice.
+radii(1,:) = radii(1,:) * mglGetParam('xDeviceToPixels');
+radii(2,:) = radii(2,:) * mglGetParam('xDeviceToPixels');
 
 % Stack up all the per-vertex data as a big matrix.
 vertexData = single(cat(1, xyz, rgba, radii, wedge, border));

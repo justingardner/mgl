@@ -6,8 +6,8 @@
 %       date: 2022-03-17
 %  copyright: (c) 2006 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
 %     inputs: x,y - position
-%             isize - inner radius
-%             osize - outer radius
+%             isize - inner radius (device units, not pixels)
+%             osize - outer radius (device units, not pixels)
 %             startAngles - start angle of partial disk (deg)
 %             sweepAngles - sweep angle of partial disk (deg)
 %             color - rgb or rgba

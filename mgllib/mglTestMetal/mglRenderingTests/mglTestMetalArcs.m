@@ -30,14 +30,14 @@ mglVisualAngleCoordinates(50, [20, 20]);
 % Arcs are vectorized to have 12 components per vertex: [x y z r g b a inner outer start sweep border].
 xyz = [-5 5 0; 0 5 0; 5 5 0]';
 rgba = [1 0 0 1; 0 1 1 1; 1 1 1 0.5]';
-radii = [0 100; 50 100; 100 150]';
+radii = [0 4; 2 4; 4 6]';
 wedge = [0 2*pi; 0 2*pi; 0 2*pi;]';
 border = [3 3 3];
 mglMetalArcs(xyz, rgba, radii, wedge, border);
 disp('There shoud be three rings across the top.')
 
 xyz2 = [-5 0 0; 0 0 0; 5 0 0]';
-radii2 = [0 100; 0 100; 0 150]';
+radii2 = [0 4; 0 4; 0 6]';
 wedge2 = [0 2*pi; pi/4 pi; 7*pi/4 pi/3]';
 mglMetalArcs(xyz2, rgba, radii2, wedge2, border);
 disp('There shoud be three wedges across the middle.')

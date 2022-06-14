@@ -32,7 +32,7 @@ if size(xyz, 1) ~= 3 ...
   return
 end
 
-% Convert width and height from user device units to pixels used in Metal.
+% Convert width and height from user device units to Metal pixels.
 wh(1,:) = wh(1,:) * mglGetParam('xDeviceToPixels');
 wh(2,:) = wh(2,:) * mglGetParam('yDeviceToPixels');
 

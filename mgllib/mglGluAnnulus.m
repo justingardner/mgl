@@ -6,8 +6,8 @@
 %       date: 03-17-2022
 %  copyright: (c) 2006 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
 %     inputs: x,y - position
-%             isize - inner radius
-%             osize - outer radius
+%             isize - inner radius (device units, not pixels)
+%             osize - outer radius (device units, not pixels)
 %             color - rgb or rgba
 %             nSlices - ignored, included for compatibility
 %             nLoops - ignored, included for compatibility
