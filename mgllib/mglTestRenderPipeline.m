@@ -10,6 +10,13 @@
 %       args: screenNum=0, sets the screen number to run on
 %             runTests=[], an int array with numbers for which test to run
 %             testLen=5, sets the length in seconds of the tests
+%             photoDiodeTest=0, sets whether to add a flickering square to
+%             the dislay to test with a photodiode
+%             photoDiodeRect=[-1 -1 0.5 0.5] sets the [x y width height] in
+%             the default coordinates (-1, -1 in bottom left corner)
+%             photoDiodeColor=[1 1 1] sets the color that the square will
+%             be shown at every other frame (will show black in the other
+%             frames)
 %
 %             some calls for specific tests
 %
