@@ -45,14 +45,17 @@ else
         result = results(ii);
         fprintf('  %d: %s\n', ii, result.testName);
         fprintf('     snapshot data: %s\n', result.snapshotData);
-        figure('Name', sprintf('%s Expected', result.testName));
-        imshow(result.snapshot(:,:,1:3), 'InitialMagnification', 100);
-        title(sprintf('Expected (%d x %d)', size(result.snapshot, 1), size(result.snapshot, 2)));
-        figure('Name', sprintf('%s Actual', result.testName));
+        expectedFigure = figure('Name', sprintf('%s Expected', result.testName));
+        expectedAxes = axes('Parent', expectedFigure);
+        imshow(result.snapshot(:,:,1:3), 'InitialMagnification', 100, 'Parent', expectedAxes);
+        title(sprintf('Expected (%d x %d)', size(result.snapshot, 1), size(result.snapshot, 2)), 'Parent', expectedAxes);
+
+        actualFigure = figure('Name', sprintf('%s Actual', result.testName));
+        actualAxes = axes('Parent', actualFigure);
         if size(result.renderedImage, 3) >= 3
-            imshow(result.renderedImage(:,:,1:3), 'InitialMagnification', 100);
+            imshow(result.renderedImage(:,:,1:3), 'InitialMagnification', 100, 'Parent', actualAxes);
         end
-        title(sprintf('Actual (%d x %d)', size(result.renderedImage, 1), size(result.renderedImage, 2)));
+        title(sprintf('Actual (%d x %d)', size(result.renderedImage, 1), size(result.renderedImage, 2)), 'Parent', actualAxes);
     end
     fprintf('Despair not!\n');
     fprintf('You can review Expected vs Actual images.  If the Actual is correct, delete the snapshot data file and run this again.\n');

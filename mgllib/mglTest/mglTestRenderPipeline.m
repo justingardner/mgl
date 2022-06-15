@@ -172,7 +172,7 @@ function d = testBlt(d)
 
 % set to a full screen size texture if bltSize is empty
 if isempty(d.bltSize) || length(d.bltSize) ~= 2
-  d.bltSize = [mglGetParam('screenWidth') mglGetParam('screenHeight')];
+  d.bltSize = [mglGetParam('screenHeight') mglGetParam('screenWidth')];
   disp(sprintf('(mglTestRenderPipeline) Using full size Blt: %i x %i',d.bltSize(1),d.bltSize(2)));
 end
 

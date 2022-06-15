@@ -261,7 +261,8 @@ extension mglRenderer: MTKViewDelegate {
             case mglArcs: commandSuccess = drawArcs(view: view, renderEncoder: renderEncoder)
             case mglUpdateTexture: commandSuccess = updateTexture()
             case mglSelectStencil: commandSuccess = selectStencil(view: view, renderEncoder: renderEncoder)
-            case mglRepeatFlicker: commandSuccess = testFlicker(view: view, renderEncoder: renderEncoder)
+            case mglRepeatFlicker: commandSuccess = repeatFlicker(view: view, renderEncoder: renderEncoder)
+            case mglRepeatBlts: commandSuccess = repeatBlts(view: view, renderEncoder: renderEncoder)
             default: os_log("(mglRenderer) Unknown drawing command code %{public}@", log: .default, type: .error, String(describing: command))
             }
 
@@ -880,7 +881,7 @@ extension mglRenderer: MTKViewDelegate {
         return true
     }
 
-    func testFlicker(view: MTKView, renderEncoder: MTLRenderCommandEncoder) -> Bool {
+    func repeatFlicker(view: MTKView, renderEncoder: MTLRenderCommandEncoder) -> Bool {
         if (repeatingCommandCount == 0) {
             guard let repeatCount = commandInterface.readUInt32() else {
                 return false
@@ -901,6 +902,65 @@ extension mglRenderer: MTKViewDelegate {
         let b = Double(randomSource.nextUniform())
         let clearColor = MTLClearColor(red: r, green: g, blue: b, alpha: 1)
         view.clearColor = clearColor
+
+        return true
+    }
+
+    func repeatBlts(view: MTKView, renderEncoder: MTLRenderCommandEncoder) -> Bool {
+        if (repeatingCommandCount == 0) {
+            guard let repeatCount = commandInterface.readUInt32() else {
+                return false
+            }
+            repeatingCommandCount = UInt32(repeatCount)
+
+            repeatingCommandCode = mglRepeatBlts
+        }
+
+        // For now, choose arbitrary vertices to blt onto.
+        let vertexByteCount = Int(mglSizeOfFloatVertexArray(6, 5))
+        guard let vertexBuffer = mglRenderer.device.makeBuffer(length: vertexByteCount, options: .storageModeManaged) else {
+            os_log("(mglRenderer) Could not make vertex buffer of size %{public}d", log: .default, type: .error, vertexByteCount)
+            return false
+        }
+        let vertexData: [Float32] = [
+             1,  1, 0, 1, 0,
+            -1,  1, 0, 0, 0,
+            -1, -1, 0, 0, 1,
+             1,  1, 0, 1, 0,
+            -1, -1, 0, 0, 1,
+             1, -1, 0, 1, 1
+        ]
+        let bufferFloats = vertexBuffer.contents().bindMemory(to: Float32.self, capacity: vertexData.count)
+        bufferFloats.assign(from: vertexData, count: vertexData.count)
+
+        // Choose a next texture from the available textures, varying with the repeating command count.
+        let textureNumbers = Array(textures.keys).sorted()
+        let textureIndex = Int(repeatingCommandCount) % textureNumbers.count
+        let textureNumber = textureNumbers[textureIndex]
+        guard let texture = textures[textureNumber] else {
+            os_log("(mglRenderer) Invalid texture number %{public}d, valid numbers are %{public}@.", log: .default, type: .error, textureNumber, String(describing: textures.keys))
+            return false
+        }
+
+        // For now, choose an arbitrary, fixed sampling strategy.
+        let samplerDescriptor = MTLSamplerDescriptor()
+        samplerDescriptor.minFilter = .nearest
+        samplerDescriptor.magFilter = .nearest
+        samplerDescriptor.mipFilter = .nearest
+        samplerDescriptor.sAddressMode = .repeat
+        samplerDescriptor.tAddressMode = .repeat
+        samplerDescriptor.rAddressMode = .repeat
+        let samplerState = mglRenderer.device.makeSamplerState(descriptor:samplerDescriptor)
+
+        // For now, assume drift-phase 0.
+        var phase = Float32(0)
+
+        renderEncoder.setRenderPipelineState(currentColorRenderingConfig.texturePipelineState)
+        renderEncoder.setVertexBuffer(vertexBuffer, offset: 0, index: 0)
+        renderEncoder.setFragmentSamplerState(samplerState, index: 0)
+        renderEncoder.setFragmentBytes(&phase, length: MemoryLayout<Float>.stride, index: 2)
+        renderEncoder.setFragmentTexture(texture, index:0)
+        renderEncoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 6)
 
         return true
     }
