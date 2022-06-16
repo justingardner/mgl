@@ -132,10 +132,20 @@ extension mglRenderer: MTKViewDelegate {
         os_log("(mglRenderer) drawableSizeWillChange %{public}@", log: .default, type: .info, String(describing: size))
     }
 
+    // We expect the view to be configured for "Timed updates" (the default),
+    // which is the traditional way of running once per "video frame", "screen refresh", etc.
+    // as described here:
+    //   https://developer.apple.com/documentation/metalkit/mtkview?language=objc
+    func draw(in view: MTKView) {
+        // Using autoreleasepool lets us attempt to release system resources like the "drawable" as soon as we're done.
+        // Apple's guidance is to do this once per frame, rather than letting it happen lazily at some later time.
+        //  https://developer.apple.com/library/archive/documentation/3DDrawing/Conceptual/MTLBestPracticesGuide/Drawables.html
+        autoreleasepool {
+            render(in: view)
+        }
+    }
+
     // This is the main "loop" for mglMetal.
-    // We expect the view to be configured for "Timed updates" (the default), as described here:
-    // https://developer.apple.com/documentation/metalkit/mtkview?language=objc
-    // This the traditional way of running once per "video frame", "screen refresh", etc.
     // We're currently doing all our app updates here, not just drawing.
     // This includes tasks like:
     //  - accepting pending socket connections from Matlab
@@ -143,7 +153,7 @@ extension mglRenderer: MTKViewDelegate {
     //  - writing command acks and results back to Matlab
     //  - executing non-drawing commands like texture data management, window management, etc.
     //  - executing actual drawing commands!
-    func draw(in view: MTKView) {
+    private func render(in view: MTKView) {
         // Check if a client connection is already accepted, or try to accept a new one.
         let clientIsConnected = commandInterface.acceptClientConnection()
         if !clientIsConnected {
@@ -172,7 +182,7 @@ extension mglRenderer: MTKViewDelegate {
 
         // Process non-drawing commands one at a time.
         // This avoids holding expensive drawing resources until we need to (below) as described here:
-        // https://developer.apple.com/documentation/quartzcore/cametallayer?language=objc#3385893
+        //   https://developer.apple.com/documentation/quartzcore/cametallayer?language=objc#3385893
         if command.rawValue < mglDrawingCommands.rawValue {
             var commandSuccess = false
 
@@ -202,10 +212,12 @@ extension mglRenderer: MTKViewDelegate {
         // Or, if there's an error, we'll abandon the rendering pass and return a negative ack.
 
         // Clear color is a unique case.
-        // We need to process it before setting up the rendering pass, so that the frame buffer texture can be cleared to the correct color when it gets loaded at the start of the rendering pass.
+        // We need to process it before setting up the rendering pass,
+        // so that the frame buffer texture can be cleared to the correct color when it gets loaded at the start of the rendering pass.
         // We don't want to return immediately, as we do with non-drawing commands above, because that incurs a frame wait.
         // Instead we want to fall into the rendering tight loop below.
-        // But we don't want to process the clear command along with other drawing commands becasue by then it's too late to clear the frame buffer texture with the correct color -- the texture will have been loaded and cleared already.
+        // But we don't want to process the clear command along with other drawing commands because by then it's too late
+        // the texture will have been loaded and cleared already, using the old clear color.
         // So we process it here in the middle, a special case here.
         if command == mglSetClearColor {
             let commandSuccess = setClearColor(view: view)
@@ -216,12 +228,35 @@ extension mglRenderer: MTKViewDelegate {
             }
         }
 
+        // This call to view.currentDrawable accesses an expensive system resource, the "drawable".
+        // Normally this is fast and not a problem.
+        // But we've seen it get slow when using large amounts of video memory.
+        // For example when we have 30 full-screen-sized textures loaded at once.
+        // For rgba Float32 textures, 30 of these can take up about a GB of memory.
+        // In this case the call duration is sometimes <1ms, sometimes ~7ms, sometimes even ~14 ms.
+        // It's not entirely consistent, but the durations seem to come in runs that last for many frames or several seconds.
+        // Even when in a run of ~14ms durations, we don't necessarily drop more frames than usual.
+        // When we do drop a frame, this seems to kick off a new run with a different call duration, for a while.
+        // We may be seeing some blocking/synchronizing on the expensive "drawable" resource.
+        // We seem to be already following the guidance about the "drawable" as discussed in Apple docs:
+        //   https://developer.apple.com/documentation/metalkit/mtkview
+        //   https://developer.apple.com/documentation/quartzcore/cametallayer#3385893
+        //   https://developer.apple.com/library/archive/documentation/3DDrawing/Conceptual/MTLBestPracticesGuide/Drawables.html
+        // In particular, we're doing our rendering work inside an autoreleasepool {} block,
+        // and we're not acquiring the drawable until we really are about to render a frame.
+        // So, are we just finding out how to tax the system and seeing what happens in that case?
+        // Does the system "know best" and we are blocking/synchronizing as expected?
+        // Or is there somethign else we can do about these long call durations?
         guard let drawable = view.currentDrawable else {
             os_log("(mglRenderer) Could not get current drawable from the view, skipping render pass.", log: .default, type: .error)
             acknowledgePreviousCommandProcessed(isSuccess: false)
             return
         }
 
+        // This call to getRenderPassDescriptor(view: view) internally calls view.currentRenderPassDescriptor.
+        // The call to view.currentRenderPassDescriptor impicitly accessed the view's currentDrawable, as mentioned above.
+        // It's possible to swap the order of these calls.
+        // But whichever one we call first seems to pay the same blocking/synchronization price when memory usage is high.
         guard let renderPassDescriptor = currentColorRenderingConfig.getRenderPassDescriptor(view: view) else {
             os_log("(mglRenderer) Could not get render pass descriptor from current color rendering config, skipping render pass.", log: .default, type: .error)
             acknowledgePreviousCommandProcessed(isSuccess: false)
@@ -275,8 +310,9 @@ extension mglRenderer: MTKViewDelegate {
                 return
             }
 
-            // We're in a repeating command sequence, so flush to the next frame automatically without an explicit flush command.
+            // We're in a repeating command sequence, so flush to the next frame automatically.
             if repeatingCommandCount > 0 {
+                acknowledgeRepeatingCommandAutomaticFlush()
                 repeatingCommandCount -= 1
                 break
             }
@@ -295,6 +331,7 @@ extension mglRenderer: MTKViewDelegate {
 
         // Present the drawable, and do other things like synchronize texture buffers, if needed.
         renderEncoder.endEncoding()
+
         currentColorRenderingConfig.finishDrawing(commandBuffer: commandBuffer, drawable: drawable)
     }
 
@@ -305,6 +342,10 @@ extension mglRenderer: MTKViewDelegate {
         }
         _ = commandInterface.writeDouble(data: secs.get())
         return command
+    }
+
+    private func acknowledgeRepeatingCommandAutomaticFlush() {
+        _ = commandInterface.writeDouble(data: secs.get())
     }
 
     private func acknowledgePreviousCommandProcessed(isSuccess: Bool) {
@@ -925,12 +966,12 @@ extension mglRenderer: MTKViewDelegate {
             return false
         }
         let vertexData: [Float32] = [
-             1,  1, 0, 1, 0,
+            1,  1, 0, 1, 0,
             -1,  1, 0, 0, 0,
             -1, -1, 0, 0, 1,
-             1,  1, 0, 1, 0,
+            1,  1, 0, 1, 0,
             -1, -1, 0, 0, 1,
-             1, -1, 0, 1, 1
+            1, -1, 0, 1, 1
         ]
         let bufferFloats = vertexBuffer.contents().bindMemory(to: Float32.self, capacity: vertexData.count)
         bufferFloats.assign(from: vertexData, count: vertexData.count)
