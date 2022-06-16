@@ -48,7 +48,9 @@ class mglRenderer: NSObject {
     // State to manage commands that repeat themselves over multiple frames/render passes.
     // These drive several different conditionals below that are coupled and need to work in concert.
     // If/when we develop an explicit OOP model for commands,
-    // it might be good to refactor these areas using polymorphism, something like the strategy pattern.
+    // It might be good to refactor these areas using polymorphism, something like the strategy pattern.
+    // For example, we might want to have just a currentCommand var here,
+    // And then we could move any other state into implementations of mglCommandModel (which is currently just an idea).
     var repeatingCommandCount: UInt32 = 0
     var repeatingCommandCode: mglCommandCode = mglUnknownCommand
     var randomSource: GKRandomSource = GKMersenneTwisterRandomSource(seed: 0)
