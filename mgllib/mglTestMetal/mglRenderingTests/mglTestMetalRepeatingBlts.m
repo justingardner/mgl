@@ -38,7 +38,7 @@ nFrames = 30;
 mglMetalRepeatingBlts(nFrames);
 
 % mglMetalRepeatingBlts should flush all on its own.
-disp('Random noise textures should fill the screen.  The last texture should be the same every time.');
+disp('Random noise textures should fill the screen.  The last texture should come out the same every time.');
 
 if (isInteractive)
     mglPause();

@@ -157,7 +157,6 @@ class mglCommandInterface {
         guard let vertexCount = readUInt32() else {
             return nil
         }
-        os_log("(mglCommandInterface) Reading vertex count %{public}d", log: .default, type: .info, vertexCount)
 
         // Calculate how many floats we have per vertex.
         // Start with 3 for XYZ, plus extraVals which can be used for things like color channels or texture coordinates.
@@ -192,7 +191,6 @@ class mglCommandInterface {
         guard let textureHeight = readUInt32() else {
             return nil
         }
-        os_log("(mglCommandInterface) Creating texture of width %{public}d and height %{public}d", log: .default, type: .info, textureWidth, textureHeight)
 
         // Set the texture descriptor
         let textureDescriptor = MTLTextureDescriptor.texture2DDescriptor(
@@ -235,7 +233,6 @@ class mglCommandInterface {
             return nil
         }
 
-        os_log("(mglCommandInterface) Created texture of width %{public}d and height %{public}d", log: .default, type: .info, textureWidth, textureHeight)
         return(texture)
     }
 
