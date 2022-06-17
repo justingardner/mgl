@@ -1,18 +1,18 @@
-% mglTestMetalRepeatingFlicker: an automated and/or interactive test for rendering.
+% mglTestMetalRepeatingFlush: an automated and/or interactive test for rendering.
 %
-%      usage: mglTestMetalRepeatingFlicker(isInteractive)
+%      usage: mglTestMetalRepeatingFlush(isInteractive)
 %         by: Benjamin Heasly
 %       date: 03/10/2022
 %  copyright: (c) 2006 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
-%    purpose: Test random clear colors repeated by the Metal app.
+%    purpose: Test multiple flushes, repeated by the Metal app.
 %      usage:
 %             % You can run it by hand with no args.
-%             mglTestMetalRepeatingFlicker();
+%             mglTestMetalRepeatingFlush();
 %
 %             % Or mglRunRenderingTests can run it, in non-interactive mode.
-%             mglTestMetalRepeatingFlicker(false);
+%             mglTestMetalRepeatingFlush(false);
 %
-function mglTestMetalRepeatingFlicker(isInteractive)
+function mglTestMetalRepeatingFlush(isInteractive)
 
 if nargin < 1
     isInteractive = true;
@@ -26,11 +26,10 @@ end
 %% How to:
 
 nFrames = 30;
-randomSeed = 42;
-mglMetalRepeatingFlicker(nFrames, randomSeed);
+mglMetalRepeatingFlush(nFrames);
 
-% mglMetalRepeatingFlicker should flush all on its own.
-disp('Flicker for 30 frames with random seed 42 should leave us with a lavender clear color');
+% mglMetalRepeatingFlush should flush all on its own.
+disp('Flush for 30 frames should leave the screen blank');
 
 % When it's done, make sure we have normal control again.
 % ie, calling flush shouldn't cause an error, get stuck, etc.

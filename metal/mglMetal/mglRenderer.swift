@@ -302,6 +302,8 @@ extension mglRenderer: MTKViewDelegate {
             case mglRepeatFlicker: commandSuccess = repeatFlicker(view: view, renderEncoder: renderEncoder)
             case mglRepeatBlts: commandSuccess = repeatBlts(view: view, renderEncoder: renderEncoder)
             case mglRepeatQuads: commandSuccess = repeatQuads(view: view, renderEncoder: renderEncoder)
+            case mglRepeatDots: commandSuccess = repeatDots(view: view, renderEncoder: renderEncoder)
+            case mglRepeatFlush: commandSuccess = repeatFlush(view: view, renderEncoder: renderEncoder)
             default: os_log("(mglRenderer) Unknown drawing command code %{public}@", log: .default, type: .error, String(describing: command))
             }
 
@@ -1110,5 +1112,83 @@ extension mglRenderer: MTKViewDelegate {
         buffer[offset + 33] = r
         buffer[offset + 34] = g
         buffer[offset + 35] = b
+    }
+
+    func repeatDots(view: MTKView, renderEncoder: MTLRenderCommandEncoder) -> Bool {
+        if (repeatingCommandFrameCount == 0) {
+            guard let repeatCount = commandInterface.readUInt32() else {
+                return false
+            }
+            repeatingCommandFrameCount = UInt32(repeatCount)
+
+            guard let objectCount = commandInterface.readUInt32() else {
+                return false
+            }
+            repeatingCommandObjectCount = UInt32(objectCount)
+
+            guard let randomSeed = commandInterface.readUInt32() else {
+                return false
+            }
+            repeatingCommandRandomSouce = GKMersenneTwisterRandomSource(seed: UInt64(randomSeed))
+
+            repeatingCommandCode = mglRepeatDots
+        }
+
+        // Pack a vertex buffer with dots: each has 1 vertex and 11 values per vertex vertex: [xyz rgba wh isRound borderSize].
+        let vertexCount = Int(repeatingCommandObjectCount)
+        let byteCount = Int(mglSizeOfFloatVertexArray(mglUInt32(vertexCount), 11))
+        guard let vertexBuffer = mglRenderer.device.makeBuffer(length: byteCount, options: .storageModeManaged) else {
+            os_log("(mglRenderer) Could not make vertex buffer of size %{public}d", log: .default, type: .error, byteCount)
+            return false
+        }
+        let bufferFloats = vertexBuffer.contents().bindMemory(to: Float32.self, capacity: vertexCount)
+        for dotIndex in (0 ..< vertexCount) {
+            let offset = Int(11 * dotIndex)
+            packRandomDot(buffer: bufferFloats, offset: offset)
+        }
+
+        // Draw all the vertices as points with 11 values per vertex: [xyz rgba wh isRound borderSize].
+        renderEncoder.setRenderPipelineState(currentColorRenderingConfig.dotsPipelineState)
+        renderEncoder.setVertexBuffer(vertexBuffer, offset: 0, index: 0)
+        renderEncoder.drawPrimitives(type: .point, vertexStart: 0, vertexCount: vertexCount)
+        return true
+    }
+
+    // Create a random dot as the next vertex, with 11 elements per vertex, of the given vertex buffer.
+    private func packRandomDot(buffer: UnsafeMutablePointer<Float32>, offset: Int) {
+        // xyz
+        buffer[offset + 0] = Float32(repeatingCommandRandomSouce.nextUniform() * 2 - 1)
+        buffer[offset + 1] = Float32(repeatingCommandRandomSouce.nextUniform() * 2 - 1)
+        buffer[offset + 2] = 0
+
+        // rgba
+        buffer[offset + 3] = Float32(repeatingCommandRandomSouce.nextUniform())
+        buffer[offset + 4] = Float32(repeatingCommandRandomSouce.nextUniform())
+        buffer[offset + 5] = Float32(repeatingCommandRandomSouce.nextUniform())
+        buffer[offset + 6] = 1
+
+        // wh
+        buffer[offset + 7] = 1
+        buffer[offset + 8] = 1
+
+        // round
+        buffer[offset + 9] = 0
+
+        // border size
+        buffer[offset + 10] = 0
+    }
+
+    func repeatFlush(view: MTKView, renderEncoder: MTLRenderCommandEncoder) -> Bool {
+        if (repeatingCommandFrameCount == 0) {
+            guard let repeatCount = commandInterface.readUInt32() else {
+                return false
+            }
+            repeatingCommandFrameCount = UInt32(repeatCount)
+
+            repeatingCommandCode = mglRepeatFlush
+        }
+
+        // This is a no-op, the only thing this needed to do was set the repeatingCommandFrameCount, above.
+        return true
     }
 }
