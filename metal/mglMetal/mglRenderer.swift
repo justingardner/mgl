@@ -51,9 +51,10 @@ class mglRenderer: NSObject {
     // It might be good to refactor these areas using polymorphism, something like the strategy pattern.
     // For example, we might want to have just a currentCommand var here,
     // And then we could move any other state into implementations of mglCommandModel (which is currently just an idea).
-    var repeatingCommandCount: UInt32 = 0
+    var repeatingCommandFrameCount: UInt32 = 0
     var repeatingCommandCode: mglCommandCode = mglUnknownCommand
-    var randomSource: GKRandomSource = GKMersenneTwisterRandomSource(seed: 0)
+    var repeatingCommandRandomSouce: GKRandomSource = GKMersenneTwisterRandomSource(seed: 0)
+    var repeatingCommandObjectCount: UInt32 = 0
 
     // keeps coordinate xform
     var deg2metal = matrix_identity_float4x4
@@ -169,7 +170,7 @@ extension mglRenderer: MTKViewDelegate {
 
         // Do we have a command to process?
         var command: mglCommandCode
-        if repeatingCommandCount > 0 {
+        if repeatingCommandFrameCount > 0 {
             // Yes, were in a repeated command sequence.
             command = repeatingCommandCode
         } else if commandInterface.dataWaiting() {
@@ -300,6 +301,7 @@ extension mglRenderer: MTKViewDelegate {
             case mglSelectStencil: commandSuccess = selectStencil(view: view, renderEncoder: renderEncoder)
             case mglRepeatFlicker: commandSuccess = repeatFlicker(view: view, renderEncoder: renderEncoder)
             case mglRepeatBlts: commandSuccess = repeatBlts(view: view, renderEncoder: renderEncoder)
+            case mglRepeatQuads: commandSuccess = repeatQuads(view: view, renderEncoder: renderEncoder)
             default: os_log("(mglRenderer) Unknown drawing command code %{public}@", log: .default, type: .error, String(describing: command))
             }
 
@@ -311,9 +313,9 @@ extension mglRenderer: MTKViewDelegate {
             }
 
             // We're in a repeating command sequence, so flush to the next frame automatically.
-            if repeatingCommandCount > 0 {
+            if repeatingCommandFrameCount > 0 {
                 acknowledgeRepeatingCommandAutomaticFlush()
-                repeatingCommandCount -= 1
+                repeatingCommandFrameCount -= 1
                 break
             }
 
@@ -925,24 +927,24 @@ extension mglRenderer: MTKViewDelegate {
     }
 
     func repeatFlicker(view: MTKView, renderEncoder: MTLRenderCommandEncoder) -> Bool {
-        if (repeatingCommandCount == 0) {
+        if (repeatingCommandFrameCount == 0) {
             guard let repeatCount = commandInterface.readUInt32() else {
                 return false
             }
-            repeatingCommandCount = UInt32(repeatCount)
+            repeatingCommandFrameCount = UInt32(repeatCount)
 
             guard let randomSeed = commandInterface.readUInt32() else {
                 return false
             }
-            randomSource = GKMersenneTwisterRandomSource(seed: UInt64(randomSeed))
+            repeatingCommandRandomSouce = GKMersenneTwisterRandomSource(seed: UInt64(randomSeed))
 
             repeatingCommandCode = mglRepeatFlicker
         }
 
         // Choose a new, random color for the view to use on the next render pass.
-        let r = Double(randomSource.nextUniform())
-        let g = Double(randomSource.nextUniform())
-        let b = Double(randomSource.nextUniform())
+        let r = Double(repeatingCommandRandomSouce.nextUniform())
+        let g = Double(repeatingCommandRandomSouce.nextUniform())
+        let b = Double(repeatingCommandRandomSouce.nextUniform())
         let clearColor = MTLClearColor(red: r, green: g, blue: b, alpha: 1)
         view.clearColor = clearColor
 
@@ -950,11 +952,11 @@ extension mglRenderer: MTKViewDelegate {
     }
 
     func repeatBlts(view: MTKView, renderEncoder: MTLRenderCommandEncoder) -> Bool {
-        if (repeatingCommandCount == 0) {
+        if (repeatingCommandFrameCount == 0) {
             guard let repeatCount = commandInterface.readUInt32() else {
                 return false
             }
-            repeatingCommandCount = UInt32(repeatCount)
+            repeatingCommandFrameCount = UInt32(repeatCount)
 
             repeatingCommandCode = mglRepeatBlts
         }
@@ -978,7 +980,7 @@ extension mglRenderer: MTKViewDelegate {
 
         // Choose a next texture from the available textures, varying with the repeating command count.
         let textureNumbers = Array(textures.keys).sorted()
-        let textureIndex = Int(repeatingCommandCount) % textureNumbers.count
+        let textureIndex = Int(repeatingCommandFrameCount) % textureNumbers.count
         let textureNumber = textureNumbers[textureIndex]
         guard let texture = textures[textureNumber] else {
             os_log("(mglRenderer) Invalid texture number %{public}d, valid numbers are %{public}@.", log: .default, type: .error, textureNumber, String(describing: textures.keys))
@@ -1008,4 +1010,105 @@ extension mglRenderer: MTKViewDelegate {
         return true
     }
 
+    func repeatQuads(view: MTKView, renderEncoder: MTLRenderCommandEncoder) -> Bool {
+        if (repeatingCommandFrameCount == 0) {
+            guard let repeatCount = commandInterface.readUInt32() else {
+                return false
+            }
+            repeatingCommandFrameCount = UInt32(repeatCount)
+
+            guard let objectCount = commandInterface.readUInt32() else {
+                return false
+            }
+            repeatingCommandObjectCount = UInt32(objectCount)
+
+            guard let randomSeed = commandInterface.readUInt32() else {
+                return false
+            }
+            repeatingCommandRandomSouce = GKMersenneTwisterRandomSource(seed: UInt64(randomSeed))
+
+            repeatingCommandCode = mglRepeatQuads
+        }
+
+        // Pack a vertex buffer with quads: each has 6 vertices (two triangels) and 6 values per vertex [xyz rgb].
+        let vertexCount = Int(6 * repeatingCommandObjectCount)
+        let byteCount = Int(mglSizeOfFloatVertexArray(mglUInt32(vertexCount), 6))
+        guard let vertexBuffer = mglRenderer.device.makeBuffer(length: byteCount, options: .storageModeManaged) else {
+            os_log("(mglRenderer) Could not make vertex buffer of size %{public}d", log: .default, type: .error, byteCount)
+            return false
+        }
+        let bufferFloats = vertexBuffer.contents().bindMemory(to: Float32.self, capacity: vertexCount * 6)
+        for quadIndex in (0 ..< repeatingCommandObjectCount) {
+            let offset = Int(6 * 6 * quadIndex)
+            packRandomQuad(buffer: bufferFloats, offset: offset)
+        }
+
+        // The buffer here uses storageModeManaged, to match the behavior of mglCommandInterface.
+        // This means we have to tell the GPU about the modifications we just made using the CPU.
+        vertexBuffer.didModifyRange(0 ..< byteCount)
+
+        // Render vertices as triangles, two per quad, and 6 values per vertex: [xyz rgb].
+        renderEncoder.setRenderPipelineState(currentColorRenderingConfig.verticesWithColorPipelineState)
+        renderEncoder.setVertexBuffer(vertexBuffer, offset: 0, index: 0)
+        renderEncoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: vertexCount)
+        return true
+    }
+
+    // Create a random quad as the next 6 triangle vertices ([xyz rgb], so 36 elements total) of the given vertex buffer.
+    private func packRandomQuad(buffer: UnsafeMutablePointer<Float32>, offset: Int) {
+        // Pick four random corners of the quad, vertices 0, 1, 2, 3.
+        let x0 = Float32(repeatingCommandRandomSouce.nextUniform() * 2 - 1)
+        let x1 = Float32(repeatingCommandRandomSouce.nextUniform() * 2 - 1)
+        let x2 = Float32(repeatingCommandRandomSouce.nextUniform() * 2 - 1)
+        let x3 = Float32(repeatingCommandRandomSouce.nextUniform() * 2 - 1)
+        let y0 = Float32(repeatingCommandRandomSouce.nextUniform() * 2 - 1)
+        let y1 = Float32(repeatingCommandRandomSouce.nextUniform() * 2 - 1)
+        let y2 = Float32(repeatingCommandRandomSouce.nextUniform() * 2 - 1)
+        let y3 = Float32(repeatingCommandRandomSouce.nextUniform() * 2 - 1)
+
+        // Pick one random color for the whole quad.
+        let r = Float32(repeatingCommandRandomSouce.nextUniform())
+        let g = Float32(repeatingCommandRandomSouce.nextUniform())
+        let b = Float32(repeatingCommandRandomSouce.nextUniform())
+
+        // First triangle of the quad gets vertices, 0, 1, 2.
+        buffer[offset + 0] = x0
+        buffer[offset + 1] = y0
+        buffer[offset + 2] = 0
+        buffer[offset + 3] = r
+        buffer[offset + 4] = g
+        buffer[offset + 5] = b
+        buffer[offset + 6] = x1
+        buffer[offset + 7] = y1
+        buffer[offset + 8] = 0
+        buffer[offset + 9] = r
+        buffer[offset + 10] = g
+        buffer[offset + 11] = b
+        buffer[offset + 12] = x2
+        buffer[offset + 13] = y2
+        buffer[offset + 14] = 0
+        buffer[offset + 15] = r
+        buffer[offset + 16] = g
+        buffer[offset + 17] = b
+
+        // Second triangle of the quad gets vertices, 2, 1, 3.
+        buffer[offset + 18] = x2
+        buffer[offset + 19] = y2
+        buffer[offset + 20] = 0
+        buffer[offset + 21] = r
+        buffer[offset + 22] = g
+        buffer[offset + 23] = b
+        buffer[offset + 24] = x1
+        buffer[offset + 25] = y1
+        buffer[offset + 26] = 0
+        buffer[offset + 27] = r
+        buffer[offset + 28] = g
+        buffer[offset + 29] = b
+        buffer[offset + 30] = x3
+        buffer[offset + 31] = y3
+        buffer[offset + 32] = 0
+        buffer[offset + 33] = r
+        buffer[offset + 34] = g
+        buffer[offset + 35] = b
+    }
 }
