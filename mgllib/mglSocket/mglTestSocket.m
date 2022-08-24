@@ -47,7 +47,7 @@ server = mglSocketAcceptConnection(server);
 serverCleanup2 = onCleanup(@() mglSocketClose(server));
 disp("Server accepted connection from client:")
 disp(server)
-assert(server.connectionSocketDescriptor >= 0, 'Server connectionSocketDescriptor hould be non-negative but it was %d', server.connectionSocketDescriptor);
+assert(server.connectionSocketDescriptor >= 0, 'Server connectionSocketDescriptor should be non-negative but it was %d', server.connectionSocketDescriptor);
 
 % Send and receive supported types in both directions.
 assertReceivedIntegrity(client, server, 'uint16');
@@ -95,7 +95,7 @@ duration = toc(timer);
 
 assert(byteCount > 0, 'Sent byte count should be positive but it was %d.', byteCount);
 assert(dataWaiting, 'Receiver should see data waiting but it did not.');
-assert(isequal(receivedData,originalData), 'Received data was not equal to original data.\nReceived:\n%s\nOrigina:l\n%s', num2str(receivedData), num2str(originalData));
+assert(isequal(receivedData, originalData), 'Received data was not equal to original data.\nReceived:\n%s\nOriginal:\n%s', num2str(receivedData), num2str(originalData));
 assert(~mglSocketDataWaiting(receiver), 'Receiver should no longer have data waiting, but it does.');
 
 fprintf('OK (%d bytes %f seconds)\n', byteCount, duration);

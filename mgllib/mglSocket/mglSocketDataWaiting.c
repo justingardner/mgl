@@ -5,7 +5,7 @@
        by: justin gardner
      date: 12/26/2019
 copyright: (c) 2019 Justin Gardner (GPL see mgl/COPYING)
-  purpose: mex function to poll a socket for data waiting to be reada
+  purpose: mex function to poll one or more sockets for data waiting to be read
    usage: tf = mglSocketDataWaiting(s)
 		  
 =========================================================================
@@ -18,15 +18,14 @@ copyright: (c) 2019 Justin Gardner (GPL see mgl/COPYING)
 #include <sys/socket.h>
 #include <poll.h>
 
+double pollFromStructElement(const mxArray* socketInfo, mwIndex index, int verbose);
+
 //////////////
 //   main   //
 //////////////
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
-
     // Check for expected usage.
-    if (nrhs != 1 || nlhs != 1) {
-        const int ndims = 1;
-        const int dims[] = {1};
+    if (nrhs != 1 || nlhs != 1 || !mxIsStruct(prhs[0])) {
         mxArray *callInput[] = { mxCreateString("mglSocketDataWaiting") };
         mexCallMATLAB(0, NULL, 1, callInput, "help");
         plhs[0] = mxCreateDoubleMatrix(0, 0, mxREAL);
@@ -35,32 +34,46 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
     
     int verbose = (int)mglGetGlobalDouble("verbose");
 
+    // Aggregate polling results from multiple sockets, one from each element
+    // of the given socket info struct array.
+    size_t m = mxGetM(prhs[0]);
+    size_t n = mxGetN(prhs[0]);
+    plhs[0] = mxCreateDoubleMatrix(m, n, mxREAL);
+    mxDouble* resultDoubles = mxGetPr(plhs[0]);
+    size_t socketCount = m * n;
+    int index;
+    for (index = 0; index < socketCount; index++) {
+        double dataWaiting = pollFromStructElement(prhs[0], index, verbose);
+        resultDoubles[index] = dataWaiting;
+    }
+}
+
+// Poll the socket from the index-th element of the socketInfo array.
+// Return 1.0 if data waiting, 0.0 if not, or -1.0 on error.
+mxDouble pollFromStructElement(const mxArray* socketInfo, mwIndex index, int verbose) {
     // Get the connectionSocketDescriptor to poll.
-    mxArray* field = mxGetField(prhs[0], 0, "connectionSocketDescriptor");
+    mxArray* field = mxGetField(socketInfo, index, "connectionSocketDescriptor");
     if (field == NULL) {
         if (verbose) {
-            mexPrintf("(mglSocketDataWaiting) First argument must have field connectionSocketDescriptor, please use mglSocketCreateClient first.\n");
+            mexPrintf("(mglSocketDataWaiting) Socket info must have field connectionSocketDescriptor, please use mglSocketCreateClient first.\n");
         }
-        plhs[0] = mxCreateDoubleMatrix(0, 0, mxREAL);
-        return;
+        return -1.0;
     }
     int connectionSocketDescriptor = (int) mxGetScalar(field);
     if (connectionSocketDescriptor < 0) {
         if (verbose) {
-            mexPrintf("(mglSocketDataWaiting) Not ready to poll connectionSocketDescriptor %d, please use mglSocketCreateClient first.\n", connectionSocketDescriptor);
+            mexPrintf("(mglSocketDataWaiting) Not ready to poll connectionSocketDescriptor %d (index %d), please use mglSocketCreateClient first.\n", connectionSocketDescriptor, index);
         }
-        plhs[0] = mxCreateDoubleMatrix(0, 0, mxREAL);
-        return;
+        return -1.0;
     }
 
     // Get the pollMilliseconds configuration to use.
-    field = mxGetField(prhs[0], 0, "pollMilliseconds");
+    field = mxGetField(socketInfo, index, "pollMilliseconds");
     if (field == NULL) {
         if (verbose) {
-            mexPrintf("(mglSocketDataWaiting) First argument must have field pollMilliseconds, please use mglSocketCreateClient first.\n");
+            mexPrintf("(mglSocketDataWaiting) Socket info must have field pollMilliseconds, please use mglSocketCreateClient first.\n");
         }
-        plhs[0] = mxCreateDoubleMatrix(0, 0, mxREAL);
-        return;
+        return -1.0;
     }
     int pollMilliseconds = (int) mxGetScalar(field);
 
@@ -73,13 +86,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
     if (pfd.revents == POLLIN) {
         if (verbose) {
-            mexPrintf("(mglSocketDataWaiting) Yes, data waiting to be read for connectionSocketDescriptor %d\n", connectionSocketDescriptor);
+            mexPrintf("(mglSocketDataWaiting) Yes, data waiting to be read for connectionSocketDescriptor %d (index %d)\n", connectionSocketDescriptor, index);
         }
-        plhs[0] = mxCreateDoubleScalar(1);
+        return 1;
     } else {
         if (verbose) {
-            mexPrintf("(mglSocketDataWaiting) No, no data waiting for connectionSocketDescriptor %d\n", connectionSocketDescriptor);
+            mexPrintf("(mglSocketDataWaiting) No, no data waiting for connectionSocketDescriptor %d (index %d)\n", connectionSocketDescriptor, index);
         }
-        plhs[0] = mxCreateDoubleScalar(0);
+        return 0;
     }
 }
