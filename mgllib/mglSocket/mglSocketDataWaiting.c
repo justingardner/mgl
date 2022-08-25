@@ -24,6 +24,7 @@ double pollForStructElement(const mxArray* socketInfo, mwIndex index, int verbos
 //   main   //
 //////////////
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
+
     // Check for expected usage.
     if (nrhs != 1 || nlhs != 1 || !mxIsStruct(prhs[0])) {
         mxArray *callInput[] = { mxCreateString("mglSocketDataWaiting") };

@@ -18,7 +18,7 @@ copyright: (c) 2019 Justin Gardner (GPL see mgl/COPYING)
 #include "mglCommandTypes.h"
 #include <sys/socket.h>
 
-mxDouble writeForStructElement(const mxArray* socketInfo, mwIndex index, void* dataBytes, size_t numBytes, int verbose);
+mxDouble writeForStructElement(const mxArray* socketInfo, mwIndex index, const void* dataBytes, size_t numBytes, int verbose);
 
 //////////////
 //   main   //
@@ -53,7 +53,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
         plhs[0] = mxCreateDoubleMatrix(0, 0, mxREAL);
         return;
     }
-    void* dataBytes = mxGetData(prhs[1]);
 
     // Aggregate write results from multiple sockets, one from each element
     // of the given socket info struct array.
@@ -67,6 +66,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
         mexPrintf("(mglSocketWrite) Sending %d elements of type %s as %d bytes on %d sockets.\n", numElements, mxGetClassName(prhs[1]), numBytes, socketCount);
     }
 
+    void* dataBytes = mxGetData(prhs[1]);
     int index;
     for (index = 0; index < socketCount; index++) {
         mxDouble bytesWritten = writeForStructElement(prhs[0], index, dataBytes, numBytes, verbose);
@@ -76,7 +76,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
 // Write data to the socket from the index-th element of socketInfo.
 // Return the number of bytes written, or -1.0 on error.
-mxDouble writeForStructElement(const mxArray* socketInfo, mwIndex index, void* dataBytes, size_t numBytes, int verbose) {
+mxDouble writeForStructElement(const mxArray* socketInfo, mwIndex index, const void* dataBytes, size_t numBytes, int verbose) {
     // Get the connectionSocketDescriptor to write to.
     mxArray* field = mxGetField(socketInfo, index, "connectionSocketDescriptor");
     if (field == NULL) {

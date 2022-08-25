@@ -78,20 +78,14 @@ originalData = rand([rows, columns, slices], 'double');
 
 fprintf('Sending %d x %d x %d doubles on %d sockets\n', rows, columns, slices, socketCount);
 
-receivedData = zeros([rows, columns, slices, socketCount]);
-
 timer = tic();
-byteCount = mglSocketWrite(clients, originalData)
+byteCount = mglSocketWrite(clients, originalData);
 dataWaiting1 = mglSocketDataWaiting(servers);
+receivedData = mglSocketRead(servers, 'double', rows, columns, slices);
+writeReadDuration = toc(timer);
 
-% TODO: push the loop into the mex-function.
-for ii = 1:socketCount
-    receivedData(:, :, :, ii) = mglSocketRead(servers(ii), 'double', rows, columns, slices);
-end
-
+% Checking takes longer when there's no data, so leave it out of the timer.
 dataWaiting2 = mglSocketDataWaiting(servers);
-
-duration = toc(timer);
 
 assert(all(byteCount > 0), 'All sent byte counts should be positive but at least one was not: %s', num2str(byteCount));
 assert(all(dataWaiting1 == 1), 'All servers should see data waiting after write but at least one did not: %s', num2str(dataWaiting1));
@@ -100,4 +94,4 @@ for ii = 1:socketCount
 end
 assert(all(dataWaiting2 == 0), 'Not any servers should see data waiting after read but at least one did: %s', num2str(dataWaiting2));
 
-fprintf('OK (%f seconds)\n', duration);
+fprintf('OK (%f seconds)\n', writeReadDuration);
