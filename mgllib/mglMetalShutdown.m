@@ -10,19 +10,26 @@
 %      usage: mglMetalShutdown()
 function tf = mglMetalShutdown
 
-% get psid
-[tf, psid] = mglMetalIsRunning;
+[tf, pids] = mglMetalIsRunning;
 if ~tf
-  fprintf('(mglMetalShutdown) No mglMetal process is running\n');
-  return
+    fprintf('(mglMetalShutdown) No mglMetal process is running\n');
+    return
 end
 
-% shutdown
-fprintf(sprintf('(mglMetalShutdown) Shutting down mglMetal process: %i',psid),0);
-system(sprintf('kill -9 %i',psid));
+% Shut down all matching processes found.
+for pid = pids
+    fprintf(sprintf('(mglMetalShutdown) Shutting down mglMetal process: %i', pid),0);
+    system(sprintf('kill -9 %i', pid));
+end
 
-% isRunning
+% Wait for the processes to actually stop.
 while(mglMetalIsRunning)
-  fprintf('.',0);
+    fprintf('.',0);
 end
 fprintf('\n',0);
+
+% Clean up socket files, which have random names and could proliferate.
+global mgl
+if ~isempty(mgl) && isfield(mgl, 's') && isfile(mgl.s.address)
+    delete(mgl.s.address);
+end

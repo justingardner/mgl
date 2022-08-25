@@ -70,7 +70,10 @@ end
 mgl.onCleanup = onCleanup(@mglMetalShutdown);
 
 % Choose a socket address that's inside the mglMetal.app runtime sandbox.
-socketAddress = fullfile(mglMetalSandbox, 'mglMetal.socket');
+% We use a unique name here to prevent collisions when using mgl mirror mode and/or swappable mgl contexts.
+alphaNums = [char(48:57) char(65:90) char(97:122)];
+unique = alphaNums(randi([1 numel(alphaNums)], 1, 10));
+socketAddress = fullfile(mglMetalSandbox, ['mglMetal.socket.' unique]);
 fprintf('(mglMetalOpen) Using socket address: %s\n', socketAddress);
 
 % Start up mglMetal!

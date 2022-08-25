@@ -5,27 +5,41 @@
 %         by: justin gardner
 %       date: 09/27/2021
 %  copyright: (c) 2021 Justin Gardner (GPL see mgl/COPYING)
-%    purpose: Returns the name of the mglMetal application
+%    purpose: Returns whether mglMetal processes are running, and any pids
 %      usage: tf = mglMetalIsRunning;
 %
-%             to get the process ids for the mglMetal application
-%             [tf psid] = mglMetalIsRunning;
+%             to get the process ids for the mglMetal processes
+%             [tf pids] = mglMetalIsRunning;
 %
-function [tf, psid] = mglMetalIsRunning
+function [tf, pids] = mglMetalIsRunning
 
 tf = false;
-psid = [];
+pids = [];
 
-% check if mglMetal is running
-[status, isMetalRunning] = system('ps aux | grep -i mglMetal | grep -v grep');
+global mgl
+if isempty(mgl) || ~isfield(mgl, 's') || isempty(mgl.s)
+    return;
+end
 
-% check whether the string mglMetal.app is in the return - this
-% is necessary because the system command also returns anything
-% that is in the text buffer - for example, if you copy and
-% paste a set of commands, for some reason that is in the return of system
-if ~isempty(strfind(isMetalRunning,'mglMetal.app'))
-  tf = true;
-  [~,isMetalRunning] = strtok(isMetalRunning);
-  [psid] = strtok(isMetalRunning);
-  psid = str2num(psid);
+% Find the PID of processes we own, which are using known socket addresses.
+% These should be the mglMetal process we started recently as with mglOpen.
+% The format "-F p" says to print each PID on a new line starting with "p".
+[status, processInfo] = system(['lsof -F p ', mgl.s.address]);
+if status
+    return;
+end
+
+% Find any PID lines, which look like "p0000".
+info = strsplit(processInfo, '\n');
+pidLines = find(startsWith(info, 'p'));
+if isempty(pidLines)
+    return;
+end
+
+% Dig out integer pids from the "p0000" lines we found.
+tf = true;
+for ii = pidLines
+    pidLine = info{ii};
+    pid = sscanf(pidLine, 'p%i');
+    pids = [pids; pid];
 end
