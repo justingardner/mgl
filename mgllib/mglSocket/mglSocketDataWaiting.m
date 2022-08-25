@@ -18,7 +18,7 @@
 %                 1.0 means bytes are available
 %                 0.0 means zero bytes available
 %                 -1.0 means some error occurred for this socket.
-%             When s is an mxn struct array, the return array has size mxn.
+%             When s is an mxn struct array, the result also has size mxn.
 %
 %             This check will poll the given socket or sockets for up to
 %             some number of miliseconds before returning false.  The

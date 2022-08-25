@@ -1,4 +1,4 @@
-% mglSocketWrite: Write data to an opened socket.
+% mglSocketWrite: Write data to one or more opened socket.
 %
 %        $Id$
 %      usage: byteCount = mglSocketWrite(s, data)
@@ -6,17 +6,22 @@
 %       date: 12/26/2019
 %  copyright: (c) 2021 Justin Gardner (GPL see mgl/COPYING)
 %    purpose: Writes data to a socket that was opened by
-%             mglSocketCreateClient() or mglSocketCreateServer().
+%             mglSocketCreateClient() or mglSocketCreateServer(), or an
+%             array of these.
+%
 %             Converts a given Matlab matrix of a supported type to raw
 %             bytes for sending.
+%
 %      usage: byteCount = mglSocketWrite(s, data)
 %             s -- a socket info struct returned from
-%                  mglSocketCreateClient() or mglSocketCreateServer()
+%                  mglSocketCreateClient() or mglSocketCreateServer().
+%                  s can also be a struct array of these.
 %             data -- a numeric matrix of a supported type, must be one of:
 %                     'uint16', 'uint32', 'double', 'single'.
 %
 %             Returns the number of bytes written to the socket, which
 %             depends on the dimensions and type of the given data.
+%             When s is an mxn struct array, the result also has size mxn.
 %
 % % Create a client and server that can talk over sockets.
 % socketFile = '/tmp/test.socket';

@@ -5,7 +5,7 @@
        by: justin gardner
      date: 12/24/2019
 copyright: (c) 2019 Justin Gardner (GPL see mgl/COPYING)
-  purpose: mex function to write typed data as bytes to a posix socket
+  purpose: mex function to write typed data as bytes to one or more posix socket
     usage: byteCount = mglSocketWrite(s, data)
 
 =========================================================================
@@ -18,15 +18,15 @@ copyright: (c) 2019 Justin Gardner (GPL see mgl/COPYING)
 #include "mglCommandTypes.h"
 #include <sys/socket.h>
 
+mxDouble writeForStructElement(const mxArray* socketInfo, mwIndex index, void* dataBytes, size_t numBytes, int verbose);
+
 //////////////
 //   main   //
 //////////////
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
     // Check for expected usage.
-    if (nrhs != 2) {
-        const int ndims = 1;
-        const int dims[] = {1};
+    if (nrhs != 2 || !mxIsStruct(prhs[0])) {
         mxArray *callInput[] = { mxCreateString("mglSocketWrite") };
         mexCallMATLAB(0, NULL, 1, callInput, "help");
         plhs[0] = mxCreateDoubleMatrix(0, 0, mxREAL);
@@ -35,26 +35,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
     int verbose = (int)mglGetGlobalDouble("verbose");
 
-    // Get the connectionSocketDescriptor to write to.
-    mxArray* field = mxGetField(prhs[0], 0, "connectionSocketDescriptor");
-    if (field == NULL) {
-        if (verbose) {
-            mexPrintf("(mglSocketWrite) First argument must have field connectionSocketDescriptor, please use mglSocketCreateClient first.\n");
-        }
-        plhs[0] = mxCreateDoubleMatrix(0, 0, mxREAL);
-        return;
-    }
-    int connectionSocketDescriptor = (int) mxGetScalar(field);
-    if (connectionSocketDescriptor < 0) {
-        if (verbose) {
-            mexPrintf("(mglSocketWrite) Not ready to write to connectionSocketDescriptor %d, please use mglSocketCreateClient first.\n", connectionSocketDescriptor);
-        }
-        plhs[0] = mxCreateDoubleMatrix(0, 0, mxREAL);
-        return;
-    }
-
     // Check for a supported data type and get the corresponding overall data size in bytes.
-    size_t numElements = (size_t) (mxGetN(prhs[1]) * mxGetM(prhs[1]));
+    size_t numElements = mxGetN(prhs[1]) * mxGetM(prhs[1]);
     size_t numBytes = 0;
     if (mxIsClass(prhs[1], "uint16")) {
         numBytes = mglSizeOfCommandCodeArray(numElements);
@@ -71,14 +53,53 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
         plhs[0] = mxCreateDoubleMatrix(0, 0, mxREAL);
         return;
     }
+    void* dataBytes = mxGetData(prhs[1]);
+
+    // Aggregate write results from multiple sockets, one from each element
+    // of the given socket info struct array.
+    size_t m = mxGetM(prhs[0]);
+    size_t n = mxGetN(prhs[0]);
+    plhs[0] = mxCreateDoubleMatrix(m, n, mxREAL);
+    mxDouble* resultDoubles = mxGetPr(plhs[0]);
+    size_t socketCount = m * n;
 
     if (verbose) {
-        mexPrintf("(mglSocketWrite) Sending %d elements of type %s as %d bytes on connectionSocketDescriptor %d.\n", numElements, mxGetClassName(prhs[1]), numBytes, connectionSocketDescriptor);
+        mexPrintf("(mglSocketWrite) Sending %d elements of type %s as %d bytes on %d sockets.\n", numElements, mxGetClassName(prhs[1]), numBytes, socketCount);
+    }
+
+    int index;
+    for (index = 0; index < socketCount; index++) {
+        mxDouble bytesWritten = writeForStructElement(prhs[0], index, dataBytes, numBytes, verbose);
+        resultDoubles[index] = bytesWritten;
+    }
+}
+
+// Write data to the socket from the index-th element of socketInfo.
+// Return the number of bytes written, or -1.0 on error.
+mxDouble writeForStructElement(const mxArray* socketInfo, mwIndex index, void* dataBytes, size_t numBytes, int verbose) {
+    // Get the connectionSocketDescriptor to write to.
+    mxArray* field = mxGetField(socketInfo, index, "connectionSocketDescriptor");
+    if (field == NULL) {
+        if (verbose) {
+            mexPrintf("(mglSocketWrite) Socket info must have field connectionSocketDescriptor, please use mglSocketCreateClient first.\n");
+        }
+        return -1;
+    }
+    int connectionSocketDescriptor = (int) mxGetScalar(field);
+    if (connectionSocketDescriptor < 0) {
+        if (verbose) {
+            mexPrintf("(mglSocketWrite) Not ready to write to connectionSocketDescriptor %d (index %d), please use mglSocketCreateClient first.\n", connectionSocketDescriptor, index);
+        }
+        return -1;
+    }
+
+    if (verbose) {
+        mexPrintf("(mglSocketWrite) Sending %d bytes on connectionSocketDescriptor %d (index %d).\n", numBytes, connectionSocketDescriptor, index);
     }
 
     int totalSent = 0;
     while (totalSent < numBytes) {
-        int sent = send(connectionSocketDescriptor, mxGetPr(prhs[1]), numBytes, 0);
+        int sent = send(connectionSocketDescriptor, dataBytes + totalSent, numBytes - totalSent, 0);
         if (sent < 0) {
             if (errno == EAGAIN || errno == EWOULDBLOCK) {
                 continue;
@@ -95,7 +116,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
             mexPrintf("(mglSocketWrite) Sent %d bytes.\n", totalSent);
         }
     }
- 
-    // Return the number of bytes actually sent.
-    plhs[0] = mxCreateDoubleScalar(totalSent);
+
+    return totalSent;
 }

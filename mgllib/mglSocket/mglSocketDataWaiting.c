@@ -18,7 +18,7 @@ copyright: (c) 2019 Justin Gardner (GPL see mgl/COPYING)
 #include <sys/socket.h>
 #include <poll.h>
 
-double pollFromStructElement(const mxArray* socketInfo, mwIndex index, int verbose);
+double pollForStructElement(const mxArray* socketInfo, mwIndex index, int verbose);
 
 //////////////
 //   main   //
@@ -43,14 +43,14 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
     size_t socketCount = m * n;
     int index;
     for (index = 0; index < socketCount; index++) {
-        double dataWaiting = pollFromStructElement(prhs[0], index, verbose);
+        mxDouble dataWaiting = pollForStructElement(prhs[0], index, verbose);
         resultDoubles[index] = dataWaiting;
     }
 }
 
 // Poll the socket from the index-th element of the socketInfo array.
 // Return 1.0 if data waiting, 0.0 if not, or -1.0 on error.
-mxDouble pollFromStructElement(const mxArray* socketInfo, mwIndex index, int verbose) {
+mxDouble pollForStructElement(const mxArray* socketInfo, mwIndex index, int verbose) {
     // Get the connectionSocketDescriptor to poll.
     mxArray* field = mxGetField(socketInfo, index, "connectionSocketDescriptor");
     if (field == NULL) {

@@ -78,16 +78,10 @@ originalData = rand([rows, columns, slices], 'double');
 
 fprintf('Sending %d x %d x %d doubles on %d sockets\n', rows, columns, slices, socketCount);
 
-byteCount = zeros(1, socketCount);
 receivedData = zeros([rows, columns, slices, socketCount]);
 
 timer = tic();
-
-% TODO: push the loop into the mex-function.
-for ii = 1:socketCount
-    byteCount(ii) = mglSocketWrite(clients(ii), originalData);
-end
-
+byteCount = mglSocketWrite(clients, originalData)
 dataWaiting1 = mglSocketDataWaiting(servers);
 
 % TODO: push the loop into the mex-function.
