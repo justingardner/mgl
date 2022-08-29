@@ -61,6 +61,11 @@ end
 mglMetalShutdown();
 mglSetParam('displayNumber', -1);
 
+% Clean up socket files, which have random names and could proliferate.
+if isfield(mgl, 's') && isfile(mgl.s.address)
+    delete(mgl.s.address);
+end
+
 % reset resolution if necessary
 originalResolution = mglGetParam('originalResolution');
 if ~isempty(originalResolution)

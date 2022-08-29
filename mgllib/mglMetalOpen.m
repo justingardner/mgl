@@ -43,74 +43,22 @@ end
 % create the mgl global variable
 global mgl
 
-% Get supported command codes from a header that's shared with mglMetal.
+% Get a socket connection to an mglMetal process.
 mgl.command = mglSocketCommandTypes();
-
-% Get the full path to the mglMetal.app dir and its runtime sandbox.
-[mglMetalApp, mglMetalSandbox] = mglMetalExecutableName;
-if ~isfolder(mglMetalApp)
-    fprintf('(mglMetalOpen) mglMetal executable seems not to exist: %s\n', mglMetalApp);
-    return
-end
-
-% check if mglMetal is running
-reuseMglMetal = mglGetParam('reuseMglMetal');
-if isempty(reuseMglMetal)
-    reuseMglMetal = false;
-end
-if mglMetalIsRunning && ~reuseMglMetal
-    fprintf('(mglMetalOpen) mglMetal executable is already running\n');
-    % then kill it
-    mglMetalShutdown;
-end
+socketInfo = mglMetalStartup(whichScreen, screenX, screenY, screenWidth, screenHeight);
+mgl.s = socketInfo;
 
 % Register a cleanup callback.
 % Matlab will call this when deleting the global mgl struct.
 % This should happen if you "clear all", or when exiting Matlab.
-mgl.onCleanup = onCleanup(@mglMetalShutdown);
+mgl.onCleanup = onCleanup(@() mglMetalShutdown(socketInfo));
 
-% Choose a socket address that's inside the mglMetal.app runtime sandbox.
-% We use a unique name here to prevent collisions when using mgl mirror mode and/or swappable mgl contexts.
-alphaNums = [char(48:57) char(65:90) char(97:122)];
-unique = alphaNums(randi([1 numel(alphaNums)], 1, 10));
-socketAddress = fullfile(mglMetalSandbox, ['mglMetal.socket.' unique]);
-fprintf('(mglMetalOpen) Using socket address: %s\n', socketAddress);
-
-% Start up mglMetal!
-if ~reuseMglMetal
-    fprintf('(mglMetalOpen) Starting up mglMetal executable: %s\n', mglMetalApp);
-    fprintf('(mglMetalOpen) You can tail the app log with "log stream --level info --process mglMetal"\n');
-    fprintf('(mglMetalOpen) You can also try the macOS Console app and search for PROCESS "mglMetal"\n');
-    system(sprintf('open %s --args -mglConnectionAddress %s', mglMetalApp, socketAddress));
-end
-
-% close socket if one is already opened
-if isfield(mgl, 's')
-    mgl.s = mglSocketClose(mgl.s);
-end
-
-% Open a new socket and wait for a connection to the mglMetal server.
-timeout = 10;
-fprintf('(mglMetalOpen) Trying to connect to mglMetal with timeout %d seconds.\n', timeout);
-timer = tic();
-mgl.s = mglSocketCreateClient(socketAddress);
-while toc(timer) < timeout && isempty(mgl.s)
-  pause(0.1);
-  fprintf('.');
-  mgl.s = mglSocketCreateClient(socketAddress);
-end
-fprintf('\n');
-
-if isempty(mgl.s)
-    fprintf('(mglMetalOpen) Socket connection to mglMetal timed out after %d seconds\n', timeout);
-    return;
-else
-    fprintf('(mglMetalOpen) Socket connection to mglMetal established in %f seconds\n', toc(timer));
-end
-
-% Move to the desired display and window location.
-mglMetalSetWindowFrameInDisplay(whichScreen, [screenX, screenY, screenWidth, screenHeight]);
-mglMetalFullscreen(isFullscreen);
+% Configure mgl context to match this mglMetal process.
+mglSetParam('displayNumber', whichScreen);
+mglSetParam('screenX', screenX);
+mglSetParam('screenY', screenY);
+mglSetParam('screenWidth', screenWidth);
+mglSetParam('screenHeight', screenHeight);
 
 % get new screenWidth and screenHeight for fullscreen
 if isFullscreen

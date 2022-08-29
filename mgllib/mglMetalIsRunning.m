@@ -1,45 +1,64 @@
-% mglMetalIsRunning: Returns whether the mglMetal application is running
+% mglMetalIsRunning: Returns info about any running mglMetal processes
 %
 %        $Id$
-%      usage: mglMetalIsRunning
+%      usage: [tf, pids, addresses] = mglMetalIsRunning(socketInfo)
 %         by: justin gardner
 %       date: 09/27/2021
 %  copyright: (c) 2021 Justin Gardner (GPL see mgl/COPYING)
-%    purpose: Returns whether mglMetal processes are running, and any pids
+%    purpose: Returns whether mglMetal is running, along with process info
 %      usage: tf = mglMetalIsRunning;
 %
-%             to get the process ids for the mglMetal processes
-%             [tf pids] = mglMetalIsRunning;
+%             By default, this will check for all mglMetal processes that
+%             were started via mglMetalStartup.  To search for a specific
+%             mglMetal process, pass in its socket info struct, as returned
+%             from mglMetalStartup.
 %
-function [tf, pids] = mglMetalIsRunning
+%             tf = mglMetalIsRunning(socketInfo)
+%
+%             This can also return an array of process ids and socket
+%             addresses for any processes that were found.
+%
+%             [tf, pids, addresses] = mglMetalIsRunning;
+%             [tf, pids, addresses] = mglMetalIsRunning(socketInfo);
+%
+%             Note: for now, the pids and addresses don't necessarily
+%             correspond 1:1.
+%
+function [tf, pids, addresses] = mglMetalIsRunning(socketInfo)
 
 tf = false;
 pids = [];
+addresses = {};
 
-global mgl
-if isempty(mgl) || ~isfield(mgl, 's') || isempty(mgl.s)
-    return;
+if nargin < 1 || isempty(socketInfo)
+    [~, mglMetalSandbox] = mglMetalExecutableName();
+    addressPattern = fullfile(mglMetalSandbox, 'mglMetal.socket*');
+else
+    addressPattern = socketInfo.address;
 end
 
-% Find the PID of processes we own, which are using known socket addresses.
-% These should be the mglMetal process we started recently as with mglOpen.
-% The format "-F p" says to print each PID on a new line starting with "p".
-[status, processInfo] = system(['lsof -F p ', mgl.s.address]);
-if status
-    return;
-end
+% Find processes we own based on the expected socket addresses pattern.
+% These should be the process we started recently as with mglMetalStartup.
+% The format "-F pn" says:
+%  - print each PID on a new line starting with "p"
+%  - print socket file name on a new line starting with "n"
+[~, processInfo] = system(['lsof -F pn ', addressPattern]);
 
-% Find any PID lines, which look like "p0000".
+% Find any PID lines, which look like "p0000" and dig out the PID numbers.
 info = strsplit(processInfo, '\n');
 pidLines = find(startsWith(info, 'p'));
-if isempty(pidLines)
-    return;
-end
-
-% Dig out integer pids from the "p0000" lines we found.
-tf = true;
 for ii = pidLines
     pidLine = info{ii};
     pid = sscanf(pidLine, 'p%i');
-    pids = [pids; pid];
+    pids(end+1) = pid;
 end
+tf = ~isempty(pids);
+
+% Find any address lines, which look like "nabcd".
+addressLines = find(startsWith(info, 'n'));
+for ii = addressLines
+    addressLine = info{ii};
+    address = sscanf(addressLine, 'n%s');
+    addresses{end+1} = address;
+end
+addresses = unique(addresses);

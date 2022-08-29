@@ -1,6 +1,6 @@
 % mglMetalFullscreen.m
 %
-%       usage: [ackTime, processedTime] = mglMetalFullscreen(isFullscreen)
+%       usage: [ackTime, processedTime] = mglMetalFullscreen(isFullscreen, socketInfo)
 %          by: Benjamin Heasly
 %        date: 27 April 2022
 %   copyright: (c) 2021 Justin Gardner (GPL see mgl/COPYING)
@@ -8,6 +8,8 @@
 %     fullscreen.
 %
 %       usage:
+%              By default this works on the primary mglMetal process.
+%
 %              % Open in windowed mode
 %              mglOpen(0);
 %
@@ -16,18 +18,28 @@
 %              pause(5);
 %              mglMetalFullscreen(false);
 %
-function [ackTime, processedTime] = mglMetalFullscreen(isFullscreen)
+%              To work on a specific process, pass in its socket info
+%              struct.
+%
+%              mglMetalFullscreen(true, socketInfo);
+%              pause(5);
+%              mglMetalFullscreen(false, socketInfo);
+function [ackTime, processedTime] = mglMetalFullscreen(isFullscreen, socketInfo)
 
 if nargin < 1
     isFullscreen = true;
 end
 
-global mgl;
+if nargin < 2
+    global mgl
+    socketInfo = mgl.s;
+    socketInfo.command = mgl.command;
+end
 
 if isFullscreen
-    mglSocketWrite(mgl.s, mgl.command.mglFullscreen);
+    mglSocketWrite(socketInfo, socketInfo.command.mglFullscreen);
 else
-    mglSocketWrite(mgl.s, mgl.command.mglWindowed);
+    mglSocketWrite(socketInfo, socketInfo.command.mglWindowed);
 end
-ackTime = mglSocketRead(mgl.s, 'double');
-processedTime = mglSocketRead(mgl.s, 'double');
+ackTime = mglSocketRead(socketInfo, 'double');
+processedTime = mglSocketRead(socketInfo, 'double');
