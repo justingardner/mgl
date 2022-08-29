@@ -1,7 +1,7 @@
 % mglStencilCreateEnd
 %
 %        $Id$
-%      usage: [ackTime, processedTime] = mglStencilCreateEnd()
+%      usage: [ackTime, processedTime] = mglStencilCreateEnd(socketInfo)
 %         by: justin gardner
 %       date: 05/26/2006
 %  copyright: (c) 2006 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
@@ -22,14 +22,18 @@
 %mglPoints2(rand(1,5000)*500,rand(1,5000)*500);
 %mglFlush;
 %mglStencilSelect(0);
-function [ackTime, processedTime] = mglStencilCreateEnd()
+function [ackTime, processedTime] = mglStencilCreateEnd(socketInfo)
+
+if nargin < 1
+    global mgl
+    socketInfo = mgl.s;
+end
 
 % Flush to complete the render pass where we wrote to the texture.
 % This causes Metal to store the updated stencil buffer for later use.
 mglFlush();
 
 % Get ready for regular drawign with no stencil selected.
-global mgl
-mglSocketWrite(mgl.s, mgl.command.mglFinishStencilCreation);
-ackTime = mglSocketRead(mgl.s, 'double');
-processedTime = mglSocketRead(mgl.s, 'double');
+mglSocketWrite(socketInfo, socketInfo.command.mglFinishStencilCreation);
+ackTime = mglSocketRead(socketInfo, 'double');
+processedTime = mglSocketRead(socketInfo, 'double');

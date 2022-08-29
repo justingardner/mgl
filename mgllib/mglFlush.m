@@ -1,6 +1,6 @@
 % mglFLush: Commit a frame of drawing commands and wait for the next frame.
 %
-%      usage: [ackTime, processedTime] = mglFlush()
+%      usage: [ackTime, processedTime] = mglFlush(socketInfo)
 %         by: justin gardner
 %       date: 09/27/2021
 %  copyright: (c) 2021 Justin Gardner (GPL see mgl/COPYING)
@@ -11,11 +11,14 @@
 %             mglFlush;
 %             mglClearScreen([0 1 0]);
 %             mglFlush;
-function [ackTime, processedTime] = mglFlush
+function [ackTime, processedTime] = mglFlush(socketInfo)
 
-global mgl
+if nargin < 1
+    global mgl
+    socketInfo = mgl.s;
+end
 
 % write flush comnand and wait for return value.
-mglSocketWrite(mgl.s, mgl.command.mglFlush);
-ackTime = mglSocketRead(mgl.s, 'double');
-processedTime = mglSocketRead(mgl.s, 'double');
+mglSocketWrite(socketInfo, socketInfo.command.mglFlush);
+ackTime = mglSocketRead(socketInfo, 'double');
+processedTime = mglSocketRead(socketInfo, 'double');

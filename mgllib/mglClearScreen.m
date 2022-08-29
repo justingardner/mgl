@@ -29,7 +29,7 @@
 % mglClearScreen([0.7 0.2 0.5]);
 % mglFlush();
 %
-function [ackTime, processedTime, setupTime] = mglClearScreen(clearColor, clearBits)
+function [ackTime, processedTime, setupTime] = mglClearScreen(clearColor, clearBits, socketInfo)
 
 if nargin == 2
   disp(sprintf('(mglClearScreen) clearBits not implemented in mgl 3.0'));
@@ -37,6 +37,9 @@ if nargin == 2
 end
 
 global mgl
+if nargin < 3
+    socketInfo = mgl.s;
+end
 
 % if no clear color is given, then...
 if nargin < 1 || numel(clearColor) == 0
@@ -47,23 +50,23 @@ if nargin < 1 || numel(clearColor) == 0
   if isempty(clearColor)
     clearColor = [0, 0, 0];
   end
-elseif numel(clearColor) == 1
+end
+if numel(clearColor) == 1
   clearColor = [clearColor clearColor clearColor];
 end
 clearColor = clearColor(:);
-mglSetParam('clearColor',clearColor);
 
-% BSH: I think the clear command is down to one frame now.
-% send quad command (as clear command takes two flushes)
-%deviceRect = mglGetParam('deviceRect');
-%[ackTime processedTime] = mglQuad([deviceRect(1) ;deviceRect(1) ;deviceRect(3) ;deviceRect(3)], [deviceRect(2) ;deviceRect(4) ;deviceRect(4) ;deviceRect(2)], clearColor);
+% only update the mgl context from the primary window
+if isequal(socketInfo, mgl.s)
+    mglSetParam('clearColor',clearColor);
+end
 
 % Setup timestamp can be used for measuring MGL frame timing,
 % for example with mglTestRenderingPipeline.
 setupTime = mglGetSecs();
 
 % write clear screen command
-mglSocketWrite(mgl.s, mgl.command.mglSetClearColor);
-ackTime = mglSocketRead(mgl.s, 'double');
-mglSocketWrite(mgl.s, single(clearColor));
-processedTime = mglSocketRead(mgl.s, 'double');
+mglSocketWrite(socketInfo, socketInfo.command.mglSetClearColor);
+ackTime = mglSocketRead(socketInfo, 'double');
+mglSocketWrite(socketInfo, single(clearColor));
+processedTime = mglSocketRead(socketInfo, 'double');

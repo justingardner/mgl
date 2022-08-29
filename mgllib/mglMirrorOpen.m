@@ -60,11 +60,13 @@ socketInfo = mglMetalStartup(whichScreen, screenX, screenY, screenWidth, screenH
 socketInfo.onCleanup = onCleanup(@() mglMetalShutdown(socketInfo));
 
 % Initial setup for the new metal process.
-% TODO: these want to take a socketInfo arg for the new one.
-% mglStencilCreateBegin(0);
-% mglStencilCreateEnd();
-% mglTransform('set', eye(4));
-% mglFlush();
+mglClearScreen(0, 0, socketInfo);
+mglFlush(socketInfo);
+
+mglStencilCreateBegin(0, 0, socketInfo);
+mglStencilCreateEnd(socketInfo);
+mglTransform('set', eye(4), socketInfo);
+mglFlush(socketInfo);
 
 % Add this new "mirrored" window to the global mgl context.
 global mgl

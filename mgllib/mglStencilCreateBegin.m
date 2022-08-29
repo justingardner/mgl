@@ -1,7 +1,7 @@
 % mglStencilCreateBegin
 %
 %        $Id$
-%      usage: [ackTime, processedTime] = mglStencilCreateBegin(stencilNumber,invert)
+%      usage: [ackTime, processedTime] = mglStencilCreateBegin(stencilNumber, invert, socketInfo)
 %         by: justin gardner and ben heasly
 %       date: 05/26/2006
 %  copyright: (c) 2006 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
@@ -26,10 +26,15 @@
 %mglPoints2(rand(1,5000)*500,rand(1,5000)*500);
 %mglFlush;
 %mglStencilSelect(0);
-function [ackTime, processedTime] = mglStencilCreateBegin(stencilNumber, invert)
+function [ackTime, processedTime] = mglStencilCreateBegin(stencilNumber, invert, socketInfo)
 
 if nargin < 2
     invert = 0;
+end
+
+if nargin < 3
+    global mgl
+    socketInfo = mgl.s;
 end
 
 % With Metal, we need our own logic to clear each stencil plane.
@@ -38,7 +43,7 @@ end
 % Then we can let the user draw in whatever stencil values they need.
 
 % Select the "clear" value for the requested stencil plane.
-startStencilCreation(stencilNumber, ~invert);
+startStencilCreation(stencilNumber, ~invert, socketInfo);
 
 % Draw a huge quad to cover the whole screen.
 deviceRect = mglGetParam('deviceRect');
@@ -51,13 +56,12 @@ mglQuad(x', y', rgb');
 mglStencilCreateEnd();
 
 % Now let the caller draw into the requested stencil plane.
-[ackTime, processedTime] = startStencilCreation(stencilNumber, invert);
+[ackTime, processedTime] = startStencilCreation(stencilNumber, invert, socketInfo);
 
 
-function [ackTime, processedTime] = startStencilCreation(stencilNumber, invert)
-global mgl
-mglSocketWrite(mgl.s, mgl.command.mglStartStencilCreation);
-ackTime = mglSocketRead(mgl.s, 'double');
-mglSocketWrite(mgl.s, uint32(stencilNumber));
-mglSocketWrite(mgl.s, uint32(invert));
-processedTime = mglSocketRead(mgl.s, 'double');
+function [ackTime, processedTime] = startStencilCreation(stencilNumber, invert, socketInfo)
+mglSocketWrite(socketInfo, socketInfo.command.mglStartStencilCreation);
+ackTime = mglSocketRead(socketInfo, 'double');
+mglSocketWrite(socketInfo, uint32(stencilNumber));
+mglSocketWrite(socketInfo, uint32(invert));
+processedTime = mglSocketRead(socketInfo, 'double');

@@ -19,10 +19,9 @@
 %
 function [ackTime, processedTime] = mglMetalSetWindowFrameInDisplay(displayNumber, rect, socketInfo)
 
-if nargin < 3
+if nargin < 3 || isempty(socketInfo)
     global mgl
     socketInfo = mgl.s;
-    socketInfo.command = mgl.command;
 end
 
 x = rect(1);
