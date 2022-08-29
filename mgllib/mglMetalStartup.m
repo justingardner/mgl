@@ -26,7 +26,7 @@ function socketInfo = mglMetalStartup(whichScreen, screenX, screenY, screenWidth
 
 socketInfo = [];
 
-if nargin < 1
+if nargin < 1 || isempty(whichScreen)
     whichScreen = 0;
 end
 isFullscreen = whichScreen > 0;
@@ -91,6 +91,12 @@ if isempty(socketInfo)
 else
     fprintf('(mglMetalStartup) Socket connection to mglMetal established in %f seconds\n', toc(timer));
 end
+
+% Register a cleanup callback.
+% Matlab will call this when deleting the returned socketInfo struct.
+% This will happen whenever you exit or clear the caller's workspace -- in
+% particular, when you "clear all", mglClose(), or exit Matlab.
+socketInfo.onCleanup = onCleanup(@() mglMetalShutdown(socketInfo));
 
 % Now we have a socket connected to an mglMetal process, so we can configure it.
 socketInfo.command = mglSocketCommandTypes();

@@ -45,13 +45,9 @@ global mgl
 
 % Get a socket connection to an mglMetal process.
 mgl.command = mglSocketCommandTypes();
-socketInfo = mglMetalStartup(whichScreen, screenX, screenY, screenWidth, screenHeight);
-mgl.s = socketInfo;
-
-% Register a cleanup callback.
-% Matlab will call this when deleting the global mgl struct.
-% This should happen if you "clear all", or when exiting Matlab.
-mgl.onCleanup = onCleanup(@() mglMetalShutdown(socketInfo));
+mgl.s = mglMetalStartup(whichScreen, screenX, screenY, screenWidth, screenHeight);
+mgl.activeSockets = mgl.s;
+mgl.mirrorSockets = [];
 
 % Configure mgl context to match this mglMetal process.
 mglSetParam('displayNumber', whichScreen);
