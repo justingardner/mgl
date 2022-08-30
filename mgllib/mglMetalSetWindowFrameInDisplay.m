@@ -13,7 +13,7 @@
 %             mglMetalSetWindowFrameInDisplay(1, [100, 200, 64, 48]);
 %
 %             To work on a specific process, pass in its socket info
-%             struct.
+%             struct. Only the first element of socketInfo is used.
 %
 %             mglMetalSetWindowFrameInDisplay(1, [100, 200, 64, 48], socketInfo);
 %
@@ -22,6 +22,11 @@ function [ackTime, processedTime] = mglMetalSetWindowFrameInDisplay(displayNumbe
 if nargin < 3 || isempty(socketInfo)
     global mgl
     socketInfo = mgl.s;
+end
+
+if numel(socketInfo) > 0
+    fprintf('(mglMetalSetWindowFrameInDisplay) Using only the first of %d elements of socketInfo\n', numel(socketInfo));
+    socketInfo = socketInfo(1);
 end
 
 x = rect(1);

@@ -21,7 +21,7 @@ function windowPos = mglGetWindowPos(socketInfo)
 
 if nargin < 1 || isempty(socketInfo)
     global mgl
-    socketInfo = mgl.s;
+    socketInfo = mgl.activeSockets;
 end
 
 [~, windowPos] = mglMetalGetWindowFrameInDisplay(socketInfo);

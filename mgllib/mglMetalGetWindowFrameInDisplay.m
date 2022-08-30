@@ -19,37 +19,40 @@ function [displayNumber, rect, ackTime, processedTime] = mglMetalGetWindowFrameI
 
 global mgl
 if nargin < 1 || isempty(socketInfo)
-    socketInfo = mgl.s;
+    socketInfo = mgl.activeSockets;
 end
 
-mglSocketWrite(socketInfo, socketInfo.command.mglGetWindowFrameInDisplay);
+% Request window info from all the given sockets.
+mglSocketWrite(socketInfo, socketInfo(1).command.mglGetWindowFrameInDisplay);
 ackTime = mglSocketRead(socketInfo, 'double');
 
-% Check if the command was processed OK or with error.
+% Check if the command was processed OK or with error, for each socket.
 responseIncoming = mglSocketRead(socketInfo, 'double');
-if (responseIncoming < 0)
-    displayNumber = 0;
-    rect = [0 0 0 0];
-    processedTime = mglSocketRead(socketInfo, 'double');
-    disp('Error getting Metal window and display info, you might try again with Console running, or: log stream --level info --process mglMetal')
-    return
-end
+processedTime = zeros([1, numel(socketInfo)]);
+displayNumber = zeros([1, numel(socketInfo)]);
+rect = zeros(numel(socketInfo), 4);
+for ii = 1:numel(socketInfo)
+    if (responseIncoming(ii) < 0)
+        % This socket shows an error processing the command.
+        processedTime(ii) = mglSocketRead(socketInfo(ii), 'double');
+        disp('Error getting Metal window and display info, you might try again with Console running, or: log stream --level info --process mglMetal')
+    else
+        % This socket shows processing was OK, read the response.
+        displayNumber(ii) = mglSocketRead(socketInfo(ii), 'uint32');
+        x = mglSocketRead(socketInfo(ii), 'uint32');
+        y = mglSocketRead(socketInfo(ii), 'uint32');
+        width = mglSocketRead(socketInfo(ii), 'uint32');
+        height = mglSocketRead(socketInfo(ii), 'uint32');
+        processedTime = mglSocketRead(socketInfo(ii), 'double');
+        rect(ii,:) = [x, y, width, height];
+    end
 
-% Processing was OK, read the response.
-displayNumber = mglSocketRead(socketInfo, 'uint32');
-x = mglSocketRead(socketInfo, 'uint32');
-y = mglSocketRead(socketInfo, 'uint32');
-width = mglSocketRead(socketInfo, 'uint32');
-height = mglSocketRead(socketInfo, 'uint32');
-processedTime = mglSocketRead(socketInfo, 'double');
-
-rect = [x, y, width, height];
-
-% Only update the mgl context from the primary window.
-if isequal(socketInfo, mgl.s)
-    mglSetParam('displayNumber', displayNumber);
-    mglSetParam('screenX', x);
-    mglSetParam('screenY', y);
-    mglSetParam('screenWidth', width);
-    mglSetParam('screenHeight', height);
+    % Only update the mgl context from the primary window.
+    if isequal(socketInfo(ii), mgl.s)
+        mglSetParam('displayNumber', displayNumber);
+        mglSetParam('screenX', x);
+        mglSetParam('screenY', y);
+        mglSetParam('screenWidth', width);
+        mglSetParam('screenHeight', height);
+    end
 end

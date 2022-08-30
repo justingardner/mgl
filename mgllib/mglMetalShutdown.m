@@ -32,7 +32,7 @@ end
 
 % Shut down all matching processes found.
 for pid = pids
-    fprintf(sprintf('(mglMetalShutdown) Shutting down mglMetal process: %i', pid),0);
+    fprintf('(mglMetalShutdown) Shutting down mglMetal process: %i\n', pid);
     system(sprintf('kill -9 %i', pid));
 end
 

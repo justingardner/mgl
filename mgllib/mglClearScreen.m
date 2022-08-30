@@ -38,7 +38,7 @@ end
 
 global mgl
 if nargin < 3
-    socketInfo = mgl.s;
+    socketInfo = mgl.activeSockets;
 end
 
 % if no clear color is given, then...
@@ -57,7 +57,7 @@ end
 clearColor = clearColor(:);
 
 % only update the mgl context from the primary window
-if isequal(socketInfo, mgl.s)
+if any(mgl.s.connectionSocketDescriptor == [mgl.activeSockets.connectionSocketDescriptor])
     mglSetParam('clearColor',clearColor);
 end
 
@@ -66,7 +66,7 @@ end
 setupTime = mglGetSecs();
 
 % write clear screen command
-mglSocketWrite(socketInfo, socketInfo.command.mglSetClearColor);
+mglSocketWrite(socketInfo, socketInfo(1).command.mglSetClearColor);
 ackTime = mglSocketRead(socketInfo, 'double');
 mglSocketWrite(socketInfo, single(clearColor));
 processedTime = mglSocketRead(socketInfo, 'double');

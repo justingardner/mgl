@@ -22,10 +22,14 @@
 %mglPoints2(rand(1,5000)*500,rand(1,5000)*500);
 %mglFlush;
 %mglStencilSelect(0);
-function [ackTime, processedTime] = mglStencilSelect(stencilNumber)
+function [ackTime, processedTime] = mglStencilSelect(stencilNumber, socketInfo)
 
-global mgl
-mglSocketWrite(mgl.s, mgl.command.mglSelectStencil);
-ackTime = mglSocketRead(mgl.s, 'double');
-mglSocketWrite(mgl.s, uint32(stencilNumber));
-processedTime = mglSocketRead(mgl.s, 'double');
+if nargin < 2
+    global mgl
+    socketInfo = mgl.activeSockets;
+end
+
+mglSocketWrite(socketInfo, socketInfo(1).command.mglSelectStencil);
+ackTime = mglSocketRead(socketInfo, 'double');
+mglSocketWrite(socketInfo, uint32(stencilNumber));
+processedTime = mglSocketRead(socketInfo, 'double');

@@ -15,10 +15,10 @@ function [ackTime, processedTime] = mglFlush(socketInfo)
 
 if nargin < 1
     global mgl
-    socketInfo = mgl.s;
+    socketInfo = mgl.activeSockets;
 end
 
 % write flush comnand and wait for return value.
-mglSocketWrite(socketInfo, socketInfo.command.mglFlush);
+mglSocketWrite(socketInfo, socketInfo(1).command.mglFlush);
 ackTime = mglSocketRead(socketInfo, 'double');
 processedTime = mglSocketRead(socketInfo, 'double');

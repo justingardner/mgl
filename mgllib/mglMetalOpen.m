@@ -73,7 +73,7 @@ mglSetParam('screenWidth', screenWidth);
 mglSetParam('screenHeight', screenHeight);
 mglSetParam('xPixelsToDevice', 2 / screenWidth);
 mglSetParam('yPixelsToDevice', 2 / screenHeight);
-mglSetParam('xDeviceToPixels', screenHeight / 2);
+mglSetParam('xDeviceToPixels', screenWidth / 2);
 mglSetParam('yDeviceToPixels', screenHeight / 2);
 mglSetParam('deviceWidth', 2);
 mglSetParam('deviceHeight', 2);

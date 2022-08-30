@@ -34,7 +34,7 @@ end
 
 if nargin < 3
     global mgl
-    socketInfo = mgl.s;
+    socketInfo = mgl.activeSockets;
 end
 
 % With Metal, we need our own logic to clear each stencil plane.
@@ -50,17 +50,17 @@ deviceRect = mglGetParam('deviceRect');
 x = deviceRect([1 3 3 1]) * 2;
 y = deviceRect([2 2 4 4]) * 2;
 rgb = [1 1 1];
-mglQuad(x', y', rgb');
+mglQuad(x', y', rgb', [], socketInfo);
 
 % Flush and store the plane of cleared values to the stencil buffer.
-mglStencilCreateEnd();
+mglStencilCreateEnd(socketInfo);
 
 % Now let the caller draw into the requested stencil plane.
 [ackTime, processedTime] = startStencilCreation(stencilNumber, invert, socketInfo);
 
 
 function [ackTime, processedTime] = startStencilCreation(stencilNumber, invert, socketInfo)
-mglSocketWrite(socketInfo, socketInfo.command.mglStartStencilCreation);
+mglSocketWrite(socketInfo, socketInfo(1).command.mglStartStencilCreation);
 ackTime = mglSocketRead(socketInfo, 'double');
 mglSocketWrite(socketInfo, uint32(stencilNumber));
 mglSocketWrite(socketInfo, uint32(invert));

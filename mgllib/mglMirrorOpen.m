@@ -54,15 +54,9 @@ end
 % Launch a new mglMetal process with its own window and socket connection.
 socketInfo = mglMetalStartup(whichScreen, screenX, screenY, screenWidth, screenHeight);
 
-% Register a cleanup callback.
-% Matlab will call this when deleting the global mgl struct.
-% This should happen if you "clear all", or when exiting Matlab.
-socketInfo.onCleanup = onCleanup(@() mglMetalShutdown(socketInfo));
-
 % Initial setup for the new metal process.
 mglClearScreen(0, 0, socketInfo);
 mglFlush(socketInfo);
-
 mglStencilCreateBegin(0, 0, socketInfo);
 mglStencilCreateEnd(socketInfo);
 mglTransform('set', eye(4), socketInfo);

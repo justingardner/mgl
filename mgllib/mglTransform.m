@@ -30,7 +30,7 @@ end
 
 global mgl
 if nargin < 3
-    socketInfo = mgl.s;
+    socketInfo = mgl.activeSockets;
 end
 
 switch operation
@@ -50,12 +50,12 @@ switch operation
 end
 
 % Only update the mgl context from the primary window.
-if isequal(socketInfo, mgl.s)
+if any(mgl.s.connectionSocketDescriptor == [mgl.activeSockets.connectionSocketDescriptor])
     mgl.currentMatrix = currentMatrix;
 end
 
 % Always update the mglMetal process with the new matrix.
-mglSocketWrite(socketInfo, socketInfo.command.mglSetXform);
+mglSocketWrite(socketInfo, socketInfo(1).command.mglSetXform);
 ackTime = mglSocketRead(socketInfo, 'double');
 mglSocketWrite(socketInfo, single(mgl.currentMatrix));
 processedTime = mglSocketRead(socketInfo, 'double');

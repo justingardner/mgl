@@ -26,14 +26,14 @@ function [ackTime, processedTime] = mglStencilCreateEnd(socketInfo)
 
 if nargin < 1
     global mgl
-    socketInfo = mgl.s;
+    socketInfo = mgl.activeSockets;
 end
 
 % Flush to complete the render pass where we wrote to the texture.
 % This causes Metal to store the updated stencil buffer for later use.
-mglFlush();
+mglFlush(socketInfo);
 
 % Get ready for regular drawign with no stencil selected.
-mglSocketWrite(socketInfo, socketInfo.command.mglFinishStencilCreation);
+mglSocketWrite(socketInfo, socketInfo(1).command.mglFinishStencilCreation);
 ackTime = mglSocketRead(socketInfo, 'double');
 processedTime = mglSocketRead(socketInfo, 'double');

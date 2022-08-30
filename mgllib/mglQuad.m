@@ -18,14 +18,17 @@
 %mglScreenCoordinates
 %mglQuad([100; 600; 600; 100], [100; 200; 600; 100], [1; 1; 1], 1);
 %mglFlush();
-function [ackTime, processedTime, setupTime] = mglQuad(vX, vY, rgbColor, antiAliasFlag)
+function [ackTime, processedTime, setupTime] = mglQuad(vX, vY, rgbColor, antiAliasFlag, socketInfo)
 
 % Not currently used, but let's maintain compatibility with v2.
 if nargin < 4
     antiAliasFlag = false;
 end
 
-global mgl;
+if nargin < 5
+    global mgl;
+    socketInfo = mgl.activeSockets;
+end
 
 % Construct XYZRGB vertex array with 3 triangels / 6 vertices per quad.
 nQuads = size(vX, 2);
@@ -56,8 +59,8 @@ end
 setupTime = mglGetSecs();
 
 % send quad command
-mglSocketWrite(mgl.s, mgl.command.mglQuad);
-ackTime = mglSocketRead(mgl.s, 'double');
-mglSocketWrite(mgl.s, uint32(nVertices));
-mglSocketWrite(mgl.s, single(v));
-processedTime = mglSocketRead(mgl.s, 'double');
+mglSocketWrite(socketInfo, socketInfo(1).command.mglQuad);
+ackTime = mglSocketRead(socketInfo, 'double');
+mglSocketWrite(socketInfo, uint32(nVertices));
+mglSocketWrite(socketInfo, single(v));
+processedTime = mglSocketRead(socketInfo, 'double');
