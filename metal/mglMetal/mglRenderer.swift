@@ -563,7 +563,7 @@ extension mglRenderer: MTKViewDelegate {
 
         let removed = textures.removeValue(forKey: textureNumber)
         if removed == nil {
-            os_log("(mglRenderer) Invalid texture number %{public}d, valid numbers are %{public}@.", log: .default, type: .error, String(describing: textures.keys))
+            os_log("(mglRenderer) Invalid texture number %{public}d, valid numbers are %{public}@.", log: .default, type: .error, textureNumber, String(describing: textures.keys))
             return false
         }
 
