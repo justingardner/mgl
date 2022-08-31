@@ -43,13 +43,18 @@
 %             mglBltTexture(tex,[mglGetParam('screenWidth')/2 mglGetParam('screenHeight')/2]);
 %             mglFlush;
 %
-function [texture, ackTime, processedTime] = mglCreateTexture(image, axes, liveBuffer, textureParams)
+function [texture, ackTime, processedTime] = mglCreateTexture(image, axes, liveBuffer, textureParams, socketInfo)
 
 persistent warnOnce
 if isempty(warnOnce) warnOnce = true; end
 if nargin > 1 && warnOnce
     fprintf('(mglCreateTexture) mglCreateTexture no longer supports arguments axes, liveBuffer, or textureParams.  Please see mglMetalCreateTexture.\n');
     warnOnce = false;
+end
+
+if nargin < 5 || isempty(socketInfo)
+    global mgl
+    socketInfo = mgl.activeSockets;
 end
 
 % check for uint textures (not yet supported by mglMetal
@@ -83,4 +88,4 @@ elseif imageSlices == 3
     image = cat(3, image, ones(size(image,1:2)));
 end
 
-[texture, ackTime, processedTime] = mglMetalCreateTexture(image);
+[texture, ackTime, processedTime] = mglMetalCreateTexture(image, [], [], [], socketInfo);

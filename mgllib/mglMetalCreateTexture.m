@@ -25,21 +25,31 @@
 %                              4: clamp to zero
 %                              5: clamp to border color
 %
-function [tex, ackTime, processedTime] = mglMetalCreateTexture(im, minMagFilter, mipFilter, addressMode)
+%              Returns a struct array of texture info for use with other
+%              mgl texture functions, like mglMetalBltTexture.
+% 
+%              If multiple sockets have been activated with mglMirrorOpen
+%              and/or mglMirrorActivate, returns a struct arrauy with one
+%              element per active mirror.
+%
+function [tex, ackTime, processedTime] = mglMetalCreateTexture(im, minMagFilter, mipFilter, addressMode, socketInfo)
 
-if nargin < 2
+if nargin < 2 || isempty(minMagFilter)
     minMagFilter = 1;
 end
 
-if nargin < 3
+if nargin < 3 || isempty(mipFilter)
     mipFilter = 2;
 end
 
-if nargin < 4
+if nargin < 4 || isempty(addressMode)
     addressMode = 2;
 end
 
 global mgl
+if nargin < 5 || isempty(socketInfo)
+    socketInfo = mgl.activeSockets;
+end
 
 [tex.imageHeight, tex.imageWidth, tex.colorDim] = size(im);
 if (tex.colorDim ~= 4)
@@ -70,24 +80,33 @@ tex.addressMode = addressMode;
 % That way when serialized we traverse channel and column first.
 im = permute(im, [3,2,1]);
 
-% send texture command
-mglSocketWrite(mgl.s, mgl.command.mglCreateTexture);
-ackTime = mglSocketRead(mgl.s, 'double');
-mglSocketWrite(mgl.s, uint32(tex.imageWidth));
-mglSocketWrite(mgl.s, uint32(tex.imageHeight));
-mglSocketWrite(mgl.s, single(im(:)));
+% Send the texture create command and image data to each socket.
+mglSocketWrite(socketInfo, socketInfo(1).command.mglCreateTexture);
+ackTime = mglSocketRead(socketInfo, 'double');
+mglSocketWrite(socketInfo, uint32(tex.imageWidth));
+mglSocketWrite(socketInfo, uint32(tex.imageHeight));
+mglSocketWrite(socketInfo, single(im(:)));
 
-% Check if the command was processed OK or with error.
-responseIncoming = mglSocketRead(mgl.s, 'double');
-if (responseIncoming < 0)
-    tex.textureNumber = -1;
-    processedTime = mglSocketRead(mgl.s, 'double');
-    disp('Error creating Metal texture, you might try again with Console running, or: log stream --level info --process mglMetal')
-    return
+% Check each socket for processing results.
+responseIncoming = mglSocketRead(socketInfo, 'double');
+tex = repmat(tex, 1, numel(socketInfo));
+processedTime = zeros([1, numel(socketInfo)]);
+numTextures = zeros([1, numel(socketInfo)]);
+for ii = 1:numel(socketInfo)
+    if (responseIncoming(ii) < 0)
+        % This socket shows an error processing the command.
+        tex(ii).textureNumber = -1;
+        processedTime(ii) = mglSocketRead(socketInfo(ii), 'double');
+        fprintf('(mglMetalCreateTexture) Error creating Metal texture, you might try again with Console running, or: log stream --level info --process mglMetal\n');
+    else
+        % This socket shows processing was OK, read the response.
+        tex(ii).textureNumber = mglSocketRead(socketInfo(ii), 'uint32');
+        numTextures(ii) = mglSocketRead(socketInfo(ii), 'uint32');
+        processedTime(ii) = mglSocketRead(socketInfo(ii), 'double');
+    end
+
+    % Only update the mgl context from the primary window.
+    if isequal(socketInfo(ii), mgl.s)
+        mglSetParam('numTextures', numTextures(ii));
+    end
 end
-
-% Processing was OK, read the response.
-tex.textureNumber = mglSocketRead(mgl.s, 'uint32');
-numTextures = mglSocketRead(mgl.s, 'uint32');
-processedTime = mglSocketRead(mgl.s, 'double');
-mglSetParam('numTextures', numTextures);

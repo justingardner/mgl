@@ -35,7 +35,7 @@ for ii = 1:numel(socketInfo)
     if (responseIncoming(ii) < 0)
         % This socket shows an error processing the command.
         processedTime(ii) = mglSocketRead(socketInfo(ii), 'double');
-        disp('Error getting Metal window and display info, you might try again with Console running, or: log stream --level info --process mglMetal')
+        fprintf('(mglMetalGetWindowFrameInDisplay) Error getting Metal window and display info, you might try again with Console running, or: log stream --level info --process mglMetal\n');
     else
         % This socket shows processing was OK, read the response.
         displayNumber(ii) = mglSocketRead(socketInfo(ii), 'uint32');

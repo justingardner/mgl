@@ -36,17 +36,27 @@
 %             mglBltTexture(tex,[0 0]);
 %             mglFlush();
 %
-function [ackTime, processedTime] = mglUpdateTexture(texture, im)
+function [ackTime, processedTime] = mglUpdateTexture(tex, im, socketInfo)
 
-if nargin ~= 2
+if numel(tex) > 1
+    fprintf('(mglUpdateTexture) Only using the first of %d elements of tex struct array.  To avoid this warning pass in tex(1) instead.\n', numel(tex));
+    tex = tex(1);
+end
+
+if nargin < 2
     help mglUpdateTexture
     return
 end
 
+if nargin < 3
+    global mgl
+    socketInfo = mgl.activeSockets;
+end
+
 [newHeight, newWidth, newSlices] = size(im);
-if (newHeight ~= texture.imageHeight || newWidth ~= texture.imageWidth || newSlices ~= texture.colorDim)
-    fprintf('(mglUpdateTexture) New image size [%d x %d x %d] must be match the existing texture size [%d x %d x %d].\n', ...
-        newHeight, newWidth, newSlices, texture.imageHeight, texture.imageWidth, texture.colorDim)
+if (newHeight ~= tex.imageHeight || newWidth ~= tex.imageWidth || newSlices ~= tex.colorDim)
+    fprintf('(mglUpdateTexture) New image size [%d x %d x %d] must match the existing texture size [%d x %d x %d].\n', ...
+        newHeight, newWidth, newSlices, tex.imageHeight, tex.imageWidth, tex.colorDim)
     help mglUpdateTexture
     return
 end
@@ -55,11 +65,10 @@ end
 % mglMetalCreateTexture has additional commentary on this!
 im = permute(im, [3,2,1]);
 
-global mgl
-mglSocketWrite(mgl.s, mgl.command.mglUpdateTexture);
-ackTime = mglSocketRead(mgl.s, 'double');
-mglSocketWrite(mgl.s, uint32(texture.textureNumber));
-mglSocketWrite(mgl.s, uint32(newWidth));
-mglSocketWrite(mgl.s, uint32(newHeight));
-mglSocketWrite(mgl.s, single(im(:)));
-processedTime = mglSocketRead(mgl.s, 'double');
+mglSocketWrite(socketInfo, socketInfo(1).command.mglUpdateTexture);
+ackTime = mglSocketRead(socketInfo, 'double');
+mglSocketWrite(socketInfo, uint32(tex.textureNumber));
+mglSocketWrite(socketInfo, uint32(newWidth));
+mglSocketWrite(socketInfo, uint32(newHeight));
+mglSocketWrite(socketInfo, single(im(:)));
+processedTime = mglSocketRead(socketInfo, 'double');

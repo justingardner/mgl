@@ -20,27 +20,30 @@
 % mglBltTexture(texture,[0 0]);
 % mglFlush;
 % mglDeleteTexture(texture);
-function [texture, ackTime, processedTime] = mglDeleteTexture(texture)
+function [texture, ackTime, processedTime] = mglDeleteTexture(texture, socketInfo)
 
-if nargin ~= 1
+if nargin < 1
     help mglDeleteTexture
     return
+end
+
+if nargin < 2
+    global mgl
+    socketInfo = mgl.activeSockets;
 end
 
 if isfield(texture,'textureNumber')
     % if texture is an array then we delete each element separately
     for i = 1:length(texture)
-        [ackTime, processedTime] = deleteTexture(texture(i).textureNumber);
+        [ackTime, processedTime] = deleteTexture(texture(i).textureNumber, socketInfo);
     end
     texture(i).textureNumber = -1;
 else
     disp('(mglDeleteTexture) Input is not a texture');
 end
 
-function [ackTime, processedTime] = deleteTexture(textureNumber)
-global mgl
-mglSocketWrite(mgl.s, mgl.command.mglDeleteTexture);
-ackTime = mglSocketRead(mgl.s, 'double');
-mglSocketWrite(mgl.s, textureNumber);
-processedTime = mglSocketRead(mgl.s, 'double');
-
+function [ackTime, processedTime] = deleteTexture(textureNumber, socketInfo)
+mglSocketWrite(socketInfo, socketInfo(1).command.mglDeleteTexture);
+ackTime = mglSocketRead(socketInfo, 'double');
+mglSocketWrite(socketInfo, textureNumber);
+processedTime = mglSocketRead(socketInfo, 'double');

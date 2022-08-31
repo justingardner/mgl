@@ -17,9 +17,12 @@
 % mglMetalBltTexture(imageTex,[0 0]);
 % mglFlush();
 %
-function [ackTime, processedTime, setupTime] = mglMetalBltTexture(tex, position, hAlignment, vAlignment, rotation, phase, width, height)
+function [ackTime, processedTime, setupTime] = mglMetalBltTexture(tex, position, hAlignment, vAlignment, rotation, phase, width, height, socketInfo)
 
-global mgl
+if numel(tex) > 1
+    fprintf('(mglMetalBltTexture) Only using the first of %d elements of tex struct array.  To avoid this warning pass in tex(1) instead.\n', numel(tex));
+    tex = tex(1);
+end
 
 % default arguments
 if nargin < 2, position = [0 0]; end
@@ -28,49 +31,54 @@ if nargin < 4, vAlignment = 0; end
 if nargin < 5, rotation = 0; end
 if nargin < 6, phase = 0; end
 if nargin < 7
-  if length(position)<3
-    % get width in device coordinates
-    width = tex.imageWidth*mglGetParam('xPixelsToDevice');
-  else
-    width = position(3);
-  end
+    if length(position)<3
+        % get width in device coordinates
+        width = tex.imageWidth*mglGetParam('xPixelsToDevice');
+    else
+        width = position(3);
+    end
 end
 if nargin < 8
-  if length(position)<4
-    % get height in device coordinates
-    height = tex.imageHeight*mglGetParam('yPixelsToDevice');
-  else
-    height = position(4);
-  end
+    if length(position)<4
+        % get height in device coordinates
+        height = tex.imageHeight*mglGetParam('yPixelsToDevice');
+    else
+        height = position(4);
+    end
+end
+
+if nargin < 9 || isempty(socketInfo)
+    global mgl
+    socketInfo = mgl.activeSockets;
 end
 
 % get coordinates for each corner
 % of the rectangle we are going
 % to put the texture on
 coords =[width/2 height/2;
-	 -width/2 height/2;
-	 -width/2 -height/2;
-	 width/2 -height/2]';
+    -width/2 height/2;
+    -width/2 -height/2;
+    width/2 -height/2]';
 
 % rotate coordinates if needed
 if ~isequal(mod(rotation,360),0)
-  r = pi*rotation/180;
-  rotmatrix = [cos(r) -sin(r);sin(r) cos(r)];
-  coords = rotmatrix * coords;
+    r = pi*rotation/180;
+    rotmatrix = [cos(r) -sin(r);sin(r) cos(r)];
+    coords = rotmatrix * coords;
 end
 
 % handle alignment
 switch(hAlignment)
- case {-1}
-  position(1) = position(1)+width/2;
- case {1}
-  position(1) = position(1)-width/2;
+    case {-1}
+        position(1) = position(1)+width/2;
+    case {1}
+        position(1) = position(1)-width/2;
 end
 switch(vAlignment)
- case {1}
-  position(2) = position(2)+height/2;
- case {-1}
-  position(2) = position(2)-height/2;
+    case {1}
+        position(2) = position(2)+height/2;
+    case {-1}
+        position(2) = position(2)-height/2;
 end
 
 % set translation
@@ -89,7 +97,7 @@ verticesWithTextureCoordinates = [...
     coords(1,1) coords(2,1) 0 1 0;
     coords(1,3) coords(2,3) 0 0 1;
     coords(1,4) coords(2,4) 0 1 1;
-]';
+    ]';
 
 % number of vertices
 nVertices = 6;
@@ -116,13 +124,13 @@ end
 setupTime = mglGetSecs();
 
 % send blt command
-mglSocketWrite(mgl.s, mgl.command.mglBltTexture);
-ackTime = mglSocketRead(mgl.s, 'double');
-mglSocketWrite(mgl.s, uint32(minMagFilter));
-mglSocketWrite(mgl.s, uint32(mipFilter));
-mglSocketWrite(mgl.s, uint32(addressMode));
-mglSocketWrite(mgl.s, uint32(nVertices));
-mglSocketWrite(mgl.s, single(verticesWithTextureCoordinates));
-mglSocketWrite(mgl.s, single(phase));
-mglSocketWrite(mgl.s, tex.textureNumber);
-processedTime = mglSocketRead(mgl.s, 'double');
+mglSocketWrite(socketInfo, socketInfo(1).command.mglBltTexture);
+ackTime = mglSocketRead(socketInfo, 'double');
+mglSocketWrite(socketInfo, uint32(minMagFilter));
+mglSocketWrite(socketInfo, uint32(mipFilter));
+mglSocketWrite(socketInfo, uint32(addressMode));
+mglSocketWrite(socketInfo, uint32(nVertices));
+mglSocketWrite(socketInfo, single(verticesWithTextureCoordinates));
+mglSocketWrite(socketInfo, single(phase));
+mglSocketWrite(socketInfo, tex.textureNumber);
+processedTime = mglSocketRead(socketInfo, 'double');
