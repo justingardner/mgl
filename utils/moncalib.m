@@ -2043,7 +2043,8 @@ end
 
 % now build a reverse lookup table
 % use linear interpolation
-desiredOutput = min(calib.uncorrected.luminance):(max(calib.uncorrected.luminance)-min(calib.uncorrected.luminance))/255:max(calib.uncorrected.luminance);
+tableSize = mglPrivateSetGammaTable;
+desiredOutput = min(calib.uncorrected.luminance):(max(calib.uncorrected.luminance)-min(calib.uncorrected.luminance))/(tableSize-1):max(calib.uncorrected.luminance);
 % check to make sure that we have unique values,
 % otherwise interp1 will fail
 while length(calib.uncorrected.luminance) ~= length(unique(calib.uncorrected.luminance))
