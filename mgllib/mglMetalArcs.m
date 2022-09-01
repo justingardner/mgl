@@ -24,11 +24,16 @@
 % border = [3 3 3];
 % mglMetalArcs(xyz, rgba, radii, wedge, border);
 % mglFlush();
-function [ackTime, processedTime] = mglMetalArcs(xyz, rgba, radii, wedge, border)
+function [ackTime, processedTime] = mglMetalArcs(xyz, rgba, radii, wedge, border, socketInfo)
 
 if nargin < 5
   help mglMetalArcs
   return
+end
+
+if nargin < 6 || isempty(socketInfo)
+    global mgl;
+    socketInfo = mgl.activeSockets;
 end
 
 nDots = size(xyz, 2);
@@ -50,9 +55,8 @@ radii(2,:) = radii(2,:) * mglGetParam('xDeviceToPixels');
 % Stack up all the per-vertex data as a big matrix.
 vertexData = single(cat(1, xyz, rgba, radii, wedge, border));
 
-global mgl
-mglSocketWrite(mgl.s, mgl.command.mglArcs);
-ackTime = mglSocketRead(mgl.s, 'double');
-mglSocketWrite(mgl.s, uint32(nDots));
-mglSocketWrite(mgl.s, vertexData);
-processedTime = mglSocketRead(mgl.s, 'double');
+mglSocketWrite(socketInfo, socketInfo(1).command.mglArcs);
+ackTime = mglSocketRead(socketInfo, 'double');
+mglSocketWrite(socketInfo, uint32(nDots));
+mglSocketWrite(socketInfo, vertexData);
+processedTime = mglSocketRead(socketInfo, 'double');

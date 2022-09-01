@@ -26,7 +26,7 @@
 %mglPolygon(x, y, [1 0 0]);
 %mglFlush();
 
-function [ackTime, processedTime] = mglPolygon(x, y, varargin)
+function [ackTime, processedTime] = mglPolygon(x, y, color, socketInfo)
 
 global mgl;
 
@@ -35,12 +35,16 @@ if numel(x) ~= numel(y)
     return;
 end
 
-color = [1 1 1];
-if nargin > 2 && isnumeric(varargin{1})
-    color = varargin{1};
+if nargin < 3 || isempty(color)
+    color = [1 1 1];
 end
 if numel(color) == 1
     color = [color, color, color];
+end
+
+if nargin < 4 || isempty(socketInfo)
+    global mgl;
+    socketInfo = mgl.activeSockets;
 end
 
 % Divide the vertices into halves, working from the front and the back.
@@ -66,8 +70,8 @@ vertices(5, 1:n) = color(2);
 vertices(6, 1:n) = color(3);
 
 % Send vertices over to the rendering app.
-mglSocketWrite(mgl.s, mgl.command.mglPolygon);
-ackTime = mglSocketRead(mgl.s, 'double');
-mglSocketWrite(mgl.s, uint32(n));
-mglSocketWrite(mgl.s, vertices);
-processedTime = mglSocketRead(mgl.s, 'double');
+mglSocketWrite(socketInfo, socketInfo(1).command.mglPolygon);
+ackTime = mglSocketRead(socketInfo, 'double');
+mglSocketWrite(socketInfo, uint32(n));
+mglSocketWrite(socketInfo, vertices);
+processedTime = mglSocketRead(socketInfo, 'double');

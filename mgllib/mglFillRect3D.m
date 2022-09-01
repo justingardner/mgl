@@ -28,7 +28,7 @@
 % rotData = [45 0 1 0];  % 45 degrees about the y-axis.
 % mglFillRect3D(x, y, z, sz, [1 1 0], rotData);
 % mglFlush();
-function [ackTime, processedTime] = mglFillRect3D(x, y, z, size, rgb, rotation, antialias)
+function [ackTime, processedTime] = mglFillRect3D(x, y, z, size, rgb, rotation, antialias, socketInfo)
 
 if nargin < 4
     help mglFillRect3D
@@ -59,8 +59,13 @@ if nargin < 6
     rotation = [0 1 0 0];
 end
 
-if nargin > 6
+if nargin == 7
     fprintf('(mglFillRect3D) Sorry, antialiasing is not implemented in Metal yet.\n');
+end
+
+if nargin < 8 || isempty(socketInfo)
+    global mgl;
+    socketInfo = mgl.activeSockets;
 end
 
 % Pre-rotate corners to place about each xyz point.
@@ -109,12 +114,11 @@ vertexData(4,:) = rgb(1);
 vertexData(5,:) = rgb(2);
 vertexData(6,:) = rgb(3);
 
-global mgl
-mglSocketWrite(mgl.s, mgl.command.mglQuad);
-ackTime = mglSocketRead(mgl.s, 'double');
-mglSocketWrite(mgl.s, uint32(nVertices));
-mglSocketWrite(mgl.s, vertexData);
-processedTime = mglSocketRead(mgl.s, 'double');
+mglSocketWrite(socketInfo, socketInfo(1).command.mglQuad);
+ackTime = mglSocketRead(socketInfo, 'double');
+mglSocketWrite(socketInfo, uint32(nVertices));
+mglSocketWrite(socketInfo, vertexData);
+processedTime = mglSocketRead(socketInfo, 'double');
 
 
 % https://www.cs.sfu.ca/~haoz/teaching/htmlman/rotate.html

@@ -25,7 +25,7 @@ if nargin < 4
     antiAliasFlag = false;
 end
 
-if nargin < 5
+if nargin < 5 || isempty(socketInfo)
     global mgl;
     socketInfo = mgl.activeSockets;
 end

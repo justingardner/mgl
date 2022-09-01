@@ -32,7 +32,7 @@ if nargin < 2
     invert = 0;
 end
 
-if nargin < 3
+if nargin < 3 || isempty(socketInfo)
     global mgl
     socketInfo = mgl.activeSockets;
 end

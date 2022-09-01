@@ -30,17 +30,21 @@
 % plot(2:100, 1000 * drawDurations, 'b.', 2:100, 1000 * frameDurations, 'r.');
 % legend('draw time', 'frame time');
 %
-function [ackTime, drawTimes, frameTimes] = mglMetalRepeatingFlicker(nFrames, randomSeed)
+function [ackTime, drawTimes, frameTimes] = mglMetalRepeatingFlicker(nFrames, randomSeed, socketInfo)
 
 if nargin < 2
     randomSeed = 0;
 end
 
-global mgl
-mglSocketWrite(mgl.s, mgl.command.mglRepeatFlicker);
-ackTime = mglSocketRead(mgl.s, 'double');
-mglSocketWrite(mgl.s, uint32(nFrames));
-mglSocketWrite(mgl.s, uint32(randomSeed));
-drawAndFrameTimes = mglSocketRead(mgl.s, 'double', 2 * nFrames);
+if nargin < 3 || isempty(socketInfo)
+    global mgl;
+    socketInfo = mgl.activeSockets;
+end
+
+mglSocketWrite(socketInfo, socketInfo(1).command.mglRepeatFlicker);
+ackTime = mglSocketRead(socketInfo, 'double');
+mglSocketWrite(socketInfo, uint32(nFrames));
+mglSocketWrite(socketInfo, uint32(randomSeed));
+drawAndFrameTimes = mglSocketRead(socketInfo, 'double', 2 * nFrames);
 drawTimes = drawAndFrameTimes(1:2:end);
 frameTimes = drawAndFrameTimes(2:2:end);

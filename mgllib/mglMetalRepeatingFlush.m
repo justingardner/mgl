@@ -31,12 +31,16 @@
 % drawDurations = drawTimes(2:end) - frameStarts;
 % plot(2:300, 1000 * drawDurations, 'b.', 2:300, 1000 * frameDurations, 'r.');
 % legend('draw time', 'frame time');
-function [ackTime, drawTimes, frameTimes] = mglMetalRepeatingFlush(nFrames)
+function [ackTime, drawTimes, frameTimes] = mglMetalRepeatingFlush(nFrames, socketInfo)
 
-global mgl
-mglSocketWrite(mgl.s, mgl.command.mglRepeatFlush);
-ackTime = mglSocketRead(mgl.s, 'double');
-mglSocketWrite(mgl.s, uint32(nFrames));
-drawAndFrameTimes = mglSocketRead(mgl.s, 'double', 2 * nFrames);
+if nargin < 2 || isempty(socketInfo)
+    global mgl;
+    socketInfo = mgl.activeSockets;
+end
+
+mglSocketWrite(socketInfo, socketInfo(1).command.mglRepeatFlush);
+ackTime = mglSocketRead(socketInfo, 'double');
+mglSocketWrite(socketInfo, uint32(nFrames));
+drawAndFrameTimes = mglSocketRead(socketInfo, 'double', 2 * nFrames);
 drawTimes = drawAndFrameTimes(1:2:end);
 frameTimes = drawAndFrameTimes(2:2:end);

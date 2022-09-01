@@ -29,16 +29,24 @@
 % mglMetalBltTexture(imageTex,[0 0]);
 % mglFlush();
 %
-function [ackTime, processedTime] = mglMetalSetRenderTarget(tex)
+function [ackTime, processedTime] = mglMetalSetRenderTarget(tex, socketInfo)
 
 if (nargin < 1)
     renderTarget = uint32(0);
 else
+    if numel(tex) > 1
+        fprintf('(mglMetalSetRenderTarget) Only using the first of %d elements of tex struct array.  To avoid this warning pass in tex(1) instead.\n', numel(tex));
+        tex = tex(1);
+    end
     renderTarget = tex.textureNumber;
 end
 
-global mgl
-mglSocketWrite(mgl.s, mgl.command.mglSetRenderTarget);
-ackTime = mglSocketRead(mgl.s, 'double');
-mglSocketWrite(mgl.s, renderTarget);
-processedTime = mglSocketRead(mgl.s, 'double');
+if nargin < 2 || isempty(socketInfo)
+    global mgl;
+    socketInfo = mgl.activeSockets;
+end
+
+mglSocketWrite(socketInfo, socketInfo(1).command.mglSetRenderTarget);
+ackTime = mglSocketRead(socketInfo, 'double');
+mglSocketWrite(socketInfo, renderTarget);
+processedTime = mglSocketRead(socketInfo, 'double');

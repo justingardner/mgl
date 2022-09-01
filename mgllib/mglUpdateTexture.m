@@ -48,7 +48,7 @@ if nargin < 2
     return
 end
 
-if nargin < 3
+if nargin < 3 || isempty(socketInfo)
     global mgl
     socketInfo = mgl.activeSockets;
 end

@@ -53,18 +53,24 @@ end
 % close movie window
 if mglGetParam('movieMode'), mglMovie('closeWindow');end
 
-% Close the mglMetal app, and socket connection to it.
+% Close known mglMetal processes and sockets.
+% This should be redundant with onCleanup callbacks set in mglMetalStartup.
+% But the callback might be delayed if the caller is holding a reference to
+% one of these sockets.  Explicitly shutting down here makes it immediate.
 global mgl
 if isfield(mgl, 's')
-    mgl.s = mglSocketClose(mgl.s);
+    mglMetalShutdown(mgl.s);
 end
-mglMetalShutdown();
-mglSetParam('displayNumber', -1);
+mgl.s = [];
+if isfield(mgl, 'mirrorSockets')
+    for ii = 1:numel(mgl.mirrorSockets)
+        mglMetalShutdown(mgl.mirrorSockets(ii));
+    end
+end
+mgl.mirrorSockets = [];
+mgl.activeSockets = [];
 
-% Clean up socket files, which have random names and could proliferate.
-if isfield(mgl, 's') && isfile(mgl.s.address)
-    delete(mgl.s.address);
-end
+mglSetParam('displayNumber', -1);
 
 % reset resolution if necessary
 originalResolution = mglGetParam('originalResolution');

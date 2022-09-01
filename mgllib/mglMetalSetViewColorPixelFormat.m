@@ -41,14 +41,23 @@
 %             % Restore the default format (no arg).
 %             mglOpen();
 %             mglMetalSetViewColorPixelFormat();
-function [ackTime, processedTime] = mglMetalSetViewColorPixelFormat(formatIndex)
+function [ackTime, processedTime] = mglMetalSetViewColorPixelFormat(formatIndex, socketInfo)
 
 if nargin < 1
     formatIndex = 0;
 end
 
-global mgl
-mglSocketWrite(mgl.s, mgl.command.mglSetViewColorPixelFormat);
-ackTime = mglSocketRead(mgl.s, 'double');
-mglSocketWrite(mgl.s, uint32(formatIndex));
-processedTime = mglSocketRead(mgl.s, 'double');
+if nargin < 2 || isempty(socketInfo)
+    global mgl;
+    socketInfo = mgl.activeSockets;
+end
+
+if numel(socketInfo) > 1
+    fprintf('(mglMetalSetViewColorPixelFormat) Setting color pixel format for %d mglMetal windows.\n', numel(socketInfo));
+    fprintf('(mglMetalSetViewColorPixelFormat) If you want to set the pixel format for one window only, first use mglMirrorActivate to activate a single window.\n');
+end
+
+mglSocketWrite(socketInfo, socketInfo(1).command.mglSetViewColorPixelFormat);
+ackTime = mglSocketRead(socketInfo, 'double');
+mglSocketWrite(socketInfo, uint32(formatIndex));
+processedTime = mglSocketRead(socketInfo, 'double');

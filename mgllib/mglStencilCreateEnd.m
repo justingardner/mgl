@@ -24,7 +24,7 @@
 %mglStencilSelect(0);
 function [ackTime, processedTime] = mglStencilCreateEnd(socketInfo)
 
-if nargin < 1
+if nargin < 1 || isempty(socketInfo)
     global mgl
     socketInfo = mgl.activeSockets;
 end

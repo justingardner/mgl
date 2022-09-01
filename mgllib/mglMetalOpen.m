@@ -44,7 +44,6 @@ end
 global mgl
 
 % Get a socket connection to an mglMetal process.
-mgl.command = mglSocketCommandTypes();
 mgl.s = mglMetalStartup(whichScreen, screenX, screenY, screenWidth, screenHeight);
 mgl.activeSockets = mgl.s;
 mgl.mirrorSockets = [];

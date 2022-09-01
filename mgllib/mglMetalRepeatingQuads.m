@@ -38,7 +38,7 @@
 % drawDurations = drawTimes(2:end) - frameStarts;
 % plot(2:300, 1000 * drawDurations, 'b.', 2:300, 1000 * frameDurations, 'r.');
 % legend('draw time', 'frame time');
-function [ackTime, drawTimes, frameTimes] = mglMetalRepeatingQuads(nFrames, nQuads, randomSeed)
+function [ackTime, drawTimes, frameTimes] = mglMetalRepeatingQuads(nFrames, nQuads, randomSeed, socketInfo)
 
 if nargin < 2
     nQuads = 1;
@@ -48,12 +48,16 @@ if nargin < 3
     randomSeed = 0;
 end
 
-global mgl
-mglSocketWrite(mgl.s, mgl.command.mglRepeatQuads);
-ackTime = mglSocketRead(mgl.s, 'double');
-mglSocketWrite(mgl.s, uint32(nFrames));
-mglSocketWrite(mgl.s, uint32(nQuads));
-mglSocketWrite(mgl.s, uint32(randomSeed));
-drawAndFrameTimes = mglSocketRead(mgl.s, 'double', 2 * nFrames);
+if nargin < 4 || isempty(socketInfo)
+    global mgl;
+    socketInfo = mgl.activeSockets;
+end
+
+mglSocketWrite(socketInfo, socketInfo(1).command.mglRepeatQuads);
+ackTime = mglSocketRead(socketInfo, 'double');
+mglSocketWrite(socketInfo, uint32(nFrames));
+mglSocketWrite(socketInfo, uint32(nQuads));
+mglSocketWrite(socketInfo, uint32(randomSeed));
+drawAndFrameTimes = mglSocketRead(socketInfo, 'double', 2 * nFrames);
 drawTimes = drawAndFrameTimes(1:2:end);
 frameTimes = drawAndFrameTimes(2:2:end);

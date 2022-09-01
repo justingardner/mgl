@@ -21,7 +21,7 @@
 %mglVisualAngleCoordinates(57,[16 12]);
 %mglLines2(rand(1,100)*5-2.5, rand(1,100)*10-5, rand(1,100)*5-2.5, rand(1,100)*3-1.5, 3, [0 0.6 1],1);
 %mglFlush
-function [ackTime, processedTime] = mglLines2(x0, y0, x1, y1, size, color, antialiasing)
+function [ackTime, processedTime] = mglLines2(x0, y0, x1, y1, size, color, antialiasing, socketInfo)
 
 % antialiasing is ignored, but included for v2 parameter compatibility.
 antialiasing = [];
@@ -32,7 +32,10 @@ if (size ~= 1 || nargin >= 7) && isempty(mglLines2DeprecationWarning)
     fprintf("(mglLines2) Line size and antialiasing are no longer supported in v3 with Metal, please consider using mglMetalLines instead.\n")
 end
 
-global mgl;
+if nargin < 8 || isempty(socketInfo)
+    global mgl;
+    socketInfo = mgl.activeSockets;
+end
 
 if length(color) == 1
   color = [color color color];
@@ -46,8 +49,8 @@ for iLine = 1:length(x0)
 end
 
 % send line command
-mglSocketWrite(mgl.s, mgl.command.mglLine);
-ackTime = mglSocketRead(mgl.s, 'double');
-mglSocketWrite(mgl.s, uint32(2*iLine));
-mglSocketWrite(mgl.s, single(v));
-processedTime = mglSocketRead(mgl.s, 'double');
+mglSocketWrite(socketInfo, socketInfo(1).command.mglLine);
+ackTime = mglSocketRead(socketInfo, 'double');
+mglSocketWrite(socketInfo, uint32(2*iLine));
+mglSocketWrite(socketInfo, single(v));
+processedTime = mglSocketRead(socketInfo, 'double');

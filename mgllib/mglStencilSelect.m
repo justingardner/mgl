@@ -24,7 +24,7 @@
 %mglStencilSelect(0);
 function [ackTime, processedTime] = mglStencilSelect(stencilNumber, socketInfo)
 
-if nargin < 2
+if nargin < 2 || isempty(socketInfo)
     global mgl
     socketInfo = mgl.activeSockets;
 end

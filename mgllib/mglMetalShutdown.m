@@ -41,3 +41,9 @@ while(mglMetalIsRunning(socketInfo))
     fprintf('.',0);
 end
 fprintf('\n',0);
+
+% Clean up the socket resources so they don't proliferate and/or interfere later.
+mglSocketClose(socketInfo);
+if isfile(socketInfo.address)
+    delete(socketInfo.address);
+end

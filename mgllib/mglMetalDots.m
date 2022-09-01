@@ -14,11 +14,16 @@
 %             shape -- 1 x n shape 0 -> rectangle, 1-> oval
 %             border-- 1 x n antialiasing pixel size
 %
-function [ackTime, processedTime, setupTime] = mglMetalDots(xyz, rgba, wh, shape, border)
+function [ackTime, processedTime, setupTime] = mglMetalDots(xyz, rgba, wh, shape, border, socketInfo)
 
 if nargin < 5
   help mglMetalDots
   return
+end
+
+if nargin < 6 || isempty(socketInfo)
+    global mgl;
+    socketInfo = mgl.activeSockets;
 end
 
 nDots = size(xyz, 2);
@@ -39,13 +44,11 @@ wh(2,:) = wh(2,:) * mglGetParam('yDeviceToPixels');
 % Stack up all the per-vertex data as a big matrix.
 vertexData = single(cat(1, xyz, rgba, wh, shape, border));
 
-global mgl
-
 % Setup timestamp can be used for measuring MGL frame timing,
 % for example with mglTestRenderingPipeline.
 setupTime = mglGetSecs();
-mglSocketWrite(mgl.s, mgl.command.mglDots);
-ackTime = mglSocketRead(mgl.s, 'double');
-mglSocketWrite(mgl.s, uint32(nDots));
-mglSocketWrite(mgl.s, vertexData);
-processedTime = mglSocketRead(mgl.s, 'double');
+mglSocketWrite(socketInfo, socketInfo(1).command.mglDots);
+ackTime = mglSocketRead(socketInfo, 'double');
+mglSocketWrite(socketInfo, uint32(nDots));
+mglSocketWrite(socketInfo, vertexData);
+processedTime = mglSocketRead(socketInfo, 'double');
