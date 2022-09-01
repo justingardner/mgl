@@ -25,12 +25,12 @@ if numel(tex) > 1
 end
 
 % default arguments
-if nargin < 2, position = [0 0]; end
-if nargin < 3, hAlignment = 0; end
-if nargin < 4, vAlignment = 0; end
-if nargin < 5, rotation = 0; end
-if nargin < 6, phase = 0; end
-if nargin < 7
+if nargin < 2 || isempty(position), position = [0 0]; end
+if nargin < 3 || isempty(hAlignment), hAlignment = 0; end
+if nargin < 4 || isempty(vAlignment), vAlignment = 0; end
+if nargin < 5 || isempty(rotation), rotation = 0; end
+if nargin < 6 || isempty(phase), phase = 0; end
+if nargin < 7 || isempty(width)
     if length(position)<3
         % get width in device coordinates
         width = tex.imageWidth*mglGetParam('xPixelsToDevice');
@@ -38,7 +38,7 @@ if nargin < 7
         width = position(3);
     end
 end
-if nargin < 8
+if nargin < 8 || isempty(height)
     if length(position)<4
         % get height in device coordinates
         height = tex.imageHeight*mglGetParam('yPixelsToDevice');
