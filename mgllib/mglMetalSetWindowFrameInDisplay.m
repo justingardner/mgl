@@ -24,7 +24,7 @@ if nargin < 3 || isempty(socketInfo)
     socketInfo = mgl.s;
 end
 
-if numel(socketInfo) > 0
+if numel(socketInfo) > 1
     fprintf('(mglMetalSetWindowFrameInDisplay) Using only the first of %d elements of socketInfo\n', numel(socketInfo));
     socketInfo = socketInfo(1);
 end
