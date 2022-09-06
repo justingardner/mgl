@@ -83,6 +83,12 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     return;
   }
 
+  // check to see if we have an open display
+  if (displayNumber < 0) {
+    mexPrintf("(mglPrivateSetGammaTable) No display is open\n");
+    return;
+  }
+
   // and some variables
   double redMin,redMax,redGamma,greenMin,greenMax,greenGamma,blueMin,blueMax,blueGamma;
   int useFormula = 0;
@@ -265,12 +271,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   // display information about formula if we are using one
   if (verbose && useFormula) 
     mexPrintf("(mglPrivateSetGammaTable) Using function %0.2f %0.2f %0.2f %0.2f %0.2f %0.2f %0.2f %0.2f %0.2f\n",redMin,redMax,redGamma,greenMin,greenMax,greenGamma,blueMin,blueMax,blueGamma);
-
-  // check to see if we have an open display
-  if (displayNumber < 0) {
-    mexPrintf("(mglPrivateSetGammaTable) No display is open\n");
-    return;
-  }
   
   // Now, actually set the gamma table with the OS specific calls
   if (useFormula)
