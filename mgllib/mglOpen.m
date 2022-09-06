@@ -60,6 +60,12 @@ if isempty(mglGetParam('verbose'))
   mglSetParam('verbose',0);
 end
 
+% Give a name to this mgl state and config, the mgl "context".
+% The name can be changed later with mglContextStash, if needed.
+stashedNames = mglContextList();
+newName = sprintf('default_%d', numel(stashedNames));
+mglSetParam('contextName', newName);
+
 openDisplay = 0;
 % check to see if a display is already open
 if mglGetParam('displayNumber') ~= -1
