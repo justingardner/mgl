@@ -20,8 +20,15 @@ if nargin < 1
     socketFile = '/tmp/test.socket';
 end
 
+% If the socket file already exists, we'll get an error "address in use".
 if isfile(socketFile)
     delete(socketFile);
+
+    % In case the delete fails, we'll need to ask for manual help.
+    if isfile(socketFile)
+        fprintf('(mglTestSocket) Unable to delete existing socket file "%s".  Please delete this file manually or pass in a different file path to use, like mglTestSocket(''/tmp/other.socket'')\n', socketFile);
+        return;
+    end
 end
 
 disp("Testing sockets...")

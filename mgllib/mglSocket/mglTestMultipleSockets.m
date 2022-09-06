@@ -24,11 +24,23 @@ if nargin < 2
     socketDir = '/tmp';
 end
 
+if ~isfolder(socketDir)
+    mkdir(socketDir);
+end
+
 socketFiles = cell(1, socketCount);
 for ii = 1:socketCount
     socketFiles{ii} = fullfile(socketDir, sprintf('test-%d.socket', ii));
+
+    % If the socket file already exists, we'll get an error "address in use".
     if isfile(socketFiles{ii})
         delete(socketFiles{ii});
+
+        % In case the delete fails, we'll need to ask for manual help.
+        if isfile(socketFiles{ii})
+            fprintf('(mglTestMultipleSockets) Unable to delete existing socket file "%s".  Please delete this file manually or pass in a different dir to use, like mglTestMultipleSockets(3, ''/tmp/other/'')\n', socketFiles{ii});
+            return;
+        end
     end
 end
 
