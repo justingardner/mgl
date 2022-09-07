@@ -97,12 +97,13 @@ for ii = 1:500
     % Draw in the left context.
     mglContextActivate('left');
     mglMetalBltTexture(leftTex, [], [], [], [], phase);
-    mglFlush();
 
     % Draw in the right context, slightly rotated just to be different.
     mglContextActivate('right');
     mglMetalBltTexture(rightTex, [], [], [], 2, phase);
-    mglFlush();
+
+    % Flush both contexts.
+    mglContextFlushAll();
 end
 
 % mglContextCloseAll will close all known contexts, active and stashed.
