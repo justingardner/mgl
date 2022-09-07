@@ -24,7 +24,6 @@
 %
 %             % activate only one the first mirrored window
 %             mglMirrorActivate(1);
-%
 function mglMirrorActivate(indices)
 
 global mgl

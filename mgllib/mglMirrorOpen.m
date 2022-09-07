@@ -25,7 +25,7 @@
 %             % Use last connected monitor.
 %             mglMirrorOpen(0, 100, 100, 640, 480)
 %
-%             Returns a socket infor struct for the connection to the new
+%             Returns a socket info struct for the connection to the new
 %             mglMetal process that controls the new window.
 function socketInfo = mglMirrorOpen(whichScreen, screenX, screenY, screenWidth, screenHeight)
 

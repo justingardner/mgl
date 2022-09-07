@@ -107,9 +107,8 @@ for ii = 1:numel(gazeX)
     mglMirrorActivate(1);
     mglPoints2(gazeX(ii) + wobbX, gazeY(ii) + wobbY, 0.3, [1 0 0], true);
 
-    % Activate primary and mirror both, to flush the frame.
-    mglMirrorActivate();
-    mglFlush();
+    % Flush both windows, primary and mirror.
+    mglMirrorFlushAll();
 end
 
 % Close will close all known windows, the primary and any mirrors.
