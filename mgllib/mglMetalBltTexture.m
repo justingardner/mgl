@@ -1,6 +1,6 @@
 % mglMetalBltTexture.m
 %
-%       usage: [ackTime, processedTime, setupTime] = mglMetalBltTexture(tex)
+%       usage: [ackTime, processedTime, setupTime] = mglMetalBltTexture(tex, position, hAlignment, vAlignment, rotation, phase, width, height, socketInfo)
 %          by: justin gardner
 %        date: 09/28/2021
 %  copyright: (c) 2021 Justin Gardner (GPL see mgl/COPYING)

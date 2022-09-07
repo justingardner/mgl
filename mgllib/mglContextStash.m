@@ -65,7 +65,10 @@ if any(strcmp(contextName, stashedNames))
 end
 
 % OK, stash the current context under the chosen name.
-fprintf('(mglContextStash) Stashing the active mgl context under the name "%s".\n', contextName);
+if mglGetParam('verbose')
+    fprintf('(mglContextStash) Stashing the active mgl context under the name "%s".\n', contextName);
+end
+
 mglSetParam('contextName', contextName);
 
 global mgl

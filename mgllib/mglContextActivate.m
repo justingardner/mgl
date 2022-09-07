@@ -59,7 +59,9 @@ if ~isempty(activeName)
     swappedOutName = mglContextStash(swappedOutName);
 end
 
-fprintf('(mglContextActivate) Activating stashed context with name "%s".\n', toActivateName);
+if mglGetParam('verbose')
+    fprintf('(mglContextActivate) Activating stashed context with name "%s".\n', toActivateName);
+end
 
 % Swap in the named context and remove it from the stash so that we only
 % have one copy at a time of a given context.
