@@ -134,7 +134,7 @@ global requiredFields;
 requiredFields = {{'sid','','Unique identifier for subejct',1},...
 		  {'firstName','','First name of subject',1},...
 		  {'lastName','','last name of subject',1},...
-		  {'gender',{'F','M','Decline'},'Gender of subject',1},...
+		  {'gender',{'F','M','Non-binary','Decline'},'Gender of subject',1},...
 		  {'dob','date','Date of birth for subject',1},...
 		  {'experimenter','','Name of experimenter entering this SID into database',1},...
 		  {'dateAdded',datestr(now),'Date that this entry was added to the sid database',1},...
@@ -504,7 +504,7 @@ if ~isempty(rownum)
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%
-%    loadSIDDatabase    %
+%    [Database    %
 %%%%%%%%%%%%%%%%%%%%%%%%%
 function sidDatabase = loadSIDDatabase(sidDatabaseFilename)
 
@@ -614,9 +614,9 @@ if ~isempty(sidDatabase)
     else
       % if it does exist, make sure that it has an entry for each sid
       if length(sidDatabase.(requiredFields{iField}{1})) < nSID
-	for i = length(sidDatabase.(requiredFields{iField}{1}))+1:nSID
-	  sidDatabase.(requiredFields{iField}{1}){i} = requiredFields{iField}{2};
-	end
+      	for i = length(sidDatabase.(requiredFields{iField}{1}))+1:nSID
+      	  sidDatabase.(requiredFields{iField}{1}){i} = requiredFields{iField}{2};
+      	end
       end
     end
   end
@@ -1245,11 +1245,12 @@ end
 % compute statistics
 
 % number of subjects
-stats.n = length(sidDatabase.sid)
+stats.n = length(sidDatabase.sid);
 
 % number of male and female
 stats.f = sum(strcmp('f',lower(sidDatabase.gender)));
 stats.m = sum(strcmp('m',lower(sidDatabase.gender)));
+stats.nonbinary = sum(strcmp('non-binary',lower(sidDatabase.gender)));
 
 % ethnicity
 stats.ethnicity = unique(lower(sidDatabase.ethnicity));
@@ -1292,35 +1293,72 @@ for iSID = 1:stats.n
   end
 end
 
+% missing sttast
+missingStats.f = 15;
+missingStats.m = 15;
+missingStats.race{1} = 'asian';
+missingStats.n(1) = 70;
+missingStats.race{2} = 'american indian or alaska native';
+missingStats.n(2) = 2;
+missingStats.race{3} = 'black or african american';
+missingStats.n(3) = 14;
+missingStats.race{4} = 'decline';
+missingStats.n(4) = 28;
+missingStats.race{5} = 'native hawaiian or other pacific islander';
+missingStats.n(5) = 1;
+missingStats.race{6} = 'white';
+missingStats.n(6) = 104;
+missingStats.ethnicity{1} = 'hispanic or latino';
+missingStats.nEthnicity(1) = 31;
+
+% cycle through the races in missing stats
+naIndex = strcmp('n/a',lower(stats.race));
+for iRace = 1:length(missingStats.race)
+  % if there is a match
+  raceMatch = find(strcmp(missingStats.race{iRace},stats.race));
+  if ~isempty(raceMatch)
+    % then add the count to that count
+    stats.raceN(raceMatch) = stats.raceN(raceMatch) + missingStats.n(iRace);
+  else
+    % add the race category
+    stats.race{end+1} = missingStats.race{iRace};
+    stats.raceN(end+1) = missingStats.n(iRace);
+  end
+  % add decrement the count from n/a
+  stats.raceN(naIndex) = stats.raceN(naIndex) - missingStats.n(iRace);
+  stats.raceDeclineTotal = stats.raceDeclineTotal - missingStats.n(iRace);
+end
+% add the hispanic or latino count
+naIndex = strcmp('n/a',lower(stats.ethnicity));
+for iEthnicity = 1:length(missingStats.ethnicity)
+  % if there is a match
+  ethnicityMatch = find(strcmp(missingStats.ethnicity{iEthnicity},stats.ethnicity));
+  if ~isempty(ethnicityMatch)
+    % then add the count to that count
+    stats.ethnicityN(ethnicityMatch) = stats.ethnicityN(ethnciityMatch) + missingStats.nEthnicity(iEthnicity);
+  else
+    % add the ethnicity category (not tested)
+    stats.ethnicity{end+1} = missingStats.ethnicity{iEthnicity};
+    stats.ethnicityN(end+1) = missingStats.nEthnicity(iEthnicity);
+  end
+  % add decrement the count from n/a
+  stats.ethnicityN(naIndex) = stats.ethnicityN(naIndex) - missingStats.n(iEthnicity);
+end
+% add gender and total n
+stats.n = stats.n + missingStats.f + missingStats.m;
+stats.f = stats.f + missingStats.f;
+stats.m = stats.m + missingStats.m;
+
 % display statistics
 dispHeader('Gender');
 disp(sprintf('Total n: %i',stats.n));
 disp(sprintf('Female: %i (%0.2f%%)',stats.f,100*stats.f/stats.n));
 disp(sprintf('Male: %i (%0.2f%%)',stats.m,100*stats.m/stats.n));
+disp(sprintf('Non-binary: %i (%0.2f%%)',stats.nonbinary,100*stats.nonbinary/stats.n));
 disp(sprintf('Decline: %i (%0.2f%%)',stats.n-(stats.m+stats.f),100*(stats.n-(stats.m+stats.f))/stats.n));
 dispHeader('Ethnicity');
 for iEthnicity = 1:length(stats.ethnicity)
   disp(sprintf('%s: %i (%0.2f%%)',stats.ethnicity{iEthnicity},stats.ethnicityN(iEthnicity),100*stats.ethnicityN(iEthnicity)/stats.n));
-end
-dispHeader('Race');
-for iRace = 1:length(stats.race)
-  disp(sprintf('%s: %i (%0.2f%%)',stats.race{iRace},stats.raceN(iRace),100*stats.raceN(iRace)/stats.n));
-end
-dispHeader('Race other 1');
-for iRace = 1:length(stats.race)
-  disp(sprintf('%s: %i (%0.2f%%)',stats.race{iRace},stats.otherRace1N(iRace),100*stats.otherRace1N(iRace)/stats.n));
-end
-dispHeader('Race other 2');
-for iRace = 1:length(stats.race)
-  disp(sprintf('%s: %i (%0.2f%%)',stats.race{iRace},stats.otherRace2N(iRace),100*stats.otherRace2N(iRace)/stats.n));
-end
-dispHeader('Race other 3');
-for iRace = 1:length(stats.race)
-  disp(sprintf('%s: %i (%0.2f%%)',stats.race{iRace},stats.otherRace3N(iRace),100*stats.otherRace3N(iRace)/stats.n));
-end
-dispHeader('Race other 4');
-for iRace = 1:length(stats.race)
-  disp(sprintf('%s: %i (%0.2f%%)',stats.race{iRace},stats.otherRace4N(iRace),100*stats.otherRace4N(iRace)/stats.n));
 end
 dispHeader('Race totals');
 disp(sprintf('Decline or n/a: %i (%0.2f%%)',stats.raceDeclineTotal, 100*stats.raceDeclineTotal/stats.n));
