@@ -52,6 +52,8 @@ cd(info.curpwd);
 %%%%%%%%%%%%%%%
 function info = processArgs(args)
 
+info.verbose = false;
+
 % Gets the mgl header file mgl.h to compare the timestamps
 % note that this will cd into the mgllib directory if it
 % doesn't find the mgl.h file in the current directory
@@ -61,9 +63,14 @@ info.mglHeaderFile = getMGLHeaderFile;
 % build only if out-of-date
 info.forceRebuild = false;
 
-% if no arguments or the first argument is not a string
-% then collect all c files in directory
-if isempty(args) || isnumeric(args{1})
+if strcmp(args{1}, 'mglEyelink')
+    cd('mglEyelink');
+    info.forceRebuild = true;
+end
+
+% if no arguments or the first argument is not a string, or building
+% mglEyelink, then collect all c files in directory
+if isempty(args) || isnumeric(args{1}) || strcmp(args{1}, 'mglEyelink')
   filenames = dir('*.c');
   info.filenames = {filenames.name};
   % check for rebuild
@@ -168,10 +175,10 @@ function info = getMexCommand(info)
 
 % setup compilation flags
 archs='x86_64';
-cFlags=['-x objective-c -fno-common -no-cpp-precomp -arch ' archs ' -Wno-deprecated-declarations -Wno-deprecated -Wno-implicit-function-declaration '];
+cFlags=['-x objective-c -fno-common -no-cpp-precomp -arch ' archs ' -Wno-deprecated-declarations -Wno-deprecated -Wno-implicit-function-declaration -I/Library/Frameworks/eyelink_core.framework/Headers  -I/Library/Frameworks/edfapi.framework/Headers '];
 
 % and linker flags
-ldFlags=['-Wl,-twolevel_namespace -undefined error -arch ' archs ' '];
+ldFlags=['-Wl,-twolevel_namespace -F/Library/Frameworks -undefined error -arch ' archs ' '];
 
 % This specifies the matlab entrance point
 tmw_root = matlabroot;
@@ -180,7 +187,7 @@ mapfile = 'mexFunction.map';
 ldFlags=[ldFlags '-bundle -Wl,-exported_symbols_list,' tmw_root '/extern/lib/' arch '/' mapfile ' '];
 
 % Specify the Mac frameworks
-ldFlags=[ldFlags '-framework Carbon -framework Cocoa -framework CoreServices -framework openGL -framework QTKit -framework CoreAudio '];
+ldFlags=[ldFlags '-framework Carbon -framework Cocoa -framework CoreServices -framework openGL -framework QTKit -framework CoreAudio -framework eyelink_core -framework edfapi'];
 
 % mex options
 mexopts = '';
@@ -205,7 +212,7 @@ info.mexCommand = sprintf('mex %s CFLAGS=''%s'' LDFLAGS=''%s'' ',mexopts,cFlags,
 %             function will return 1 for yes and 0 for no. If toall is set to 1, then
 %             'Yes to all' will be an option, which if selected will return inf
 %
-function r = askuser(question,toall,useDialog)
+function r = askuser(question,toall,useDialog,verbose)
 
 % check arguments
 if ~any(nargin == [1 2 3])
@@ -215,14 +222,12 @@ end
 
 if ieNotDefined('toall'),toall = 0;,end
 if ieNotDefined('useDialog'),useDialog=0;end
+if ieNotDefined('verbose'),verbose=false;end
 
 % if explicitly set to useDialog then use dialog, otherwise
 % check verbose setting
 if useDialog
   verbose = 1;
-else
-  verbose = mrGetPref('verbose');
-  if strcmp(verbose,'Yes'),verbose = 1;else,verbose = 0;end
 end
 
 r = [];
