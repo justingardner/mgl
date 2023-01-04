@@ -12,7 +12,7 @@
 //   include section   //
 /////////////////////////
 #include "../mgl.h"
-#include <edf.h>
+#include "edf.h"
 
 ///////////////////////////////
 //   function declarations   //
@@ -87,7 +87,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 			       "EDFAPI","preamble","gazeLeft","gazeRight",
 			       "fixations","saccades","blinks","messages",
 			       mglFieldname,"gazeCoords","frameRate"};
-  int outDims[2] = {1,1};
+  mwSize outDims[2] = {1,1};
   plhs[0] = mxCreateStructArray(1,outDims,14,fieldNames);
   
   // save some info about the EDF file in the output
@@ -153,7 +153,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
   // set an output fields for the gaze data
   const char *fieldNamesGaze[] =  {"time","x","y","pupil","pix2degX","pix2degY","velocityX","velocityY","whichEye"};
-  int outDims2[2] = {1,1};
+  //int outDims2[2] = {1,1};
+  mwSize outDims2[2] = {1,1};
 
   // set gaze left fields
   mxSetField(plhs[0],0,"gazeLeft",mxCreateStructArray(1,outDims2,9,fieldNamesGaze));
@@ -199,7 +200,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
   // set output fields for fixations
   const char *fieldNamesFix[] =  {"startTime","endTime","aveH","aveV"};
-  int outDimsFix[2] = {1,1};
+  mwSize outDimsFix[2] = {1,1};
   mxSetField(plhs[0],0,"fixations",mxCreateStructArray(1,outDimsFix,4,fieldNamesFix));
   mxSetField(mxGetField(plhs[0],0,"fixations"),0,"startTime",mxCreateDoubleMatrix(1,numFix,mxREAL));
   double *outptrFixStartTime = (double *)mxGetPr(mxGetField(mxGetField(plhs[0],0,"fixations"),0,"startTime"));
@@ -212,7 +213,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
   // set output fields for saccades
   const char *fieldNamesSac[] =  {"startTime","endTime","startH","startV","endH","endV","peakVel"};
-  int outDimsSac[2] = {1,1};
+  mwSize outDimsSac[2] = {1,1};
   mxSetField(plhs[0],0,"saccades",mxCreateStructArray(1,outDimsFix,7,fieldNamesSac));
   mxSetField(mxGetField(plhs[0],0,"saccades"),0,"startTime",mxCreateDoubleMatrix(1,numSac,mxREAL));
   double *outptrSacStartTime = (double *)mxGetPr(mxGetField(mxGetField(plhs[0],0,"saccades"),0,"startTime"));
@@ -231,7 +232,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
   // set output fields for blinks
   const char *fieldNamesBlinks[] =  {"startTime","endTime"};
-  int outDimsBlinks[2] = {1,1};
+  mwSize outDimsBlinks[2] = {1,1};
   mxSetField(plhs[0],0,"blinks",mxCreateStructArray(1,outDimsBlinks,2,fieldNamesBlinks));
   mxSetField(mxGetField(plhs[0],0,"blinks"),0,"startTime",mxCreateDoubleMatrix(1,numBlink,mxREAL));
   double *outptrBlinkStartTime = (double *)mxGetPr(mxGetField(mxGetField(plhs[0],0,"blinks"),0,"startTime"));
@@ -248,20 +249,20 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   // for version 1, we have various fields that get set
   else if (mglEyelinkVersion == 1) {
     const char *fieldNamesMGL[] =  {"time","segmentNum","trialNum","blockNum","phaseNum","taskID"};
-    int outDims[2] = {1,1};
+    mwSize outDims[2] = {1,1};
     mxSetField(plhs[0],0,mglFieldname,mxCreateStructArray(1,outDims,6,fieldNamesMGL));
     // note that we assume sequential task ideas for version 1 and they are provided in v2
   }
   // for version 2, we have various fields that get set
   else if (mglEyelinkVersion == 2){
     const char *fieldNamesMGL[] =  {"time","segmentNum","trialNum","blockNum","phaseNum","taskID"};
-    int outDims[2] = {1,1};
+    mwSize outDims[2] = {1,1};
     mxSetField(plhs[0],0,mglFieldname,mxCreateStructArray(1,outDims,6,fieldNamesMGL));
   } else { mexErrMsgTxt("Unknown MGL edf version."); }
   
   // Messages
   const char *fieldNamesMessages[] = {"message", "time"};
-  int outDimsMessages[2] = {1, numMessages};
+  mwSize outDimsMessages[2] = {1, numMessages};
   size_t messagesCounter = 0;
   mxArray *messagesStruct = mxCreateStructArray(2, outDimsMessages, 2, fieldNamesMessages);
   mxSetField(plhs[0], 0, "messages", messagesStruct); 
@@ -277,7 +278,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   // go back go beginning of file
   edf_goto_bookmark(edf,&startOfFile);
   
-  int currentEye = -1;
+  mwSize currentEye = -1;
   // go through all data in file
   if (verbose) mexPrintf("(mglPrivateEyelinkEDFRead) Looping over samples and events \n");
 
