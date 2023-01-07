@@ -15,6 +15,12 @@
 %             % to rebuild a single files
 %             mglMakeMetal mglText.c
 %
+%             to make eyelink code
+%             mglMakeMetal mglEyelink
+%
+%             to force remake of all eyelink code
+%             mglMakeMetal mglEyelinkForce
+%
 function mglMakeMetal(varargin)
 
 % process arguments, and return structure with info on running
@@ -63,9 +69,22 @@ info.mglHeaderFile = getMGLHeaderFile;
 % build only if out-of-date
 info.forceRebuild = false;
 
-% if no arguments or the first argument is not a string
-% then collect all c files in directory
-if isempty(args) || isnumeric(args{1})
+% check for eyelink (allow a few different ways of specifying, including
+% mglEyelink or eyelink and adding the word force to force compilation
+if any(strcmp(lower(args{1}), {'mgleyelink', 'eyelink', 'eyelinkforce','mgleyelinkforce','forceeyelink','forcemgleyelink'}))
+    cd('mglEyelink');
+    if ~isempty(strfind(lower(args{1}),'force'))
+      info.forceRebuild = true;
+    else
+      info.forceRebuild = false;        
+    end
+    % set to mglEyelink so the code below works properly
+    args{1} = 'mglEyelink';
+end
+
+% if no arguments or the first argument is not a string, or building
+% mglEyelink, then collect all c files in directory
+if isempty(args) || isnumeric(args{1}) || strcmp(args{1}, 'mglEyelink')
   filenames = dir('*.c');
   info.filenames = {filenames.name};
   % check for rebuild
@@ -170,10 +189,10 @@ function info = getMexCommand(info)
 
 % setup compilation flags
 archs='x86_64';
-cFlags=['-x objective-c -fno-common -no-cpp-precomp -arch ' archs ' -Wno-deprecated-declarations -Wno-deprecated -Wno-implicit-function-declaration '];
+cFlags=['-x objective-c -fno-common -no-cpp-precomp -arch ' archs ' -Wno-deprecated-declarations -Wno-deprecated -Wno-implicit-function-declaration -I/Library/Frameworks/eyelink_core.framework/Headers  -I/Library/Frameworks/edfapi.framework/Headers '];
 
 % and linker flags
-ldFlags=['-Wl,-twolevel_namespace -undefined error -arch ' archs ' '];
+ldFlags=['-Wl,-twolevel_namespace -F/Library/Frameworks -undefined error -arch ' archs ' '];
 
 % This specifies the matlab entrance point
 tmw_root = matlabroot;
@@ -182,7 +201,7 @@ mapfile = 'mexFunction.map';
 ldFlags=[ldFlags '-bundle -Wl,-exported_symbols_list,' tmw_root '/extern/lib/' arch '/' mapfile ' '];
 
 % Specify the Mac frameworks
-ldFlags=[ldFlags '-framework Carbon -framework Cocoa -framework CoreServices -framework openGL -framework QTKit -framework CoreAudio '];
+ldFlags=[ldFlags '-framework Carbon -framework Cocoa -framework CoreServices -framework openGL -framework QTKit -framework CoreAudio -framework eyelink_core -framework edfapi'];
 
 % mex options
 mexopts = '';
