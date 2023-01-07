@@ -54,7 +54,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 #ifdef __APPLE__
 int checkKeyboardMouse()
 {
-  if (AXAPIEnabled())
+  if (AXIsProcessTrusted())
     return 1;
   else
     return 0;
