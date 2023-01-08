@@ -64,7 +64,6 @@ if isequal(class(image),'uint8')
     image = shiftdim(image,1);
     
     % need to convert to double
-    disp(sprintf('(mglCreateTexture) uint8 images not yet supported in metal, converting to double'));
     image = double(image)/255;
 end
 
@@ -89,3 +88,4 @@ elseif imageSlices == 3
 end
 
 [texture, ackTime, processedTime] = mglMetalCreateTexture(image, [], [], [], socketInfo);
+
