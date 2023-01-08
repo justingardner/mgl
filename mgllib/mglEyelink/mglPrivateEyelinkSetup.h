@@ -14,6 +14,7 @@
 #include <eyelink.h>
 #include <core_expt.h>
 #include "matrix.h"
+#include "engine.h"
 // #include <CarbonEvents.h>
 // ===========
 // = Defines =
@@ -157,17 +158,23 @@ static int keyDownEvent = 0;
 static int eventKeyCode = 0;
 static CGEventFlags eventKeyFlags;
 
-mxArray *cameraTexture;
-GLubyte *cameraImageBuffer = NULL;
-GLenum cameraTextureType = 0;
-GLuint cameraTextureNumber = 0;
+// contains the colormap used to interpert the eye image lines
 GLubyte cameraImageColormap[256][3];
 
 // matlab matrix for holding the eye image for calibration
 mxArray *eyeImageMatlabMatrix = NULL;
 
+// size of eye image which gets passed into the callbacks
+short imageWidth;
+short imageHeight;
+
+// center of the image in pixels for blting
 double screenCenterX;
 double screenCenterY;
+
+// verbose variable for mgl
+int verbose = 0;
+
 
 static CalibrationTarget _calTarget;
 

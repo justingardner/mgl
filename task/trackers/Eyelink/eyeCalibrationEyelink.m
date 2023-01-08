@@ -36,7 +36,7 @@ if ~myscreen.eyetracker.dummymode
   disp('c: Start calibration routine');
   disp('v: Start verification routine');
   disp('a: autothreshold');
-  disp('ESC: Finished');
+  disp('q or ESC: Finished');
   disp('For a full list of commands. Hit F1 on eye tracker');
   disp('===========================');
   mglFlush;

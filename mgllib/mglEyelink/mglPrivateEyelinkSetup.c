@@ -32,6 +32,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     return;
   }
 
+  // set verbose variable used in these routines
+  verbose = (int)mglGetGlobalDouble("verbose");
+
   if (nrhs >= 1) {
     int n;
     mexPrintf("(mglPrivateEyelinkSetup) Attempting to use specific display.\n"); 
@@ -80,7 +83,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   do_tracker_setup();
 
   // let everyone know that we're finished
-  mexPrintf("(mglPrivateEyelinkCalibrate) finished...\n");
+  mexPrintf("(mglPrivateEyelinkCalibrate) Finished calibration\n");
 
 }
 
@@ -143,8 +146,6 @@ void ELCALLTYPE get_display_information(DISPLAYINFO *di)
  */
 INT16 ELCALLTYPE init_expt_graphics()
 {
-  mexPrintf("**DEBUG** init_expt_graphics\n");
-
   HOOKFCNS fcns;
   memset(&fcns,0,sizeof(fcns)); /* clear the memory */
 
@@ -208,29 +209,6 @@ INT16 ELCALLBACK get_input_key(InputEvent *key_input)
 {
   UINT16 keycode = 0;    // the key (mgl code)
 
-
-  //  mxArray *callOutput[1];
-  //  mexCallMATLAB(1, callOutput, 0, NULL, "mglGetKeys");
-  //  int nKeys = mxGetNumberOfElements(callOutput[0]);
-  //  double *keysDown = (double *)mxGetPr(callOutput[0]);
-  //  int keyDown = 0;
-  //  int i;
-  //  for (i = 0; i < nKeys; i++)
-  //    if (keysDown[i])
-  //      keyDown = i+1;
-  //  if (keyDown)
-  //    mexPrintf("%i\n",keyDown);
-
-
-
-
-  //  if (nKeys > 0) {
-  //    int myEventKeyCode = (int)*(double *)mxGetPr(callOutput[0]);
-  //    int myEventKeyCharcode = (int)*(double *)mxGetPr(callOutput[2]);
-  //    mexPrintf("%i %i %i\n",nKeys,myEventKeyCode,myEventKeyCharcode);
-  //  }
-
-
   // get a key event using the get key event.
   if (!(keycode = mglcGetKeys())) {
     eventKeyCode = 0;
@@ -245,37 +223,16 @@ INT16 ELCALLBACK get_input_key(InputEvent *key_input)
     UINT16 charcode = 0, modcode = 0; // the key (ascii)
     // get modifiers
     int shift = 0, control = 0, command = 0, alt = 0, capslock = 0;
-    // get the key event
-    // charbuff = keycodeToChar(keycode);
-    // if (charbuff!=NULL)
-    //     charcode = (UINT16)charbuff[0];
-    // else
-    //     charcode = 0;
-    // mxFree(charbuff);
-    // free(charbuff);
-    // if (tmpOut!=NULL) {
-    //     shift = (int)*(double*)mxGetPr(tmpOut);
-    //     control = (int)*(double*)mxGetPr(mxGetField(callOutput[0],0,"control"));
-    //     capslock = (int)*(double*)mxGetPr(mxGetField(callOutput[0],0,"capslock"));
-    //     alt = (int)*(double*)mxGetPr(mxGetField(callOutput[0],0,"alt"));
-    // }
     charcode = (UINT16)*keycodeToChar(keycode);
-    // mexPrintf("c %d (%.1s) k %d shift %d cntr %d caps %d alt %d\n", charcode,
-    //     charbuff, keycode, shift, control, capslock, alt);
-    // mexPrintf("c %d k %d shift %d cntr %d caps %d alt %d\n", charcode,
-    //     keycode, shift, control, capslock, alt);
-
-    // if (shift)
-    //     modcode = (modcode | ELKMOD_LSHIFT | ELKMOD_RSHIFT);
-    // if (control)
-    //     modcode = (modcode | ELKMOD_LCTRL | ELKMOD_RCTRL);
-    // if (alt)
-    //     modcode = (modcode | ELKMOD_LALT | ELKMOD_RALT);
-    // if (capslock)
-    //     modcode = (modcode | ELKMOD_CAPS);
 
     if (charcode>=33 && charcode <=127) {
-      key_input->key.key = (char)charcode;
+      if (charcode == 113)
+        // if user hits q, this will be the same as ESC (to avoid the mgl window
+        // being minimized which also happens with ESC)
+	// map q key to ESC
+        key_input->key.key = ESC_KEY;
+      else
+        key_input->key.key = (char)charcode;
     } else {
       switch (keycode) {
         case 100:
@@ -292,6 +249,10 @@ INT16 ELCALLBACK get_input_key(InputEvent *key_input)
           break;
         case 97:
           key_input->key.key = F5_KEY;
+	  mexPrintf("Testing\n");
+	  engEvalString(ep,"evalin('base', mglFlush;)");
+	  mexPrintf("Testing\n");
+	  return 0;
           break;
         case 98:
           key_input->key.key = F6_KEY;
@@ -421,7 +382,12 @@ void ELCALLBACK draw_cal_target(INT16 x, INT16 y)
   memcpy(inColor, _calTarget.innerRGB, sizeof(double)*3);
   mexCallMATLAB(0, NULL, 4, callInput, "mglGluDisk");            
   mexEvalString("mglFlush;");
-  // mexPrintf("mglPrivateEyelinkCalibrate) mglGluDisk at (%g,%g) with size %g.\n", *inX, *inY, *inSize);
+  if (verbose) mexPrintf("(mglPrivateEyelinkSetup:draw_cal_target) mglGluDisk at (%g,%g) with size %g.\n", *inX, *inY, *inSize);
+  // destroy created matrices
+  mxDestroyArray(callInput[0]);
+  mxDestroyArray(callInput[1]);
+  mxDestroyArray(callInput[2]);
+  mxDestroyArray(callInput[3]);
 }
 
 /*!
@@ -469,7 +435,7 @@ void ELCALLBACK  cal_sound(INT16 sound)
   {
     mxArray *sound[1];
     sound[0] = mxCreateString(wave);
-    mexCallMATLAB(0, NULL, 1, sound, "mglPlaySound");
+    mexCallMATLAB(0, NULL, 1, sound, "mglPlaySound");      
   }
 }
 
@@ -563,52 +529,42 @@ void ELCALLBACK set_image_palette(INT16 ncolors, byte r[130], byte g[130], byte 
  */
 INT16 ELCALLBACK setup_image_display(INT16 width, INT16 height)
 {
+  // verbose debug message
+  if (verbose) mexPrintf("(mglPrivateEyelinkSetup:setup_image_display) Allocating matlab array for eye image %ix%ix%i\n",height,width,BYTEDEPTH);
+
+  // save imageWidth and imageHieght in global variable
+  imageWidth = width;
+  imageHeight = height;
+
   // create a matrix of width x height for the eye image
-  mexPrintf("(mglPrivateEyelinkSetup:setup_image_display) Allocating matlab array for eye image %ix%ix%i\n",height,width,BYTEDEPTH);
   // allocate the matrix. Note that we put the BYTEDEPTH first (i.e. the
-  // matrix will be addressed as RGBA x width x height so that it
+  // matrix will be addressed as RGBA x height x width so that it
   // is easier to manipulate here. In metal mgl, this gets converted
   // to a double matrix in the usual order, but could be passed directly
-  // to the metal app for faster blting.
-  mwSize dims[3] = {BYTEDEPTH, width, height};
+  // to the metal app for faster blting (if, when this gets implemented)
+  mwSize dims[3] = {BYTEDEPTH, height, width};
   eyeImageMatlabMatrix = mxCreateNumericArray(3,dims,mxUINT8_CLASS,mxREAL);
-  // create a texture using mglCreateTexture
-  //mxArray *callInput[3],*callOutput[2];
-  //mwSize dims[3] = {height, width, BYTEDEPTH};
-  //callInput[0] = mxCreateNumericArray(3,dims,mxDOUBLE_CLASS,mxREAL);
-  //callInput[1] = mxCreateString("yx");
-  //callInput[2] = mxCreateDoubleMatrix(1,1,mxREAL);
-  //double *arg = (double*)mxGetPr(callInput[2]);
-  //*arg = 1;
-  //mexCallMATLAB(1,callOutput,3,callInput,"mglCreateTexture");            
 
-  // clean up
-  //mxDestroyArray(callInput[0]);
-  //mxDestroyArray(callInput[1]);
-  //mxDestroyArray(callInput[2]);
-
-  // get the pointer to the "liveBuffer" which we can use to modify the texture on the fly
-  //cameraTexture = callOutput[0];
-  //cameraImageBuffer = (GLubyte*)(unsigned long)*mxGetPr(mxGetField(callOutput[0],0,"liveBuffer"));
-  //cameraTextureType = (GLenum)*mxGetPr(mxGetField(callOutput[0],0,"textureType"));
-  //cameraTextureNumber = (GLuint)*mxGetPr(mxGetField(callOutput[0],0,"textureNumber"));
+  // get pointer to data buffer
+  mxUint8 *eyeImage = mxGetUint8s(eyeImageMatlabMatrix);
   
-  // set the alpha channel to 255
-  //int i,c=0;
-  //for(i = 0;i<width*height;i++,c+=4)
-  //  cameraImageBuffer[c+3] = 255;
-  //}
+  // set the alpha chanel to all 0xFF (i.e. alpha of 1)
+  for(short iPixel=0; iPixel<(width*height); iPixel++)
+    eyeImage[iPixel*BYTEDEPTH+3] = 0xFF;
+
   // clear the screen
   mexEvalString("mglClearScreen");
   mexEvalString("mglFlush;");
 
-  // set the center of the screen
+  // set the center of the screen (this is used so that we can blt the camera image to the correct location)
   screenCenterX = mglGetGlobalDouble("screenWidth")/2;
   screenCenterY = mglGetGlobalDouble("screenHeight")/2;
 
   // and the bottom left corner of the screen image
   cameraPos[0] = screenCenterX - width;
   cameraPos[1] = screenCenterY - height;
+  
+  // return
   return 0;
 }
 
@@ -619,22 +575,20 @@ INT16 ELCALLBACK setup_image_display(INT16 width, INT16 height)
  */
 void ELCALLBACK exit_image_display(void)
 {
-  mexPrintf("**DEBUG** exit_image_display\n");
+  // verbose debug message
+  if (verbose) mexPrintf("(mglPrivateEyelinkSetup:exit_image_display) Exiting image display\n");
+  
   // destroy the matlab matrix if it exists
-  if (eyeImageMatlabMatrix)
+  if (eyeImageMatlabMatrix) {
     mxDestroyArray(eyeImageMatlabMatrix);
-  // check to see if we need to delete the texture
-  mxArray *callInput[1];
-  if (cameraImageBuffer) {
-    callInput[0] = cameraTexture;
-    mexCallMATLAB(0,NULL,1,callInput,"mglDeleteTexture");
+    eyeImageMatlabMatrix = NULL;
   }
+
   // clear the screen
   mexEvalString("mglClearScreen;");
   mexEvalString("mglFlush;");
   mexEvalString("mglClearScreen;");
   mexEvalString("mglFlush;");
-
 }
 
 /*!
@@ -659,19 +613,23 @@ printf("RGB %d %d %d\n",r[pix],g[pix],b[pix]);
  */
 void ELCALLBACK draw_image_line(INT16 width, INT16 line, INT16 totlines, byte *pixels)
 {
-  //mexPrintf("**DEBUG** draw_image_line\n");
-  // get a pointer to the correct line in the matlab eye image matrix
-  mxUint8 *eyeImageLine = mxGetUint8s(eyeImageMatlabMatrix);
-  eyeImageLine = eyeImageLine+(line-1)*width*BYTEDEPTH;
+  // get a pointer to the eye Image data
+  mxUint8 *eyeImage = mxGetUint8s(eyeImageMatlabMatrix);
+   
+  // shift to start at the correct line
+  eyeImage = eyeImage+(line-1)*BYTEDEPTH;
+
   // copy the line directly into the buffer
   for(short iPixel=0; iPixel<width; iPixel++) {
-    eyeImageLine[iPixel*BYTEDEPTH] = cameraImageColormap[pixels[iPixel]][0];
-    eyeImageLine[iPixel*BYTEDEPTH+1] = cameraImageColormap[pixels[iPixel]][1];
-    eyeImageLine[iPixel*BYTEDEPTH+2] = cameraImageColormap[pixels[iPixel]][2];
-    eyeImageLine[iPixel*BYTEDEPTH+3] = 255;
+    eyeImage[iPixel*imageHeight*BYTEDEPTH] = cameraImageColormap[pixels[iPixel]][0];
+    eyeImage[iPixel*imageHeight*BYTEDEPTH+1] = cameraImageColormap[pixels[iPixel]][1];
+    eyeImage[iPixel*imageHeight*BYTEDEPTH+2] = cameraImageColormap[pixels[iPixel]][2];
+    eyeImage[iPixel*imageHeight*BYTEDEPTH+3] = 255;
   }
+  // if we have got the total number of lines, then we can display the image
   if(line == totlines) {
-    mexPrintf("(mglPrivateEyelinkSetup:draw_image_line) Total lines sent, blt image\n");
+    // verbose debug message
+    if (verbose) mexPrintf("(mglPrivateEyelinkSetup:draw_image_line) Total %i lines sent, blt image\n",totlines);
 
     // use mglCreateTexture to turn the byte buffer into a texture
     mxArray *callInput[2],*callOutput[1];
@@ -684,70 +642,16 @@ void ELCALLBACK draw_image_line(INT16 width, INT16 line, INT16 totlines, byte *p
     callInput[1] = mxCreateDoubleMatrix(1,4,mxREAL);
     double *bltPos = (double*)mxGetPr(callInput[1]);
     bltPos[0] = screenCenterX;bltPos[1] = screenCenterY;bltPos[2] = width*2;bltPos[3] = totlines*2;
-    mexCallMATLAB(0,callOutput,2,callInput,"mglBltTexture");            
+    mexCallMATLAB(0,callOutput,2,callInput,"mglBltTexture");    
+    mxDestroyArray(callInput[1]);
 
     // call mglFlush to display
     mexEvalString("mglFlush;");
 
-    // and delte the texture      
-    mexCallMATLAB(0,callOutput,1,callInput,"mglDeleteTexture");            
-
-
+    // and delete the texture      
+    mexCallMATLAB(0,callOutput,1,callInput,"mglDeleteTexture");           
     
   }
-  return;
-  // init variables
-  short i;
-  byte *p = pixels;
-  mxArray *callInput[2];
-
-  // get the beginning of the current line
-  //GLubyte *thisLineCameraImageBuffer = cameraImageBuffer+(line-1)*width*BYTEDEPTH;
-
-  // draw the line into our memory buffer
-  //for(i=0; i<width; i++) {
-  //  thisLineCameraImageBuffer[i*BYTEDEPTH] = cameraImageColormap[*p][0];
-  //  thisLineCameraImageBuffer[i*BYTEDEPTH+1] = cameraImageColormap[*p][1];
-  //  thisLineCameraImageBuffer[i*BYTEDEPTH+2] = cameraImageColormap[*p][2];
-  //  p++;
-  // }
-  if(line == totlines) {
-    mexPrintf("(mglPrivateEyelinkSetup:draw_image_line) Total lines sent, blt image\n");
-    // at this point we have a complete camera image.
-    // rebind the texture to the image buffer
-    //glBindTexture(cameraTextureType, cameraTextureNumber);
-    //glTexImage2D(cameraTextureType,0,GL_RGBA,width,totlines,0,GL_RGBA,TEXTURE_DATATYPE,cameraImageBuffer);
-
-    // clear the screen,
-    mexEvalString("mglClearScreen;");
-
-    // blt that texture to the screen
-    //callInput[0] = cameraTexture;
-    //callInput[1] = mxCreateDoubleMatrix(1,4,mxREAL);
-    //double *bltPos = (double*)mxGetPr(callInput[1]);
-    //bltPos[0] = screenCenterX;bltPos[1] = screenCenterY;bltPos[2] = width*2;bltPos[3] = totlines*2;
-    //mexCallMATLAB(0,NULL,2,callInput,"mglBltTexture");            
-
-    // now we need to draw the cursors.
-    CrossHairInfo crossHairInfo;
-    memset(&crossHairInfo,0,sizeof(crossHairInfo));
-
-    crossHairInfo.w = width*2;
-    crossHairInfo.h = totlines*2;
-    crossHairInfo.drawLozenge = drawLozenge;
-    crossHairInfo.drawLine = drawLine;
-    crossHairInfo.getMouseState = getMouseState;
-    // crossHairInfo.userdata = image; // could be used for gl display num
-
-    eyelink_draw_cross_hair(&crossHairInfo);
-
-    // flush screen
-    mexEvalString("mglFlush;");
-    return;
-
-
-  }
-
 }
 
 /*!
@@ -759,8 +663,6 @@ void ELCALLBACK draw_image_line(INT16 width, INT16 line, INT16 totlines, byte *p
  */
 void ELCALLBACK image_title(INT16 threshold, char *title)
 {
-  mexPrintf("**DEBUG** image_title\n");
-
   if (threshold == -1){
     snprintf(cameraTitle, sizeof(cameraTitle), "%s", title);
   } else {
@@ -780,8 +682,6 @@ void ELCALLBACK image_title(INT16 threshold, char *title)
  */
 void drawLine(CrossHairInfo *chi, int x1, int y1, int x2, int y2, int cindex)
 {
-          mexPrintf("**DEBUG** drawLine\n");
-
   mxArray *callInput[6];
   double *inColor;
 
@@ -829,6 +729,12 @@ void drawLine(CrossHairInfo *chi, int x1, int y1, int x2, int y2, int cindex)
 
   // mglLines(x0, y0, x1, y1,size,color,bgcolor)
   mexCallMATLAB(0,NULL,6,callInput,"mglLines2");            
+  mxDestroyArray(callInput[0]);
+  mxDestroyArray(callInput[1]);
+  mxDestroyArray(callInput[2]);
+  mxDestroyArray(callInput[3]);
+  mxDestroyArray(callInput[4]);
+  mxDestroyArray(callInput[5]);
 
 }
 
@@ -979,8 +885,6 @@ int mglcGetKeys()
 
 INT16 mglcGetKeyEvent(MGLKeyEvent *mglKey)
 {
-          mexPrintf("**DEBUG** mglcGetKeyEvent\n");
-
   // declare variables
   double waittime = 0.0;
   //-----------------------------------------------------------------------------------///

@@ -55,7 +55,9 @@ end
 targetParams = validateTargetParams(targetParams);
 
 % Run the EyeLink setup.  
+disp('####################Setup started####################');
 mglPrivateEyelinkSetup(displayNumber, targetParams);
+disp('####################Setup finished####################');
 
 
 function targetParams = validateTargetParams(targetParams)
