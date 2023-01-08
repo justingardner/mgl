@@ -249,9 +249,9 @@ INT16 ELCALLBACK get_input_key(InputEvent *key_input)
           break;
         case 97:
           key_input->key.key = F5_KEY;
-	  mexPrintf("Testing\n");
-	  engEvalString(ep,"evalin('base', mglFlush;)");
-	  mexPrintf("Testing\n");
+	  mexPrintf("(mglPrivateEyelinkSetup:get_input_key:F5 key) Testing running matlab command\n");
+	  mexEvalString("mglFlush;");
+	  mexPrintf("(mglPrivateEyelinkSetup:get_input_key:F5 key) Finished testing\n");
 	  return 0;
           break;
         case 98:
