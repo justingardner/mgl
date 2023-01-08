@@ -13,6 +13,7 @@
 #include "../mgl.h"
 #include <eyelink.h>
 #include <core_expt.h>
+#include "matrix.h"
 // #include <CarbonEvents.h>
 // ===========
 // = Defines =
@@ -162,10 +163,13 @@ GLenum cameraTextureType = 0;
 GLuint cameraTextureNumber = 0;
 GLubyte cameraImageColormap[256][3];
 
+// matlab matrix for holding the eye image for calibration
+mxArray *eyeImageMatlabMatrix = NULL;
+
 double screenCenterX;
 double screenCenterY;
 
 static CalibrationTarget _calTarget;
 
-#endif __MGLEYELINK_H
+#endif //__MGLEYELINK_H
 

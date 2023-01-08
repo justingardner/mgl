@@ -69,6 +69,9 @@ info.mglHeaderFile = getMGLHeaderFile;
 % build only if out-of-date
 info.forceRebuild = false;
 
+% set mex flags
+info.mexopts = '';
+
 % check for eyelink (allow a few different ways of specifying, including
 % mglEyelink or eyelink and adding the word force to force compilation
 if any(strcmp(lower(args{1}), {'mgleyelink', 'eyelink', 'eyelinkforce','mgleyelinkforce','forceeyelink','forcemgleyelink'}))
@@ -80,6 +83,8 @@ if any(strcmp(lower(args{1}), {'mgleyelink', 'eyelink', 'eyelinkforce','mgleyeli
     end
     % set to mglEyelink so the code below works properly
     args{1} = 'mglEyelink';
+    % set mex flags
+    info.mexopts = '-R2018a';
 end
 
 % if no arguments or the first argument is not a string, or building
@@ -205,6 +210,9 @@ ldFlags=[ldFlags '-framework Carbon -framework Cocoa -framework CoreServices -fr
 
 % mex options
 mexopts = '';
+if isfield(info,'mexopts')
+  mexopts = info.mexopts;
+end
 
 % create mex commands
 info.mexCommand = sprintf('mex %s CFLAGS=''%s'' LDFLAGS=''%s'' ',mexopts,cFlags,ldFlags);
