@@ -529,6 +529,8 @@ void ELCALLBACK set_image_palette(INT16 ncolors, byte r[130], byte g[130], byte 
  */
 INT16 ELCALLBACK setup_image_display(INT16 width, INT16 height)
 {
+  mexPrintf("(mglPrivateEyelinkSetup) Starting eye image display [%ix%i]\n",width,height);
+  
   // verbose debug message
   if (verbose) mexPrintf("(mglPrivateEyelinkSetup:setup_image_display) Allocating matlab array for eye image %ix%ix%i\n",height,width,BYTEDEPTH);
 
@@ -553,7 +555,7 @@ INT16 ELCALLBACK setup_image_display(INT16 width, INT16 height)
     eyeImage[iPixel*BYTEDEPTH+3] = 0xFF;
 
   // clear the screen
-  mexEvalString("mglClearScreen");
+  mexEvalString("mglClearScreen;");
   mexEvalString("mglFlush;");
 
   // set the center of the screen (this is used so that we can blt the camera image to the correct location)
@@ -576,7 +578,7 @@ INT16 ELCALLBACK setup_image_display(INT16 width, INT16 height)
 void ELCALLBACK exit_image_display(void)
 {
   // verbose debug message
-  if (verbose) mexPrintf("(mglPrivateEyelinkSetup:exit_image_display) Exiting image display\n");
+  mexPrintf("(mglPrivateEyelinkSetup:exit_image_display) Exiting eye image display\n");
   
   // destroy the matlab matrix if it exists
   if (eyeImageMatlabMatrix) {

@@ -83,7 +83,21 @@ if strcmp(lower(myscreen.eyeTrackerType),'eyelink')
   myscreen.eyetracker.data = [1 1 1 0]; % don't need link events
   myscreen = initEyeTracker(myscreen, 'Eyelink');
   % run calibration
-  if calibrate,myscreen = calibrateEyeTracker(myscreen);end
+  if calibrate
+    disp(sprintf('***********************'))
+    if desktop('-inuse')
+      disp(sprintf('(eyeCalibDisp) As of 1/8/2023\n'));
+      disp(sprintf(' The EyeLink calibration works only w/out running Desktop.'));
+      disp(sprintf(' Even just running the editor will cause the calibration to crash.\n'));
+      disp(sprintf(' Type dbcont if you wish to continue anyway. Otherwise, restart in matlab without desktop:'));
+      disp(sprintf('From a terminal: matlab -nodesktop'));
+      keyboard
+    else
+      disp(sprintf('(eyeCalibDisp) WARNING: If you are running the editor, the eye calibration may crash. If this happens restart matlab -nodesktop w/out running the edigtor'));
+    end
+    disp(sprintf('***********************'));
+    myscreen = calibrateEyeTracker(myscreen);
+  end
   % start recording
   if (myscreen.eyetracker.init) && (myscreen.eyetracker.collectEyeData == 1)
     if  ~mglEyelinkRecordingCheck
