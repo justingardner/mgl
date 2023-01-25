@@ -22,3 +22,7 @@ end
 mglSocketWrite(socketInfo, socketInfo(1).command.mglFlush);
 ackTime = mglSocketRead(socketInfo, 'double');
 processedTime = mglSocketRead(socketInfo, 'double');
+if processedTime < 0
+  disp(sprintf('(mglFlush) Error processing command.'));
+end
+
