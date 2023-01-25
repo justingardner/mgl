@@ -59,6 +59,24 @@ class mglCommandInterface {
     }
 
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
+    // clearReadData
+    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
+    func clearReadData() {
+      // declare a byte to dump
+      var dumpByte = 0
+      var numBytes = 0;
+      // while there is data reading
+      while dataWaiting() {
+        // read a byte
+        let bytesRead = server.readData(buffer: &dumpByte, expectedByteCount: 1)
+        //keep how many bytes we have read
+        numBytes = numBytes+bytesRead;
+      }
+      // display how much data we read.
+      os_log("(mglCommandInterface:clearReadData) Dumped %{public}d bytes", log: .default, type: .info, numBytes);
+    }
+    
+    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     // readCommand
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     func readCommand() -> mglCommandCode? {
@@ -208,7 +226,10 @@ class mglCommandInterface {
         // "Round up" this row size to the next multiple of the system-dependent required alignment (perhaps 16 or 256).
         let rowAlignment = device.minimumLinearTextureAlignment(for: textureDescriptor.pixelFormat)
         let alignedRowByteCount = ((imageRowByteCount + rowAlignment - 1) / rowAlignment) * rowAlignment
-
+        
+        // jg: for debugging
+        os_log("(mglCommandInterface:createTexture) minimumLinearTextureAlignment: %{public}d imageRowByteCount: %{public}d alignedRowByteCount: %{public}d", log: .default, type: .info, rowAlignment, imageRowByteCount, alignedRowByteCount)
+        
         // Get an MTLBuffer from the GPU to store image data in
         // Use the rounded-up/aligned row size instead of the nominal image size.
         // With storageModeManaged, we must explicitly sync the data to the GPU, below.

@@ -180,7 +180,6 @@ extension mglRenderer: MTKViewDelegate {
             // No, we'll check again on the next frame / draw() call.
             return;
         }
-
         // Process non-drawing commands one at a time.
         // This avoids holding expensive drawing resources until we need to (below) as described here:
         //   https://developer.apple.com/documentation/quartzcore/cametallayer?language=objc#3385893
@@ -221,6 +220,7 @@ extension mglRenderer: MTKViewDelegate {
         // the texture will have been loaded and cleared already, using the old clear color.
         // So we process it here in the middle, a special case here.
         if command == mglSetClearColor {
+            // run setClearColor
             let commandSuccess = setClearColor(view: view)
             acknowledgePreviousCommandProcessed(isSuccess: commandSuccess)
             if (!commandSuccess) {
@@ -249,8 +249,8 @@ extension mglRenderer: MTKViewDelegate {
         // Does the system "know best" and we are blocking/synchronizing as expected?
         // Or is there somethign else we can do about these long call durations?
         guard let drawable = view.currentDrawable else {
-            os_log("(mglRenderer) Could not get current drawable from the view, skipping render pass.", log: .default, type: .error)
-            acknowledgePreviousCommandProcessed(isSuccess: false)
+            os_log("(mglRenderer) Could not get current drawable from the view, skipping render pass. This might be happening because the renderer cannot keep up with draw commands.", log: .default, type: .error)
+            failedCommand(whichCommand: command)
             return
         }
 
@@ -260,7 +260,8 @@ extension mglRenderer: MTKViewDelegate {
         // But whichever one we call first seems to pay the same blocking/synchronization price when memory usage is high.
         guard let renderPassDescriptor = currentColorRenderingConfig.getRenderPassDescriptor(view: view) else {
             os_log("(mglRenderer) Could not get render pass descriptor from current color rendering config, skipping render pass.", log: .default, type: .error)
-            acknowledgePreviousCommandProcessed(isSuccess: false)
+            // we have failed, so return failure to acknwoledge previous command
+            failedCommand(whichCommand: command)
             return
         }
         currentDepthStencilConfig.configureRenderPassDescriptor(renderPassDescriptor: renderPassDescriptor)
@@ -268,7 +269,7 @@ extension mglRenderer: MTKViewDelegate {
         guard let commandBuffer = mglRenderer.commandQueue.makeCommandBuffer(),
               let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor) else {
             os_log("(mglRenderer) Could not get command buffer and renderEncoder from the command queue, skipping render pass.", log: .default, type: .error)
-            acknowledgePreviousCommandProcessed(isSuccess: false)
+            failedCommand(whichCommand: command)
             return
         }
         currentDepthStencilConfig.configureRenderEncoder(renderEncoder: renderEncoder)
@@ -310,7 +311,6 @@ extension mglRenderer: MTKViewDelegate {
             if !commandSuccess {
                 os_log("(mglRenderer) Error processing drawing command %{public}@, abandoning this render pass.", log: .default, type: .error, String(describing: command))
                 renderEncoder.endEncoding()
-                acknowledgePreviousCommandProcessed(isSuccess: false)
                 return
             }
 
@@ -339,6 +339,51 @@ extension mglRenderer: MTKViewDelegate {
         currentColorRenderingConfig.finishDrawing(commandBuffer: commandBuffer, drawable: drawable)
     }
 
+    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
+    // failedCommand
+    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
+    private func failedCommand(whichCommand: mglCommandCode) {
+        if whichCommand != mglSetClearColor  {
+            os_log("(mglRenderer) %{public}@ failed", log: .default, type: .info, String(describing: whichCommand))
+          //  Thread.sleep(forTimeInterval: 1);
+           commandInterface.clearReadData()
+            _ = commandInterface.writeDouble(data: -secs.get())
+        }
+        else {
+            os_log("(mglRenderer) mglClearScreen failed", log: .default, type: .info)
+        }
+    }
+    
+    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
+    // readNextCommand
+    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
+    private func readNextCommand() -> mglCommandCode {
+        // read the command
+        guard let command = commandInterface.readCommand() else {
+            // return unknown if there is a problem
+            return mglUnknownCommand
+        }
+        // note that we DO NOT acknowledge that
+        // the command is read yet, as we wait
+        // until after the code in render is able to
+        // get the drawable or other resources needed
+        // to process the command has succeeded.
+        return command
+    }
+    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
+    // acknowledgePreviousCommand
+    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
+    private func acknowledgePreviousCommand(isSuccess: Bool) {
+        if isSuccess {
+            _ = commandInterface.writeDouble(data: secs.get())
+        } else {
+            _ = commandInterface.writeDouble(data: -secs.get())
+        }
+    }
+
+    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
+    // readAndAcknowledgePreviousCommand
+    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     private func readAndAcknowledgeNextCommand() -> mglCommandCode {
         guard let command = commandInterface.readCommand() else {
             _ = commandInterface.writeDouble(data: -secs.get())
@@ -348,10 +393,16 @@ extension mglRenderer: MTKViewDelegate {
         return command
     }
 
+    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
+    // acknowledgeRepeatingCommandAutomaticFlush
+    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     private func acknowledgeRepeatingCommandAutomaticFlush() {
         _ = commandInterface.writeDouble(data: secs.get())
     }
 
+    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
+    // acknowledgePreviousCommandProcessed
+    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     private func acknowledgePreviousCommandProcessed(isSuccess: Bool) {
         if isSuccess {
             _ = commandInterface.writeDouble(data: secs.get())
@@ -360,6 +411,9 @@ extension mglRenderer: MTKViewDelegate {
         }
     }
 
+    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
+    // acknowledgeReturnDataOnItsWay
+    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     private func acknowledgeReturnDataOnItsWay(isOnItsWay: Bool) {
         if isOnItsWay {
             _ = commandInterface.writeDouble(data: secs.get())
@@ -411,7 +465,7 @@ extension mglRenderer: MTKViewDelegate {
 
         var event = window.nextEvent(matching: .any)
         while (event != nil) {
-            os_log("(mglRenderer) Processing OS event: %{public}@", log: .default, type: .info, String(describing: event))
+            //os_log("(mglRenderer) Processing OS event: %{public}@", log: .default, type: .info, String(describing: event))
             event = window.nextEvent(matching: .any)
         }
 
@@ -826,7 +880,7 @@ extension mglRenderer: MTKViewDelegate {
               let textureNumber = commandInterface.readUInt32() else {
             return false
         }
-
+        
         // Make sure we have the actual requested texture.
         guard let texture = textures[textureNumber] else {
             os_log("(mglRenderer) Invalid texture number %{public}d, valid numbers are %{public}@.", log: .default, type: .error, textureNumber, String(describing: textures.keys))
@@ -853,6 +907,7 @@ extension mglRenderer: MTKViewDelegate {
         renderEncoder.setFragmentBytes(&phase, length: MemoryLayout<Float>.stride, index: 2)
         renderEncoder.setFragmentTexture(texture, index:0)
         renderEncoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: vertexCount)
+
         return true
     }
 
