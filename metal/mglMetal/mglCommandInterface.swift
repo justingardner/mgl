@@ -287,12 +287,32 @@ class mglCommandInterface {
         return imageBytesSent
     }
 
+    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
+    // writeDouble
+    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     func writeDouble(data: Double) -> Int {
         var localData = data
         let expectedByteCount = MemoryLayout<mglDouble>.size
         return server.sendData(buffer: &localData, byteCount: expectedByteCount)
     }
 
+    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
+    // writeString
+    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
+    func writeString(data: String) -> Int {
+        // send length of string
+        var count = UInt16(data.utf16.count)
+        var expectedByteCount = MemoryLayout<UInt16>.size
+        let bytesSent = server.sendData(buffer: &count, byteCount: expectedByteCount)
+        // send the string
+        var localData = Array(data.utf16)
+        expectedByteCount = data.count * 2
+        return bytesSent + server.sendData(buffer: &localData, byteCount: expectedByteCount)
+    }
+    
+    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
+    // writeCommand
+    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     func writeCommand(data: mglCommandCode) -> Int {
         var localData = data
         let expectedByteCount = MemoryLayout<mglCommandCode>.size

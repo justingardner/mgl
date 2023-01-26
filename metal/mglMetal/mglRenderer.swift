@@ -200,6 +200,7 @@ extension mglRenderer: MTKViewDelegate {
             case mglSetViewColorPixelFormat: commandSuccess = setViewColorPixelFormat(view: view)
             case mglStartStencilCreation: commandSuccess = startStencilCreation(view: view)
             case mglFinishStencilCreation: commandSuccess = finishStencilCreation(view: view)
+            case mglInfo: commandSuccess = sendAppInfo(view: view)
             default: os_log("(mglRenderer) Unknown non-drawing command code %{public}@", log: .default, type: .error, String(describing: command))
             }
 
@@ -426,6 +427,22 @@ extension mglRenderer: MTKViewDelegate {
     // Non-drawing commands
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
 
+    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
+    // sendAppInfo
+    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
+    private func sendAppInfo(view: MTKView) -> Bool {
+      // send minimumLinearTextureAlignment
+      _ = commandInterface.writeCommand(data: mglSendString)
+      _ = commandInterface.writeString(data: "minimumLinearTextureAlignment")
+      _ = commandInterface.writeCommand(data: mglSendDouble)
+      _ = commandInterface.writeDouble(data: Double(mglRenderer.device.minimumLinearTextureAlignment(for: .rgba32Float)))
+        
+      // send finished
+      _ = commandInterface.writeCommand(data: mglSendFinished)
+
+      return true
+    }
+    
     func setViewColorPixelFormat(view: MTKView) -> Bool {
         guard let formatIndex = commandInterface.readUInt32() else {
             return false
