@@ -116,7 +116,7 @@ for i = 1:nsteps;
   % display percent done
   mglClearScreen;
   if ismac
-    %mglTextDraw(sprintf('Calculating textures (%0.0f%% done)',99*i/nsteps),[0 0]);
+    mglTextDraw(sprintf('Calculating textures (%0.0f%% done)',99*i/nsteps),[0 0]);
   else
     msg=sprintf('Calculating textures (%i percent done)',round(99*i/nsteps));
     mglStrokeText(msg,-8,0,0.5,0.8,2);
