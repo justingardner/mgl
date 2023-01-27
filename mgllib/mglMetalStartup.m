@@ -75,7 +75,7 @@ end
 
 % Open a new socket and wait for a connection to the mglMetal server.
 timeout = 10;
-fprintf('(mglMetalStartup) Trying to connect to mglMetal with timeout %d seconds.\n', timeout);
+fprintf('(mglMetalStartup) Trying to connect to mglMetal with timeout %d seconds', timeout);
 timer = tic();
 socketInfo = mglSocketCreateClient(socketAddress);
 while toc(timer) < timeout && isempty(socketInfo)

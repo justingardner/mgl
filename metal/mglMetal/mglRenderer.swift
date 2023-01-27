@@ -70,6 +70,13 @@ class mglRenderer: NSObject {
     // utility to get system nano time
     let secs = mglSecs()
     
+    // a string to store the last error message (which can be retrieved via
+    // the command mglGetErrorMessage
+    var errorMessage = ""
+    
+    // flag used in render looop to set whether command has succeeded or not
+    var commandSuccess = false
+
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     // init
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
@@ -164,7 +171,7 @@ extension mglRenderer: MTKViewDelegate {
 
         // Write a post-flush timestamp, which is the command-processed ack for the previous draw.
         if acknowledgeFlush {
-            acknowledgePreviousCommandProcessed(isSuccess: true)
+            acknowledgePreviousCommandProcessed(isSuccess: true, whichCommand: mglFlush)
             acknowledgeFlush = false
         }
 
@@ -180,11 +187,12 @@ extension mglRenderer: MTKViewDelegate {
             // No, we'll check again on the next frame / draw() call.
             return;
         }
+        
         // Process non-drawing commands one at a time.
         // This avoids holding expensive drawing resources until we need to (below) as described here:
         //   https://developer.apple.com/documentation/quartzcore/cametallayer?language=objc#3385893
         if command.rawValue < mglDrawingCommands.rawValue {
-            var commandSuccess = false
+            commandSuccess = false
 
             switch command {
             case mglPing: commandSuccess = commandInterface.writeCommand(data: mglPing) == mglSizeOfCommandCodeArray(1)
@@ -201,10 +209,13 @@ extension mglRenderer: MTKViewDelegate {
             case mglStartStencilCreation: commandSuccess = startStencilCreation(view: view)
             case mglFinishStencilCreation: commandSuccess = finishStencilCreation(view: view)
             case mglInfo: commandSuccess = sendAppInfo(view: view)
-            default: os_log("(mglRenderer) Unknown non-drawing command code %{public}@", log: .default, type: .error, String(describing: command))
+            case mglGetErrorMessage: commandSuccess = getErrorMessage(view: view)
+            default:
+              errorMessage = "(mglRenderer) Unknown non-drawing command code \(String(describing: command))"
+              os_log("(mglRenderer) Unknown non-drawing command code %{public}@", log: .default, type: .error, String(describing: command))
             }
 
-            acknowledgePreviousCommandProcessed(isSuccess: commandSuccess)
+            acknowledgePreviousCommandProcessed(isSuccess: commandSuccess, whichCommand: command)
             return
         }
 
@@ -220,11 +231,18 @@ extension mglRenderer: MTKViewDelegate {
         // But we don't want to process the clear command along with other drawing commands because by then it's too late
         // the texture will have been loaded and cleared already, using the old clear color.
         // So we process it here in the middle, a special case here.
+        var colorHasBeenSet = false
         if command == mglSetClearColor {
             // run setClearColor
-            let commandSuccess = setClearColor(view: view)
-            acknowledgePreviousCommandProcessed(isSuccess: commandSuccess)
+            commandSuccess = setClearColor(view: view)
+            // keep that the color has been set, since we need
+            // that below when we finish the processing of this command
+            colorHasBeenSet = true
             if (!commandSuccess) {
+                // acknwoledge processing only if this was an error, otherwise
+                // wait till we get the drawable before sending sucess
+                acknowledgePreviousCommandProcessed(isSuccess: false, whichCommand: command)
+                errorMessage = "(mglRenderer) Error setting clear color, skipping render pass."
                 os_log("(mglRenderer) Error setting clear color, skipping render pass.", log: .default, type: .error)
                 return
             }
@@ -250,8 +268,9 @@ extension mglRenderer: MTKViewDelegate {
         // Does the system "know best" and we are blocking/synchronizing as expected?
         // Or is there somethign else we can do about these long call durations?
         guard let drawable = view.currentDrawable else {
-            os_log("(mglRenderer) Could not get current drawable from the view, skipping render pass. This might be happening because the renderer cannot keep up with draw commands.", log: .default, type: .error)
-            failedCommand(whichCommand: command)
+            errorMessage = "(mglRenderer) Could not get current drawable, aborting render pass."
+            os_log("(mglRenderer) Could not get current drawable, aborting render pass.", log: .default, type: .error)
+            acknowledgePreviousCommandProcessed(isSuccess: false, whichCommand: command)
             return
         }
 
@@ -260,17 +279,19 @@ extension mglRenderer: MTKViewDelegate {
         // It's possible to swap the order of these calls.
         // But whichever one we call first seems to pay the same blocking/synchronization price when memory usage is high.
         guard let renderPassDescriptor = currentColorRenderingConfig.getRenderPassDescriptor(view: view) else {
-            os_log("(mglRenderer) Could not get render pass descriptor from current color rendering config, skipping render pass.", log: .default, type: .error)
+            errorMessage = "(mglRenderer) Could not get render pass descriptor from current color rendering config, aborting render pass."
+            os_log("(mglRenderer) Could not get render pass descriptor from current color rendering config, aborting render pass.", log: .default, type: .error)
             // we have failed, so return failure to acknwoledge previous command
-            failedCommand(whichCommand: command)
+            acknowledgePreviousCommandProcessed(isSuccess: false, whichCommand: command)
             return
         }
         currentDepthStencilConfig.configureRenderPassDescriptor(renderPassDescriptor: renderPassDescriptor)
 
         guard let commandBuffer = mglRenderer.commandQueue.makeCommandBuffer(),
               let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor) else {
-            os_log("(mglRenderer) Could not get command buffer and renderEncoder from the command queue, skipping render pass.", log: .default, type: .error)
-            failedCommand(whichCommand: command)
+            errorMessage = "(mglRenderer) Could not get command buffer and renderEncoder from the command queue, aborting render pass."
+            os_log("(mglRenderer) Could not get command buffer and renderEncoder from the command queue, aborting render pass.", log: .default, type: .error)
+            acknowledgePreviousCommandProcessed(isSuccess: false, whichCommand: command)
             return
         }
         currentDepthStencilConfig.configureRenderEncoder(renderEncoder: renderEncoder)
@@ -283,12 +304,28 @@ extension mglRenderer: MTKViewDelegate {
             // Clear color is processed as a special case above.
             // All we need to do now is wait for other drawing commands, or a flush command.
             if command == mglSetClearColor {
+                // if this has been called in the middle of the tight loop,
+                // (rather then at the beginning), we will need to read
+                // the color and set it, although it won't have any effect
+                // until the next frame
+                if !colorHasBeenSet {
+                    // run setClearColor
+                    commandSuccess = setClearColor(view: view)
+                }
+                // now acknowledge processing
+                acknowledgePreviousCommandProcessed(isSuccess: commandSuccess, whichCommand: command)
+                
+                // read the next command
                 command = readAndAcknowledgeNextCommand()
+                // and set that colorHasBeenSet to false (since this
+                // is a new command - and if it happens to be a mglClearScreen,
+                // then it's color will not have been set.
+                colorHasBeenSet = false
                 continue
             }
 
             // Proces the next drawing command within the current render pass.
-            var commandSuccess = false
+            commandSuccess = false
             switch command {
             case mglCreateTexture: commandSuccess = createTexture()
             case mglBltTexture: commandSuccess = bltTexture(view: view, renderEncoder: renderEncoder)
@@ -306,11 +343,15 @@ extension mglRenderer: MTKViewDelegate {
             case mglRepeatQuads: commandSuccess = repeatQuads(view: view, renderEncoder: renderEncoder)
             case mglRepeatDots: commandSuccess = repeatDots(view: view, renderEncoder: renderEncoder)
             case mglRepeatFlush: commandSuccess = repeatFlush(view: view, renderEncoder: renderEncoder)
-            default: os_log("(mglRenderer) Unknown drawing command code %{public}@", log: .default, type: .error, String(describing: command))
+            default:
+                errorMessage = "(mglRenderer) Unknown drawing command code \(String(describing: command))"
+                os_log("(mglRenderer) Unknown drawing command code %{public}@", log: .default, type: .error, String(describing: command))
             }
 
             if !commandSuccess {
-                os_log("(mglRenderer) Error processing drawing command %{public}@, abandoning this render pass.", log: .default, type: .error, String(describing: command))
+                errorMessage = "(mglRenderer) Error processing drawing command \(String(describing: command)), aborting render pass."
+                os_log("(mglRenderer) Error processing drawing command %{public}@, aborting render pass", log: .default, type: .error, String(describing: command))
+                acknowledgePreviousCommandProcessed(isSuccess: false, whichCommand: command)
                 renderEncoder.endEncoding()
                 return
             }
@@ -323,7 +364,7 @@ extension mglRenderer: MTKViewDelegate {
             }
 
             // Acknowledge this command was processed OK.
-            acknowledgePreviousCommandProcessed(isSuccess: true)
+            acknowledgePreviousCommandProcessed(isSuccess: true, whichCommand: command)
 
             // This will block until the next command arrives.
             // The idea is to process a sequence of drawing commands as fast as we can within a frame.
@@ -338,48 +379,6 @@ extension mglRenderer: MTKViewDelegate {
         renderEncoder.endEncoding()
 
         currentColorRenderingConfig.finishDrawing(commandBuffer: commandBuffer, drawable: drawable)
-    }
-
-    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
-    // failedCommand
-    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
-    private func failedCommand(whichCommand: mglCommandCode) {
-        if whichCommand != mglSetClearColor  {
-            os_log("(mglRenderer) %{public}@ failed", log: .default, type: .info, String(describing: whichCommand))
-          //  Thread.sleep(forTimeInterval: 1);
-           commandInterface.clearReadData()
-            _ = commandInterface.writeDouble(data: -secs.get())
-        }
-        else {
-            os_log("(mglRenderer) mglClearScreen failed", log: .default, type: .info)
-        }
-    }
-    
-    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
-    // readNextCommand
-    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
-    private func readNextCommand() -> mglCommandCode {
-        // read the command
-        guard let command = commandInterface.readCommand() else {
-            // return unknown if there is a problem
-            return mglUnknownCommand
-        }
-        // note that we DO NOT acknowledge that
-        // the command is read yet, as we wait
-        // until after the code in render is able to
-        // get the drawable or other resources needed
-        // to process the command has succeeded.
-        return command
-    }
-    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
-    // acknowledgePreviousCommand
-    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
-    private func acknowledgePreviousCommand(isSuccess: Bool) {
-        if isSuccess {
-            _ = commandInterface.writeDouble(data: secs.get())
-        } else {
-            _ = commandInterface.writeDouble(data: -secs.get())
-        }
     }
 
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
@@ -404,10 +403,16 @@ extension mglRenderer: MTKViewDelegate {
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     // acknowledgePreviousCommandProcessed
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
-    private func acknowledgePreviousCommandProcessed(isSuccess: Bool) {
+    private func acknowledgePreviousCommandProcessed(isSuccess: Bool, whichCommand: mglCommandCode = mglUnknownCommand) {
         if isSuccess {
+            // success send back the time
             _ = commandInterface.writeDouble(data: secs.get())
         } else {
+            // log which command failed
+            os_log("(mglRenderer) %{public}@ failed", log: .default, type: .error, String(describing: whichCommand))
+            // clear any data that a command might have sent
+            commandInterface.clearReadData()
+            // failure is signaled by negative time.
             _ = commandInterface.writeDouble(data: -secs.get())
         }
     }
@@ -428,19 +433,64 @@ extension mglRenderer: MTKViewDelegate {
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
 
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
+    // getErrorMessage
+    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
+    private func getErrorMessage(view: MTKView) -> Bool {
+      // send minimumLinearTextureAlignment
+      _ = commandInterface.writeString(data: errorMessage)
+      return true
+    }
+
+    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     // sendAppInfo
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     private func sendAppInfo(view: MTKView) -> Bool {
-      // send minimumLinearTextureAlignment
-      _ = commandInterface.writeCommand(data: mglSendString)
-      _ = commandInterface.writeString(data: "minimumLinearTextureAlignment")
-      _ = commandInterface.writeCommand(data: mglSendDouble)
-      _ = commandInterface.writeDouble(data: Double(mglRenderer.device.minimumLinearTextureAlignment(for: .rgba32Float)))
+        // send GPU name
+        _ = commandInterface.writeCommand(data: mglSendString)
+        _ = commandInterface.writeString(data: "gpu.name")
+        _ = commandInterface.writeCommand(data: mglSendString)
+        _ = commandInterface.writeString(data: mglRenderer.device.name)
         
-      // send finished
-      _ = commandInterface.writeCommand(data: mglSendFinished)
+        // send GPU registryID
+        _ = commandInterface.writeCommand(data: mglSendString)
+        _ = commandInterface.writeString(data: "gpu.registryID")
+        _ = commandInterface.writeCommand(data: mglSendDouble)
+        _ = commandInterface.writeDouble(data: Double(mglRenderer.device.registryID))
 
-      return true
+        // send currentAllocatedSize
+        _ = commandInterface.writeCommand(data: mglSendString)
+        _ = commandInterface.writeString(data: "gpu.currentAllocatedSize")
+        _ = commandInterface.writeCommand(data: mglSendDouble)
+        _ = commandInterface.writeDouble(data: Double(mglRenderer.device.currentAllocatedSize))
+
+        // send recommendedMaxWorkingSetSize
+        _ = commandInterface.writeCommand(data: mglSendString)
+        _ = commandInterface.writeString(data: "gpu.recommendedMaxWorkingSetSize")
+        _ = commandInterface.writeCommand(data: mglSendDouble)
+        _ = commandInterface.writeDouble(data: Double(mglRenderer.device.recommendedMaxWorkingSetSize))
+
+        // send hasUnifiedMemory
+        _ = commandInterface.writeCommand(data: mglSendString)
+        _ = commandInterface.writeString(data: "gpu.hasUnifiedMemory")
+        _ = commandInterface.writeCommand(data: mglSendDouble)
+        _ = commandInterface.writeDouble(data: mglRenderer.device.hasUnifiedMemory ? 1.0 : 0.0)
+
+        // send maxTransferRate
+        _ = commandInterface.writeCommand(data: mglSendString)
+        _ = commandInterface.writeString(data: "gpu.maxTransferRate")
+        _ = commandInterface.writeCommand(data: mglSendDouble)
+        _ = commandInterface.writeDouble(data: Double(mglRenderer.device.maxTransferRate))
+
+        // send minimumLinearTextureAlignment
+        _ = commandInterface.writeCommand(data: mglSendString)
+        _ = commandInterface.writeString(data: "gpu.minimumLinearTextureAlignment")
+        _ = commandInterface.writeCommand(data: mglSendDouble)
+        _ = commandInterface.writeDouble(data: Double(mglRenderer.device.minimumLinearTextureAlignment(for: .rgba32Float)))
+        
+        // send finished
+        _ = commandInterface.writeCommand(data: mglSendFinished)
+
+        return true
     }
     
     func setViewColorPixelFormat(view: MTKView) -> Bool {

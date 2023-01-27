@@ -70,7 +70,9 @@ mglSocketWrite(socketInfo, socketInfo(1).command.mglSetClearColor);
 ackTime = mglSocketRead(socketInfo, 'double');
 mglSocketWrite(socketInfo, single(clearColor));
 processedTime = mglSocketRead(socketInfo, 'double');
-if processedTime < 0
-  disp(sprintf('(mglClearScreen) Error processing command.'));
-end
 
+% check if processedTime is negative which indicates an error
+if processedTime < 0
+  % display error
+  mglPrivateDisplayProcessingError(socketInfo, ackTime, processedTime, mfilename);
+end

@@ -134,7 +134,13 @@ mglSocketWrite(socketInfo, single(verticesWithTextureCoordinates));
 mglSocketWrite(socketInfo, single(phase));
 mglSocketWrite(socketInfo, tex.textureNumber);
 processedTime = mglSocketRead(socketInfo, 'double');
+
+% check if processedTime is negative which indicates an error
 if processedTime < 0
-  disp(sprintf('(mglMetalBltTexture) Error processing command.'));
+  % display error
+  mglPrivateDisplayProcessingError(socketInfo, ackTime, processedTime, mfilename);
 end
+
+
+
 

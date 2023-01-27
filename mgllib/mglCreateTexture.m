@@ -89,3 +89,8 @@ end
 
 [texture, ackTime, processedTime] = mglMetalCreateTexture(image, [], [], [], socketInfo);
 
+% check if processedTime is negative which indicates an error
+if any(processedTime < 0)
+  % display error
+  mglPrivateDisplayProcessingError(socketInfo, ackTime, processedTime, mfilename);
+end

@@ -22,7 +22,12 @@ end
 mglSocketWrite(socketInfo, socketInfo(1).command.mglFlush);
 ackTime = mglSocketRead(socketInfo, 'double');
 processedTime = mglSocketRead(socketInfo, 'double');
+
+% check if processedTime is negative which indicates an error
 if processedTime < 0
-  disp(sprintf('(mglFlush) Error processing command.'));
+  % display error
+  mglPrivateDisplayProcessingError(socketInfo, ackTime, processedTime, mfilename);
 end
+
+
 

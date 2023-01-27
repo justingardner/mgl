@@ -49,8 +49,21 @@ while dataType ~= socketInfo(1).command.mglSendFinished
     keyboard
   end
 
-  % set the field
-  info.(fieldName) = data;
+  % see if field has a . in it
+  if ~isempty(strfind(fieldName,'.'))
+    % break into headingName and field
+    [headingName, fieldName] = strtok(fieldName,'.');
+    fieldName = fieldName(2:end);
+    % check to see if heading exists
+    if ~isfield(info,headingName)
+      info.(headingName) = [];
+    end
+    % set the field
+    info.(headingName).(fieldName) = data;
+  else
+    % set the field
+    info.(fieldName) = data;
+  end
   
   % read the next send command
   dataType = mglSocketRead(socketInfo, 'uint16');

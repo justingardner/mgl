@@ -32,15 +32,15 @@ end
 
 % Shut down all matching processes found.
 for pid = pids
-    fprintf('(mglMetalShutdown) Shutting down mglMetal process: %i\n', pid);
+    fprintf('(mglMetalShutdown) mglMetal process: %i shutting down', pid);
     system(sprintf('kill -9 %i', pid));
 end
 
 % Wait for the processes to actually stop.
 while(mglMetalIsRunning(socketInfo))
-    fprintf('.',0);
+    fprintf('.');
 end
-fprintf('\n',0);
+fprintf('\n');
 
 % Clean up the socket resources so they don't proliferate and/or interfere later.
 mglSocketClose(socketInfo);
