@@ -318,4 +318,18 @@ class mglCommandInterface {
         let expectedByteCount = MemoryLayout<mglCommandCode>.size
         return server.sendData(buffer: &localData, byteCount: expectedByteCount)
     }
+   
+    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
+    // writeDoubleArray
+    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
+    func writeDoubleArray(data: Array<Double>) -> Int {
+        // send length of string
+        var count = UInt32(data.count)
+        var expectedByteCount = MemoryLayout<UInt32>.size
+        let bytesSent = server.sendData(buffer: &count, byteCount: expectedByteCount)
+        // send the array
+        var localData = data
+        expectedByteCount = data.count * MemoryLayout<Double>.size
+        return bytesSent + server.sendData(buffer: &localData, byteCount: expectedByteCount)
+    }    
 }

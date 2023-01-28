@@ -15,8 +15,13 @@ info = [];
 
 % get scoket
 if nargin < 1 || isempty(socketInfo)                                                                   
-  global mgl                                                                                         
-  socketInfo = mgl.activeSockets;                                                                    
+  socketInfo =  mglGetParam('activeSockets');
+  % no open mgl window, return
+  if isempty(socketInfo)
+    ackTime = -mglGetSecs;processedTime = -mglGetSecs;
+    disp(sprintf('(%s) No open mgl window',mfilename));
+    return
+  end
 end
 
 % get display descriptions add add
@@ -44,6 +49,9 @@ while dataType ~= socketInfo(1).command.mglSendFinished
     data = mglSocketRead(socketInfo, 'double');
   elseif dataType == socketInfo(1).command.mglSendString
     data = mglSocketReadString(socketInfo);
+  elseif dataType == socketInfo(1).command.mglSendDoubleArray
+    dataLen = mglSocketRead(socketInfo,'uint32');
+    data = mglSocketRead(socketInfo,'double',1,dataLen);
   else
     disp(sprintf('(mglInfo) Expecting mglSendDouble or mglSendString command, but got %i',dataType));
     keyboard

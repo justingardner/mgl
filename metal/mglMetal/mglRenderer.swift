@@ -436,7 +436,7 @@ extension mglRenderer: MTKViewDelegate {
     // getErrorMessage
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     private func getErrorMessage(view: MTKView) -> Bool {
-      // send minimumLinearTextureAlignment
+      // send error message
       _ = commandInterface.writeString(data: errorMessage)
       return true
     }
@@ -483,9 +483,44 @@ extension mglRenderer: MTKViewDelegate {
 
         // send minimumLinearTextureAlignment
         _ = commandInterface.writeCommand(data: mglSendString)
+        _ = commandInterface.writeString(data: "gpu.minimumTextureBufferAlignment")
+        _ = commandInterface.writeCommand(data: mglSendDouble)
+        _ = commandInterface.writeDouble(data: Double(mglRenderer.device.minimumTextureBufferAlignment(for: .rgba32Float)))
+
+        // send minimumLinearTextureAlignment
+        _ = commandInterface.writeCommand(data: mglSendString)
         _ = commandInterface.writeString(data: "gpu.minimumLinearTextureAlignment")
         _ = commandInterface.writeCommand(data: mglSendDouble)
         _ = commandInterface.writeDouble(data: Double(mglRenderer.device.minimumLinearTextureAlignment(for: .rgba32Float)))
+        
+        _ = commandInterface.writeCommand(data: mglSendString)
+        _ = commandInterface.writeString(data: "view.colorPixelFormat")
+        _ = commandInterface.writeCommand(data: mglSendDouble)
+        _ = commandInterface.writeDouble(data: Double(view.colorPixelFormat.rawValue))
+
+        _ = commandInterface.writeCommand(data: mglSendString)
+        _ = commandInterface.writeString(data: "view.colorPixelFormatString")
+        _ = commandInterface.writeCommand(data: mglSendString)
+        switch view.colorPixelFormat {
+          case MTLPixelFormat.bgra8Unorm: _ = commandInterface.writeString(data: "bgra8Unorm")
+          case MTLPixelFormat.bgra8Unorm_srgb: _ = commandInterface.writeString(data: "bgra8Unorm_srgb")
+          case MTLPixelFormat.rgba16Float: _ = commandInterface.writeString(data: "rgba16Float")
+          case MTLPixelFormat.rgb10a2Unorm: _ = commandInterface.writeString(data: "rgb10a2Unorm")
+          case MTLPixelFormat.bgr10a2Unorm: _ = commandInterface.writeString(data: "bgr10a2Unorm")
+          default: _ = commandInterface.writeString(data: "Unknown")
+        }
+
+        _ = commandInterface.writeCommand(data: mglSendString)
+        _ = commandInterface.writeString(data: "view.clearColor")
+        _ = commandInterface.writeCommand(data: mglSendDoubleArray)
+        let colorArray: [Double] = [Double(view.clearColor.red),Double(view.clearColor.green),Double(view.clearColor.blue),Double(view.clearColor.alpha)]
+        _ = commandInterface.writeDoubleArray(data: colorArray)
+
+        _ = commandInterface.writeCommand(data: mglSendString)
+        _ = commandInterface.writeString(data: "view.drawableSize")
+        _ = commandInterface.writeCommand(data: mglSendDoubleArray)
+        let drawableSize: [Double] = [Double(view.drawableSize.width), Double(view.drawableSize.height)]
+        _ = commandInterface.writeDoubleArray(data: drawableSize)
         
         // send finished
         _ = commandInterface.writeCommand(data: mglSendFinished)

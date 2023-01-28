@@ -4,21 +4,25 @@
 <dict>
 	<key>files</key>
 	<dict>
+		<key>Resources/AppIcon.icns</key>
+		<data>
+		RFg5T8qKS4vD8ewk2fDz0zF4UYg=
+		</data>
 		<key>Resources/Assets.car</key>
 		<data>
-		DoA8bwfuCJgvLKEjMjNfzxRYWJ8=
+		WOUu+kO7LR/j8eGJ4aib15WQ0uw=
 		</data>
 		<key>Resources/Base.lproj/Main.storyboardc/Info.plist</key>
 		<data>
-		krzOy8LgAqyeM10EGusA5Yra/nI=
+		1zQQyptYluXKiLq9u1wnKtdXtjo=
 		</data>
 		<key>Resources/Base.lproj/Main.storyboardc/MainMenu.nib</key>
 		<data>
-		gtVDcOZv0bNv41M4RqV1sA9y/j4=
+		9JUV00azz+JBxKRLvuyMK2rYE+s=
 		</data>
 		<key>Resources/Base.lproj/Main.storyboardc/NSWindowController-B8D-0N-5wS.nib</key>
 		<data>
-		ZSO2ZNq1J9XIXZSk7J0m4HXqgw0=
+		Rfh6eDUYqd0JvWAe8rCIrOdZ9Ec=
 		</data>
 		<key>Resources/Base.lproj/Main.storyboardc/XfG-lQ-9wD-view-m2S-Jp-Qdl.nib</key>
 		<data>
@@ -26,37 +30,44 @@
 		</data>
 		<key>Resources/default.metallib</key>
 		<data>
-		tJn1ZsAUeuCnlY+q+MBk/mrVquo=
+		BJcrH84XRN4CVNCBqih3h8UNp0k=
 		</data>
 	</dict>
 	<key>files2</key>
 	<dict>
+		<key>Resources/AppIcon.icns</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			0LxAj4M6YoUaxPv5wpOHYJJw9x24ScLlaXSuHDdA3g4=
+			</data>
+		</dict>
 		<key>Resources/Assets.car</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			Z39l4axft+53aFgMFJcDsGm7xdykYtMM1lJ8moIdaVY=
+			t4bmtHaspya8pDmgSmtMwnLdlyacmLhgszxow+FHRAA=
 			</data>
 		</dict>
 		<key>Resources/Base.lproj/Main.storyboardc/Info.plist</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			ci4ZuWR9c1fm7zNB8WtaIn3r0GqZSdOkCRB/xBYy4Jw=
+			Hx3TubJDlvrIcCQ+mpB7zO/swClpnJ9CpXmcCqBRbdU=
 			</data>
 		</dict>
 		<key>Resources/Base.lproj/Main.storyboardc/MainMenu.nib</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			2A4LjLUWvVBFia7QL1u11NaOWaynmiaNwqG2jAP/AJM=
+			spRr3775ApH7eIoN7PozaNKP4kYf/pnswBCIF/Boac8=
 			</data>
 		</dict>
 		<key>Resources/Base.lproj/Main.storyboardc/NSWindowController-B8D-0N-5wS.nib</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			5Gw907Ao5VeAYUUWMw+SD2oMD5dolnvmA+N58Q2AY/s=
+			9HqfUeKcIOlNolFDS3KIYX8QWUOvp7lz4LL/nXCSIGc=
 			</data>
 		</dict>
 		<key>Resources/Base.lproj/Main.storyboardc/XfG-lQ-9wD-view-m2S-Jp-Qdl.nib</key>
@@ -70,7 +81,7 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			F7MWv5BKVYzVw2GkpzCK6r/kQkrh/SQZwsfr4h0OuNc=
+			3KAQdd4AeBS2mhUCfy9OnlPFcvEo/KkOdkju/yQzml8=
 			</data>
 		</dict>
 	</dict>

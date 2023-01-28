@@ -48,8 +48,13 @@ if nargin < 1
 end
 
 if nargin < 2 || isempty(socketInfo)
-    global mgl;
-    socketInfo = mgl.activeSockets;
+  socketInfo =  mglGetParam('activeSockets');
+  % no open mgl window, return
+  if isempty(socketInfo)
+    ackTime = -mglGetSecs;processedTime = -mglGetSecs;
+    disp(sprintf('(%s) No open mgl window',mfilename));
+    return
+  end
 end
 
 if numel(socketInfo) > 1

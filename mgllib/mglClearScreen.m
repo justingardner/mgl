@@ -53,6 +53,10 @@ if nargin < 1 || numel(clearColor) == 0
 end
 if numel(clearColor) == 1
   clearColor = [clearColor clearColor clearColor];
+elseif numel(clearColor) ~= 3
+  disp(sprintf('(mglClearScreen) Color must be a scalar or an array of length 3 (found len: %i)',length(clearColor)));
+  ackTime = -mglGetSecs; processedTime = -mglGetSecs; setupTime = -mglGetSecs;
+  return
 end
 clearColor = clearColor(:);
 
