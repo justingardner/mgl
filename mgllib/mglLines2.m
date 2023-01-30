@@ -45,7 +45,7 @@ color = color(:);
 % set up vertices
 v = [];
 for iLine = 1:length(x0)
-  v(end+1:end+12) = [x0(iLine) y0(iLine) 1 color(:)' x1(iLine) y1(iLine) 1 color(:)'];
+  v(end+1:end+12) = [x0(iLine) y0(iLine) 0 color(:)' x1(iLine) y1(iLine) 0 color(:)'];
 end
 
 % send line command
