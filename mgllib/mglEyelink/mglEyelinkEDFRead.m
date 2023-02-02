@@ -41,7 +41,8 @@ end
 % this could be parsed to provide information about the calibration quality
 retval.cal = char(strtrim({retval.messages(strmatch('!CAL',{retval.messages.message})).message}));
 % mode
-retval.mode = strtrim(retval.messages(strmatch('!MODE',{retval.messages.message})).message);
+tmp = (retval.messages(strmatch('!MODE',{retval.messages.message})).message);
+retval.mode = strtrim(tmp);
 [t,m] = strtok(retval.mode); % should be !MODE
 [t,m] = strtok(m); % should be RECORD
 if ~strcmp(t,'RECORD')

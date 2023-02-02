@@ -138,7 +138,7 @@ end
 % load the file
 disppercent(-inf,sprintf('(getTaskEyeTraces) Opening edf file %s',eyeTrackerFilename));
 sprintf('\n');
-edf = mglEyelinkEDFRead(eyeTrackerFilename,0);
+edf = mglEyelinkEDFRead(eyeTrackerFilename);
 disppercent(inf);
 if isempty(edf),return,end
 
