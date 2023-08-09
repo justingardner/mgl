@@ -74,7 +74,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     size_t numBytes = 0;
     mwSize dims[] = {rows, columns, slices, socketCount};
     mxArray* data;
-    if (!strcmp("uint16", typeName)) {
+    if (!strcmp("uint8", typeName)) {
+        numBytes = numElements;
+        data = mxCreateNumericArray(4, dims, mxUINT8_CLASS, mxREAL);
+    } else if (!strcmp("uint16", typeName)) {
         numBytes = mglSizeOfCommandCodeArray(numElements);
         data = mxCreateNumericArray(4, dims, mxUINT16_CLASS, mxREAL);
     } else if (!strcmp("uint32", typeName)) {
@@ -87,9 +90,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         numBytes = mglSizeOfFloatArray(numElements);
         data = mxCreateNumericArray(4, dims, mxSINGLE_CLASS, mxREAL);
     } else {
-        if (verbose) {
-            mexPrintf("(mglSocketRead) Unsupported data type %s, must be uint16, uint32, double, or single.\n", typeName);
-        }
+        mexPrintf("(mglSocketRead) Unsupported data type %s, must be uint8,uint16, uint32, double, or single.\n", typeName);
         mxFree(typeName);
         plhs[0] = mxCreateDoubleMatrix(0, 0, mxREAL);
         return;
