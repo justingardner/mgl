@@ -3,38 +3,125 @@
 %        $Id$
 %      usage: mglFrameGrab(<[x y width height])
 %         by: justin gardner
-%       date: 03/01/08
+%       date: 08/09/2023
 %  copyright: (c) 2006 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
 %    purpose: does a frame grab of the current mgl screen and
 %             returns it as matrix of dimensions widthxheightx3
-%      usage: To grab the whole screen
-%             frame = mglFrameGrab;
+%             This only works when running mgl with an off-screen buffer (see below)
+%      usage: 
 % 
-%             To grab a rectangular region of the screen at position
-%             (e.g.) 30,40 with a width and height of 100 x 200
-%             mglFrameGrab([30 40 100 200]);
-%
-%             Note that on Mac if you want to draw to an off-screen buffer
-%             i.e. you want to use frame grab to create images but not
-%             necessarily open a window, you can use an "offscreenContext" by setting
-%             the following before using mglOpen:
-%
-%             mglSetParam('useCGL',0);
-%             mglSetParam('offscreenContext',1);
-%             % and open a windowed context:
-%             mglOpen(0);
 %       e.g.: 
+% % open screen
+% mglOpen(0);
 %
-%mglOpen();
-%mglScreenCoordinates;
-%mglClearScreen([0 0 0]);
-%mglPoints2(mglGetParam('screenWidth')*rand(5000,1),mglGetParam('screenHeight')*rand(5000,1));
-%mglPolygon([0 0 mglGetParam('screenWidth') mglGetParam('screenWidth')],[mglGetParam('screenHeight')/3 mglGetParam('screenHeight')*2/3 mglGetParam('screenHeight')*2/3 mglGetParam('screenHeight')/3],0);
-% mglTextSet('Helvetica',32,[1 1 1]);
-%mglTextDraw('Frame Grab',[mglGetParam('screenWidth')/2 mglGetParam('screenHeight')/2]);
-%frame = mglFrameGrab;
-%imagesc(mean(frame,3)');colormap('gray')
-%mglFlush
+% % initialize mglFrameGrab (this causes drawing commands to be rendered to a texture, rather
+% % than the screen, so you will not see what you draw on the screen)
+% mglFrameGrab('init');
+%
+% % draw some things
+% mglScreenCoordinates;
+% mglClearScreen([0 0 0]);
+% %mglPoints2(mglGetParam('screenWidth')*rand(5000,1),mglGetParam('screenHeight')*rand(5000,1));
+% %mglPolygon([0 0 mglGetParam('screenWidth') mglGetParam('screenWidth')],[mglGetParam('screenHeight')/3 mglGetParam('screenHeight')*2/3 mglGetParam('screenHeight')*2/3 mglGetParam('screenHeight')/3],0);
+% %mglTextSet('Helvetica',32,[1 1 1]);
+% %mglTextDraw('Frame Grab',[mglGetParam('screenWidth')/2 mglGetParam('screenHeight')/2]);
+%mglPolygon([0 0 mglGetParam('screenWidth') mglGetParam('screenWidth')],[mglGetParam('screenHeight')/3 mglGetParam('screenHeight')*2/3 mglGetParam('screenHeight')*2/3 mglGetParam('screenHeight')/3],[1 0 0]);% mglFlush;
+%
+% % grab the frame
+% frame = mglFrameGrab;
+%
+% % display it
+% imagesc(mean(frame,3)');colormap('gray')
+function [frame, ackTime, processedTime] = mglFrameGrab(grabMode)
+
+% default values for return variables
+frame = [];
+ackTime = [];
+processedTime = [];
+
+% check whether mgl is running
+if ~mglMetalIsRunning
+  fprintf('(mglFrameGrab) mgl is not running.\n')
+  return
+end
+
+% default arguments
+if nargin < 1
+  grabMode = 'grab';
+end
+
+% decide what to do
+switch (grabMode)
+  case {'init',0}
+    initFrameGrab;
+  case {'grab',1}
+    frame = getFrameGrab;
+  case {'end',2}
+    endFrameGrab;
+  otherwise
+    fprintf('(mglFrameGrab) Unknown mode: ');
+    disp(grabMode)
+    return
+end
+
+return
+
+%%%%%%%%%%%%%%%%%%%%%%%%
+% init the frame grab
+%%%%%%%%%%%%%%%%%%%%%%%%
+function initFrameGrab
+
+% first get the width and height of the mgl screen
+screenWidth = mglGetParam('screenWidth');
+screenHeight = mglGetParam('screenHeight');
+
+% check to see if we already have a render texture
+mglFrameGrabTex = mglGetParam('mglFrameGrabTex');
+if isempty(mglFrameGrabTex)
+  % now create a texture this size, this texture will be rendered into
+  mglFrameGrabTex = mglMetalCreateTexture(zeros(screenWidth,screenHeight,4));
+end
+
+% store the texture handle for later use
+mglSetParam('mglFrameGrabTex',mglFrameGrabTex)
+
+% set it as the render target
+mglMetalSetRenderTarget(mglFrameGrabTex);
+
+%%%%%%%%%%%%%%%%%%%%%%%%
+% get the frame
+%%%%%%%%%%%%%%%%%%%%%%%%
+function frame = getFrameGrab
+
+% default
+frame = [];
+
+% get socket
+global mgl;
+socketInfo = mgl.activeSockets;
+
+% send line command
+mglSocketWrite(socketInfo, socketInfo(1).command.mglFrameGrab);
+ackTime = mglSocketRead(socketInfo, 'double');
+
+% read width and height
+dataWidth = mglSocketRead(socketInfo,'uint32');
+dataHeight = mglSocketRead(socketInfo,'uint32');
+
+% display
+fprintf('(mglFrameGrab) width x height: %i x %i\n',dataWidth,dataHeight);
+
+% read the length in bytes
+dataLength = mglSocketRead(socketInfo,'uint32');
+
+% then read that many bytes
+frame = mglSocketRead(socketInfo,'single',dataHeight,4,dataWidth);
+
+%mglSocketWrite(socketInfo, single(v));
+processedTime = mglSocketRead(socketInfo, 'double');
 
 
-
+%%%%%%%%%%%%%%%%%%%%%%%%
+% end the frame grab
+%%%%%%%%%%%%%%%%%%%%%%%%
+function endFrameGrab
