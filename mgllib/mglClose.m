@@ -28,6 +28,13 @@ mglFlush;
 mglClearScreen(0);
 mglFlush;
 
+% remove mglFrameGrabTex if it exists (this is a texture that is used for making frame grabs)
+mglFrameGrabTex = mglGetParam('mglFrameGrabTex');
+if ~isempty(mglFrameGrabTex)
+  mglDeleteTexture(mglFrameGrabTex);
+  mglSetParam('mglFrameGrabTex',[]);
+end
+
 % restore gamma table, if any
 if ~isempty(mglGetParam('initialGammaTable'))
   mglSetGammaTable(mglGetParam('initialGammaTable'));
