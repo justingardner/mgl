@@ -74,7 +74,7 @@ info.mexopts = '';
 
 % check for eyelink (allow a few different ways of specifying, including
 % mglEyelink or eyelink and adding the word force to force compilation
-if any(strcmp(lower(args{1}), {'mgleyelink', 'eyelink', 'eyelinkforce','mgleyelinkforce','forceeyelink','forcemgleyelink'}))
+if ~isempty(args) && any(strcmp(lower(args{1}), {'mgleyelink', 'eyelink', 'eyelinkforce','mgleyelinkforce','forceeyelink','forcemgleyelink'}))
     cd('mglEyelink');
     if ~isempty(strfind(lower(args{1}),'force'))
       info.forceRebuild = true;
