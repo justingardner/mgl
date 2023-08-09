@@ -21,17 +21,17 @@
 % % draw some things
 % mglScreenCoordinates;
 % mglClearScreen([0 0 0]);
-% %mglPoints2(mglGetParam('screenWidth')*rand(5000,1),mglGetParam('screenHeight')*rand(5000,1));
-% %mglPolygon([0 0 mglGetParam('screenWidth') mglGetParam('screenWidth')],[mglGetParam('screenHeight')/3 mglGetParam('screenHeight')*2/3 mglGetParam('screenHeight')*2/3 mglGetParam('screenHeight')/3],0);
-% %mglTextSet('Helvetica',32,[1 1 1]);
-% %mglTextDraw('Frame Grab',[mglGetParam('screenWidth')/2 mglGetParam('screenHeight')/2]);
-%mglPolygon([0 0 mglGetParam('screenWidth') mglGetParam('screenWidth')],[mglGetParam('screenHeight')/3 mglGetParam('screenHeight')*2/3 mglGetParam('screenHeight')*2/3 mglGetParam('screenHeight')/3],[1 0 0]);% mglFlush;
+% mglPoints2(mglGetParam('screenWidth')*rand(5000,1),mglGetParam('screenHeight')*rand(5000,1));
+% mglPolygon([0 0 mglGetParam('screenWidth') mglGetParam('screenWidth')],[mglGetParam('screenHeight')/3 mglGetParam('screenHeight')*2/3 mglGetParam('screenHeight')*2/3 mglGetParam('screenHeight')/3],0);
+% mglTextSet('Helvetica',32,[1 1 1]);
+% mglTextDraw('Frame Grab',[mglGetParam('screenWidth')/2 mglGetParam('screenHeight')/2]);
+% mglFlush;
 %
 % % grab the frame
 % frame = mglFrameGrab;
 %
 % % display it
-% imagesc(mean(frame,3)');colormap('gray')
+% image(frame(:,:,1:3))
 function [frame, ackTime, processedTime] = mglFrameGrab(grabMode)
 
 % default values for return variables
@@ -115,7 +115,8 @@ fprintf('(mglFrameGrab) width x height: %i x %i\n',dataWidth,dataHeight);
 dataLength = mglSocketRead(socketInfo,'uint32');
 
 % then read that many bytes
-frame = mglSocketRead(socketInfo,'single',dataHeight,4,dataWidth);
+frame = mglSocketRead(socketInfo,'single',4,dataWidth,dataHeight);
+frame = permute(frame,[2 3 1]);
 
 %mglSocketWrite(socketInfo, single(v));
 processedTime = mglSocketRead(socketInfo, 'double');
