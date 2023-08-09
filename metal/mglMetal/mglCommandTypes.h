@@ -35,6 +35,7 @@ typedef enum mglCommandCode : uint16_t {
     mglSendDoubleArray = 17,
     mglSendFinished = 18,
     mglGetErrorMessage = 19,
+    mglFrameGrab = 20,
     mglDrawingCommands = 1000,
     mglFlush = 1001,
     mglBltTexture = 1003,
@@ -78,6 +79,7 @@ const mglCommandCode mglCommandCodes[] = {
     mglSendDoubleArray,
     mglSendFinished,
     mglGetErrorMessage,
+    mglFrameGrab,
     mglFlush,
     mglBltTexture,
     mglSetXform,
@@ -115,6 +117,7 @@ const char* mglCommandNames[] = {
     "mglSendDoubleArray",
     "mglSendFinished",
     "mglGetErrorMessage",
+    "mglFrameGrab",
     "mglFlush",
     "mglBltTexture",
     "mglSetXform",
@@ -130,7 +133,8 @@ const char* mglCommandNames[] = {
     "mglRepeatBlts",
     "mglRepeatQuads",
     "mglRepeatDots",
-    "mglRepeatFlush"
+    "mglRepeatFlush",
+    "mglFrameGrab"
 };
 
 // Type aliases for supported scalar data types of known, fixed sizes.
