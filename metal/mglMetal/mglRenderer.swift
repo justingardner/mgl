@@ -210,6 +210,7 @@ extension mglRenderer: MTKViewDelegate {
             case mglFinishStencilCreation: commandSuccess = finishStencilCreation(view: view)
             case mglInfo: commandSuccess = sendAppInfo(view: view)
             case mglGetErrorMessage: commandSuccess = getErrorMessage(view: view)
+            case mglFrameGrab: commandSuccess = frameGrab(view: view)
             default:
               errorMessage = "(mglRenderer) Unknown non-drawing command code \(String(describing: command))"
               os_log("(mglRenderer) Unknown non-drawing command code %{public}@", log: .default, type: .error, String(describing: command))
@@ -431,6 +432,41 @@ extension mglRenderer: MTKViewDelegate {
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     // Non-drawing commands
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
+
+    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
+    // frameGrab
+    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
+    private func frameGrab(view: MTKView) -> Bool {
+      // send error message
+      //_ = commandInterface.writeString(data: errorMessage)
+      // TODO: Need to implement this.
+      // Some questions - do we need to wait till after a flush to do this?
+      //                  will this work both for an on-screen and an off-screen buffer?
+      // I think what is happening is that in mglClorRenderingConfig Ben has setup two different types of structures
+      // one for on screen and one for off screen. The off screen draws everything to a texture called colorTexture.
+      // would seem, like I should be able to get its bytes from colorTexture.getBytes and then send that back to
+      // matlab. For the onscreen - it sounds like it could be more complicated as it draws to a CAMetalDrawable which
+      // presents to a screen. Maybe leave that off for now.
+        // ToDO: need to pass a pointer in to the function, and then the function should
+        // allocate the correct amount of space for that pointer, and fill it with the bytes from the offscreen texture
+        let frame = currentColorRenderingConfig.frameGrab()
+        //let byteArray = Array(UnsafeBufferPointer(start: frame.pointer, count: frame.width*frame.height*4))
+        _ = commandInterface.writeUInt32(data: UInt32(frame.width))
+        _ = commandInterface.writeUInt32(data: UInt32(frame.height))
+        if frame.pointer != nil {
+          // convert the pointer back into an array
+          let huh = Array(UnsafeBufferPointer(start: frame.pointer, count: frame.width*frame.height*4))
+          //let byteArray = Array(repeating: UInt8(255), count: frame.width*frame.height*4)
+          // write the array
+          _ = commandInterface.writeFloatArray(data: huh)
+          // free the data
+          frame.pointer?.deallocate()
+          return true
+        }
+        else {
+          return false
+        }
+    }
 
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     // getErrorMessage
@@ -1135,7 +1171,7 @@ extension mglRenderer: MTKViewDelegate {
             1, -1, 0, 1, 1
         ]
         let bufferFloats = vertexBuffer.contents().bindMemory(to: Float32.self, capacity: vertexData.count)
-        bufferFloats.assign(from: vertexData, count: vertexData.count)
+        bufferFloats.update(from: vertexData, count: vertexData.count)
 
         // Choose a next texture from the available textures, varying with the repeating command count.
         let textureNumbers = Array(textures.keys).sorted()

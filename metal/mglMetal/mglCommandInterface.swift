@@ -24,7 +24,7 @@ import os.log
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
 class mglCommandInterface {
     private let server: mglServer
-
+    
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     // init
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
@@ -37,43 +37,43 @@ class mglCommandInterface {
         }
         let address = arguments.indices.contains(optionIndex + 1) ? arguments[optionIndex + 1] : "mglMetal.socket"
         os_log("(mglCommandInterface) using connection addresss %{public}@", log: .default, type: .info, address)
-
+        
         // In the future we might inspect the address to decide what kind of server to create,
         // like local socket vs internet socket, vs shared memory, etc.
         // For now, we always interpret the address as a file system path for a local socket.
         server = mglLocalServer(pathToBind: address)
     }
-
+    
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     // waitForClientToConnect
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     func acceptClientConnection() -> Bool {
         return server.acceptClientConnection()
     }
-
+    
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     // dataWaiting
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     func dataWaiting() -> Bool {
         return server.dataWaiting()
     }
-
+    
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     // clearReadData
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     func clearReadData() {
-      // declare a byte to dump
-      var dumpByte = 0
-      var numBytes = 0;
-      // while there is data reading
-      while dataWaiting() {
-        // read a byte
-        let bytesRead = server.readData(buffer: &dumpByte, expectedByteCount: 1)
-        //keep how many bytes we have read
-        numBytes = numBytes+bytesRead;
-      }
-      // display how much data we read.
-      os_log("(mglCommandInterface:clearReadData) Dumped %{public}d bytes", log: .default, type: .info, numBytes);
+        // declare a byte to dump
+        var dumpByte = 0
+        var numBytes = 0;
+        // while there is data reading
+        while dataWaiting() {
+            // read a byte
+            let bytesRead = server.readData(buffer: &dumpByte, expectedByteCount: 1)
+            //keep how many bytes we have read
+            numBytes = numBytes+bytesRead;
+        }
+        // display how much data we read.
+        os_log("(mglCommandInterface:clearReadData) Dumped %{public}d bytes", log: .default, type: .info, numBytes);
     }
     
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
@@ -89,7 +89,7 @@ class mglCommandInterface {
         }
         return data
     }
-
+    
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     // readUINT32
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
@@ -103,13 +103,13 @@ class mglCommandInterface {
         }
         return data
     }
-
+    
     func writeUInt32(data: mglUInt32) -> Int {
         var localData = data
         let expectedByteCount = MemoryLayout<mglUInt32>.size
         return server.sendData(buffer: &localData, byteCount: expectedByteCount)
     }
-
+    
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     // readFloat
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
@@ -123,7 +123,7 @@ class mglCommandInterface {
         }
         return data
     }
-
+    
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     // readColor
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
@@ -132,18 +132,18 @@ class mglCommandInterface {
         defer {
             data.deallocate()
         }
-
+        
         let expectedByteCount = Int(mglSizeOfFloatRgbColor())
         let bytesRead = server.readData(buffer: data, expectedByteCount: expectedByteCount)
         if (bytesRead != expectedByteCount) {
             os_log("(mglCommandInterface) Expeted to read rgb color ${public}d bytes but read %{public}d.", log: .default, type: .error, expectedByteCount, bytesRead)
             return nil
         }
-
+        
         // Let the library decide how simd vectors are packed.
         return simd_make_float3(data[0], data[1], data[2])
     }
-
+    
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     // readXform
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
@@ -152,14 +152,14 @@ class mglCommandInterface {
         defer {
             data.deallocate()
         }
-
+        
         let expectedByteCount = Int(mglSizeOfFloat4x4Matrix())
         let bytesRead = server.readData(buffer: data, expectedByteCount: expectedByteCount)
         if (bytesRead != expectedByteCount) {
             os_log("(mglCommandInterface) Expeted to read 4x4 float ${public}d bytes but read %{public}d.", log: .default, type: .error, expectedByteCount, bytesRead)
             return nil
         }
-
+        
         // Let the library decide how simd vectors are packed.
         let column0 = simd_make_float4(data[0], data[1], data[2], data[3])
         let column1 = simd_make_float4(data[4], data[5], data[6], data[7])
@@ -167,7 +167,7 @@ class mglCommandInterface {
         let column3 = simd_make_float4(data[12], data[13], data[14], data[15])
         return(simd_float4x4(column0, column1, column2, column3))
     }
-
+    
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     // readVertices
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
@@ -175,30 +175,30 @@ class mglCommandInterface {
         guard let vertexCount = readUInt32() else {
             return nil
         }
-
+        
         // Calculate how many floats we have per vertex.
         // Start with 3 for XYZ, plus extraVals which can be used for things like color channels or texture coordinates.
         let valsPerVertex = mglUInt32(3 + extraVals)
         let expectedByteCount = Int(mglSizeOfFloatVertexArray(vertexCount, valsPerVertex))
-
+        
         // get an MTLBuffer from the GPU
         // With storageModeManaged, we must explicitly sync the data to the GPU, below.
         guard let vertexBuffer = device.makeBuffer(length: expectedByteCount, options: .storageModeManaged) else {
             os_log("(mglCommandInterface) Could not make vertex buffer of size %{public}d", log: .default, type: .error, expectedByteCount)
             return nil
         }
-
+        
         let bytesRead = server.readData(buffer: vertexBuffer.contents(), expectedByteCount: expectedByteCount)
         if (bytesRead != expectedByteCount) {
             os_log("(mglCommandInterface) Expected to read vertex buffer of size %{public}d but read %{public}d", log: .default, type: .error, expectedByteCount, bytesRead)
             return nil
         }
-
+        
         // With storageModeManaged above, we must explicitly sync the new data to the GPU.
         vertexBuffer.didModifyRange( 0 ..< expectedByteCount)
         return (vertexBuffer, Int(vertexCount))
     }
-
+    
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     // readTexture
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
@@ -209,20 +209,20 @@ class mglCommandInterface {
         guard let textureHeight = readUInt32() else {
             return nil
         }
-
+        
         // Set the texture descriptor
         let textureDescriptor = MTLTextureDescriptor.texture2DDescriptor(
             pixelFormat: .rgba32Float,
             width: Int(textureWidth),
             height: Int(textureHeight),
             mipmapped: false)
-
+        
         // For now, all textures can receive rendering output.
         textureDescriptor.usage = [.renderTarget, .shaderRead, .shaderWrite]
-
+        
         // Get the size in bytes of each row of the actual incoming image.
         let imageRowByteCount = Int(mglSizeOfFloatRgbaTexture(mglUInt32(textureWidth), 1))
-
+        
         // "Round up" this row size to the next multiple of the system-dependent required alignment (perhaps 16 or 256).
         let rowAlignment = device.minimumLinearTextureAlignment(for: textureDescriptor.pixelFormat)
         let alignedRowByteCount = ((imageRowByteCount + rowAlignment - 1) / rowAlignment) * rowAlignment
@@ -238,7 +238,7 @@ class mglCommandInterface {
             os_log("(mglCommandInterface) Could not make texture buffer of size %{public}d image width %{public}d aligned buffer width %{public}d and image height %{public}d", log: .default, type: .error, bufferByteSize, textureWidth, alignedRowByteCount, textureHeight)
             return nil
         }
-
+        
         // Read from the socket into the texture memory.
         // Copy image rows one at a time, only taking the nominal row size and leaving the rest of the buffer row as padding.
         let bytesRead = imageRowsToBuffer(buffer: textureBuffer, imageRowByteCount: imageRowByteCount, alignedRowByteCount: alignedRowByteCount, rowCount: Int(textureHeight))
@@ -247,16 +247,16 @@ class mglCommandInterface {
             os_log("(mglCommandInterface) Could not read expected bytes %{public}d for texture, read %{public}d", log: .default, type: .error, expectedByteCount, bytesRead)
             return nil
         }
-
+        
         // Now make the buffer into a texture.
         guard let texture = textureBuffer.makeTexture(descriptor: textureDescriptor, offset: 0, bytesPerRow: alignedRowByteCount) else {
             os_log("(mglCommandInterface) Could not make texture from texture buffer of size %{public}d image width %{public}d aligned buffer width %{public}d and image height %{public}d", log: .default, type: .error, bufferByteSize, textureWidth, alignedRowByteCount, textureHeight)
             return nil
         }
-
+        
         return(texture)
     }
-
+    
     func imageRowsToBuffer(buffer: MTLBuffer, imageRowByteCount: Int, alignedRowByteCount: Int, rowCount: Int) -> Int {
         var imageBytesRead = 0
         for row in 0 ..< rowCount {
@@ -267,13 +267,13 @@ class mglCommandInterface {
             }
             imageBytesRead += rowBytesRead
         }
-
+        
         // With storageModeManaged above, we must explicitly sync the new data to the GPU.
         buffer.didModifyRange(0 ..< alignedRowByteCount * rowCount)
-
+        
         return imageBytesRead
     }
-
+    
     func imageRowsFromBuffer(buffer: MTLBuffer, imageRowByteCount: Int, alignedRowByteCount: Int, rowCount: Int) -> Int {
         var imageBytesSent = 0
         for row in 0 ..< rowCount {
@@ -286,7 +286,7 @@ class mglCommandInterface {
         }
         return imageBytesSent
     }
-
+    
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     // writeDouble
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
@@ -295,7 +295,7 @@ class mglCommandInterface {
         let expectedByteCount = MemoryLayout<mglDouble>.size
         return server.sendData(buffer: &localData, byteCount: expectedByteCount)
     }
-
+    
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     // writeString
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
@@ -318,7 +318,7 @@ class mglCommandInterface {
         let expectedByteCount = MemoryLayout<mglCommandCode>.size
         return server.sendData(buffer: &localData, byteCount: expectedByteCount)
     }
-   
+    
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     // writeDoubleArray
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
@@ -331,5 +331,33 @@ class mglCommandInterface {
         var localData = data
         expectedByteCount = data.count * MemoryLayout<Double>.size
         return bytesSent + server.sendData(buffer: &localData, byteCount: expectedByteCount)
-    }    
+    }
+    
+    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
+    // writeUInt8Array
+    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
+    func writeUInt8Array(data: Array<UInt8>) -> Int {
+        // send length of string
+        var count = UInt32(data.count)
+        var expectedByteCount = MemoryLayout<UInt32>.size
+        let bytesSent = server.sendData(buffer: &count, byteCount: expectedByteCount)
+        // send the array
+        var localData = data
+        expectedByteCount = data.count * MemoryLayout<UInt8>.size
+        return bytesSent + server.sendData(buffer: &localData, byteCount: expectedByteCount)
+    }
+
+    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
+    // writeFloatArray
+    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
+    func writeFloatArray(data: Array<Float>) -> Int {
+        // send length of string
+        var count = UInt32(data.count)
+        var expectedByteCount = MemoryLayout<UInt32>.size
+        let bytesSent = server.sendData(buffer: &count, byteCount: expectedByteCount)
+        // send the array
+        var localData = data
+        expectedByteCount = data.count * MemoryLayout<Float>.size
+        return bytesSent + server.sendData(buffer: &localData, byteCount: expectedByteCount)
+    }
 }

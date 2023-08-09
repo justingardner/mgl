@@ -37,6 +37,7 @@ protocol mglColorRenderingConfig {
     func getRenderPassDescriptor(view: MTKView) -> MTLRenderPassDescriptor?
 
     func finishDrawing(commandBuffer: MTLCommandBuffer, drawable: CAMetalDrawable)
+    func frameGrab()->(width: Int, height: Int, pointer: UnsafeMutablePointer<Float>?)
 }
 
 class mglOnscreenRenderingConfig : mglColorRenderingConfig {
@@ -86,6 +87,15 @@ class mglOnscreenRenderingConfig : mglColorRenderingConfig {
         commandBuffer.present(drawable)
         commandBuffer.commit()
     }
+
+    // frameGrab, since everything is being drawn to a CAMetalDrawable, it does not
+    // appear to be trivial to grab the bytes - it seems like a copy of all commands
+    // has to be drawn into an offscreen texture, so for now, this function just returns
+    // nil to notify that the frameGrab is impossible
+    func frameGrab() -> (width: Int, height: Int, pointer: UnsafeMutablePointer<Float>?) {
+      return (0,0,nil)
+    }
+
 }
 
 class mglOffScreenTextureRenderingConfig : mglColorRenderingConfig {
@@ -170,5 +180,29 @@ class mglOffScreenTextureRenderingConfig : mglColorRenderingConfig {
 
         // Wait until the bltCommandEncoder is done syncing data from GPU to CPU.
         commandBuffer.waitUntilCompleted()
+    }
+    
+    // frameGrab, this will write the bytes of the texture into an array
+    func frameGrab() -> (width: Int, height: Int, pointer: UnsafeMutablePointer<Float>?) {
+        // first make sure we have the right MTLTexture format (this should always be the same - it's set in
+        // the createTexture function in mglCommandInterface
+        if (colorTexture.pixelFormat == MTLPixelFormat.rgba32Float) {
+            // compute size needed
+            let dataSize = colorTexture.width * colorTexture.height * 4 * MemoryLayout<Float>.stride
+            // set the region
+            let region = MTLRegionMake2D(0,0,colorTexture.width,colorTexture.height)
+            let bytesPerRow = colorTexture.width * 4 * MemoryLayout<Float>.stride
+            let destinationBuffer = UnsafeMutablePointer<Float>.allocate(capacity: dataSize)
+            // just for debugging, set to a value, to make sure we can retrieve that, if nothing else.
+            destinationBuffer.initialize(repeating: 45, count: dataSize)
+            // ok, get the bytes
+            colorTexture.getBytes(destinationBuffer, bytesPerRow: bytesPerRow, from: region, mipmapLevel: 0)
+            // return pointer to frame data
+            return (colorTexture.width, colorTexture.height, destinationBuffer)
+        }
+        else {
+            // could not get bytes, return 0,0,nil
+            return (0,0,nil)
+        }
     }
 }
