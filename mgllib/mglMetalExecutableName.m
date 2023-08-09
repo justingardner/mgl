@@ -15,6 +15,7 @@ function [mglMetalApp, mglMetalSandbox] = mglMetalExecutableName
 % The mglMetal app should live within the mgl repo, just like the mex-function binaries do.
 mglDir = fileparts(fileparts(which('mglOpen')));
 
+
 % Use the "latest" development version if present, otherwise use the "stable" version.
 latestAppDir = fullfile(mglDir, 'metal', 'binary', 'latest', 'mglMetal.app');
 if isfolder(latestAppDir)
@@ -22,6 +23,30 @@ if isfolder(latestAppDir)
 else
     mglMetalApp = fullfile(mglDir, 'metal', 'binary', 'stable', 'mglMetal.app');
 end
+
+% Check to see if there is a newer version in the default debug build pathway
+% so that developers can compile and check before deploying 
+debugMetalApp = '~/Library/Developer/Xcode/DerivedData/Build/Products/Debug/mglMetal.app';
+if isdir(debugMetalApp)
+  % check date on the build
+  executableName = 'Contents/MacOS/mglMetal';
+  if isfile(fullfile(debugMetalApp,executableName)) && isfile(fullfile(mglMetalApp,executableName))
+    % get info on the two apps, to compare timestamps
+    debugMetalAppInfo = dir(fullfile(debugMetalApp,executableName));
+    metalAppInfo = dir(fullfile(mglMetalApp,executableName));
+    % compare the timestamps
+    if (debugMetalAppInfo.datenum > metalAppInfo.datenum)
+      fprintf('(mglMetalExecutableName) Debug app %s has a newer timestamp than %s\n',debugMetalApp,mglMetalApp);
+      % swap to use the debug app
+      mglMetalApp = debugMetalApp;
+    else
+      fprintf('(mglMetalExecutableName) Default app %s has a newer timestamp than %s\n');
+    end
+  end
+end
+
+
+% print what version we are using
 fprintf('(mglMetalExecutableName) Using mglMetal app at %s\n', mglMetalApp);
 
 % The mglMetal app runs in a "sandbox" with limited file system access.
