@@ -437,28 +437,20 @@ extension mglRenderer: MTKViewDelegate {
     // frameGrab
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     private func frameGrab(view: MTKView) -> Bool {
-      // send error message
-      //_ = commandInterface.writeString(data: errorMessage)
-      // TODO: Need to implement this.
-      // Some questions - do we need to wait till after a flush to do this?
-      //                  will this work both for an on-screen and an off-screen buffer?
-      // I think what is happening is that in mglClorRenderingConfig Ben has setup two different types of structures
-      // one for on screen and one for off screen. The off screen draws everything to a texture called colorTexture.
-      // would seem, like I should be able to get its bytes from colorTexture.getBytes and then send that back to
-      // matlab. For the onscreen - it sounds like it could be more complicated as it draws to a CAMetalDrawable which
-      // presents to a screen. Maybe leave that off for now.
-        // ToDO: need to pass a pointer in to the function, and then the function should
-        // allocate the correct amount of space for that pointer, and fill it with the bytes from the offscreen texture
+        // grab from from the currentColorRenderingTarget. Note that
+        // this will return (0,0,nil) if the current target is the screen
+        // as it is not implemented (and might be hard/impossible?) to get
+        // the bytes from that. So, this only works if the current target
+        // is a texture (which is set by mglMetalSetRenderTarget
         let frame = currentColorRenderingConfig.frameGrab()
-        //let byteArray = Array(UnsafeBufferPointer(start: frame.pointer, count: frame.width*frame.height*4))
+        // write out the width and height
         _ = commandInterface.writeUInt32(data: UInt32(frame.width))
         _ = commandInterface.writeUInt32(data: UInt32(frame.height))
         if frame.pointer != nil {
           // convert the pointer back into an array
-          let huh = Array(UnsafeBufferPointer(start: frame.pointer, count: frame.width*frame.height*4))
-          //let byteArray = Array(repeating: UInt8(255), count: frame.width*frame.height*4)
+          let floatArray = Array(UnsafeBufferPointer(start: frame.pointer, count: frame.width*frame.height*4))
           // write the array
-          _ = commandInterface.writeFloatArray(data: huh)
+          _ = commandInterface.writeFloatArray(data: floatArray)
           // free the data
           frame.pointer?.deallocate()
           return true

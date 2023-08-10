@@ -93,6 +93,7 @@ class mglOnscreenRenderingConfig : mglColorRenderingConfig {
     // has to be drawn into an offscreen texture, so for now, this function just returns
     // nil to notify that the frameGrab is impossible
     func frameGrab() -> (width: Int, height: Int, pointer: UnsafeMutablePointer<Float>?) {
+      os_log("(mglColorRenderingConfig:frameGrab) Cannot get frame because render target is the screen", log: .default, type: .error)
       return (0,0,nil)
     }
 
@@ -159,7 +160,7 @@ class mglOffScreenTextureRenderingConfig : mglColorRenderingConfig {
                     stencilPixelFormat: view.depthStencilPixelFormat,
                     library: library))
         } catch let error {
-            os_log("Could not create offscreen pipeline state: %@", log: .default, type: .error, String(describing: error))
+            os_log("(mglColorRenderingConfig) Could not create offscreen pipeline state: %@", log: .default, type: .error, String(describing: error))
             return nil
         }
     }
@@ -201,6 +202,9 @@ class mglOffScreenTextureRenderingConfig : mglColorRenderingConfig {
             return (colorTexture.width, colorTexture.height, destinationBuffer)
         }
         else {
+            // write log message
+            os_log("(mglColorRenderingConfig:frameGrab) Render target texture is not in rgba32float format", log: .default, type: .error)
+
             // could not get bytes, return 0,0,nil
             return (0,0,nil)
         }
