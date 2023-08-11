@@ -21,3 +21,7 @@ is being made and then adding the link here as follows:
 mkdir Latest
 cd Latest
 ln -s /Users/justin/Library/Developer/Xcode/DerivedData/Build/Products/Debug/mglMetal.app 
+
+JG: 8/11/2023 Modified the mglGetExecutableName so that it looks for
+builds in the directory noted above (DerivedData) so that you can
+compile in XCode and not worry about making the soft link
