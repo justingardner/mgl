@@ -417,6 +417,7 @@ if ~isempty(myscreen.screenNumber)
   if isempty(mglResolution(myscreen.screenNumber))
     disp(sprintf('(initScreen) !!! Screen %i does not exist !!!',myscreen.screenNumber));
     myscreen = [];
+    keyboard
     return
   end
   % figure out whether we are going to change resolution
