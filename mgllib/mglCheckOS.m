@@ -44,7 +44,7 @@ end
 if isempty(mglGetParam('macOSMajorVersion'))
   % check for os version
   [status, result] = unix('sw_vers');
-  if status~=0
+  if (status~=0) || isempty(strfind(lower(result),'productversion:'))
     disp(sprintf('(mglOpen) Could not determine OS version.'));
     return
   end
@@ -52,7 +52,7 @@ if isempty(mglGetParam('macOSMajorVersion'))
   osVersion = [];
   resultSplit = split(result);
   for iResult = 1:length(resultSplit)
-    if contains(lower(resultSplit{iResult}),'productversion') && (length(resultSplit)>iResult)
+    if contains(lower(resultSplit{iResult}),'productversion:') && (length(resultSplit)>iResult)
       osVersion = resultSplit{iResult+1};
     end
   end
