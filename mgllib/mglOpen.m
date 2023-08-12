@@ -243,5 +243,7 @@ end
 if mglGetParam('offscreenContext')
   % then start up mglFrameGrab
   mglFrameGrab('init');
+  % minimzie window
+  mglMinimize;
 end
 
