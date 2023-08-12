@@ -1,14 +1,19 @@
 % mglFrameGrab.m
 %
 %        $Id$
-%      usage: mglFrameGrab(<[x y width height])
+%      usage: mglFrameGrab()
 %         by: justin gardner
 %       date: 08/09/2023
 %  copyright: (c) 2006 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
 %    purpose: does a frame grab of the current mgl screen and
 %             returns it as matrix of dimensions widthxheightx3
-%             This only works when running mgl with an off-screen buffer (see below)
-%      usage: 
+%             This only works when running mgl with an off-screen texture
+%             so, you need to first call init on thsi fucntion to create an off-screen
+%             and then drawing commands will draw to a texture that is created rather
+%             than the screen (so you won't see updates to the screen). 
+%      usage: mglFrameGrab('init'); % starts mglFrameGrab
+%             frame = mglFrameGrab; % grabs a frame (run this after drawing and doing mglFlush)
+%             mglFrameGrab('end')   % ends frame grab mode so you can draw to the screen again
 % 
 %       e.g.: 
 % % open screen
@@ -126,3 +131,15 @@ processedTime = mglSocketRead(socketInfo, 'double');
 % end the frame grab
 %%%%%%%%%%%%%%%%%%%%%%%%
 function endFrameGrab
+
+% set the window as the render target
+mglMetalSetRenderTarget;
+
+% delete the texture
+mglFrameGrabTex = mglGetParam('mglFrameGrabTex');
+if ~isempty(mglFrameGrabTex)
+  mglDeleteTexture(mglFrameGrabTex);
+  mglSetParam('mglFrameGrabTex',[])
+end
+
+
