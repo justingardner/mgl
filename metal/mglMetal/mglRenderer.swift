@@ -211,6 +211,7 @@ extension mglRenderer: MTKViewDelegate {
             case mglInfo: commandSuccess = sendAppInfo(view: view)
             case mglGetErrorMessage: commandSuccess = getErrorMessage(view: view)
             case mglFrameGrab: commandSuccess = frameGrab(view: view)
+            case mglMinimize: commandSuccess = minimize(view: view)
             default:
               errorMessage = "(mglRenderer) Unknown non-drawing command code \(String(describing: command))"
               os_log("(mglRenderer) Unknown non-drawing command code %{public}@", log: .default, type: .error, String(describing: command))
@@ -433,6 +434,27 @@ extension mglRenderer: MTKViewDelegate {
     // Non-drawing commands
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
 
+    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
+    // minimize
+    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
+    private func minimize(view: MTKView) -> Bool {
+      // Get whether this is a minimize (0) or restore (1)
+      guard let minimizeOrRestore = commandInterface.readUInt32() else {
+        return false
+      }
+                
+      if minimizeOrRestore == 0 {
+        // minimize
+        view.window?.miniaturize(nil)
+      }
+      else {
+        // restore
+        view.window?.deminiaturize(nil)
+
+      }
+      return true
+    }
+    
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     // frameGrab
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
