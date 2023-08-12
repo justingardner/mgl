@@ -238,3 +238,10 @@ if mglGetParam('matlabDesktop')
   mglDisplayCursor(1);
 end
 
+% check if offscreenbuffer is set (this is used by the pRF code 
+% to create stimulus images - in function: pRFGetStimImageFromStimfile.m )
+if mglGetParam('offscreenContext')
+  % then start up mglFrameGrab
+  mglFrameGrab('init');
+end
+
