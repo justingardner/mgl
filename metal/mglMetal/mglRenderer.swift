@@ -77,6 +77,9 @@ class mglRenderer: NSObject {
     // flag used in render looop to set whether command has succeeded or not
     var commandSuccess = false
 
+    // flag to keep track of cursor stye
+    var cursorHidden = false
+    
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     // init
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
@@ -212,6 +215,7 @@ extension mglRenderer: MTKViewDelegate {
             case mglGetErrorMessage: commandSuccess = getErrorMessage(view: view)
             case mglFrameGrab: commandSuccess = frameGrab(view: view)
             case mglMinimize: commandSuccess = minimize(view: view)
+            case mglDisplayCursor: commandSuccess = displayCursor(view: view)
             default:
               errorMessage = "(mglRenderer) Unknown non-drawing command code \(String(describing: command))"
               os_log("(mglRenderer) Unknown non-drawing command code %{public}@", log: .default, type: .error, String(describing: command))
@@ -434,6 +438,32 @@ extension mglRenderer: MTKViewDelegate {
     // Non-drawing commands
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
 
+    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
+    // displayCursor
+    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
+    private func displayCursor(view: MTKView) -> Bool {
+      // Get whether this is a minimize (0) or restore (1)
+      guard let displayOrHide = commandInterface.readUInt32() else {
+        return false
+      }
+                
+      if displayOrHide == 0 {
+          // Hide the cursor
+          if !self.cursorHidden {
+            NSCursor.hide()
+            self.cursorHidden = true
+          }
+      }
+      else {
+          // Show the cursor
+          if self.cursorHidden {
+            NSCursor.unhide()
+            self.cursorHidden = false
+          }
+          
+      }
+      return true
+    }
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     // minimize
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/

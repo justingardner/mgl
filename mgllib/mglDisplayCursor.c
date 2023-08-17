@@ -29,25 +29,21 @@ void hideCursor();
 //////////////
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
-  // get display number
-  int displayNumber = (int)mglGetGlobalDouble("displayNumber");
-
-  if (displayNumber > 0) {
-    // if called with no arguments
-    if (nrhs == 0) {
-      // Restore cursor
-      showCursor();
-    }
-    // if called with one argument
-    else if (nrhs == 1) {
-      int display = 1;
-      if (mxGetPr(prhs[0]) != NULL)
-	// get whether to display the cursor or not
-	display = (int) *mxGetPr( prhs[0] );
+  // if called with no arguments
+  if (nrhs == 0) {
+    // Restore cursor
+    showCursor();
+  }
+  // if called with one argument
+  else if (nrhs == 1) {
+    int display = 1;
+    if (mxGetPr(prhs[0]) != NULL) {
+	    // get whether to display the cursor or not
+	    display = (int) *mxGetPr( prhs[0] );
       if (display)
-	showCursor();
+	      showCursor();
       else
-	hideCursor();
+	      hideCursor();
     }
     else {
       usageError("mglDisplayCursor");
@@ -66,8 +62,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 void showCursor()
 {
   // display cursor
-  //  CGDisplayShowCursor( kCGDirectMainDisplay ) ; 
-  [NSCursor unhide];
+  CGDisplayShowCursor( kCGDirectMainDisplay ) ; 
+  mexPrintf("Display cursor\n");
+  //[NSCursor setHiddenUntilMouseMoves:false];
+  //[NSCursor unhide];
+  //[[NSCursor pointingHandCursor] set];
 }
 ////////////////////
 //   hideCursor   //
@@ -75,8 +74,10 @@ void showCursor()
 void hideCursor()
 {
   // Hide cursor
-  //  CGDisplayHideCursor( kCGDirectMainDisplay ) ; 
-  [NSCursor hide];
+  CGDisplayHideCursor( kCGDirectMainDisplay ) ; 
+  mexPrintf("Hide cursor\n");
+  //[NSCursor setHiddenUntilMouseMoves:false];
+  //[NSCursor hide];
 }
 #endif//__APPLE__
 //-----------------------------------------------------------------------------------///

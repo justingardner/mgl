@@ -12,4 +12,26 @@
 %
 %mglOpen();
 %mglDisplayCursor(1);
+function [ackTime, processedTime] = mglDisplayCursor(dispCursor)
 
+% default values for return variables
+ackTime = [];
+processedTime = [];
+
+% get socket
+global mgl;
+socketInfo = mgl.activeSockets;
+
+% send line command
+mglSocketWrite(socketInfo, socketInfo(1).command.mglDisplayCursor);
+ackTime = mglSocketRead(socketInfo, 'double');
+
+% if restore is set, then send 1, otherwise send 0
+if (nargin == 0) || ~isequal(dispCursor,0)
+  mglSocketWrite(socketInfo(1), uint32(1));
+else
+  mglSocketWrite(socketInfo(1), uint32(0));
+end
+  
+% get processed time
+processedTime = mglSocketRead(socketInfo, 'double');
