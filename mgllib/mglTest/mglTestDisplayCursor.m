@@ -5,7 +5,8 @@
 %         by: justin gardner
 %       date: 09/07/06
 %  copyright: (c) 2006 Justin Gardner (GPL see mgl/COPYING)
-%    purpose: example program to show how to use the task structure
+%    purpose: Test function which will turn the cursor on / off (and change the fixation color to
+%    green when it should be display and red when it is not). Hit the 1 key to toggle cursor state
 %
 function myscreen = taskTemplate
 
