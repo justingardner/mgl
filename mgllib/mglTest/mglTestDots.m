@@ -37,13 +37,14 @@ starttime = mglGetSecs;
 
 % set dot speed to 10 deg/sec
 dx = 10/mglGetParam('frameRate');
+dotSize = 0.1;
 
 % run it
 for i = 1:mglGetParam('frameRate')*numsec
   % clear the screen to gray
   mglClearScreen(backgroundColor);
-  % draw points with size 2 and color white
-  mglPoints2(dots.x,dots.y,2,[1 1 1]);
+  % draw points with size dotSize and color white
+  mglPoints2(dots.x,dots.y,dotSize,[1 1 1]);
 %   mglGluDisk(dots.x,dots.y,2*mglGetParam('xPixelsToDevice'),[1 1 1]);
   % flush the buffer to display the dots and
   % wait for a screen update

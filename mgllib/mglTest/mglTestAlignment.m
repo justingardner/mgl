@@ -73,7 +73,7 @@ else
 end  
 
 % plot alignment points
-pointSize = 10;
+pointSize = 0.1;
 mglPoints2(-width+center(1),center(2),pointSize,[1 1 0]);
 mglPoints2(center(1),center(2),pointSize,[1 1 0]);
 mglPoints2(width+center(1),center(2),pointSize,[1 1 0]);
