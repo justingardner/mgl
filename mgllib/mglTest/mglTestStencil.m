@@ -33,6 +33,7 @@ if (mglGetParam('stencilBits')==0)
 mglFillOval(0,0,[5*mglGetParam('xDeviceToPixels') 4*mglGetParam('yDeviceToPixels')]);
 mglStencilCreateEnd;
 mglClearScreen;
+mglFlush
 
 % Draw an oval stencil
 mglStencilCreateBegin(2,1);
@@ -41,7 +42,7 @@ mglStencilCreateEnd;
 mglClearScreen;
 
 nDots=2500;
-dotSize=5;
+dotSize=0.1;
 % get some random points
 deviceRect = mglGetParam('deviceRect');
 dots(1).x = deviceRect(1)+rand(1,nDots)*mglGetParam('deviceWidth');
