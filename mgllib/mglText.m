@@ -25,6 +25,16 @@ end
 % get the image of the text
 im = mglPrivateText(str);
 
+% flip vertical
+if isequal(mglGetParam('fontVFlip'),1)
+  im.textImage = flipud(im.textImage);
+end
+
+% flip horizontal
+if isequal(mglGetParam('fontHFlip'),1)
+  im.textImage = fliplr(im.textImage);
+end
+
 % need to reshape
 im.textImage = reshape(flipud(im.textImage),im.imageHeight,im.imageWidth,4);
 

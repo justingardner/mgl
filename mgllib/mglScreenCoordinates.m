@@ -26,7 +26,7 @@ oldTransform = mglTransform('get');
 
 % now set them for screen coordinates
 mglTransform('set', eye(4));
-mglTransform('scale', [2.0/mglGetParam('screenWidth'),-2.0/mglGetParam('screenHeight'),1]);
+mglTransform('scale', [2.0/mglGetParam('screenWidth'),2.0/mglGetParam('screenHeight'),1]);
 mglTransform('translate', [-mglGetParam('screenWidth')/2.0,-mglGetParam('screenHeight')/2.0,0.0]);
 mglFlush();
 
@@ -41,7 +41,7 @@ mglSetParam('deviceWidth',mglGetParam('screenWidth'));
 mglSetParam('deviceHeight',mglGetParam('screenHeight'));
 mglSetParam('screenCoordinates',1);
 mglSetParam('deviceHDirection',1);
-mglSetParam('deviceVDirection',-1);
+mglSetParam('deviceVDirection',1);
 
 % check to see if textures need to be recreated
 newTransform = mglTransform('get');

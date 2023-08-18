@@ -2,6 +2,8 @@
 %
 %        $Id$
 %      usage: mglTextSet(fontName,fontSize,fontColor,fontVFlip,fontHFlip,fontRotation,fontBold,fontItalic,fontUnderline,fontStrikeThrough)
+%             Note that in metal, bold, underline and strikeout are not
+%             implemented 
 %         by: justin gardner
 %       date: 05/10/06
 %  copyright: (c) 2006 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)

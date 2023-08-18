@@ -20,7 +20,11 @@ if ~exist('screenNumber','var'),screenNumber = [];,end
 if ~exist('noClose','var'),noClose = 0;,end
 
 % open up screen
-mglOpen(screenNumber);
+if isempty(screenNumber)
+  mglOpen(0,1024,768);
+else
+  mglOpen(screenNumber);
+end
 mglScreenCoordinates;
 mglClearScreen;
 
@@ -113,19 +117,19 @@ mglBltTexture(text,[300 200],0,0);
 
 mglTextSet('Courier',24,[0.9 0.8 0.2],0,0,0,1,0,0,0);
 text = mglText('Bold');
-mglBltTexture(text,[0 400],-1,0);
+mglBltTexture(text,[50 400],-1,0);
 
 mglTextSet([],[],[],[],[],[],0,1,0,0);
 text = mglText('Italic');
-mglBltTexture(text,[0 400+text.imageHeight],-1,0);
+mglBltTexture(text,[50 400+text.imageHeight],-1,0);
 
-mglTextSet([],[],[],[],[],[],0,0,1,0);
-text = mglText('Underline');
-mglBltTexture(text,[0 400+text.imageHeight*2],-1,0);
+%mglTextSet([],[],[],[],[],[],0,0,1,0);
+%text = mglText('Underline');
+%mglBltTexture(text,[50 400+text.imageHeight*2],-1,0);
 
-mglTextSet([],[],[],[],[],[],0,0,0,1);
-text = mglText('Strike-through');
-mglBltTexture(text,[0 400+text.imageHeight*3],-1,0);
+%mglTextSet([],[],[],[],[],[],0,0,0,1);
+%text = mglText('Strike-through');
+%mglBltTexture(text,[0 400+text.imageHeight*3],-1,0);
 
 % draw some japanese text
 mglTextSet('Osaka',45,[1 1 0],0,0,-30,0,0,0,0);
