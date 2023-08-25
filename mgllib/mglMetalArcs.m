@@ -49,8 +49,8 @@ end
 
 % Convert inner and outer radius user device units to Metal pixels.
 % Scale based on the x-direction, as an arbitrary but consistent choice.
-radii(1,:) = radii(1,:) * mglGetParam('xDeviceToPixels');
-radii(2,:) = radii(2,:) * mglGetParam('xDeviceToPixels');
+radii(1,:) = radii(1,:);
+radii(2,:) = radii(2,:);
 
 % Stack up all the per-vertex data as a big matrix.
 vertexData = single(cat(1, xyz, rgba, radii, wedge, border));

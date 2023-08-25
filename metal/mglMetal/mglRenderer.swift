@@ -992,18 +992,24 @@ extension mglRenderer: MTKViewDelegate {
         vertexDescriptor.attributes[0].offset = 0
         vertexDescriptor.attributes[0].bufferIndex = 0
         vertexDescriptor.attributes[1].format = .float4
-        vertexDescriptor.attributes[1].offset = 3 * MemoryLayout<Float>.size
+        vertexDescriptor.attributes[1].offset = 3 * MemoryLayout<Float>.stride
         vertexDescriptor.attributes[1].bufferIndex = 0
         vertexDescriptor.attributes[2].format = .float2
-        vertexDescriptor.attributes[2].offset = 7 * MemoryLayout<Float>.size
+        vertexDescriptor.attributes[2].offset = 7 * MemoryLayout<Float>.stride
         vertexDescriptor.attributes[2].bufferIndex = 0
         vertexDescriptor.attributes[3].format = .float2
-        vertexDescriptor.attributes[3].offset = 9 * MemoryLayout<Float>.size
+        vertexDescriptor.attributes[3].offset = 9 * MemoryLayout<Float>.stride
         vertexDescriptor.attributes[3].bufferIndex = 0
         vertexDescriptor.attributes[4].format = .float
-        vertexDescriptor.attributes[4].offset = 11 * MemoryLayout<Float>.size
+        vertexDescriptor.attributes[4].offset = 11 * MemoryLayout<Float>.stride
         vertexDescriptor.attributes[4].bufferIndex = 0
-        vertexDescriptor.layouts[0].stride = 12 * MemoryLayout<Float>.size
+        vertexDescriptor.attributes[5].format = .float3
+        vertexDescriptor.attributes[5].offset = 12 * MemoryLayout<Float>.stride
+        vertexDescriptor.attributes[5].bufferIndex = 0
+        vertexDescriptor.attributes[6].format = .float2
+        vertexDescriptor.attributes[6].offset = 15 * MemoryLayout<Float>.stride
+        vertexDescriptor.attributes[6].bufferIndex = 0
+        vertexDescriptor.layouts[0].stride = 17 * MemoryLayout<Float>.stride
         pipelineDescriptor.vertexDescriptor = vertexDescriptor
         pipelineDescriptor.vertexFunction = library?.makeFunction(name: "vertex_arcs")
         pipelineDescriptor.fragmentFunction = library?.makeFunction(name: "fragment_arcs")
@@ -1012,14 +1018,69 @@ extension mglRenderer: MTKViewDelegate {
     }
 
     func drawArcs(view: MTKView, renderEncoder: MTLRenderCommandEncoder) -> Bool {
-        guard let (vertexBufferDots, vertexCount) = commandInterface.readVertices(device: mglRenderer.device, extraVals: 9) else {
+        // read the center vertex for the arc from the commandInterface
+        guard let (centerVertex, vertexCount) = commandInterface.readVertices(device: mglRenderer.device, extraVals: 9) else {
             return false
+        }
+        
+        // get an MTLBuffer from the GPU for storing the vertices for two triangles (i.e.
+        // we are going to make a square around where the arc is going to be drawn, and
+        // then color the pixels in the fragment shader according to how far they are away
+        // from the center.) Note that the vertices will have 3 + 2 more values than the
+        // centerVertex passed in, because each of these vertices will get the xyz of the
+        // centerVertex added on (which is used for the calculation for how far away each
+        // pixel is from the center in the fragment shader) and the viewport dimensions
+        let byteCount = 6 * (centerVertex.length + 5 * MemoryLayout<Float>.stride);
+        guard let triangleVertices = mglRenderer.device.makeBuffer(length: byteCount, options: .storageModeManaged) else {
+            os_log("(mglRenderer:drawArcs) Could not make vertex buffer of size %{public}d", log: .default, type: .error, byteCount)
+            return false
+        }
+
+        // get size of buffer as number of floats, note that we add
+        // 3 floats for the center position pluse 2 floats for the viewport dimensions
+        let vertexBufferSize = 5 + centerVertex.length/MemoryLayout<Float>.stride;
+        
+        // get pointers to the two buffers
+        let triangleVerticesPointer = triangleVertices.contents().assumingMemoryBound(to: Float.self);
+        let centerVertexPointer = centerVertex.contents().assumingMemoryBound(to: Float.self);
+        
+        // Now create the vertices of each corner of the triangles by copying
+        // the centerVertex in and then modifying the x, y location appropriately
+        
+        // get desired x and y locations of the triangle corners
+        let x = centerVertexPointer[0];
+        let y = centerVertexPointer[1];
+        let r = centerVertexPointer[8];
+        let xLocs: [Float] = [x-r, x-r, x+r, x-r, x+r, x+r]
+        let yLocs: [Float] = [y-r, y+r, y+r, y-r, y-r, y+r]
+        
+        // get the viewport size
+        let viewportWidth = Float(view.drawableSize.width)
+        let viewportHeight = Float(view.drawableSize.height)
+
+        
+        // iterate over 6 vertices (which will be the corners of the triangles)
+        for iVertex in 0...5 {
+          // get a pointer to the location in the triangleVertices where we want to copy into
+          let thisTriangleVerticesPointer = triangleVerticesPointer + iVertex*vertexBufferSize;
+          // and copy the center vertex into each location
+          memcpy(thisTriangleVerticesPointer, centerVertexPointer, centerVertex.length);
+          // now set the xy location
+          thisTriangleVerticesPointer[0] = xLocs[iVertex];
+          thisTriangleVerticesPointer[1] = yLocs[iVertex];
+          // and set the centerVertex
+          thisTriangleVerticesPointer[12] = centerVertexPointer[0]
+          thisTriangleVerticesPointer[13] = -centerVertexPointer[1]
+          thisTriangleVerticesPointer[14] = centerVertexPointer[2]
+          // and set viewport dimension
+          thisTriangleVerticesPointer[15] = viewportWidth
+          thisTriangleVerticesPointer[16] = viewportHeight
         }
 
         // Draw all the vertices as points with 11 values per vertex: [xyz rgba inner outer start sweep].
         renderEncoder.setRenderPipelineState(currentColorRenderingConfig.arcsPipelineState)
-        renderEncoder.setVertexBuffer(vertexBufferDots, offset: 0, index: 0)
-        renderEncoder.drawPrimitives(type: .point, vertexStart: 0, vertexCount: vertexCount)
+        renderEncoder.setVertexBuffer(triangleVertices, offset: 0, index: 0)
+        renderEncoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 6*vertexCount)
         return true
     }
 
