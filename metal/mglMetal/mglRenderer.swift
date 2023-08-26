@@ -924,7 +924,6 @@ extension mglRenderer: MTKViewDelegate {
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     // Drawing commands
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
-
     class func dotsPipelineStateDescriptor(colorPixelFormat:  MTLPixelFormat, depthPixelFormat:  MTLPixelFormat, stencilPixelFormat:  MTLPixelFormat, library: MTLLibrary?) -> MTLRenderPipelineDescriptor {
         let pipelineDescriptor = MTLRenderPipelineDescriptor()
         pipelineDescriptor.depthAttachmentPixelFormat = depthPixelFormat
@@ -1019,7 +1018,7 @@ extension mglRenderer: MTKViewDelegate {
 
     func drawArcs(view: MTKView, renderEncoder: MTLRenderCommandEncoder) -> Bool {
         // read the center vertex for the arc from the commandInterface
-        guard let (centerVertex, vertexCount) = commandInterface.readVertices(device: mglRenderer.device, extraVals: 9) else {
+        guard let (centerVertex, arcCount) = commandInterface.readVertices(device: mglRenderer.device, extraVals: 9) else {
             return false
         }
         
@@ -1030,57 +1029,58 @@ extension mglRenderer: MTKViewDelegate {
         // centerVertex passed in, because each of these vertices will get the xyz of the
         // centerVertex added on (which is used for the calculation for how far away each
         // pixel is from the center in the fragment shader) and the viewport dimensions
-        let byteCount = 6 * (centerVertex.length + 5 * MemoryLayout<Float>.stride);
-        guard let triangleVertices = mglRenderer.device.makeBuffer(length: byteCount, options: .storageModeManaged) else {
+        let byteCount = 6 * ((centerVertex.length/arcCount) + 5 * MemoryLayout<Float>.stride);
+        guard let triangleVertices = mglRenderer.device.makeBuffer(length: byteCount * arcCount, options: .storageModeManaged) else {
             os_log("(mglRenderer:drawArcs) Could not make vertex buffer of size %{public}d", log: .default, type: .error, byteCount)
             return false
         }
-
+            
         // get size of buffer as number of floats, note that we add
         // 3 floats for the center position pluse 2 floats for the viewport dimensions
-        let vertexBufferSize = 5 + centerVertex.length/MemoryLayout<Float>.stride;
-        
-        // get pointers to the two buffers
+        let vertexBufferSize = 5 + (centerVertex.length/arcCount)/MemoryLayout<Float>.stride;
+            
+        // get pointers to the buffer that we will pass to the renderer
         let triangleVerticesPointer = triangleVertices.contents().assumingMemoryBound(to: Float.self);
-        let centerVertexPointer = centerVertex.contents().assumingMemoryBound(to: Float.self);
-        
-        // Now create the vertices of each corner of the triangles by copying
-        // the centerVertex in and then modifying the x, y location appropriately
-        
-        // get desired x and y locations of the triangle corners
-        let x = centerVertexPointer[0];
-        let y = centerVertexPointer[1];
-        let r = centerVertexPointer[8];
-        let xLocs: [Float] = [x-r, x-r, x+r, x-r, x+r, x+r]
-        let yLocs: [Float] = [y-r, y+r, y+r, y-r, y-r, y+r]
-        
+            
         // get the viewport size
         let viewportWidth = Float(view.drawableSize.width)
         let viewportHeight = Float(view.drawableSize.height)
 
-        
-        // iterate over 6 vertices (which will be the corners of the triangles)
-        for iVertex in 0...5 {
-          // get a pointer to the location in the triangleVertices where we want to copy into
-          let thisTriangleVerticesPointer = triangleVerticesPointer + iVertex*vertexBufferSize;
-          // and copy the center vertex into each location
-          memcpy(thisTriangleVerticesPointer, centerVertexPointer, centerVertex.length);
-          // now set the xy location
-          thisTriangleVerticesPointer[0] = xLocs[iVertex];
-          thisTriangleVerticesPointer[1] = yLocs[iVertex];
-          // and set the centerVertex
-          thisTriangleVerticesPointer[12] = centerVertexPointer[0]
-          thisTriangleVerticesPointer[13] = -centerVertexPointer[1]
-          thisTriangleVerticesPointer[14] = centerVertexPointer[2]
-          // and set viewport dimension
-          thisTriangleVerticesPointer[15] = viewportWidth
-          thisTriangleVerticesPointer[16] = viewportHeight
+        // iterate over how many vertices (i.e. how many arcs) that the user passed in
+        for iArc in 0..<arcCount {
+            let centerVertexPointer = centerVertex.contents().assumingMemoryBound(to: Float.self) + iArc * (centerVertex.length/arcCount)/MemoryLayout<Float>.stride
+            // Now create the vertices of each corner of the triangles by copying
+            // the centerVertex in and then modifying the x, y location appropriately
+            // get desired x and y locations of the triangle corners
+            let x = centerVertexPointer[0];
+            let y = centerVertexPointer[1];
+            let r = centerVertexPointer[8];
+            let xLocs: [Float] = [x-r, x-r, x+r, x-r, x+r, x+r]
+            let yLocs: [Float] = [y-r, y+r, y+r, y-r, y-r, y+r]
+            
+            // iterate over 6 vertices (which will be the corners of the triangles)
+            for iVertex in 0...5 {
+                // get a pointer to the location in the triangleVertices where we want to copy into
+                let thisTriangleVerticesPointer = triangleVerticesPointer + iVertex*vertexBufferSize + iArc*vertexBufferSize*6;
+                // and copy the center vertex into each location
+                memcpy(thisTriangleVerticesPointer, centerVertexPointer, centerVertex.length/arcCount);
+                // now set the xy location
+                thisTriangleVerticesPointer[0] = xLocs[iVertex];
+                thisTriangleVerticesPointer[1] = yLocs[iVertex];
+                // and set the centerVertex
+                thisTriangleVerticesPointer[12] = centerVertexPointer[0]
+                thisTriangleVerticesPointer[13] = -centerVertexPointer[1]
+                thisTriangleVerticesPointer[14] = centerVertexPointer[2]
+                // and set viewport dimension
+                thisTriangleVerticesPointer[15] = viewportWidth
+                thisTriangleVerticesPointer[16] = viewportHeight
+            }
+            
         }
-
-        // Draw all the vertices as points with 11 values per vertex: [xyz rgba inner outer start sweep].
+        // Draw all the arcs
         renderEncoder.setRenderPipelineState(currentColorRenderingConfig.arcsPipelineState)
         renderEncoder.setVertexBuffer(triangleVertices, offset: 0, index: 0)
-        renderEncoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 6*vertexCount)
+        renderEncoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 6*arcCount)
         return true
     }
 
