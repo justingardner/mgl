@@ -12,20 +12,18 @@ function retval = mglTestArcs
 mglClose;
 mglOpen(0,800,800);
 mglVisualAngleCoordinates(57,[20 20]);
-%mglQuad([-5; -5; 5; 5],[-5; 5; 5; -5],[1; 1; 1], 1)
-%mglFlush;
-%return
+
 % set center
-xyz = [0 2.5 0]';
+xyz = [0 0 0]';
 
 % set color
 rgba = [1 0 0 1.0]';
 
 % set radii
-radii = [1.25 2.5]';
+radii = [2.5 3.75]';
 
 % set wedge
-wedge = [0 2*pi]';
+wedge = [0 pi]';
 
 % set border
 border = 0;
@@ -36,10 +34,32 @@ mglClearScreen;
 % draw arcs
 mglMetalArcs(xyz,rgba,radii,wedge,border);
 
-% draw another one
-%radii = [5 10]';
-%rgba = [0 1 0 0.5]';
-%mglMetalArcs(xyz,rgba,radii,wedge,border);
+% now draw multiple at once
+% set center
+xyz = [7.5 0 0;sqrt(7.5^2/2) sqrt(7.5^2/2) 0;0 7.5 0;-sqrt(7.5^2/2) sqrt(7.5^2/2) 0;-7.5 0 0]';
+
+% set color
+rgba = [0 1 0 1;0 1 0 1;0 1 0 1;0 1 0 1;0 1 0 1]';
+
+% set radii
+radii = [1.25 2.5;1.25 2.5;1.25 2.5;1.25 2.5;1.25 2.5]';
+
+% set wedge
+wedge = [0 2*pi;0 2*pi;0 2*pi;0 2*pi;0 2*pi]';
+
+% set border
+border = [0;0;0;0;0]';
+
+% draw arcs
+mglMetalArcs(xyz,rgba,radii,wedge,border);
+
+% draw multiples with wedges set
+xyz = [0 0 0;0 0 0;0 0 0;0 0 0]';
+rgba = [0 0 1 1;0 0 1 1;0 0 1 1;0 0 1 1]';
+radii = [2.5 3.75;2.5 3.75;2.5 3.75;2.5 3.75]';
+wedge = [pi+pi/16 pi/8;pi+pi/4+pi/16 pi/8;pi+pi/2+pi/16 pi/8;pi+3*pi/4+pi/16 pi/8]';
+border = [0;0;0;0]';
+mglMetalArcs(xyz,rgba,radii,wedge,border);
 
 % draw points for reference
 r = [0:1.25:15]';
