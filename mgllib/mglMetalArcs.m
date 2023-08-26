@@ -10,9 +10,11 @@
 %             This is a common interface to mglMeal for circular arcs.
 %             xyz -- 3 x n matrix of point positions [x, y, z]
 %             rgba -- 4 x n matrix of point colors [r, g, b, a]
-%             radii -- 2 x n matrix of annulus radii [inner, outer] (device units, not pixels)
+%             radii -- 2 x n matrix of annulus radii [inner, outer] 
 %             wedge-- 2 x n matriz of wedge angles [start, sweep]
-%             border-- 1 x n antialiasing pixel size
+%             border-- 1 x n antialiasing size
+%             % all values, xyz, radii, border are in degrees of visual angle if
+%             mglVisualAngleCoordinates are set
 %
 %      e.g.:
 % mglOpen()
@@ -21,7 +23,7 @@
 % rgba = [1 0 0 1; 0 1 1 1; 1 1 1 0.5]';
 % radii = [0 1; 0.5 2; 1 3]';
 % wedge = [0 2*pi; pi/4 pi; 7*pi/4 pi/3]';
-% border = [0 0 0];
+% border = [0.1 0.1 0.1];
 % mglMetalArcs(xyz, rgba, radii, wedge, border);
 % mglFlush();
 function [ackTime, processedTime] = mglMetalArcs(xyz, rgba, radii, wedge, border, socketInfo)

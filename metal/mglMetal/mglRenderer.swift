@@ -1054,7 +1054,8 @@ extension mglRenderer: MTKViewDelegate {
             // get desired x and y locations of the triangle corners
             let x = centerVertexPointer[0];
             let y = centerVertexPointer[1];
-            let r = centerVertexPointer[8];
+            // radius is teh outer radius + half the border
+            let r = centerVertexPointer[8]+centerVertexPointer[11]/2;
             let xLocs: [Float] = [x-r, x-r, x+r, x-r, x+r, x+r]
             let yLocs: [Float] = [y-r, y+r, y+r, y-r, y-r, y+r]
             

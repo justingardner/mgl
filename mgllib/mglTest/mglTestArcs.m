@@ -39,7 +39,7 @@ mglMetalArcs(xyz,rgba,radii,wedge,border);
 xyz = [7.5 0 0;sqrt(7.5^2/2) sqrt(7.5^2/2) 0;0 7.5 0;-sqrt(7.5^2/2) sqrt(7.5^2/2) 0;-7.5 0 0]';
 
 % set color
-rgba = [0 1 0 1;0 1 0 1;0 1 0 1;0 1 0 1;0 1 0 1]';
+rgba = [0.54 0.17 1 1;0.54 0.17 1 1;0.54 0.17 1 1;0.54 0.17 1 1;0.54 0.17 1 1;]';
 
 % set radii
 radii = [1.25 2.5;1.25 2.5;1.25 2.5;1.25 2.5;1.25 2.5]';
@@ -48,7 +48,7 @@ radii = [1.25 2.5;1.25 2.5;1.25 2.5;1.25 2.5;1.25 2.5]';
 wedge = [0 2*pi;0 2*pi;0 2*pi;0 2*pi;0 2*pi]';
 
 % set border
-border = [0;0;0;0;0]';
+border = [2;0.5;0.5;0.5;0.5]';
 
 % draw arcs
 mglMetalArcs(xyz,rgba,radii,wedge,border);

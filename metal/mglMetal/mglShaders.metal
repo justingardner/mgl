@@ -86,7 +86,7 @@ struct VertexArcsIn {
     float4 color [[ attribute(1) ]];
     float2 radii [[ attribute(2) ]];
     float2 wedge [[ attribute(3) ]];
-    float border_pixels [[ attribute(4) ]];
+    float border [[ attribute(4) ]];
     float3 centerPosition [[ attribute(5) ]];
     float2 viewportSize [[attribute(6)]];
 };
@@ -95,27 +95,23 @@ struct VertexArcsOut {
     float4 position [[position]];
     float4 color;
     float point_size [[point_size]];
-    float inner;
     float start_angle;
     float half_sweep;
-    float half_border;
     float4 centerPosition;
     float2 outerRadius;
     float innerOuterRadiusRatio;
+    float halfBorderOuterRadiusRatio;
 };
 
 vertex VertexArcsOut vertex_arcs(const VertexArcsIn vertexIn [[ stage_in ]],
                                  constant float4x4 &deg2metal [[buffer(1)]])
 {
-    float outer = vertexIn.radii[1];
     VertexArcsOut vertex_out {
         .position = deg2metal * float4(vertexIn.position, 1.0),
         .color = vertexIn.color,
-        .point_size = 0,//outer,
-        .inner = vertexIn.radii[0] / outer / 2.0,
+        .point_size = 0,
         .start_angle = vertexIn.wedge[0],
         .half_sweep = vertexIn.wedge[1] / 2.0,
-        .half_border = vertexIn.border_pixels / outer / 2.0,
         .centerPosition = deg2metal * float4(vertexIn.centerPosition, 1.0),
         // compute the outerRadius in pixel coordinates. Note that the x and y
         // dimensions of the screen may be different, so we are taking the projection
@@ -124,7 +120,8 @@ vertex VertexArcsOut vertex_arcs(const VertexArcsIn vertexIn [[ stage_in ]],
         // the end this value should be 1 if the pixel is at the outside radius, < 1
         // if it is inside that radius and > 1 if it is outside the radius
         .outerRadius = float2((deg2metal[0][0] * vertexIn.radii[1] / 2.0) * vertexIn.viewportSize[0],(deg2metal[1][1] * vertexIn.radii[1] / 2.0) * vertexIn.viewportSize[1]),
-        .innerOuterRadiusRatio = vertexIn.radii[0]/vertexIn.radii[1]
+        .innerOuterRadiusRatio = vertexIn.radii[0]/vertexIn.radii[1],
+        .halfBorderOuterRadiusRatio = (vertexIn.border/vertexIn.radii[1]) / 2.0
     };
     // convert the centerPosition into pixels
     // divide by homogenous component - probably not necessary, but doesn't hurt
@@ -153,18 +150,18 @@ fragment float4 fragment_arcs(const VertexArcsOut in [[stage_in]]) {
     // get the alpha value for the outer. This will be 1 up until the outer border
     // plus will smoothly ramp (using the builtin smoothstep function) from 1 to 0 alpha
     // over the border piexles
-    float a_outer = 1.0 - smoothstep(1.0 - in.half_border, 1.0 + in.half_border, outerRadius);
+    float a_outer = 1.0 - smoothstep(1.0 - in.halfBorderOuterRadiusRatio, 1.0 + in.halfBorderOuterRadiusRatio, outerRadius);
     // now get the alpha for the inner, this will be 0 up until the inner border and 1 after +
     // blending over border pixesl
-    float a_inner = smoothstep(in.innerOuterRadiusRatio - in.half_border, in.innerOuterRadiusRatio + in.half_border, outerRadius);
+    float a_inner = smoothstep(in.innerOuterRadiusRatio - in.halfBorderOuterRadiusRatio, in.innerOuterRadiusRatio + in.halfBorderOuterRadiusRatio, outerRadius);
     
     // Now compute the alpha based on how much of a wedge angle is asked for
     float positive_center = in.start_angle + in.half_sweep;
     float angle_to_positive_center = abs(angle - positive_center);
-    float a_positive = 1.0 - smoothstep(in.half_sweep - in.half_border, in.half_sweep + in.half_border, angle_to_positive_center);
+    float a_positive = 1.0 - smoothstep(in.half_sweep, in.half_sweep, angle_to_positive_center);
     float negative_center = in.start_angle - 2.0 * M_PI_F + in.half_sweep;
     float angle_to_negative_center = abs(angle - negative_center);
-    float a_negative = 1.0 - smoothstep(in.half_sweep - in.half_border, in.half_sweep + in.half_border, angle_to_negative_center);
+    float a_negative = 1.0 - smoothstep(in.half_sweep, in.half_sweep, angle_to_negative_center);
     float a_wedge = a_positive + a_negative;
 
     // combine the alpha values for whether the pixel is between the inner and outer
