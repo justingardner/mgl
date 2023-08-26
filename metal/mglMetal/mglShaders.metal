@@ -81,7 +81,6 @@ fragment float4 fragment_dots(const VertexDotsOut in [[stage_in]],
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/
 // Arcs
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/
-
 struct VertexArcsIn {
     float3 position [[ attribute(0) ]];
     float4 color [[ attribute(1) ]];
@@ -102,7 +101,7 @@ struct VertexArcsOut {
     float half_border;
     float4 centerPosition;
     float2 outerRadius;
-    float2 innerRadius;
+    float innerOuterRadiusRatio;
 };
 
 vertex VertexArcsOut vertex_arcs(const VertexArcsIn vertexIn [[ stage_in ]],
@@ -118,8 +117,14 @@ vertex VertexArcsOut vertex_arcs(const VertexArcsIn vertexIn [[ stage_in ]],
         .half_sweep = vertexIn.wedge[1] / 2.0,
         .half_border = vertexIn.border_pixels / outer / 2.0,
         .centerPosition = deg2metal * float4(vertexIn.centerPosition, 1.0),
+        // compute the outerRadius in pixel coordinates. Note that the x and y
+        // dimensions of the screen may be different, so we are taking the projection
+        // along the x any y axis separately and computing the appropriate normalized
+        // vector accounting for potential difference in the scaling of x and y. In
+        // the end this value should be 1 if the pixel is at the outside radius, < 1
+        // if it is inside that radius and > 1 if it is outside the radius
         .outerRadius = float2((deg2metal[0][0] * vertexIn.radii[1] / 2.0) * vertexIn.viewportSize[0],(deg2metal[1][1] * vertexIn.radii[1] / 2.0) * vertexIn.viewportSize[1]),
-        .innerRadius = float2((deg2metal[0][0] * vertexIn.radii[0] / 2.0) * vertexIn.viewportSize[0],(deg2metal[1][1] * vertexIn.radii[0] / 2.0) * vertexIn.viewportSize[1]),
+        .innerOuterRadiusRatio = vertexIn.radii[0]/vertexIn.radii[1]
     };
     // convert the centerPosition into pixels
     // divide by homogenous component - probably not necessary, but doesn't hurt
@@ -144,14 +149,15 @@ fragment float4 fragment_arcs(const VertexArcsOut in [[stage_in]]) {
     // compute normalized radius. It's normalized differently in X and Y because the pixels may not be square
     // This value should be 1 at the outside radius and 0 at the center
     float outerRadius = sqrt(pow(abs(cos(angle) * distanceToCenter) / in.outerRadius[0],2.0) + pow(abs(sin(angle) * distanceToCenter) / in.outerRadius[1],2.0));
-    float innerRadius = sqrt(pow(abs(cos(angle) * distanceToCenter) / in.innerRadius[0],2.0) + pow(abs(sin(angle) * distanceToCenter) / in.innerRadius[1],2.0));
 
     // get the alpha value for the outer. This will be 1 up until the outer border
     // plus will smoothly ramp (using the builtin smoothstep function) from 1 to 0 alpha
     // over the border piexles
     float a_outer = 1.0 - smoothstep(1.0 - in.half_border, 1.0 + in.half_border, outerRadius);
-    float a_inner = smoothstep(1.0 - in.half_border, 1.0 + in.half_border, innerRadius);
-
+    // now get the alpha for the inner, this will be 0 up until the inner border and 1 after +
+    // blending over border pixesl
+    float a_inner = smoothstep(in.innerOuterRadiusRatio - in.half_border, in.innerOuterRadiusRatio + in.half_border, outerRadius);
+    
     // Now compute the alpha based on how much of a wedge angle is asked for
     float positive_center = in.start_angle + in.half_sweep;
     float angle_to_positive_center = abs(angle - positive_center);
@@ -161,13 +167,15 @@ fragment float4 fragment_arcs(const VertexArcsOut in [[stage_in]]) {
     float a_negative = 1.0 - smoothstep(in.half_sweep - in.half_border, in.half_sweep + in.half_border, angle_to_negative_center);
     float a_wedge = a_positive + a_negative;
 
+    // combine the alpha values for whether the pixel is between the inner and outer
+    // borders and inside the wedge x the alpha that the user set.
     float a = in.color[3] * a_inner * a_outer * a_wedge;
     if (a == 0) {
         // Discard invisible fragment so it won't show up in stencil operations.
         discard_fragment();
     }
-    
-    return float4(in.color[0], in.color[1], in.color[2], 1.0);
+    // return the computed color
+    return float4(in.color[0], in.color[1], in.color[2], a);
 }
 
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/
