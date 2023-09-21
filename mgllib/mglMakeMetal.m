@@ -197,7 +197,8 @@ archs='x86_64';
 cFlags=['-x objective-c -fno-common -no-cpp-precomp -arch ' archs ' -Wno-deprecated-declarations -Wno-deprecated -Wno-implicit-function-declaration -I/Library/Frameworks/eyelink_core.framework/Headers  -I/Library/Frameworks/edfapi.framework/Headers '];
 
 % and linker flags
-ldFlags=['-Wl,-twolevel_namespace -F/Library/Frameworks -undefined error -arch ' archs ' '];
+%ldFlags=['-Wl,-twolevel_namespace -F/Library/Frameworks -undefined error -arch ' archs ' '];
+ldFlags=['-Wl,-twolevel_namespace -F/Library/Frameworks -arch ' archs ' '];
 
 % This specifies the matlab entrance point
 tmw_root = matlabroot;
