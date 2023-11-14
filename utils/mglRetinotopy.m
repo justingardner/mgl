@@ -59,10 +59,13 @@
 %             Also, you can set wich displayName to use (see mglEditScreenParams)
 %             mglRetinotopy('displayName=projector');
 %
+%             To display westheimer on/off biasing background
+%             mglRetinotopy('bars=1','backgroundType=westheimer');
+%
 function myscreen = mglRetinotopy(varargin)
 
 % evaluate the arguments
-eval(evalargs(varargin,0,0,{'wedges','rings','bars','barsTask','barsFix','barsTaskEasy','barsTaskDefault','barAngle','barContrast','elementAngle','direction','dutyCycle','stepsPerCycle','stimulusPeriod','numCycles','doEyeCalib','initialHalfCycle','volumesPerCycle','displayName','easyFixTask','dispText','barWidth','barSweepExtent','elementSize','barStepsMatchElementSize','synchToVolEachCycle','blanks','fixedRandom','yOffset','xOffset','imageWidth','imageHeight'}));
+eval(evalargs(varargin,0,0,{'wedges','rings','bars','barsTask','barsFix','barsTaskEasy','barsTaskDefault','backgroundType','barAngle','barContrast','elementAngle','direction','dutyCycle','stepsPerCycle','stimulusPeriod','numCycles','doEyeCalib','initialHalfCycle','volumesPerCycle','displayName','easyFixTask','dispText','barWidth','barSweepExtent','elementSize','barStepsMatchElementSize','synchToVolEachCycle','blanks','fixedRandom','yOffset','xOffset','imageWidth','imageHeight'}));
 
 global stimulus;
 
@@ -94,6 +97,7 @@ if ieNotDefined('barSweepExtent'),barSweepExtent = 'min';end
 if ieNotDefined('elementSize'),elementSize = [];end
 if ieNotDefined('barStepsMatchElementSize'),barStepsMatchElementSize=true;end
 if ieNotDefined('synchToVolEachCycle'),synchToVolEachCycle=false;end
+if ieNotDefined('backgroundType'),backgroundType='sliding';end
 % settings that are used to adjust the position on the screen
 % the stimuli are shown in - for cases when the subject can
 % not see the whole screen
@@ -131,6 +135,7 @@ end
 myscreen.allowpause = 1;
 myscreen.displayname = displayName;
 myscreen.background = 'gray';
+
 if isempty(stimulus.fixedRandom) || (stimulus.fixedRandom == 0)
   myscreen = initScreen(myscreen);
 else
@@ -139,7 +144,21 @@ else
 end
 % init the stimulus
 myscreen = initStimulus('stimulus',myscreen);
+myscreen.backgroundColor = myscreen.gray;
 
+% set backgroundType
+if isempty(backgroundType) || strcmp(lower(backgroundType),'sliding')
+  stimulus.backgroundType = 1;
+elseif strcmp(lower(backgroundType),'westheimer')
+  stimulus.backgroundType = 2;
+  stimulus.westheimer = westheimer('do=init','frameRate',myscreen.framesPerSecond);
+  myscreen.background = 'black';
+  myscreen.backgroundColor = stimulus.westheimer.backgroundLuminance;
+  mglClearScreen(myscreen.backgroundColor);
+else
+  disp(sprintf('(mglRetionotopy) Unknown backgroundType %s, should be sliding or westheimer'));
+  keyboard
+end
 % some settings for barsTask (needs to go after screen is initialized
 if exist('barsTaskDefault') || exist('barsTask') || exist('barsFix') || exist('barsFix')
   barAngle = 0:45:359;
@@ -1113,17 +1132,23 @@ if any(stimulus.stimulusType == [3 4 5])
 
   % if doing standard bars, then draw sliding elements
   if stimulus.stimulusType == 3
-    % update the phase of the sliding wedges
-    stimulus.phaseNumRect = 1+mod(stimulus.phaseNumRect,stimulus.nRect);
 
-    % draw the whole stimulus pattern, rotate to the element angle
-    x = stimulus.xRect{stimulus.phaseNumRect};
-    y = stimulus.yRect{stimulus.phaseNumRect};
-    coords(1:2,:) = stimulus.elementRotMatrix*[x(1,:);y(1,:)];
-    coords(3:4,:) = stimulus.elementRotMatrix*[x(2,:);y(2,:)];
-    coords(5:6,:) = stimulus.elementRotMatrix*[x(3,:);y(3,:)];
-    coords(7:8,:) = stimulus.elementRotMatrix*[x(4,:);y(4,:)];
-    mglQuad(coords(1:2:8,:)+stimulus.xOffset,coords(2:2:8,:)+stimulus.yOffset,stimulus.cRect{stimulus.phaseNumRect},1);
+    % draw background, 1 is sliding wedges
+    if stimulus.backgroundType == 1
+      % update the phase of the sliding wedges
+      stimulus.phaseNumRect = 1+mod(stimulus.phaseNumRect,stimulus.nRect);
+
+      % draw the whole stimulus pattern, rotate to the element angle
+      x = stimulus.xRect{stimulus.phaseNumRect};
+      y = stimulus.yRect{stimulus.phaseNumRect};
+      coords(1:2,:) = stimulus.elementRotMatrix*[x(1,:);y(1,:)];
+      coords(3:4,:) = stimulus.elementRotMatrix*[x(2,:);y(2,:)];
+      coords(5:6,:) = stimulus.elementRotMatrix*[x(3,:);y(3,:)];
+      coords(7:8,:) = stimulus.elementRotMatrix*[x(4,:);y(4,:)];
+      mglQuad(coords(1:2:8,:)+stimulus.xOffset,coords(2:2:8,:)+stimulus.yOffset,stimulus.cRect{stimulus.phaseNumRect},1);
+    elseif stimulus.backgroundType == 2
+      westheimer('do=update','stimulus',stimulus.westheimer,'frameNum',myscreen.tick);
+    end
 
     % compute the center of the bar
     barCenter = repmat(stimulus.barCenter(stimulus.currentMask,:),size(stimulus.maskBarLeft,1),1);
@@ -1133,8 +1158,8 @@ if any(stimulus.stimulusType == [3 4 5])
     maskBarRight = stimulus.maskBarRotMatrix*(barCenter+stimulus.maskBarRight)';
 
     % draw the bar masks
-    mglPolygon(maskBarLeft(1,:)+stimulus.xOffset,maskBarLeft(2,:)+stimulus.yOffset,0.5);
-    mglPolygon(maskBarRight(1,:)+stimulus.xOffset,maskBarRight(2,:)+stimulus.yOffset,0.5);
+    mglPolygon(maskBarLeft(1,:)+stimulus.xOffset,maskBarLeft(2,:)+stimulus.yOffset,myscreen.backgroundColor);
+    mglPolygon(maskBarRight(1,:)+stimulus.xOffset,maskBarRight(2,:)+stimulus.yOffset,myscreen.backgroundColor);
   elseif stimulus.stimulusType == 4
     % doing dots task, so draw dots, first clear screen
     mglClearScreen;
