@@ -889,8 +889,8 @@ end
 disp(sprintf('(mglSetSID:backup) Found %i subject listings in current database',length(sidDatabase.sid)));
 
 % get backup name
-backupName = sprintf('backup%s',datestr(now,'YYYYMMDD'));
-backupNameStem = sprintf('backup%s',datestr(now,'YYYYMMDD'));iBackup = 1;
+backupName = sprintf('backup%s',datestr(now,'YYYYmmDD'));
+backupNameStem = sprintf('backup%s',datestr(now,'YYYYmmDD'));iBackup = 1;
 % look for one that is not taken already
 while isdir(fullfile(sidDatabasePath,backupName))
   backupName = sprintf('%s_%i',backupNameStem,iBackup);
@@ -1133,8 +1133,8 @@ if ~askuser('(mglSetSID:merge) Confirm changes (If you say yes this will save ch
 end
 
 % ok first make a backup
-backupName = sprintf('backup%s',datestr(now,'YYYYMMDD'));
-backupNameStem = sprintf('backup%s',datestr(now,'YYYYMMDD'));iBackup = 1;
+backupName = sprintf('backup%s',datestr(now,'YYYYmmDD'));
+backupNameStem = sprintf('backup%s',datestr(now,'YYYYmmDD'));iBackup = 1;
 % look for one that is not taken already
 while isdir(fullfile(sidDatabasePath,backupName))
   backupName = sprintf('%s_%i',backupNameStem,iBackup);
