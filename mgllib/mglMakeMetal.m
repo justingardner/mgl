@@ -72,6 +72,9 @@ info.forceRebuild = false;
 % set mex flags
 info.mexopts = '';
 
+% whether to include eyelink frameworks or not.
+info.includeEyelinkFrameworks = false;
+
 % check for eyelink (allow a few different ways of specifying, including
 % mglEyelink or eyelink and adding the word force to force compilation
 if ~isempty(args) && any(strcmp(lower(args{1}), {'mgleyelink', 'eyelink', 'eyelinkforce','mgleyelinkforce','forceeyelink','forcemgleyelink'}))
@@ -85,6 +88,7 @@ if ~isempty(args) && any(strcmp(lower(args{1}), {'mgleyelink', 'eyelink', 'eyeli
     args{1} = 'mglEyelink';
     % set mex flags
     info.mexopts = '-R2018a';
+    info.includeEyelinkFrameworks = true;
 end
 
 % if no arguments or the first argument is not a string, or building
@@ -194,7 +198,10 @@ function info = getMexCommand(info)
 
 % setup compilation flags
 archs='x86_64';
-cFlags=['-x objective-c -fno-common -no-cpp-precomp -arch ' archs ' -Wno-deprecated-declarations -Wno-deprecated -Wno-implicit-function-declaration -I/Library/Frameworks/eyelink_core.framework/Headers  -I/Library/Frameworks/edfapi.framework/Headers '];
+cFlags=['-x objective-c -fno-common -no-cpp-precomp -arch ' archs ' -Wno-deprecated-declarations -Wno-deprecated -Wno-implicit-function-declaration '];
+if info.includeEyelinkFrameworks
+  cFlags=[cFlags '-I/Library/Frameworks/eyelink_core.framework/Headers  -I/Library/Frameworks/edfapi.framework/Headers '];
+end
 
 % and linker flags
 %ldFlags=['-Wl,-twolevel_namespace -F/Library/Frameworks -undefined error -arch ' archs ' '];
@@ -207,7 +214,10 @@ mapfile = 'mexFunction.map';
 ldFlags=[ldFlags '-bundle -Wl,-exported_symbols_list,' tmw_root '/extern/lib/' arch '/' mapfile ' '];
 
 % Specify the Mac frameworks
-ldFlags=[ldFlags '-framework Carbon -framework Cocoa -framework CoreServices -framework openGL -framework QTKit -framework CoreAudio -framework eyelink_core -framework edfapi'];
+ldFlags=[ldFlags '-framework Carbon -framework Cocoa -framework CoreServices -framework openGL -framework QTKit -framework CoreAudio'];
+if info.includeEyelinkFrameworks
+  ldFlags=[ldFlags ' -framework eyelink_core -framework edfapi'];
+end
 
 % mex options
 mexopts = '';
