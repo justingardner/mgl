@@ -560,7 +560,7 @@ end
 
 % try to unencrypt file using openssl des3
 disp(sprintf('(mglSetSID) Loading SID database, enter password'));
-status = system(sprintf('openssl des3 -d -md md5 -in %s -out %s',sidDatabaseFilename,sidDatabaseDecrypt));
+status = system(sprintf('openssl des3 -d -md sha256 -in %s -out %s',sidDatabaseFilename,sidDatabaseDecrypt));
 
 % see if decrypt was successful
 if isequal(status,1)
