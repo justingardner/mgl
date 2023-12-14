@@ -1042,9 +1042,8 @@ extension mglRenderer: MTKViewDelegate {
         // get pointers to the buffer that we will pass to the renderer
         let triangleVerticesPointer = triangleVertices.contents().assumingMemoryBound(to: Float.self);
             
-        // get the viewport size
-        let viewportWidth = Float(view.drawableSize.width)
-        let viewportHeight = Float(view.drawableSize.height)
+        // get the viewport size, which may be the on-screen view or an offscreen texture
+        let (viewportWidth, viewportHeight) = currentColorRenderingConfig.getSize(view: view)
 
         // iterate over how many vertices (i.e. how many arcs) that the user passed in
         for iArc in 0..<arcCount {

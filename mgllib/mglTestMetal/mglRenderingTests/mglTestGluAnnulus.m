@@ -30,8 +30,8 @@ mglVisualAngleCoordinates(50, [20, 20]);
 nRings = 5;
 x = linspace(-5, 5, nRings);
 y = linspace(5, -5, nRings);
-isize = linspace(0, 2, nRings);
-osize = linspace(2, 4, nRings);
+isize = linspace(0, 1, nRings);
+osize = linspace(1, 2, nRings);
 color = [1.0, 0.5, 0.25, 1.0];
 mglGluAnnulus(x, y, isize, osize, color, 'ignored', 'ignored', 0);
 disp('There shoud be 5 rings across the diagonal.')
