@@ -121,11 +121,10 @@ function tf = testDateForCompile(filename,mglHeaderFile)
 
 tf = false;
 
-mexext = 'mexmaci64';
 % get the sourcefile info
 sourcefile = dir(filename);
 % see if it is already compiled
-mexname = [stripext(filename) '.' mexext];
+mexname = [stripext(filename) '.' mexext()];
 mexfile = dir(mexname);
 % mex the file if either there is no mexfile or
 % the date of the mexfile is older than the date of the source file
@@ -196,25 +195,34 @@ end
 %%%%%%%%%%%%%%%%%
 function info = getMexCommand(info)
 
+% choose build flags that depend on Mac hardware
+if strcmp(mexext(), 'mexmaca64')
+    % Apple silicon
+    cflag_arch = 'arm64';
+    extern_lib_arch = 'maca64';
+else
+    % Intel
+    cflag_arch = 'x86_64';
+    extern_lib_arch = 'maci64';
+end
+
 % setup compilation flags
-archs='x86_64';
-cFlags=['-x objective-c -fno-common -no-cpp-precomp -arch ' archs ' -Wno-deprecated-declarations -Wno-deprecated -Wno-implicit-function-declaration '];
+cFlags=['-x objective-c -fno-common -no-cpp-precomp -arch ' cflag_arch ' -Wno-deprecated-declarations -Wno-deprecated -Wno-implicit-function-declaration '];
 if info.includeEyelinkFrameworks
   cFlags=[cFlags '-I/Library/Frameworks/eyelink_core.framework/Headers  -I/Library/Frameworks/edfapi.framework/Headers '];
 end
 
 % and linker flags
 %ldFlags=['-Wl,-twolevel_namespace -F/Library/Frameworks -undefined error -arch ' archs ' '];
-ldFlags=['-Wl,-twolevel_namespace -F/Library/Frameworks -arch ' archs ' '];
+ldFlags=['-Wl,-twolevel_namespace -F/Library/Frameworks -arch ' cflag_arch ' '];
 
 % This specifies the matlab entrance point
 tmw_root = matlabroot;
-arch =  'maci64';
 mapfile = 'mexFunction.map';
-ldFlags=[ldFlags '-bundle -Wl,-exported_symbols_list,' tmw_root '/extern/lib/' arch '/' mapfile ' '];
+ldFlags=[ldFlags '-bundle -Wl,-exported_symbols_list,' tmw_root '/extern/lib/' extern_lib_arch '/' mapfile ' '];
 
 % Specify the Mac frameworks
-ldFlags=[ldFlags '-framework Carbon -framework Cocoa -framework CoreServices -framework openGL -framework QTKit -framework CoreAudio'];
+ldFlags=[ldFlags '-framework Carbon -framework Cocoa -framework CoreServices -framework openGL -framework CoreAudio'];
 if info.includeEyelinkFrameworks
   ldFlags=[ldFlags ' -framework eyelink_core -framework edfapi'];
 end
