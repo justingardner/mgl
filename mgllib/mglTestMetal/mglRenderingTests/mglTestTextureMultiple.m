@@ -23,6 +23,9 @@ if (isInteractive)
     cleanup = onCleanup(@() mglClose());
 end
 
+% TODO: mglText() is broken under Apple Silicon.
+return
+
 %% How to:
 
 % Create several textures, each showing a number.
