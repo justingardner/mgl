@@ -23,13 +23,10 @@ if (isInteractive)
     cleanup = onCleanup(@() mglClose());
 end
 
-% TODO: mglText() is broken under Apple Silicon.
-return
-
 %% How to:
 
 % Configure all mgl text settings to get consistent behavior.
-mglTextSet('Helvetica', 32, [1 1 1 1], 1, 0, 0, 0, 1, 0, 0);
+mglTextSet('Helvetica', 32, [1 1 1 1], 0, 0, 0, 0, 1, 0, 0);
 
 % mglTestTextDraw() is a utility to create, blt, and delete a texture with
 % some written text, all in one command, for convenience.

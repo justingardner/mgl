@@ -23,13 +23,10 @@ if (isInteractive)
     cleanup = onCleanup(@() mglClose());
 end
 
-% TODO: mglText() is broken under Apple Silicon.
-return
-
 %% How to:
 
 % Configure all mgl text settings to get consistent behavior.
-mglTextSet('Helvetica', 32, [1 1 1 1], 1, 0, 30, 0, 1, 0, 0);
+mglTextSet('Helvetica', 32, [1 1 1 1], 0, 0, 30, 0, 1, 0, 0);
 
 % Using those settings, render some text into an image/texture.
 texture = mglText('Hello Text');
