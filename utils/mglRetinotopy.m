@@ -109,7 +109,7 @@ if ieNotDefined('imageHeight'),imageHeight = [];end
 if ieNotDefined('dotsDensity'),dotsDensity = 25;end
 if ieNotDefined('dotsSpeed'),dotsSpeed = 3;end
 if ieNotDefined('dotsSpace'),dotsSpace = 0.5;end % space between three patches
-if ieNotDefined('dotsSize'),dotsSize = 4;end
+if ieNotDefined('dotsSize'),dotsSize = .08;end
 % parameters for barsTask
 if ieNotDefined('startCoherence'),startCoherence = 0.5;end
 if ieNotDefined('stepCoherence'),stepCoherence = 0.05;end
