@@ -121,7 +121,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       pthread_mutex_lock(&mut);
       if (~eventTapInstalled) {
 	// first check if the accessibility API is enabled, cause otherwise we are F*&%ed.
-	if (!AXAPIEnabled() & !gavewarning) {
+	if (!AXIsProcessTrusted() & !gavewarning) {
 	  // give warning (got rid of all the stuff to open the panel and help the user, since
 	  // this caused problems when run from a background thread
 	  mexPrintf("(mglPrivateListener) !!! **WARNING** To get keyboard events, you must allow Terminal to 'control your computer' by going to System Preferences/Privacy/Accessibility and adding Terminal to the list of apps that are allowed to control your computer. See http://gru.stanford.edu/doku.php/mgl/beta#keyboard_events\n !!!");
