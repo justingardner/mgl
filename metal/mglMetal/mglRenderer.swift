@@ -40,7 +40,10 @@ class mglRenderer: NSObject {
     var acknowledgeFlush = false
 
     // Keep track of depth and stencil state, like creating vs applying a stencil, and which stencil.
-    var depthStencilState: mglDepthStencilState!
+    let depthStencilState: mglDepthStencilState
+
+    // Keep track of color rendering state, like oncreen vs offscreen texture, and which texture.
+    let colorRenderingState: mglColorRenderingState
 
     // State to manage commands that repeat themselves over multiple frames/render passes.
     // These drive several different conditionals below that are coupled and need to work in concert.
@@ -59,10 +62,6 @@ class mglRenderer: NSObject {
     // a collection of user-managed textures to render to and/or blt to screen
     var textureSequence = UInt32(1)
     var textures : [UInt32: MTLTexture] = [:]
-
-    // pipeline and other configuration to render to the screen or a texture
-    var onscreenRenderingConfig: mglColorRenderingConfig
-    var currentColorRenderingConfig: mglColorRenderingConfig
 
     // utility to get system nano time
     let secs = mglSecs()
@@ -91,31 +90,23 @@ class mglRenderer: NSObject {
         metalView.device = device
         mglRenderer.device = device
 
-        // Inititialize 0 stencil planes and depth testing.
-        depthStencilState = mglDepthStencilState(device: device)
-
         // initialize the command queue
         mglRenderer.commandQueue = device.makeCommandQueue()!
 
         // create a library for storing the shaders
         library = device.makeDefaultLibrary()
 
-        // Set up to enable depth testing and stenciling.
+        // Inititialize 8 stencil planes and depth testing.
         // Confusingly, some parts of the Metal API treat these as one feature,
         // while other parts treat depth and stenciling as separate features.
-        // In this case, the view treates them as one, with one big pixel format (and one buffer/texture) that handles both.
         metalView.depthStencilPixelFormat = .depth32Float_stencil8
         metalView.clearDepth = 1.0
+        depthStencilState = mglDepthStencilState(device: device)
 
-        // Start with default clear color gray, used for on-screen as well as render to texture.
+        // Initialize color rendering, default to onscreen.
+        // Default gray clear color applies to onscreen and/or offscreen texture.
         metalView.clearColor = MTLClearColor(red: 0.5, green: 0.5, blue: 0.5, alpha: 1.0)
-
-        // Default to onscreen rendering config.
-        guard let onscreenRenderingConfig = mglOnscreenRenderingConfig(device: device, library: library, view: metalView) else {
-            fatalError("Could not create onscreen rendering config, got nil!")
-        }
-        self.onscreenRenderingConfig = onscreenRenderingConfig
-        self.currentColorRenderingConfig = onscreenRenderingConfig
+        colorRenderingState = mglColorRenderingState(device: device, library: library, view: metalView)
 
         // init the super class
         super.init()
@@ -275,7 +266,7 @@ extension mglRenderer: MTKViewDelegate {
         // The call to view.currentRenderPassDescriptor impicitly accessed the view's currentDrawable, as mentioned above.
         // It's possible to swap the order of these calls.
         // But whichever one we call first seems to pay the same blocking/synchronization price when memory usage is high.
-        guard let renderPassDescriptor = currentColorRenderingConfig.getRenderPassDescriptor(view: view) else {
+        guard let renderPassDescriptor = colorRenderingState.getRenderPassDescriptor(view: view) else {
             errorMessage = "(mglRenderer) Could not get render pass descriptor from current color rendering config, aborting render pass."
             os_log("(mglRenderer) Could not get render pass descriptor from current color rendering config, aborting render pass.", log: .default, type: .error)
             // we have failed, so return failure to acknwoledge previous command
@@ -375,7 +366,7 @@ extension mglRenderer: MTKViewDelegate {
         // Present the drawable, and do other things like synchronize texture buffers, if needed.
         renderEncoder.endEncoding()
 
-        currentColorRenderingConfig.finishDrawing(commandBuffer: commandBuffer, drawable: drawable)
+        colorRenderingState.finishDrawing(commandBuffer: commandBuffer, drawable: drawable)
     }
 
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
@@ -485,7 +476,7 @@ extension mglRenderer: MTKViewDelegate {
         // as it is not implemented (and might be hard/impossible?) to get
         // the bytes from that. So, this only works if the current target
         // is a texture (which is set by mglMetalSetRenderTarget
-        let frame = currentColorRenderingConfig.frameGrab()
+        let frame = colorRenderingState.frameGrab()
         // write out the width and height
         _ = commandInterface.writeUInt32(data: UInt32(frame.width))
         _ = commandInterface.writeUInt32(data: UInt32(frame.height))
@@ -604,30 +595,17 @@ extension mglRenderer: MTKViewDelegate {
             return false
         }
 
+        var format: MTLPixelFormat = .bgra8Unorm
         switch formatIndex {
-        case 0: view.colorPixelFormat = .bgra8Unorm
-        case 1: view.colorPixelFormat = .bgra8Unorm_srgb
-        case 2: view.colorPixelFormat = .rgba16Float
-        case 3: view.colorPixelFormat = .rgb10a2Unorm
-        case 4: view.colorPixelFormat = .bgr10a2Unorm
-        default: view.colorPixelFormat = .bgra8Unorm
+        case 0: format = .bgra8Unorm
+        case 1: format = .bgra8Unorm_srgb
+        case 2: format = .rgba16Float
+        case 3: format = .rgb10a2Unorm
+        case 4: format = .bgr10a2Unorm
+        default: format = .bgra8Unorm
         }
 
-        // Recreate the onscreen color rendering config so that render pipelines will use the new color pixel format.
-        guard let newOnscreenRenderingConfig = mglOnscreenRenderingConfig(device: mglRenderer.device, library: library, view: view) else {
-            os_log("(mglRenderer) Could not create onscreen rendering config for pixel format %{public}@.", log: .default, type: .error, String(describing: view.colorPixelFormat))
-            return false
-        }
-
-        if (self.currentColorRenderingConfig is mglOnscreenRenderingConfig) {
-            // Start using the new config right away!
-            self.currentColorRenderingConfig = newOnscreenRenderingConfig
-        }
-
-        // Remember the new onscreen config for later, even if we're currently rendering offscreen.
-        self.onscreenRenderingConfig = newOnscreenRenderingConfig
-
-        return true
+        return colorRenderingState.setOnscreenColorPixelFormat(view: view, library: library, pixelFormat: format)
     }
 
     func drainSystemEvents(view: MTKView) -> Bool {
@@ -805,19 +783,11 @@ extension mglRenderer: MTKViewDelegate {
 
         guard let targetTexture = textures[textureNumber] else {
             os_log("(mglRenderer) Got textureNumber %{public}d, choosing onscreen rendering.", log: .default, type: .info, textureNumber)
-            currentColorRenderingConfig = onscreenRenderingConfig
-            return true
+            return colorRenderingState.setOnscreenRenderingTarget()
         }
 
         os_log("(mglRenderer) Got textureNumber %{public}d, choosing offscreen rendering to texture.", log: .default, type: .info, textureNumber)
-
-        guard let newTextureRenderingConfig = mglOffScreenTextureRenderingConfig(device: mglRenderer.device, library: library, view: view, texture: targetTexture) else {
-            os_log("(mglRenderer) Could not create offscreen rendering config for textureNumber %{public}d, got nil.", log: .default, type: .error, textureNumber)
-            return false
-        }
-        currentColorRenderingConfig = newTextureRenderingConfig
-
-        return true
+        return colorRenderingState.setRenderTarget(view: view, library: library, targetTexture: targetTexture)
     }
 
     func readTexture() -> Bool {
@@ -937,7 +907,7 @@ extension mglRenderer: MTKViewDelegate {
         }
 
         // Draw all the vertices as points with 11 values per vertex: [xyz rgba wh isRound borderSize].
-        renderEncoder.setRenderPipelineState(currentColorRenderingConfig.dotsPipelineState)
+        renderEncoder.setRenderPipelineState(colorRenderingState.getDotsPipelineState())
         renderEncoder.setVertexBuffer(vertexBufferDots, offset: 0, index: 0)
         renderEncoder.drawPrimitives(type: .point, vertexStart: 0, vertexCount: vertexCount)
         return true
@@ -1021,7 +991,7 @@ extension mglRenderer: MTKViewDelegate {
         let triangleVerticesPointer = triangleVertices.contents().assumingMemoryBound(to: Float.self);
 
         // get the viewport size, which may be the on-screen view or an offscreen texture
-        let (viewportWidth, viewportHeight) = currentColorRenderingConfig.getSize(view: view)
+        let (viewportWidth, viewportHeight) = colorRenderingState.getSize(view: view)
 
         // iterate over how many vertices (i.e. how many arcs) that the user passed in
         for iArc in 0..<arcCount {
@@ -1057,7 +1027,7 @@ extension mglRenderer: MTKViewDelegate {
 
         }
         // Draw all the arcs
-        renderEncoder.setRenderPipelineState(currentColorRenderingConfig.arcsPipelineState)
+        renderEncoder.setRenderPipelineState(colorRenderingState.getArcsPipelineState())
         renderEncoder.setVertexBuffer(triangleVertices, offset: 0, index: 0)
         renderEncoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 6*arcCount)
         return true
@@ -1123,7 +1093,7 @@ extension mglRenderer: MTKViewDelegate {
         let samplerState = mglRenderer.device.makeSamplerState(descriptor:samplerDescriptor)
 
         // Draw vertices as points with 5 values per vertex: [xyz uv].
-        renderEncoder.setRenderPipelineState(currentColorRenderingConfig.texturePipelineState)
+        renderEncoder.setRenderPipelineState(colorRenderingState.getTexturePipelineState())
         renderEncoder.setVertexBuffer(vertexBufferTexture, offset: 0, index: 0)
         renderEncoder.setFragmentSamplerState(samplerState, index: 0)
         renderEncoder.setFragmentBytes(&phase, length: MemoryLayout<Float>.stride, index: 2)
@@ -1188,7 +1158,7 @@ extension mglRenderer: MTKViewDelegate {
         }
 
         // Render vertices as points with 6 values per vertex: [xyz rgb]
-        renderEncoder.setRenderPipelineState(currentColorRenderingConfig.verticesWithColorPipelineState)
+        renderEncoder.setRenderPipelineState(colorRenderingState.getVerticesWithColorPipelineState())
         renderEncoder.setVertexBuffer(vertexBufferWithColors, offset: 0, index: 0)
         renderEncoder.drawPrimitives(type: primitiveType, vertexStart: 0, vertexCount: vertexCount)
         return true
@@ -1279,7 +1249,7 @@ extension mglRenderer: MTKViewDelegate {
         // For now, assume drift-phase 0.
         var phase = Float32(0)
 
-        renderEncoder.setRenderPipelineState(currentColorRenderingConfig.texturePipelineState)
+        renderEncoder.setRenderPipelineState(colorRenderingState.getTexturePipelineState())
         renderEncoder.setVertexBuffer(vertexBuffer, offset: 0, index: 0)
         renderEncoder.setFragmentSamplerState(samplerState, index: 0)
         renderEncoder.setFragmentBytes(&phase, length: MemoryLayout<Float>.stride, index: 2)
@@ -1327,7 +1297,7 @@ extension mglRenderer: MTKViewDelegate {
         vertexBuffer.didModifyRange(0 ..< byteCount)
 
         // Render vertices as triangles, two per quad, and 6 values per vertex: [xyz rgb].
-        renderEncoder.setRenderPipelineState(currentColorRenderingConfig.verticesWithColorPipelineState)
+        renderEncoder.setRenderPipelineState(colorRenderingState.getVerticesWithColorPipelineState())
         renderEncoder.setVertexBuffer(vertexBuffer, offset: 0, index: 0)
         renderEncoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: vertexCount)
         return true
@@ -1425,7 +1395,7 @@ extension mglRenderer: MTKViewDelegate {
         }
 
         // Draw all the vertices as points with 11 values per vertex: [xyz rgba wh isRound borderSize].
-        renderEncoder.setRenderPipelineState(currentColorRenderingConfig.dotsPipelineState)
+        renderEncoder.setRenderPipelineState(colorRenderingState.getDotsPipelineState())
         renderEncoder.setVertexBuffer(vertexBuffer, offset: 0, index: 0)
         renderEncoder.drawPrimitives(type: .point, vertexStart: 0, vertexCount: vertexCount)
         return true

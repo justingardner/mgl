@@ -2,20 +2,6 @@
 //  mglColorRenderingConfig.swift
 //  mglMetal
 //
-//  This caputres "things we need to do to set up for color rendering".
-//  What does that mean?  Things like setting up a Metal render pass descriptor
-//  And managing textures to hold color and/or depth data.
-//
-//  Why is it worth extracthing this out of the mglRenderer?
-//  Because we have at least two different flavors of color rendering:
-//  Normal on-screen rendering, and off-screen rendering to a chosen texture.
-//
-//  There are several places in mglRenderer where we do similar-but-differrent things,
-//  Depending on which flavor of color rendering we're doing.
-//  This caused too many if-else sections scattered around the code,
-//  that all needed to work together.
-//  Better to group all the "ifs" into one place, and the "elses" into another.
-//
 //  Created by Benjamin Heasly on 5/2/22.
 //  Copyright © 2022 GRU. All rights reserved.
 //
@@ -24,11 +10,117 @@ import Foundation
 import MetalKit
 import os.log
 
+/*
+ mglColorRenderingState keeps track the current color rendering state for the app, including:
+ - whether we're rendering to screen or to an offscreen texture
+ - how to set up a rendering pass for screen or texture
+ - depth and stencil textures that correspond to the color rendering target
 
-// This declares the operations that mglRenderer relies on,
-// to set up Metal rendering passes and pipelines.
+ Color rendering config needs to be applied at a couple of points for each render pass.
+ At each point we need to be consistent about what state we're in and which texture to target.
+ mglColorRenderingState encloses the state-dependent consistency with a polymorphic/strategy approach,
+ which seems nicer than having lots of conditionals in the render pass setup code.
+ mglRenderer just needs to call mglColorRenderingState methods at the right times.
+ */
+class mglColorRenderingState {
+    // The usual config for on-screen rendering.
+    private var onscreenRenderingConfig: mglColorRenderingConfig!
+
+    // The current config might be onscreenRenderingConfig, or one targeting a specific texture.
+    private var currentColorRenderingConfig: mglColorRenderingConfig!
+
+    init(device: MTLDevice, library: MTLLibrary, view: MTKView) {
+        // Default to onscreen rendering config.
+        guard let onscreenRenderingConfig = mglOnscreenRenderingConfig(device: device, library: library, view: view) else {
+            fatalError("Could not create onscreen rendering config, got nil!")
+        }
+        self.onscreenRenderingConfig = onscreenRenderingConfig
+        self.currentColorRenderingConfig = onscreenRenderingConfig
+    }
+
+    // Collaborate with mglRenderer to set up a render pass.
+    func getRenderPassDescriptor(view: MTKView) -> MTLRenderPassDescriptor? {
+        return currentColorRenderingConfig.getRenderPassDescriptor(view: view)
+    }
+
+    // Collaborate with mglRenderer to set up a render pass.
+    func finishDrawing(commandBuffer: MTLCommandBuffer, drawable: CAMetalDrawable) {
+        return currentColorRenderingConfig.finishDrawing(commandBuffer: commandBuffer, drawable: drawable)
+    }
+
+    // Collaborate with mglRenderer to set up a render pass.
+    func getDotsPipelineState() -> MTLRenderPipelineState {
+        return currentColorRenderingConfig.dotsPipelineState
+    }
+
+    // Collaborate with mglRenderer to set up a render pass.
+    func getArcsPipelineState() -> MTLRenderPipelineState {
+        return currentColorRenderingConfig.arcsPipelineState
+    }
+
+    // Collaborate with mglRenderer to set up a render pass.
+    func getTexturePipelineState() -> MTLRenderPipelineState {
+        return currentColorRenderingConfig.texturePipelineState
+    }
+
+    // Collaborate with mglRenderer to set up a render pass.
+    func getVerticesWithColorPipelineState() -> MTLRenderPipelineState {
+        return currentColorRenderingConfig.verticesWithColorPipelineState
+    }
+
+    // Let mglRenderer grab the current fame from a texture target.
+    func frameGrab() -> (width: Int, height: Int, pointer: UnsafeMutablePointer<Float>?) {
+        return currentColorRenderingConfig.frameGrab()
+    }
+
+    // Select a pixel format for onscreen rendering.
+    func setOnscreenColorPixelFormat(view: MTKView, library: MTLLibrary, pixelFormat: MTLPixelFormat) -> Bool {
+        view.colorPixelFormat = pixelFormat
+
+        // Recreate the onscreen color rendering config so that render pipelines will use the new color pixel format.
+        guard let newOnscreenRenderingConfig = mglOnscreenRenderingConfig(device: mglRenderer.device, library: library, view: view) else {
+            os_log("(mglColorRenderingState) Could not create onscreen rendering config for pixel format %{public}@.",
+                   log: .default, type: .error, String(describing: view.colorPixelFormat))
+            return false
+        }
+
+        if (self.currentColorRenderingConfig is mglOnscreenRenderingConfig) {
+            // Start using the new config right away!
+            self.currentColorRenderingConfig = newOnscreenRenderingConfig
+        }
+
+        // Remember the new onscreen config for later, even if we're currently rendering offscreen.
+        self.onscreenRenderingConfig = newOnscreenRenderingConfig
+
+        return true
+    }
+
+    // Default back to onscreen rendering.
+    func setOnscreenRenderingTarget() -> Bool {
+        currentColorRenderingConfig = onscreenRenderingConfig
+        return true
+    }
+
+    // Use the given texture as an offscreen rendering target.
+    func setRenderTarget(view: MTKView, library: MTLLibrary, targetTexture: MTLTexture) -> Bool {
+        guard let newTextureRenderingConfig = mglOffScreenTextureRenderingConfig(device: mglRenderer.device, library: library, view: view, texture: targetTexture) else {
+            os_log("(mglColorRenderingState) Could not create offscreen rendering config, got nil.",
+                   log: .default, type: .error)
+            return false
+        }
+        currentColorRenderingConfig = newTextureRenderingConfig
+        return true
+    }
+
+    // Report the size of the onscreen drawable or offscreen texture.
+    func getSize(view: MTKView) -> (Float, Float){
+        return currentColorRenderingConfig.getSize(view: view)
+    }
+}
+
+// This declares the operations that mglRenderer relies on to set up Metal rendering passes and pipelines.
 // It will have different implementations for on-screen vs off-screen rendering.
-protocol mglColorRenderingConfig {
+private protocol mglColorRenderingConfig {
     var dotsPipelineState: MTLRenderPipelineState { get }
     var arcsPipelineState: MTLRenderPipelineState { get }
     var verticesWithColorPipelineState: MTLRenderPipelineState { get }
@@ -41,7 +133,7 @@ protocol mglColorRenderingConfig {
     func frameGrab()->(width: Int, height: Int, pointer: UnsafeMutablePointer<Float>?)
 }
 
-class mglOnscreenRenderingConfig : mglColorRenderingConfig {
+private class mglOnscreenRenderingConfig : mglColorRenderingConfig {
     let dotsPipelineState: MTLRenderPipelineState
     let arcsPipelineState: MTLRenderPipelineState
     let verticesWithColorPipelineState: MTLRenderPipelineState
@@ -98,13 +190,13 @@ class mglOnscreenRenderingConfig : mglColorRenderingConfig {
     // has to be drawn into an offscreen texture, so for now, this function just returns
     // nil to notify that the frameGrab is impossible
     func frameGrab() -> (width: Int, height: Int, pointer: UnsafeMutablePointer<Float>?) {
-      os_log("(mglColorRenderingConfig:frameGrab) Cannot get frame because render target is the screen", log: .default, type: .error)
-      return (0,0,nil)
+        os_log("(mglColorRenderingConfig:frameGrab) Cannot get frame because render target is the screen", log: .default, type: .error)
+        return (0,0,nil)
     }
 
 }
 
-class mglOffScreenTextureRenderingConfig : mglColorRenderingConfig {
+private class mglOffScreenTextureRenderingConfig : mglColorRenderingConfig {
     let dotsPipelineState: MTLRenderPipelineState
     let arcsPipelineState: MTLRenderPipelineState
     let verticesWithColorPipelineState: MTLRenderPipelineState
@@ -191,7 +283,7 @@ class mglOffScreenTextureRenderingConfig : mglColorRenderingConfig {
         // Wait until the bltCommandEncoder is done syncing data from GPU to CPU.
         commandBuffer.waitUntilCompleted()
     }
-    
+
     // frameGrab, this will write the bytes of the texture into an array
     func frameGrab() -> (width: Int, height: Int, pointer: UnsafeMutablePointer<Float>?) {
         // first make sure we have the right MTLTexture format (this should always be the same - it's set in
