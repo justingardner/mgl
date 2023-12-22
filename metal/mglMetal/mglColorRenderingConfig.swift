@@ -143,25 +143,25 @@ private class mglOnscreenRenderingConfig : mglColorRenderingConfig {
         // Until an explicit OOP command model exists, we can just call static functions of mglRenderer.
         do {
             dotsPipelineState = try device.makeRenderPipelineState(
-                descriptor: mglRenderer.dotsPipelineStateDescriptor(
+                descriptor: dotsPipelineStateDescriptor(
                     colorPixelFormat: view.colorPixelFormat,
                     depthPixelFormat: view.depthStencilPixelFormat,
                     stencilPixelFormat: view.depthStencilPixelFormat,
                     library: library))
             arcsPipelineState = try device.makeRenderPipelineState(
-                descriptor: mglRenderer.arcsPipelineStateDescriptor(
+                descriptor: arcsPipelineStateDescriptor(
                     colorPixelFormat: view.colorPixelFormat,
                     depthPixelFormat: view.depthStencilPixelFormat,
                     stencilPixelFormat: view.depthStencilPixelFormat,
                     library: library))
             verticesWithColorPipelineState = try device.makeRenderPipelineState(
-                descriptor: mglRenderer.drawVerticesPipelineStateDescriptor(
+                descriptor: drawVerticesPipelineStateDescriptor(
                     colorPixelFormat: view.colorPixelFormat,
                     depthPixelFormat: view.depthStencilPixelFormat,
                     stencilPixelFormat: view.depthStencilPixelFormat,
                     library: library))
             texturePipelineState = try device.makeRenderPipelineState(
-                descriptor: mglRenderer.bltTexturePipelineStateDescriptor(
+                descriptor: bltTexturePipelineStateDescriptor(
                     colorPixelFormat: view.colorPixelFormat,
                     depthPixelFormat: view.depthStencilPixelFormat,
                     stencilPixelFormat: view.depthStencilPixelFormat,
@@ -233,25 +233,25 @@ private class mglOffScreenTextureRenderingConfig : mglColorRenderingConfig {
 
         do {
             dotsPipelineState = try device.makeRenderPipelineState(
-                descriptor: mglRenderer.dotsPipelineStateDescriptor(
+                descriptor: dotsPipelineStateDescriptor(
                     colorPixelFormat: texture.pixelFormat,
                     depthPixelFormat: view.depthStencilPixelFormat,
                     stencilPixelFormat: view.depthStencilPixelFormat,
                     library: library))
             arcsPipelineState = try device.makeRenderPipelineState(
-                descriptor: mglRenderer.arcsPipelineStateDescriptor(
+                descriptor: arcsPipelineStateDescriptor(
                     colorPixelFormat: texture.pixelFormat,
                     depthPixelFormat: view.depthStencilPixelFormat,
                     stencilPixelFormat: view.depthStencilPixelFormat,
                     library: library))
             verticesWithColorPipelineState = try device.makeRenderPipelineState(
-                descriptor: mglRenderer.drawVerticesPipelineStateDescriptor(
+                descriptor: drawVerticesPipelineStateDescriptor(
                     colorPixelFormat: texture.pixelFormat,
                     depthPixelFormat: view.depthStencilPixelFormat,
                     stencilPixelFormat: view.depthStencilPixelFormat,
                     library: library))
             texturePipelineState = try device.makeRenderPipelineState(
-                descriptor: mglRenderer.bltTexturePipelineStateDescriptor(
+                descriptor: bltTexturePipelineStateDescriptor(
                     colorPixelFormat: texture.pixelFormat,
                     depthPixelFormat: view.depthStencilPixelFormat,
                     stencilPixelFormat: view.depthStencilPixelFormat,
@@ -310,4 +310,147 @@ private class mglOffScreenTextureRenderingConfig : mglColorRenderingConfig {
             return (0,0,nil)
         }
     }
+}
+
+private func dotsPipelineStateDescriptor(colorPixelFormat:  MTLPixelFormat, depthPixelFormat:  MTLPixelFormat, stencilPixelFormat:  MTLPixelFormat, library: MTLLibrary?) -> MTLRenderPipelineDescriptor {
+    let pipelineDescriptor = MTLRenderPipelineDescriptor()
+    pipelineDescriptor.depthAttachmentPixelFormat = depthPixelFormat
+    pipelineDescriptor.stencilAttachmentPixelFormat = stencilPixelFormat
+    pipelineDescriptor.colorAttachments[0].pixelFormat = colorPixelFormat
+    pipelineDescriptor.colorAttachments[0].isBlendingEnabled = true;
+    pipelineDescriptor.colorAttachments[0].rgbBlendOperation = MTLBlendOperation.add;
+    pipelineDescriptor.colorAttachments[0].alphaBlendOperation = MTLBlendOperation.add;
+    pipelineDescriptor.colorAttachments[0].sourceRGBBlendFactor = MTLBlendFactor.sourceAlpha;
+    pipelineDescriptor.colorAttachments[0].sourceAlphaBlendFactor = MTLBlendFactor.sourceAlpha;
+    pipelineDescriptor.colorAttachments[0].destinationRGBBlendFactor = MTLBlendFactor.oneMinusSourceAlpha;
+    pipelineDescriptor.colorAttachments[0].destinationAlphaBlendFactor = MTLBlendFactor.oneMinusSourceAlpha;
+
+    let vertexDescriptor = MTLVertexDescriptor()
+    vertexDescriptor.attributes[0].format = .float3
+    vertexDescriptor.attributes[0].offset = 0
+    vertexDescriptor.attributes[0].bufferIndex = 0
+    vertexDescriptor.attributes[1].format = .float4
+    vertexDescriptor.attributes[1].offset = 3 * MemoryLayout<Float>.size
+    vertexDescriptor.attributes[1].bufferIndex = 0
+    vertexDescriptor.attributes[2].format = .float2
+    vertexDescriptor.attributes[2].offset = 7 * MemoryLayout<Float>.size
+    vertexDescriptor.attributes[2].bufferIndex = 0
+    vertexDescriptor.attributes[3].format = .float
+    vertexDescriptor.attributes[3].offset = 9 * MemoryLayout<Float>.size
+    vertexDescriptor.attributes[3].bufferIndex = 0
+    vertexDescriptor.attributes[4].format = .float
+    vertexDescriptor.attributes[4].offset = 10 * MemoryLayout<Float>.size
+    vertexDescriptor.attributes[4].bufferIndex = 0
+    vertexDescriptor.layouts[0].stride = 11 * MemoryLayout<Float>.size
+    pipelineDescriptor.vertexDescriptor = vertexDescriptor
+    pipelineDescriptor.vertexFunction = library?.makeFunction(name: "vertex_dots")
+    pipelineDescriptor.fragmentFunction = library?.makeFunction(name: "fragment_dots")
+
+    return pipelineDescriptor
+}
+
+private func arcsPipelineStateDescriptor(colorPixelFormat:  MTLPixelFormat, depthPixelFormat:  MTLPixelFormat, stencilPixelFormat:  MTLPixelFormat, library: MTLLibrary?) -> MTLRenderPipelineDescriptor {
+    let pipelineDescriptor = MTLRenderPipelineDescriptor()
+    pipelineDescriptor.depthAttachmentPixelFormat = depthPixelFormat
+    pipelineDescriptor.stencilAttachmentPixelFormat = stencilPixelFormat
+    pipelineDescriptor.colorAttachments[0].pixelFormat = colorPixelFormat
+    pipelineDescriptor.colorAttachments[0].isBlendingEnabled = true;
+    pipelineDescriptor.colorAttachments[0].rgbBlendOperation = MTLBlendOperation.add;
+    pipelineDescriptor.colorAttachments[0].alphaBlendOperation = MTLBlendOperation.add;
+    pipelineDescriptor.colorAttachments[0].sourceRGBBlendFactor = MTLBlendFactor.sourceAlpha;
+    pipelineDescriptor.colorAttachments[0].sourceAlphaBlendFactor = MTLBlendFactor.sourceAlpha;
+    pipelineDescriptor.colorAttachments[0].destinationRGBBlendFactor = MTLBlendFactor.oneMinusSourceAlpha;
+    pipelineDescriptor.colorAttachments[0].destinationAlphaBlendFactor = MTLBlendFactor.oneMinusSourceAlpha;
+
+    let vertexDescriptor = MTLVertexDescriptor()
+    // xyz
+    vertexDescriptor.attributes[0].format = .float3
+    vertexDescriptor.attributes[0].offset = 0
+    vertexDescriptor.attributes[0].bufferIndex = 0
+    // rgba
+    vertexDescriptor.attributes[1].format = .float4
+    vertexDescriptor.attributes[1].offset = 3 * MemoryLayout<Float>.stride
+    vertexDescriptor.attributes[1].bufferIndex = 0
+    // radii
+    vertexDescriptor.attributes[2].format = .float4
+    vertexDescriptor.attributes[2].offset = 7 * MemoryLayout<Float>.stride
+    vertexDescriptor.attributes[2].bufferIndex = 0
+    // wedge
+    vertexDescriptor.attributes[3].format = .float2
+    vertexDescriptor.attributes[3].offset = 11 * MemoryLayout<Float>.stride
+    vertexDescriptor.attributes[3].bufferIndex = 0
+    // border
+    vertexDescriptor.attributes[4].format = .float
+    vertexDescriptor.attributes[4].offset = 13 * MemoryLayout<Float>.stride
+    vertexDescriptor.attributes[4].bufferIndex = 0
+    // center vertex (computed)
+    vertexDescriptor.attributes[5].format = .float3
+    vertexDescriptor.attributes[5].offset = 14 * MemoryLayout<Float>.stride
+    vertexDescriptor.attributes[5].bufferIndex = 0
+    // viewport size
+    vertexDescriptor.attributes[6].format = .float2
+    vertexDescriptor.attributes[6].offset = 17 * MemoryLayout<Float>.stride
+    vertexDescriptor.attributes[6].bufferIndex = 0
+    vertexDescriptor.layouts[0].stride = 19 * MemoryLayout<Float>.stride
+    pipelineDescriptor.vertexDescriptor = vertexDescriptor
+    pipelineDescriptor.vertexFunction = library?.makeFunction(name: "vertex_arcs")
+    pipelineDescriptor.fragmentFunction = library?.makeFunction(name: "fragment_arcs")
+
+    return pipelineDescriptor
+}
+
+private func bltTexturePipelineStateDescriptor(colorPixelFormat:  MTLPixelFormat, depthPixelFormat:  MTLPixelFormat, stencilPixelFormat:  MTLPixelFormat, library: MTLLibrary?) -> MTLRenderPipelineDescriptor {
+    let pipelineDescriptor = MTLRenderPipelineDescriptor()
+    pipelineDescriptor.depthAttachmentPixelFormat = depthPixelFormat
+    pipelineDescriptor.stencilAttachmentPixelFormat = stencilPixelFormat
+    pipelineDescriptor.colorAttachments[0].pixelFormat = colorPixelFormat
+    pipelineDescriptor.colorAttachments[0].isBlendingEnabled = true;
+    pipelineDescriptor.colorAttachments[0].rgbBlendOperation = MTLBlendOperation.add;
+    pipelineDescriptor.colorAttachments[0].alphaBlendOperation = MTLBlendOperation.add;
+    pipelineDescriptor.colorAttachments[0].sourceRGBBlendFactor = MTLBlendFactor.sourceAlpha;
+    pipelineDescriptor.colorAttachments[0].sourceAlphaBlendFactor = MTLBlendFactor.sourceAlpha;
+    pipelineDescriptor.colorAttachments[0].destinationRGBBlendFactor = MTLBlendFactor.oneMinusSourceAlpha;
+    pipelineDescriptor.colorAttachments[0].destinationAlphaBlendFactor = MTLBlendFactor.oneMinusSourceAlpha;
+
+    let vertexDescriptor = MTLVertexDescriptor()
+    vertexDescriptor.attributes[0].format = .float3
+    vertexDescriptor.attributes[0].offset = 0
+    vertexDescriptor.attributes[0].bufferIndex = 0
+    vertexDescriptor.attributes[1].format = .float2
+    vertexDescriptor.attributes[1].offset = 3 * MemoryLayout<Float>.size
+    vertexDescriptor.attributes[1].bufferIndex = 0
+    vertexDescriptor.layouts[0].stride = 5 * MemoryLayout<Float>.size
+    pipelineDescriptor.vertexDescriptor = vertexDescriptor
+    pipelineDescriptor.vertexFunction = library?.makeFunction(name: "vertex_textures")
+    pipelineDescriptor.fragmentFunction = library?.makeFunction(name: "fragment_textures")
+
+    return pipelineDescriptor
+}
+
+private func drawVerticesPipelineStateDescriptor(colorPixelFormat:  MTLPixelFormat, depthPixelFormat:  MTLPixelFormat, stencilPixelFormat:  MTLPixelFormat, library: MTLLibrary?) -> MTLRenderPipelineDescriptor {
+    let pipelineDescriptor = MTLRenderPipelineDescriptor()
+    pipelineDescriptor.depthAttachmentPixelFormat = depthPixelFormat
+    pipelineDescriptor.stencilAttachmentPixelFormat = stencilPixelFormat
+    pipelineDescriptor.colorAttachments[0].pixelFormat = colorPixelFormat
+    pipelineDescriptor.colorAttachments[0].isBlendingEnabled = true;
+    pipelineDescriptor.colorAttachments[0].rgbBlendOperation = MTLBlendOperation.add;
+    pipelineDescriptor.colorAttachments[0].alphaBlendOperation = MTLBlendOperation.add;
+    pipelineDescriptor.colorAttachments[0].sourceRGBBlendFactor = MTLBlendFactor.sourceAlpha;
+    pipelineDescriptor.colorAttachments[0].sourceAlphaBlendFactor = MTLBlendFactor.sourceAlpha;
+    pipelineDescriptor.colorAttachments[0].destinationRGBBlendFactor = MTLBlendFactor.oneMinusSourceAlpha;
+    pipelineDescriptor.colorAttachments[0].destinationAlphaBlendFactor = MTLBlendFactor.oneMinusSourceAlpha;
+
+    let vertexDescriptor = MTLVertexDescriptor()
+    vertexDescriptor.attributes[0].format = .float3
+    vertexDescriptor.attributes[0].offset = 0
+    vertexDescriptor.attributes[0].bufferIndex = 0
+    vertexDescriptor.attributes[1].format = .float3
+    vertexDescriptor.attributes[1].offset = 3 * MemoryLayout<Float>.size
+    vertexDescriptor.attributes[1].bufferIndex = 0
+    vertexDescriptor.layouts[0].stride = 6 * MemoryLayout<Float>.size
+    pipelineDescriptor.vertexDescriptor = vertexDescriptor
+    pipelineDescriptor.vertexFunction = library?.makeFunction(name: "vertex_with_color")
+    pipelineDescriptor.fragmentFunction = library?.makeFunction(name: "fragment_with_color")
+
+    return pipelineDescriptor
 }

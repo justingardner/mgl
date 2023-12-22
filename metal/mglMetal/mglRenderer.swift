@@ -864,42 +864,6 @@ extension mglRenderer: MTKViewDelegate {
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     // Drawing commands
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
-    class func dotsPipelineStateDescriptor(colorPixelFormat:  MTLPixelFormat, depthPixelFormat:  MTLPixelFormat, stencilPixelFormat:  MTLPixelFormat, library: MTLLibrary?) -> MTLRenderPipelineDescriptor {
-        let pipelineDescriptor = MTLRenderPipelineDescriptor()
-        pipelineDescriptor.depthAttachmentPixelFormat = depthPixelFormat
-        pipelineDescriptor.stencilAttachmentPixelFormat = stencilPixelFormat
-        pipelineDescriptor.colorAttachments[0].pixelFormat = colorPixelFormat
-        pipelineDescriptor.colorAttachments[0].isBlendingEnabled = true;
-        pipelineDescriptor.colorAttachments[0].rgbBlendOperation = MTLBlendOperation.add;
-        pipelineDescriptor.colorAttachments[0].alphaBlendOperation = MTLBlendOperation.add;
-        pipelineDescriptor.colorAttachments[0].sourceRGBBlendFactor = MTLBlendFactor.sourceAlpha;
-        pipelineDescriptor.colorAttachments[0].sourceAlphaBlendFactor = MTLBlendFactor.sourceAlpha;
-        pipelineDescriptor.colorAttachments[0].destinationRGBBlendFactor = MTLBlendFactor.oneMinusSourceAlpha;
-        pipelineDescriptor.colorAttachments[0].destinationAlphaBlendFactor = MTLBlendFactor.oneMinusSourceAlpha;
-
-        let vertexDescriptor = MTLVertexDescriptor()
-        vertexDescriptor.attributes[0].format = .float3
-        vertexDescriptor.attributes[0].offset = 0
-        vertexDescriptor.attributes[0].bufferIndex = 0
-        vertexDescriptor.attributes[1].format = .float4
-        vertexDescriptor.attributes[1].offset = 3 * MemoryLayout<Float>.size
-        vertexDescriptor.attributes[1].bufferIndex = 0
-        vertexDescriptor.attributes[2].format = .float2
-        vertexDescriptor.attributes[2].offset = 7 * MemoryLayout<Float>.size
-        vertexDescriptor.attributes[2].bufferIndex = 0
-        vertexDescriptor.attributes[3].format = .float
-        vertexDescriptor.attributes[3].offset = 9 * MemoryLayout<Float>.size
-        vertexDescriptor.attributes[3].bufferIndex = 0
-        vertexDescriptor.attributes[4].format = .float
-        vertexDescriptor.attributes[4].offset = 10 * MemoryLayout<Float>.size
-        vertexDescriptor.attributes[4].bufferIndex = 0
-        vertexDescriptor.layouts[0].stride = 11 * MemoryLayout<Float>.size
-        pipelineDescriptor.vertexDescriptor = vertexDescriptor
-        pipelineDescriptor.vertexFunction = library?.makeFunction(name: "vertex_dots")
-        pipelineDescriptor.fragmentFunction = library?.makeFunction(name: "fragment_dots")
-
-        return pipelineDescriptor
-    }
 
     func drawDots(view: MTKView, renderEncoder: MTLRenderCommandEncoder) -> Bool {
         guard let (vertexBufferDots, vertexCount) = commandInterface.readVertices(device: mglRenderer.device, extraVals: 8) else {
@@ -911,56 +875,6 @@ extension mglRenderer: MTKViewDelegate {
         renderEncoder.setVertexBuffer(vertexBufferDots, offset: 0, index: 0)
         renderEncoder.drawPrimitives(type: .point, vertexStart: 0, vertexCount: vertexCount)
         return true
-    }
-
-    class func arcsPipelineStateDescriptor(colorPixelFormat:  MTLPixelFormat, depthPixelFormat:  MTLPixelFormat, stencilPixelFormat:  MTLPixelFormat, library: MTLLibrary?) -> MTLRenderPipelineDescriptor {
-        let pipelineDescriptor = MTLRenderPipelineDescriptor()
-        pipelineDescriptor.depthAttachmentPixelFormat = depthPixelFormat
-        pipelineDescriptor.stencilAttachmentPixelFormat = stencilPixelFormat
-        pipelineDescriptor.colorAttachments[0].pixelFormat = colorPixelFormat
-        pipelineDescriptor.colorAttachments[0].isBlendingEnabled = true;
-        pipelineDescriptor.colorAttachments[0].rgbBlendOperation = MTLBlendOperation.add;
-        pipelineDescriptor.colorAttachments[0].alphaBlendOperation = MTLBlendOperation.add;
-        pipelineDescriptor.colorAttachments[0].sourceRGBBlendFactor = MTLBlendFactor.sourceAlpha;
-        pipelineDescriptor.colorAttachments[0].sourceAlphaBlendFactor = MTLBlendFactor.sourceAlpha;
-        pipelineDescriptor.colorAttachments[0].destinationRGBBlendFactor = MTLBlendFactor.oneMinusSourceAlpha;
-        pipelineDescriptor.colorAttachments[0].destinationAlphaBlendFactor = MTLBlendFactor.oneMinusSourceAlpha;
-
-        let vertexDescriptor = MTLVertexDescriptor()
-        // xyz
-        vertexDescriptor.attributes[0].format = .float3
-        vertexDescriptor.attributes[0].offset = 0
-        vertexDescriptor.attributes[0].bufferIndex = 0
-        // rgba
-        vertexDescriptor.attributes[1].format = .float4
-        vertexDescriptor.attributes[1].offset = 3 * MemoryLayout<Float>.stride
-        vertexDescriptor.attributes[1].bufferIndex = 0
-        // radii
-        vertexDescriptor.attributes[2].format = .float4
-        vertexDescriptor.attributes[2].offset = 7 * MemoryLayout<Float>.stride
-        vertexDescriptor.attributes[2].bufferIndex = 0
-        // wedge
-        vertexDescriptor.attributes[3].format = .float2
-        vertexDescriptor.attributes[3].offset = 11 * MemoryLayout<Float>.stride
-        vertexDescriptor.attributes[3].bufferIndex = 0
-        // border
-        vertexDescriptor.attributes[4].format = .float
-        vertexDescriptor.attributes[4].offset = 13 * MemoryLayout<Float>.stride
-        vertexDescriptor.attributes[4].bufferIndex = 0
-        // center vertex (computed)
-        vertexDescriptor.attributes[5].format = .float3
-        vertexDescriptor.attributes[5].offset = 14 * MemoryLayout<Float>.stride
-        vertexDescriptor.attributes[5].bufferIndex = 0
-        // viewport size
-        vertexDescriptor.attributes[6].format = .float2
-        vertexDescriptor.attributes[6].offset = 17 * MemoryLayout<Float>.stride
-        vertexDescriptor.attributes[6].bufferIndex = 0
-        vertexDescriptor.layouts[0].stride = 19 * MemoryLayout<Float>.stride
-        pipelineDescriptor.vertexDescriptor = vertexDescriptor
-        pipelineDescriptor.vertexFunction = library?.makeFunction(name: "vertex_arcs")
-        pipelineDescriptor.fragmentFunction = library?.makeFunction(name: "fragment_arcs")
-
-        return pipelineDescriptor
     }
 
     func drawArcs(view: MTKView, renderEncoder: MTLRenderCommandEncoder) -> Bool {
@@ -1033,35 +947,6 @@ extension mglRenderer: MTKViewDelegate {
         return true
     }
 
-
-    class func bltTexturePipelineStateDescriptor(colorPixelFormat:  MTLPixelFormat, depthPixelFormat:  MTLPixelFormat, stencilPixelFormat:  MTLPixelFormat, library: MTLLibrary?) -> MTLRenderPipelineDescriptor {
-        let pipelineDescriptor = MTLRenderPipelineDescriptor()
-        pipelineDescriptor.depthAttachmentPixelFormat = depthPixelFormat
-        pipelineDescriptor.stencilAttachmentPixelFormat = stencilPixelFormat
-        pipelineDescriptor.colorAttachments[0].pixelFormat = colorPixelFormat
-        pipelineDescriptor.colorAttachments[0].isBlendingEnabled = true;
-        pipelineDescriptor.colorAttachments[0].rgbBlendOperation = MTLBlendOperation.add;
-        pipelineDescriptor.colorAttachments[0].alphaBlendOperation = MTLBlendOperation.add;
-        pipelineDescriptor.colorAttachments[0].sourceRGBBlendFactor = MTLBlendFactor.sourceAlpha;
-        pipelineDescriptor.colorAttachments[0].sourceAlphaBlendFactor = MTLBlendFactor.sourceAlpha;
-        pipelineDescriptor.colorAttachments[0].destinationRGBBlendFactor = MTLBlendFactor.oneMinusSourceAlpha;
-        pipelineDescriptor.colorAttachments[0].destinationAlphaBlendFactor = MTLBlendFactor.oneMinusSourceAlpha;
-
-        let vertexDescriptor = MTLVertexDescriptor()
-        vertexDescriptor.attributes[0].format = .float3
-        vertexDescriptor.attributes[0].offset = 0
-        vertexDescriptor.attributes[0].bufferIndex = 0
-        vertexDescriptor.attributes[1].format = .float2
-        vertexDescriptor.attributes[1].offset = 3 * MemoryLayout<Float>.size
-        vertexDescriptor.attributes[1].bufferIndex = 0
-        vertexDescriptor.layouts[0].stride = 5 * MemoryLayout<Float>.size
-        pipelineDescriptor.vertexDescriptor = vertexDescriptor
-        pipelineDescriptor.vertexFunction = library?.makeFunction(name: "vertex_textures")
-        pipelineDescriptor.fragmentFunction = library?.makeFunction(name: "fragment_textures")
-
-        return pipelineDescriptor
-    }
-
     func bltTexture(view: MTKView, renderEncoder: MTLRenderCommandEncoder) -> Bool {
         // Read all data up front, since it's expected to be consumed.
         guard let minMagFilterRawValue = commandInterface.readUInt32(),
@@ -1122,34 +1007,6 @@ extension mglRenderer: MTKViewDelegate {
             return defaultValue
         }
         return filter
-    }
-
-    class func drawVerticesPipelineStateDescriptor(colorPixelFormat:  MTLPixelFormat, depthPixelFormat:  MTLPixelFormat, stencilPixelFormat:  MTLPixelFormat, library: MTLLibrary?) -> MTLRenderPipelineDescriptor {
-        let pipelineDescriptor = MTLRenderPipelineDescriptor()
-        pipelineDescriptor.depthAttachmentPixelFormat = depthPixelFormat
-        pipelineDescriptor.stencilAttachmentPixelFormat = stencilPixelFormat
-        pipelineDescriptor.colorAttachments[0].pixelFormat = colorPixelFormat
-        pipelineDescriptor.colorAttachments[0].isBlendingEnabled = true;
-        pipelineDescriptor.colorAttachments[0].rgbBlendOperation = MTLBlendOperation.add;
-        pipelineDescriptor.colorAttachments[0].alphaBlendOperation = MTLBlendOperation.add;
-        pipelineDescriptor.colorAttachments[0].sourceRGBBlendFactor = MTLBlendFactor.sourceAlpha;
-        pipelineDescriptor.colorAttachments[0].sourceAlphaBlendFactor = MTLBlendFactor.sourceAlpha;
-        pipelineDescriptor.colorAttachments[0].destinationRGBBlendFactor = MTLBlendFactor.oneMinusSourceAlpha;
-        pipelineDescriptor.colorAttachments[0].destinationAlphaBlendFactor = MTLBlendFactor.oneMinusSourceAlpha;
-
-        let vertexDescriptor = MTLVertexDescriptor()
-        vertexDescriptor.attributes[0].format = .float3
-        vertexDescriptor.attributes[0].offset = 0
-        vertexDescriptor.attributes[0].bufferIndex = 0
-        vertexDescriptor.attributes[1].format = .float3
-        vertexDescriptor.attributes[1].offset = 3 * MemoryLayout<Float>.size
-        vertexDescriptor.attributes[1].bufferIndex = 0
-        vertexDescriptor.layouts[0].stride = 6 * MemoryLayout<Float>.size
-        pipelineDescriptor.vertexDescriptor = vertexDescriptor
-        pipelineDescriptor.vertexFunction = library?.makeFunction(name: "vertex_with_color")
-        pipelineDescriptor.fragmentFunction = library?.makeFunction(name: "fragment_with_color")
-
-        return pipelineDescriptor
     }
 
     func drawVerticesWithColor(view: MTKView, renderEncoder: MTLRenderCommandEncoder, primitiveType: MTLPrimitiveType) -> Bool {
