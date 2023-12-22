@@ -33,17 +33,14 @@ class mglRenderer: NSObject {
     // library holds compiled vertex and fragment shader programs
     let library: MTLLibrary!
 
-    // configuration for doing depth and stencil testing
-    var enableDepthAndStencilConfig = [mglDepthStencilConfig]()
-    var createStencilConfig = [mglDepthStencilConfig]()
-    var createInvertedStencilConfig = [mglDepthStencilConfig]()
-    var currentDepthStencilConfig: mglDepthStencilConfig
-
     // command interface communicates with the client process like Matlab
     let commandInterface : mglCommandInterface
-    
+
     // a flag used to send post-flush acknowledgements back to Matlab
     var acknowledgeFlush = false
+
+    // Keep track of depth and stencil state, like creating vs applying a stencil, and which stencil.
+    var depthStencilState: mglDepthStencilState!
 
     // State to manage commands that repeat themselves over multiple frames/render passes.
     // These drive several different conditionals below that are coupled and need to work in concert.
@@ -69,30 +66,33 @@ class mglRenderer: NSObject {
 
     // utility to get system nano time
     let secs = mglSecs()
-    
+
     // a string to store the last error message (which can be retrieved via
     // the command mglGetErrorMessage
     var errorMessage = ""
-    
+
     // flag used in render looop to set whether command has succeeded or not
     var commandSuccess = false
 
     // flag to keep track of cursor stye
     var cursorHidden = false
-    
+
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     // init
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     init(metalView: MTKView) {
         // bind an address and start listening for client process to connect
         commandInterface = mglCommandInterface()
-        
+
         // Initialize the GPU device
         guard let device = MTLCreateSystemDefaultDevice() else {
             fatalError("GPU not available")
         }
         metalView.device = device
         mglRenderer.device = device
+
+        // Inititialize 0 stencil planes and depth testing.
+        depthStencilState = mglDepthStencilState(device: device)
 
         // initialize the command queue
         mglRenderer.commandQueue = device.makeCommandQueue()!
@@ -106,15 +106,6 @@ class mglRenderer: NSObject {
         // In this case, the view treates them as one, with one big pixel format (and one buffer/texture) that handles both.
         metalView.depthStencilPixelFormat = .depth32Float_stencil8
         metalView.clearDepth = 1.0
-
-        // Default to depth test enabled, but no stenciling enabled.
-        // This currentDepthStencilConfig can be swapped out later to create and select stencils by number.
-        for index in 0 ..< 8 {
-            enableDepthAndStencilConfig.append(mglEnableDepthAndStencilTest(stencilNumber: UInt32(index), device: device))
-            createStencilConfig.append(mglEnableDepthAndStencilCreate(stencilNumber: UInt32(index), isInverted: false, device: device))
-            createInvertedStencilConfig.append(mglEnableDepthAndStencilCreate(stencilNumber: UInt32(index), isInverted: true, device: device))
-        }
-        currentDepthStencilConfig = enableDepthAndStencilConfig[0]
 
         // Start with default clear color gray, used for on-screen as well as render to texture.
         metalView.clearColor = MTLClearColor(red: 0.5, green: 0.5, blue: 0.5, alpha: 1.0)
@@ -190,7 +181,7 @@ extension mglRenderer: MTKViewDelegate {
             // No, we'll check again on the next frame / draw() call.
             return;
         }
-        
+
         // Process non-drawing commands one at a time.
         // This avoids holding expensive drawing resources until we need to (below) as described here:
         //   https://developer.apple.com/documentation/quartzcore/cametallayer?language=objc#3385893
@@ -217,8 +208,8 @@ extension mglRenderer: MTKViewDelegate {
             case mglMinimize: commandSuccess = minimize(view: view)
             case mglDisplayCursor: commandSuccess = displayCursor(view: view)
             default:
-              errorMessage = "(mglRenderer) Unknown non-drawing command code \(String(describing: command))"
-              os_log("(mglRenderer) Unknown non-drawing command code %{public}@", log: .default, type: .error, String(describing: command))
+                errorMessage = "(mglRenderer) Unknown non-drawing command code \(String(describing: command))"
+                os_log("(mglRenderer) Unknown non-drawing command code %{public}@", log: .default, type: .error, String(describing: command))
             }
 
             acknowledgePreviousCommandProcessed(isSuccess: commandSuccess, whichCommand: command)
@@ -291,7 +282,7 @@ extension mglRenderer: MTKViewDelegate {
             acknowledgePreviousCommandProcessed(isSuccess: false, whichCommand: command)
             return
         }
-        currentDepthStencilConfig.configureRenderPassDescriptor(renderPassDescriptor: renderPassDescriptor)
+        depthStencilState.configureRenderPassDescriptor(renderPassDescriptor: renderPassDescriptor)
 
         guard let commandBuffer = mglRenderer.commandQueue.makeCommandBuffer(),
               let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor) else {
@@ -300,7 +291,7 @@ extension mglRenderer: MTKViewDelegate {
             acknowledgePreviousCommandProcessed(isSuccess: false, whichCommand: command)
             return
         }
-        currentDepthStencilConfig.configureRenderEncoder(renderEncoder: renderEncoder)
+        depthStencilState.configureRenderEncoder(renderEncoder: renderEncoder)
 
         // Attach our view transform to the same location expected by all vertex shaders (our convention).
         renderEncoder.setVertexBytes(&deg2metal, length: MemoryLayout<float4x4>.stride, index: 1)
@@ -320,7 +311,7 @@ extension mglRenderer: MTKViewDelegate {
                 }
                 // now acknowledge processing
                 acknowledgePreviousCommandProcessed(isSuccess: commandSuccess, whichCommand: command)
-                
+
                 // read the next command
                 command = readAndAcknowledgeNextCommand()
                 // and set that colorHasBeenSet to false (since this
@@ -442,49 +433,49 @@ extension mglRenderer: MTKViewDelegate {
     // displayCursor
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     private func displayCursor(view: MTKView) -> Bool {
-      // Get whether this is a minimize (0) or restore (1)
-      guard let displayOrHide = commandInterface.readUInt32() else {
-        return false
-      }
-                
-      if displayOrHide == 0 {
-          // Hide the cursor
-          if !self.cursorHidden {
-            NSCursor.hide()
-            self.cursorHidden = true
-          }
-      }
-      else {
-          // Show the cursor
-          if self.cursorHidden {
-            NSCursor.unhide()
-            self.cursorHidden = false
-          }
-          
-      }
-      return true
+        // Get whether this is a minimize (0) or restore (1)
+        guard let displayOrHide = commandInterface.readUInt32() else {
+            return false
+        }
+
+        if displayOrHide == 0 {
+            // Hide the cursor
+            if !self.cursorHidden {
+                NSCursor.hide()
+                self.cursorHidden = true
+            }
+        }
+        else {
+            // Show the cursor
+            if self.cursorHidden {
+                NSCursor.unhide()
+                self.cursorHidden = false
+            }
+
+        }
+        return true
     }
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     // minimize
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     private func minimize(view: MTKView) -> Bool {
-      // Get whether this is a minimize (0) or restore (1)
-      guard let minimizeOrRestore = commandInterface.readUInt32() else {
-        return false
-      }
-                
-      if minimizeOrRestore == 0 {
-        // minimize
-        view.window?.miniaturize(nil)
-      }
-      else {
-        // restore
-        view.window?.deminiaturize(nil)
+        // Get whether this is a minimize (0) or restore (1)
+        guard let minimizeOrRestore = commandInterface.readUInt32() else {
+            return false
+        }
 
-      }
-      return true
+        if minimizeOrRestore == 0 {
+            // minimize
+            view.window?.miniaturize(nil)
+        }
+        else {
+            // restore
+            view.window?.deminiaturize(nil)
+
+        }
+        return true
     }
-    
+
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     // frameGrab
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
@@ -499,16 +490,16 @@ extension mglRenderer: MTKViewDelegate {
         _ = commandInterface.writeUInt32(data: UInt32(frame.width))
         _ = commandInterface.writeUInt32(data: UInt32(frame.height))
         if frame.pointer != nil {
-          // convert the pointer back into an array
-          let floatArray = Array(UnsafeBufferPointer(start: frame.pointer, count: frame.width*frame.height*4))
-          // write the array
-          _ = commandInterface.writeFloatArray(data: floatArray)
-          // free the data
-          frame.pointer?.deallocate()
-          return true
+            // convert the pointer back into an array
+            let floatArray = Array(UnsafeBufferPointer(start: frame.pointer, count: frame.width*frame.height*4))
+            // write the array
+            _ = commandInterface.writeFloatArray(data: floatArray)
+            // free the data
+            frame.pointer?.deallocate()
+            return true
         }
         else {
-          return false
+            return false
         }
     }
 
@@ -516,9 +507,9 @@ extension mglRenderer: MTKViewDelegate {
     // getErrorMessage
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     private func getErrorMessage(view: MTKView) -> Bool {
-      // send error message
-      _ = commandInterface.writeString(data: errorMessage)
-      return true
+        // send error message
+        _ = commandInterface.writeString(data: errorMessage)
+        return true
     }
 
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
@@ -530,7 +521,7 @@ extension mglRenderer: MTKViewDelegate {
         _ = commandInterface.writeString(data: "gpu.name")
         _ = commandInterface.writeCommand(data: mglSendString)
         _ = commandInterface.writeString(data: mglRenderer.device.name)
-        
+
         // send GPU registryID
         _ = commandInterface.writeCommand(data: mglSendString)
         _ = commandInterface.writeString(data: "gpu.registryID")
@@ -572,7 +563,7 @@ extension mglRenderer: MTKViewDelegate {
         _ = commandInterface.writeString(data: "gpu.minimumLinearTextureAlignment")
         _ = commandInterface.writeCommand(data: mglSendDouble)
         _ = commandInterface.writeDouble(data: Double(mglRenderer.device.minimumLinearTextureAlignment(for: .rgba32Float)))
-        
+
         _ = commandInterface.writeCommand(data: mglSendString)
         _ = commandInterface.writeString(data: "view.colorPixelFormat")
         _ = commandInterface.writeCommand(data: mglSendDouble)
@@ -582,12 +573,12 @@ extension mglRenderer: MTKViewDelegate {
         _ = commandInterface.writeString(data: "view.colorPixelFormatString")
         _ = commandInterface.writeCommand(data: mglSendString)
         switch view.colorPixelFormat {
-          case MTLPixelFormat.bgra8Unorm: _ = commandInterface.writeString(data: "bgra8Unorm")
-          case MTLPixelFormat.bgra8Unorm_srgb: _ = commandInterface.writeString(data: "bgra8Unorm_srgb")
-          case MTLPixelFormat.rgba16Float: _ = commandInterface.writeString(data: "rgba16Float")
-          case MTLPixelFormat.rgb10a2Unorm: _ = commandInterface.writeString(data: "rgb10a2Unorm")
-          case MTLPixelFormat.bgr10a2Unorm: _ = commandInterface.writeString(data: "bgr10a2Unorm")
-          default: _ = commandInterface.writeString(data: "Unknown")
+        case MTLPixelFormat.bgra8Unorm: _ = commandInterface.writeString(data: "bgra8Unorm")
+        case MTLPixelFormat.bgra8Unorm_srgb: _ = commandInterface.writeString(data: "bgra8Unorm_srgb")
+        case MTLPixelFormat.rgba16Float: _ = commandInterface.writeString(data: "rgba16Float")
+        case MTLPixelFormat.rgb10a2Unorm: _ = commandInterface.writeString(data: "rgb10a2Unorm")
+        case MTLPixelFormat.bgr10a2Unorm: _ = commandInterface.writeString(data: "bgr10a2Unorm")
+        default: _ = commandInterface.writeString(data: "Unknown")
         }
 
         _ = commandInterface.writeCommand(data: mglSendString)
@@ -601,13 +592,13 @@ extension mglRenderer: MTKViewDelegate {
         _ = commandInterface.writeCommand(data: mglSendDoubleArray)
         let drawableSize: [Double] = [Double(view.drawableSize.width), Double(view.drawableSize.height)]
         _ = commandInterface.writeDoubleArray(data: drawableSize)
-        
+
         // send finished
         _ = commandInterface.writeCommand(data: mglSendFinished)
 
         return true
     }
-    
+
     func setViewColorPixelFormat(view: MTKView) -> Bool {
         guard let formatIndex = commandInterface.readUInt32() else {
             return false
@@ -861,39 +852,18 @@ extension mglRenderer: MTKViewDelegate {
               let isInverted = commandInterface.readUInt32() else {
             return false
         }
-
-        let stencilIndex = Array<mglDepthStencilConfig>.Index(stencilNumber)
-        if (!createStencilConfig.indices.contains(stencilIndex)) {
-            os_log("(mglRenderer) Got stencil number to create %{public}d but only numbers 0-7 are supported.", log: .default, type: .error, stencilNumber)
-            return false
-        }
-
-        os_log("(mglRenderer) Creating stencil number %{public}d, with isInverted %{public}d.", log: .default, type: .info, stencilNumber, isInverted)
-        currentDepthStencilConfig = (isInverted != 0) ? createInvertedStencilConfig[stencilIndex] : createStencilConfig[stencilIndex]
-        return true
+        return depthStencilState.startStencilCreation(view: view, stencilNumber: stencilNumber, isInverted: isInverted != 0)
     }
 
     func finishStencilCreation(view: MTKView) -> Bool {
-        os_log("(mglRenderer) Finishing stencil creation.", log: .default, type: .info)
-        currentDepthStencilConfig = enableDepthAndStencilConfig[0]
-        return true
+        return depthStencilState.finishStencilCreation(view: view)
     }
 
     func selectStencil(view: MTKView, renderEncoder: MTLRenderCommandEncoder) -> Bool {
         guard let stencilNumber = commandInterface.readUInt32() else {
             return false
         }
-
-        let stencilIndex = Array<mglDepthStencilConfig>.Index(stencilNumber)
-        if (!enableDepthAndStencilConfig.indices.contains(stencilIndex)) {
-            os_log("(mglRenderer) Got stencil number to select %{public}d but only numbers 0-7 are supported.", log: .default, type: .error, stencilNumber)
-            return false
-        }
-
-        os_log("(mglRenderer) Selecting stencil number %{public}d.", log: .default, type: .info, stencilNumber)
-        currentDepthStencilConfig = enableDepthAndStencilConfig[stencilIndex]
-        currentDepthStencilConfig.configureRenderEncoder(renderEncoder: renderEncoder)
-        return true
+        return depthStencilState.selectStencil(view: view, renderEncoder: renderEncoder, stencilNumber: stencilNumber)
     }
 
     func updateTexture() -> Bool {
@@ -1029,7 +999,7 @@ extension mglRenderer: MTKViewDelegate {
         guard let (centerVertex, arcCount) = commandInterface.readVertices(device: mglRenderer.device, extraVals: 11) else {
             return false
         }
-        
+
         // get an MTLBuffer from the GPU for storing the vertices for two triangles (i.e.
         // we are going to make a square around where the arc is going to be drawn, and
         // then color the pixels in the fragment shader according to how far they are away
@@ -1042,14 +1012,14 @@ extension mglRenderer: MTKViewDelegate {
             os_log("(mglRenderer:drawArcs) Could not make vertex buffer of size %{public}d", log: .default, type: .error, byteCount)
             return false
         }
-            
+
         // get size of buffer as number of floats, note that we add
         // 3 floats for the center position plus 2 floats for the viewport dimensions
         let vertexBufferSize = 5 + (centerVertex.length/arcCount)/MemoryLayout<Float>.stride;
-            
+
         // get pointers to the buffer that we will pass to the renderer
         let triangleVerticesPointer = triangleVertices.contents().assumingMemoryBound(to: Float.self);
-            
+
         // get the viewport size, which may be the on-screen view or an offscreen texture
         let (viewportWidth, viewportHeight) = currentColorRenderingConfig.getSize(view: view)
 
@@ -1084,7 +1054,7 @@ extension mglRenderer: MTKViewDelegate {
                 thisTriangleVerticesPointer[17] = viewportWidth
                 thisTriangleVerticesPointer[18] = viewportHeight
             }
-            
+
         }
         // Draw all the arcs
         renderEncoder.setRenderPipelineState(currentColorRenderingConfig.arcsPipelineState)
@@ -1093,7 +1063,7 @@ extension mglRenderer: MTKViewDelegate {
         return true
     }
 
-    
+
     class func bltTexturePipelineStateDescriptor(colorPixelFormat:  MTLPixelFormat, depthPixelFormat:  MTLPixelFormat, stencilPixelFormat:  MTLPixelFormat, library: MTLLibrary?) -> MTLRenderPipelineDescriptor {
         let pipelineDescriptor = MTLRenderPipelineDescriptor()
         pipelineDescriptor.depthAttachmentPixelFormat = depthPixelFormat
@@ -1132,7 +1102,7 @@ extension mglRenderer: MTKViewDelegate {
               let textureNumber = commandInterface.readUInt32() else {
             return false
         }
-        
+
         // Make sure we have the actual requested texture.
         guard let texture = textures[textureNumber] else {
             os_log("(mglRenderer) Invalid texture number %{public}d, valid numbers are %{public}@.", log: .default, type: .error, textureNumber, String(describing: textures.keys))
