@@ -28,7 +28,7 @@ end
 % Create several textures, each showing a number.
 textureCount = 10;
 textureCell = cell(textureCount, 1);
-mglTextSet('Helvetica', 32, [1 1 1 1], 1, 0, 0, 0, 0, 0, 0);
+mglTextSet('Helvetica', 32, [1 1 1 1], 0, 0, 0, 0, 0, 0, 0);
 for ii = 1:textureCount
     textureCell{ii} = mglText(num2str(ii));
 end

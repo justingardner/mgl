@@ -35,6 +35,7 @@ protocol mglColorRenderingConfig {
     var texturePipelineState: MTLRenderPipelineState { get }
 
     func getRenderPassDescriptor(view: MTKView) -> MTLRenderPassDescriptor?
+    func getSize(view: MTKView) -> (Float, Float)
 
     func finishDrawing(commandBuffer: MTLCommandBuffer, drawable: CAMetalDrawable)
     func frameGrab()->(width: Int, height: Int, pointer: UnsafeMutablePointer<Float>?)
@@ -81,6 +82,10 @@ class mglOnscreenRenderingConfig : mglColorRenderingConfig {
 
     func getRenderPassDescriptor(view: MTKView) -> MTLRenderPassDescriptor? {
         return view.currentRenderPassDescriptor
+    }
+
+    func getSize(view: MTKView) -> (Float, Float) {
+        return (Float(view.drawableSize.width), Float(view.drawableSize.height))
     }
 
     func finishDrawing(commandBuffer: MTLCommandBuffer, drawable: CAMetalDrawable) {
@@ -169,6 +174,10 @@ class mglOffScreenTextureRenderingConfig : mglColorRenderingConfig {
         renderPassDescriptor.colorAttachments[0].clearColor = view.clearColor
         renderPassDescriptor.depthAttachment.clearDepth = view.clearDepth
         return renderPassDescriptor
+    }
+
+    func getSize(view: MTKView) -> (Float, Float) {
+        return (Float(colorTexture.width), Float(colorTexture.height))
     }
 
     func finishDrawing(commandBuffer: MTLCommandBuffer, drawable: CAMetalDrawable) {

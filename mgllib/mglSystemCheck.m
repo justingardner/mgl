@@ -60,7 +60,7 @@ if ~ismac
   end
 else
   % check for 64 bit
-  if ~isequal(computer,'MACI64')
+  if ~isequal(computer,'MACI64') && ~isequal(computer,'MACA64')
     disp(sprintf('(mglSystemCheck) You are running an older 32 bit version of Matlab. You may find it necessary to recompile the libraries to support your system (our code is compiled to generally be up-to-date with current versions of the MacOS). We have supplied older 32 bit binaries as well, but these may not work (you will know because they will crash matlab). If this happens, you may find it necessary to recompile mgl. For more details on recompiling see: http://gru.stanford.edu/doku.php/mgl/gettingStarted#recompiling_mgl'));
   end
 end

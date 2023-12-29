@@ -23,7 +23,16 @@ if (nargin ~= 1) || ~isstr(str)
 end
 
 % get the image of the text
-im = mglPrivateText(str);
+
+% BSH: Apple's ATSUI API, used by mglPrivateText,
+% is no longer supported on macOS 14 Sonoma.
+%im = mglPrivateText(str);
+
+% BSH: This is a placeholder, pure Matlab workaround for ATSUI.
+textImage = mglFigureText(str);
+im.textImage = textImage;
+im.imageHeight = size(textImage, 1);
+im.imageWidth = size(textImage, 2);
 
 % flip vertical
 if isequal(mglGetParam('fontVFlip'),1)
@@ -35,11 +44,12 @@ if isequal(mglGetParam('fontHFlip'),1)
   im.textImage = fliplr(im.textImage);
 end
 
+% BSH: I think these are not needed when using mglFigureText() above --
+% I think mglTestText looks correct without them.
 % need to reshape
-im.textImage = reshape(flipud(im.textImage),im.imageHeight,im.imageWidth,4);
-
+%im.textImage = reshape(flipud(im.textImage),im.imageHeight,im.imageWidth,4);
 % set alpha to 255
-im.textImage(:,:,4) = 255*(im.textImage(:,:,1)>0 | im.textImage(:,:,2)>0 | im.textImage(:,:,3)>0);
+%im.textImage(:,:,4) = 255*(im.textImage(:,:,1)>0 | im.textImage(:,:,2)>0 | im.textImage(:,:,3)>0);
 
 % create the texture
 [tex, ackTime, processedTime] = mglCreateTexture(im.textImage);

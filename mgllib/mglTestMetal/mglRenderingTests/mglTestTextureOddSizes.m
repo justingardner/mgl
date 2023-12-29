@@ -47,7 +47,7 @@ mglBltTexture(shortTexture, [x(1), y(1), w, h]);
 mglBltTexture(shortTexture, [x(2), y(2), 2*w, 2*h]);
 mglBltTexture(shortTexture, [x(3), y(3), 5*w, 5*h]);
 mglBltTexture(shortTexture, [x(4), y(4), 10*w, 10*h]);
-disp('There should 4 short gray boxes at different scales, top-aligned, with one pixel spacing.')
+disp('There should 4 short gray boxes at different scales, bottom-aligned, with one pixel spacing.')
 
 % An image taller than it is wide.
 w = 11;
@@ -66,7 +66,7 @@ mglBltTexture(tallTexture, [x(1), y(1), w, h]);
 mglBltTexture(tallTexture, [x(2), y(2), 2*w, 2*h]);
 mglBltTexture(tallTexture, [x(3), y(3), 5*w, 5*h]);
 mglBltTexture(tallTexture, [x(4), y(4), 10*w, 10*h]);
-disp('There should 4 tall gray boxes at different scales, top-aligned, with one pixel spacing.')
+disp('There should 4 tall gray boxes at different scales, bottom-aligned, with one pixel spacing.')
 
 mglFlush();
 

@@ -28,7 +28,7 @@ end
 % Set the coordinate transform so the units are 1:1 with window pixels.
 mglScreenCoordinates();
 
-disp('There should be a big red circle at the origin, top-left.')
+disp('There should be a big red circle at the origin, bottom-left.')
 mglPoints2(0, 0, 100, [0.75 0.25 0.25], true);
 
 disp('There should be 10 smaller squares, spanning the window.')
