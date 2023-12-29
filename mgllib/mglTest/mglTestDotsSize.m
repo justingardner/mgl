@@ -77,7 +77,7 @@ for iRing = 1:numRings
 
   % set radii
   % will not overlap each other
-  radii(:,iRing) = tickSpacing * [numRings-iRing numRings-iRing+1]';
+  radii(:,iRing) = tickSpacing * [numRings-iRing numRings-iRing+1 numRings-iRing+1 numRings-iRing+2]';
   
   % set wedge
   wedge(:,iRing) = [pi pi]';
@@ -90,8 +90,16 @@ mglMetalArcs(xyz,rgba,radii,wedge,border);
 % draw points for reference
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 r = [0:tickSpacing:tickSpacing*numRings]';
+% get the diagonal X and Y
+dX = cos(pi/4)*[0:1:numRings]';
+dY = sin(pi/4)*[1:1:numRings+1]';
+% z is zero
 z = zeros(1,length(r))';
-mglPoints2([-r; r;z;r/sqrt(2);-r/sqrt(2);z;r/sqrt(2);-r/sqrt(2)],[z;z;r;r/sqrt(2);r/sqrt(2);-r;-r/sqrt(2);-r/sqrt(2)],0.1);
+% set x and y
+x = [-r; r; z; dX; -dX;  z;  dX; -dX];
+y = [ z; z; r; dY;  dY; -r; -dY; -dY];
+% draw points
+mglPoints2(x,y,0.1);
 
 % and display
 mglFlush
