@@ -10,7 +10,7 @@
 %             This is a common interface to mglMeal for circular arcs.
 %             xyz -- 3 x n matrix of point positions [x, y, z]
 %             rgba -- 4 x n matrix of point colors [r, g, b, a]
-%             radii -- 2 x n matrix of annulus radii [inner, outer] 
+%             radii -- 2 x n matrix of annulus radii [inner, outer], can also be 4 x n [innerX, outerX, innerY, outerY] 
 %             wedge-- 2 x n matriz of wedge angles [start, sweep]
 %             border-- 1 x n antialiasing size
 %             % all values, xyz, radii, border are in degrees of visual angle if
