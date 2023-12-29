@@ -39,4 +39,42 @@ if nargin < 7
     antialiasing = 0;
 end
 
-[ackTime, processedTime] = mglPoints2(x, y, size, color, true, antialiasing);
+% set xyz
+nGluDisk = length(x);
+xyz = zeros([3, nGluDisk], 'single');
+xyz(1,:) = x;
+xyz(2,:) = y;
+
+% set rgba
+if nargin < 4
+    color = [1 1 1 1];
+end
+if numel(color) == 3
+    color = [color, 1];
+end
+if numel(color) < 3
+    color = [color(1), color(1), color(1), 1];
+end
+rgba = zeros(4, nGluDisk, 'single');
+rgba(1,:) = color(1);
+rgba(2,:) = color(2);
+rgba(3,:) = color(3);
+rgba(4,:) = color(4);
+
+% set radii
+if length(size) == 1
+  size = repmat(size,1,nGluDisk);
+end
+radii = zeros([4, nGluDisk], 'single');
+radii(2,:) = size;
+radii(4,:) = size;
+
+% wedge
+wedge = repmat([0 2*pi]',1,nGluDisk);
+
+% set border
+border = zeros(1, nGluDisk, 'single');
+border(:) = antialiasing;
+
+% run arcs command
+[ackTime, processedTime] = mglMetalArcs(xyz,rgba,radii,wedge,border);
