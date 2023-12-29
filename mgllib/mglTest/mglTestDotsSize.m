@@ -91,8 +91,8 @@ mglMetalArcs(xyz,rgba,radii,wedge,border);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 r = [0:tickSpacing:tickSpacing*numRings]';
 % get the diagonal X and Y
-dX = cos(pi/4)*[0:1:numRings]';
-dY = sin(pi/4)*[1:1:numRings+1]';
+dX = cos(pi/4)*[1:1:numRings]';
+dY = sin(pi/4)*[2:1:numRings+1]';
 % z is zero
 z = zeros(1,length(r))';
 % set x and y
