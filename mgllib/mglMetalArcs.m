@@ -1,7 +1,7 @@
 % mglMetalArcs.m
 %
 %        $Id$
-%      usage: [ackTime, processedTime] = mglMetalArcs(xyz, rgba, wh, radii, wedge, border)
+%      usage: [ackTime, processedTime] = mglMetalArcs(xyz, rgba, radii, wedge, border)
 %         by: Benjamin heasly
 %       date: 03/17/2022
 %  copyright: (c) 2006 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
@@ -41,7 +41,7 @@ end
 nDots = size(xyz, 2);
 if size(xyz, 1) ~= 3 ...
     || ~isequal(size(rgba), [4, nDots]) ...
-    || ~isequal(size(radii), [2, nDots]) ...
+    || (~isequal(size(radii), [2, nDots]) && ~isequal(size(radii), [4, nDots]))...
     || ~isequal(size(wedge), [2, nDots]) ...
     || ~isequal(size(border), [1, nDots])
     fprintf('(mglMetalArcs) All args must have specific number of rows and the same number of columns (%f).\n', nDots);
@@ -49,10 +49,11 @@ if size(xyz, 1) ~= 3 ...
   return
 end
 
-% Convert inner and outer radius user device units to Metal pixels.
-% Scale based on the x-direction, as an arbitrary but consistent choice.
-radii(1,:) = radii(1,:);
-radii(2,:) = radii(2,:);
+% radii is [innerX outerX innerY outerY], but if 
+% only 2D is passed in, then make up the y dimension by replicating
+if size(radii,1)==2
+  radii = repmat(radii,2,1);
+end
 
 % Stack up all the per-vertex data as a big matrix.
 vertexData = single(cat(1, xyz, rgba, radii, wedge, border));

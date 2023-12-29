@@ -22,29 +22,34 @@
 %mglVisualAngleCoordinates(57,[16 12]);
 %x = [-1 -4 -3 0 3 4 1];
 %y = [-1 -4 -3 0 3 4 1];
-%sz = [100 100];
+%sz = [.2 .4];
 %mglFillOval(x, y, sz,  [1 0 0]);
 %mglFlush();
 % 
 function [ackTime, processedTime] = mglFillOval(x, y, size, color, antialiasing)
 
-nDots = numel(x);
-if ~isequal(numel(y), nDots)
-    fprintf('(mglFillOval) Number of y values must match number of x values (%d)', nDots);
+nArcs = numel(x);
+if ~isequal(numel(y), nArcs)
+    fprintf('(mglFillOval) Number of y values must match number of x values (%d)', nArcs);
     help mglFillOval
     return;
 end
-xyz = zeros([3, nDots], 'single');
+xyz = zeros([3, nArcs], 'single');
 xyz(1,:) = x;
 xyz(2,:) = y;
 
+% set radii - inner is always 0, outer is set to size values passsed in
 if nargin < 3
     size = [1, 1];
 end
-wh = zeros([2, nDots], 'single');
-wh(1,:) = size(1);
-wh(2,:) = size(2);
+radii = zeros([4, nArcs], 'single');
+radii(2,:) = size(1);
+radii(4,:) = size(2);
 
+% draw complete wedge from 0 to 2pi
+wedge = repmat([0 2*pi]',1,nArcs);
+
+% set color
 if nargin < 4
     color = [1 1 1 1];
 end
@@ -54,17 +59,17 @@ end
 if numel(color) < 3
     color = [color(1), color(1), color(1), 1];
 end
-rgba = zeros(4, nDots, 'single');
+rgba = zeros(4, nArcs, 'single');
 rgba(1,:) = color(1);
 rgba(2,:) = color(2);
 rgba(3,:) = color(3);
 rgba(4,:) = color(4);
 
+% set border
 if nargin < 5
     antialiasing = 0;
 end
-border = zeros(1, nDots, 'single');
+border = zeros(1, nArcs, 'single');
 border(:) = antialiasing;
 
-shape = ones(1, nDots);
-[ackTime, processedTime] = mglMetalDots(xyz, rgba, wh, shape, border);
+[ackTime, processedTime] = mglMetalArcs(xyz, rgba, radii, wedge, border);

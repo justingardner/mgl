@@ -84,7 +84,7 @@ fragment float4 fragment_dots(const VertexDotsOut in [[stage_in]],
 struct VertexArcsIn {
     float3 position [[ attribute(0) ]];
     float4 color [[ attribute(1) ]];
-    float2 radii [[ attribute(2) ]];
+    float4 radii [[ attribute(2) ]];
     float2 wedge [[ attribute(3) ]];
     float border [[ attribute(4) ]];
     float3 centerPosition [[ attribute(5) ]];
@@ -99,8 +99,8 @@ struct VertexArcsOut {
     float half_sweep;
     float4 centerPosition;
     float2 outerRadius;
-    float innerOuterRadiusRatio;
-    float halfBorderOuterRadiusRatio;
+    float2 innerRadius;
+    float2 halfBorderOuterRadiusRatio;
 };
 
 vertex VertexArcsOut vertex_arcs(const VertexArcsIn vertexIn [[ stage_in ]],
@@ -114,14 +114,15 @@ vertex VertexArcsOut vertex_arcs(const VertexArcsIn vertexIn [[ stage_in ]],
         .half_sweep = vertexIn.wedge[1] / 2.0,
         .centerPosition = deg2metal * float4(vertexIn.centerPosition, 1.0),
         // compute the outerRadius in pixel coordinates. Note that the x and y
-        // dimensions of the screen may be different, so we are taking the projection
+        // dimensions of the screen may be different (and the outer radius can be
+        // different in x/y), so we are taking the projection
         // along the x any y axis separately and computing the appropriate normalized
         // vector accounting for potential difference in the scaling of x and y. In
         // the end this value should be 1 if the pixel is at the outside radius, < 1
         // if it is inside that radius and > 1 if it is outside the radius
-        .outerRadius = float2((deg2metal[0][0] * vertexIn.radii[1] / 2.0) * vertexIn.viewportSize[0],(deg2metal[1][1] * vertexIn.radii[1] / 2.0) * vertexIn.viewportSize[1]),
-        .innerOuterRadiusRatio = vertexIn.radii[0]/vertexIn.radii[1],
-        .halfBorderOuterRadiusRatio = (vertexIn.border/vertexIn.radii[1]) / 2.0
+        .outerRadius = float2((deg2metal[0][0] * vertexIn.radii[1] / 2.0) * vertexIn.viewportSize[0],(deg2metal[1][1] * vertexIn.radii[3] / 2.0) * vertexIn.viewportSize[1]),
+        .innerRadius = float2((deg2metal[0][0] * vertexIn.radii[0] / 2.0) * vertexIn.viewportSize[0],(deg2metal[1][1] * vertexIn.radii[2] / 2.0) * vertexIn.viewportSize[1]),
+        .halfBorderOuterRadiusRatio = float2((vertexIn.border/vertexIn.radii[1]) / 2.0,(vertexIn.border/vertexIn.radii[3]) / 2.0)
     };
     // convert the centerPosition into pixels
     // divide by homogenous component - probably not necessary, but doesn't hurt
@@ -144,16 +145,20 @@ fragment float4 fragment_arcs(const VertexArcsOut in [[stage_in]]) {
     float distanceToCenter = length(centeredPoint);
 
     // compute normalized radius. It's normalized differently in X and Y because the pixels may not be square
+    // and also now this function handles ellipses with different X and Y
     // This value should be 1 at the outside radius and 0 at the center
     float outerRadius = sqrt(pow(abs(cos(angle) * distanceToCenter) / in.outerRadius[0],2.0) + pow(abs(sin(angle) * distanceToCenter) / in.outerRadius[1],2.0));
-
+    float innerRadius = sqrt(pow(abs(cos(angle) * distanceToCenter) / in.innerRadius[0],2.0) + pow(abs(sin(angle) * distanceToCenter) / in.innerRadius[1],2.0));
+    float halfBorderOuterRadiusRatio = sqrt(pow(cos(angle)*in.halfBorderOuterRadiusRatio[0],2.0)+pow(sin(angle)*in.halfBorderOuterRadiusRatio[1],2.0));
+    float innerOuterRadiusRatio = outerRadius / innerRadius;
+    
     // get the alpha value for the outer. This will be 1 up until the outer border
     // plus will smoothly ramp (using the builtin smoothstep function) from 1 to 0 alpha
     // over the border piexles
-    float a_outer = 1.0 - smoothstep(1.0 - in.halfBorderOuterRadiusRatio, 1.0 + in.halfBorderOuterRadiusRatio, outerRadius);
+    float a_outer = 1.0 - smoothstep(1.0 - halfBorderOuterRadiusRatio, 1.0 + halfBorderOuterRadiusRatio, outerRadius);
     // now get the alpha for the inner, this will be 0 up until the inner border and 1 after +
     // blending over border pixesl
-    float a_inner = smoothstep(in.innerOuterRadiusRatio - in.halfBorderOuterRadiusRatio, in.innerOuterRadiusRatio + in.halfBorderOuterRadiusRatio, outerRadius);
+    float a_inner = smoothstep(innerOuterRadiusRatio - halfBorderOuterRadiusRatio, innerOuterRadiusRatio + halfBorderOuterRadiusRatio, outerRadius);
     
     // Now compute the alpha based on how much of a wedge angle is asked for
     float positive_center = in.start_angle + in.half_sweep;

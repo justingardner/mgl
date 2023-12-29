@@ -20,7 +20,7 @@ xyz = [0 0 0]';
 rgba = [1 0 0 1.0]';
 
 % set radii
-radii = [2.5 3.75]';
+radii = [1.25 2.5 2.5 3.75]';
 
 % set wedge
 wedge = [0 pi]';

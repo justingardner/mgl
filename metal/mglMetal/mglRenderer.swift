@@ -987,28 +987,35 @@ extension mglRenderer: MTKViewDelegate {
         pipelineDescriptor.colorAttachments[0].destinationAlphaBlendFactor = MTLBlendFactor.oneMinusSourceAlpha;
 
         let vertexDescriptor = MTLVertexDescriptor()
+        // xyz
         vertexDescriptor.attributes[0].format = .float3
         vertexDescriptor.attributes[0].offset = 0
         vertexDescriptor.attributes[0].bufferIndex = 0
+        // rgba
         vertexDescriptor.attributes[1].format = .float4
         vertexDescriptor.attributes[1].offset = 3 * MemoryLayout<Float>.stride
         vertexDescriptor.attributes[1].bufferIndex = 0
-        vertexDescriptor.attributes[2].format = .float2
+        // radii
+        vertexDescriptor.attributes[2].format = .float4
         vertexDescriptor.attributes[2].offset = 7 * MemoryLayout<Float>.stride
         vertexDescriptor.attributes[2].bufferIndex = 0
+        // wedge
         vertexDescriptor.attributes[3].format = .float2
-        vertexDescriptor.attributes[3].offset = 9 * MemoryLayout<Float>.stride
+        vertexDescriptor.attributes[3].offset = 11 * MemoryLayout<Float>.stride
         vertexDescriptor.attributes[3].bufferIndex = 0
+        // border
         vertexDescriptor.attributes[4].format = .float
-        vertexDescriptor.attributes[4].offset = 11 * MemoryLayout<Float>.stride
+        vertexDescriptor.attributes[4].offset = 13 * MemoryLayout<Float>.stride
         vertexDescriptor.attributes[4].bufferIndex = 0
+        // center vertex (computed)
         vertexDescriptor.attributes[5].format = .float3
-        vertexDescriptor.attributes[5].offset = 12 * MemoryLayout<Float>.stride
+        vertexDescriptor.attributes[5].offset = 14 * MemoryLayout<Float>.stride
         vertexDescriptor.attributes[5].bufferIndex = 0
+        // viewport size
         vertexDescriptor.attributes[6].format = .float2
-        vertexDescriptor.attributes[6].offset = 15 * MemoryLayout<Float>.stride
+        vertexDescriptor.attributes[6].offset = 17 * MemoryLayout<Float>.stride
         vertexDescriptor.attributes[6].bufferIndex = 0
-        vertexDescriptor.layouts[0].stride = 17 * MemoryLayout<Float>.stride
+        vertexDescriptor.layouts[0].stride = 19 * MemoryLayout<Float>.stride
         pipelineDescriptor.vertexDescriptor = vertexDescriptor
         pipelineDescriptor.vertexFunction = library?.makeFunction(name: "vertex_arcs")
         pipelineDescriptor.fragmentFunction = library?.makeFunction(name: "fragment_arcs")
@@ -1018,7 +1025,8 @@ extension mglRenderer: MTKViewDelegate {
 
     func drawArcs(view: MTKView, renderEncoder: MTLRenderCommandEncoder) -> Bool {
         // read the center vertex for the arc from the commandInterface
-        guard let (centerVertex, arcCount) = commandInterface.readVertices(device: mglRenderer.device, extraVals: 9) else {
+        // extra values are rgba (1x4), radii (1x4), wedge (1x2), border (1x1)
+        guard let (centerVertex, arcCount) = commandInterface.readVertices(device: mglRenderer.device, extraVals: 11) else {
             return false
         }
         
@@ -1036,7 +1044,7 @@ extension mglRenderer: MTKViewDelegate {
         }
             
         // get size of buffer as number of floats, note that we add
-        // 3 floats for the center position pluse 2 floats for the viewport dimensions
+        // 3 floats for the center position plus 2 floats for the viewport dimensions
         let vertexBufferSize = 5 + (centerVertex.length/arcCount)/MemoryLayout<Float>.stride;
             
         // get pointers to the buffer that we will pass to the renderer
@@ -1053,10 +1061,11 @@ extension mglRenderer: MTKViewDelegate {
             // get desired x and y locations of the triangle corners
             let x = centerVertexPointer[0];
             let y = centerVertexPointer[1];
-            // radius is teh outer radius + half the border
-            let r = centerVertexPointer[8]+centerVertexPointer[11]/2;
-            let xLocs: [Float] = [x-r, x-r, x+r, x-r, x+r, x+r]
-            let yLocs: [Float] = [y-r, y+r, y+r, y-r, y-r, y+r]
+            // radius is the outer radius + half the border
+            let rX = centerVertexPointer[8]+centerVertexPointer[13]/2;
+            let rY = centerVertexPointer[10]+centerVertexPointer[13]/2;
+            let xLocs: [Float] = [x-rX, x-rX, x+rX, x-rX, x+rX, x+rX]
+            let yLocs: [Float] = [y-rY, y+rY, y+rY, y-rY, y-rY, y+rY]
             
             // iterate over 6 vertices (which will be the corners of the triangles)
             for iVertex in 0...5 {
@@ -1068,12 +1077,12 @@ extension mglRenderer: MTKViewDelegate {
                 thisTriangleVerticesPointer[0] = xLocs[iVertex];
                 thisTriangleVerticesPointer[1] = yLocs[iVertex];
                 // and set the centerVertex
-                thisTriangleVerticesPointer[12] = centerVertexPointer[0]
-                thisTriangleVerticesPointer[13] = -centerVertexPointer[1]
-                thisTriangleVerticesPointer[14] = centerVertexPointer[2]
+                thisTriangleVerticesPointer[14] = centerVertexPointer[0]
+                thisTriangleVerticesPointer[15] = -centerVertexPointer[1]
+                thisTriangleVerticesPointer[16] = centerVertexPointer[2]
                 // and set viewport dimension
-                thisTriangleVerticesPointer[15] = viewportWidth
-                thisTriangleVerticesPointer[16] = viewportHeight
+                thisTriangleVerticesPointer[17] = viewportWidth
+                thisTriangleVerticesPointer[18] = viewportHeight
             }
             
         }
