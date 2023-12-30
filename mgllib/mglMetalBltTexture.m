@@ -19,6 +19,14 @@
 %
 function [ackTime, processedTime, setupTime] = mglMetalBltTexture(tex, position, hAlignment, vAlignment, rotation, phase, width, height, socketInfo)
 
+% empty image, nothing to do.
+if isempty(tex)
+  ackTime = mglGetSecs;
+  processedTime = mglGetSecs;
+  setupTime = mglGetSecs;
+  return
+end
+
 if numel(tex) > 1
     fprintf('(mglMetalBltTexture) Only using the first of %d elements of tex struct array.  To avoid this warning pass in tex(1) instead.\n', numel(tex));
     tex = tex(1);

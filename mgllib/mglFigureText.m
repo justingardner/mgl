@@ -48,6 +48,12 @@
 %   mglFlush();
 function textImage = mglFigureText(textString)
 
+% empty text, nothing to do.
+if isempty(textString)
+  textImage = [];
+  return
+end
+
 %% Set up Matlab figure rendering objects.
 % White text on black background makes it easier to trip edges.
 fig = figure( ...

@@ -34,6 +34,14 @@
 %
 function [tex, ackTime, processedTime] = mglMetalCreateTexture(im, minMagFilter, mipFilter, addressMode, socketInfo)
 
+% empty image, nothing to do.
+if isempty(im)
+  tex = [];
+  ackTime = mglGetSecs;
+  processedTime = mglGetSecs;
+  return
+end
+
 if nargin < 2 || isempty(minMagFilter)
     minMagFilter = 1;
 end
