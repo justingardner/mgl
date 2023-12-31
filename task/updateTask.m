@@ -80,6 +80,19 @@ global stimulus;
 % see if we are waiting for backtick
 if task{tnum}.thistrial.segstart == -inf
   if task{tnum}.thistrial.waitForBacktick
+    if task{tnum}.waitForPrescan
+      % Check for space key
+      if myscreen.keyCodes == myscreen.keyboard.space
+        % display how many ignored volumes there were
+        disp(sprintf('(updateTask) Prescan ended after %i volume(s)',abs(myscreen.ignoreInitialVols)-1));
+        % display message
+        backtick = mglKeycodeToChar(myscreen.keyboard.backtick);
+        disp(sprintf('(updateTask) Waiting for backtick (%s)',backtick{1}));
+        % clear prescan
+        task{tnum}.waitForPrescan = 0;
+        myscreen.ignoreInitialVols = 0;
+      end
+    end
     % only continue if we have received a backtick
     if myscreen.volnum == task{tnum}.thistrial.startvolnum
       return
@@ -488,8 +501,18 @@ end
 % see if we need to wait for backtick
 if task.waitForBacktick && (task.blocknum == 1) && (task.blockTrialnum == 1)
   task.thistrial.waitForBacktick = 1;
-  backtick = mglKeycodeToChar(myscreen.keyboard.backtick);
-  disp(sprintf('(updateTask) Waiting for backtick (%s)',backtick{1}));
+  if ~task.waitForPrescan
+    backtick = mglKeycodeToChar(myscreen.keyboard.backtick);
+    disp(sprintf('(updateTask) Waiting for backtick (%s)',backtick{1}));
+  else
+    disp(sprintf('====================================================================='))
+    disp(sprintf('(updateTask) Waiting for prescan. Hit SPACE when prescan is finished.'));
+    disp(sprintf('====================================================================='))
+    % set ignoreInitialVols to -1, this will cause myscreen to indefinitely 
+    % ignore volumes (as myscreen decrements this counter to 0 normally),
+    % when we detect a space later in the code below, we rest ignoreIntialVols to 0
+    myscreen.ignoreInitialVols = -1;
+  end    
 else
   % trial will start right awway
   task.thistrial.waitForBacktick = 0;

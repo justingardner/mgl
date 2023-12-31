@@ -56,6 +56,9 @@ screenParams.digin.responseType = 1;
 % eyeTracker
 screenParams.eyeTrackerType = 'None';
 
+% wait for prescan
+screenParams.waitForPrescan = false;
+
 % validate
 screenParams = mglValidateScreenParams(screenParams);
 

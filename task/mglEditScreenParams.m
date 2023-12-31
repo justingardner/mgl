@@ -260,6 +260,7 @@ if isempty(logpath),logpath = '~/data/log';end
 paramsInfo{end+1} = {'writeTaskLog',writeTaskLog,'type=checkbox','Set to write a task log. This will save a log of each experiment run in the location specified by logpath. The log can be viewed using mglTaskLog','enable',thisScreenParams.enableChanges};
 paramsInfo{end+1} = {'logpath',logpath,'contingent=writeTaskLog','Location of task log for mglTaskLog','enable',thisScreenParams.enableChanges};
 paramsInfo{end+1} = {'ignoreInitialVols',ignoreInitialVols,'minmax=[0 inf]','incdec=[-1 1]','Set this if you need to ignore some initial volume acquisition pulses from the magnet. The number that you set is the number that will get ignored','enable',thisScreenParams.enableChanges};
+paramsInfo{end+1} = {'waitForPrescan',thisScreenParams.waitForPrescan,'type=checkbox','Set this if you need to ignore prescan triggers. When you set waitForBacktick it will not trigger the start until you manually hit ENTER','enable',thisScreenParams.enableChanges};
 
 % display parameter choosing dialog
 if ~isequal(thisScreenParams.computerName,'DELETE')
@@ -585,6 +586,8 @@ screenParams.setVolume = params.setVolume;
 if params.setVolume
   screenParams.volumeLevel = params.volumeLevel;
 end
+
+screenParams.waitForPrescan = params.waitForPrescan;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %    setSIDSettingsFromParams    %

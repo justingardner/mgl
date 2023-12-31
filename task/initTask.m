@@ -80,6 +80,7 @@ knownFieldnames = ...
      'numBlocks', ...
      'numTrials', ...
      'waitForBacktick', ...
+     'waitForPrescan',...
      'random', ...
      'timeInTicks', ...
      'timeInVols', ...
@@ -376,7 +377,7 @@ for i = 1:length(randVarNames)
 end
 
 % check to make sure that we don't use a reserved variable name
-reservedVarNames = {'thisphase','thisseg','gotResponse','segstart','startvolnum','seglen','waitForBacktick','buttonState','waitingToInit','trialstart','synchVol','segStartSeconds','whichButton','reactionTime'};
+reservedVarNames = {'thisphase','thisseg','gotResponse','segstart','startvolnum','seglen','waitForBacktick','waitForPrescan','buttonState','waitingToInit','trialstart','synchVol','segStartSeconds','whichButton','reactionTime'};
 conflictNames = intersect(lower(reservedVarNames),lower(shortNames));
 if ~isempty(conflictNames)
   for i = 1:length(conflictNames)
@@ -423,6 +424,15 @@ end
 % check for waitForBacktick setting
 if ~isfield(task,'waitForBacktick')
   task.waitForBacktick = 0;
+end
+
+% check for waitForPrescan setting
+if ~isfield(task,'waitForPrescan')
+  if isfield(myscreen,'waitForPrescan')
+    task.waitForPrescan = myscreen.waitForPrescan;
+  else
+    task.waitForPrescan = 0;
+  end
 end
 
 % check for random
