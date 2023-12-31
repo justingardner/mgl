@@ -62,12 +62,10 @@ rgba(3,:) = color(3);
 rgba(4,:) = color(4);
 
 % set radii
-if length(size) == 1
-  size = repmat(size,1,nGluDisk);
-end
+if length(size)==1,size = repmat(size,2,1);end
 radii = zeros([4, nGluDisk], 'single');
-radii(2,:) = size;
-radii(4,:) = size;
+radii(2,:) = size(1);
+radii(4,:) = size(2);
 
 % wedge
 wedge = repmat([0 2*pi]',1,nGluDisk);
