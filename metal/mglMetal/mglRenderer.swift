@@ -79,9 +79,8 @@ class mglRenderer: NSObject {
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     // init
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
-    init(metalView: MTKView) {
-        // bind an address and start listening for client process to connect
-        commandInterface = mglCommandInterface()
+    init(metalView: MTKView, commandInterface: mglCommandInterface) {
+        self.commandInterface = commandInterface
 
         // Initialize the GPU device
         guard let device = MTLCreateSystemDefaultDevice() else {
@@ -373,7 +372,7 @@ extension mglRenderer: MTKViewDelegate {
     // readAndAcknowledgePreviousCommand
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     private func readAndAcknowledgeNextCommand() -> mglCommandCode {
-        guard let command = commandInterface.readCommand() else {
+        guard let command = commandInterface.readCommandCode() else {
             _ = commandInterface.writeDouble(data: -secs.get())
             return mglUnknownCommand
         }
@@ -787,7 +786,7 @@ extension mglRenderer: MTKViewDelegate {
         }
 
         os_log("(mglRenderer) Got textureNumber %{public}d, choosing offscreen rendering to texture.", log: .default, type: .info, textureNumber)
-        return colorRenderingState.setRenderTarget(view: view, library: library, targetTexture: targetTexture)
+        return colorRenderingState.setRenderTarget(view: view, targetTexture: targetTexture)
     }
 
     func readTexture() -> Bool {

@@ -9,37 +9,13 @@
 import Foundation
 import MetalKit
 
+// Flush is the simplest command, acting as a placeholder to tell us when a frame should be presented.
 class mglFlushCommand : mglCommand {
-    var framesRemaining: Int
-
-    required init?(commandInterface: mglCommandInterface) {
-        framesRemaining = 1
+    init() {
+        super.init(framesRemaining: 1)
     }
 
-    func doNondrawingWork(
-        view: MTKView,
-        depthStencilState: mglDepthStencilState,
-        colorRenderingState: mglColorRenderingState,
-        textures: inout [UInt32 : MTLTexture],
-        deg2metal: inout simd_float4x4,
-        errorMessage: inout String
-    ) -> Bool {
-        return true
-    }
-
-    func writeQueryResults(commandInterface: mglCommandInterface) -> Bool {
-        return true
-    }
-
-    func draw(
-        view: MTKView,
-        depthStencilState: mglDepthStencilState,
-        colorRenderingState: mglColorRenderingState,
-        textures: inout [UInt32 : MTLTexture],
-        deg2metal: inout simd_float4x4,
-        renderEncoder: MTLRenderCommandEncoder,
-        errorMessage: inout String
-    ) -> Bool {
-        return true
+    init?(commandInterface: mglCommandInterface) {
+        super.init(framesRemaining: 1)
     }
 }

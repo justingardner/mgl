@@ -12,10 +12,13 @@
 		4D56190D27629A39009AB2E2 /* mglLocalClientServerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D56190C27629A39009AB2E2 /* mglLocalClientServerTests.swift */; };
 		4D5619112762A8F4009AB2E2 /* mglLocalClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D5619102762A8F4009AB2E2 /* mglLocalClient.swift */; };
 		4D5882B2285A89FD005DDF00 /* mglCommandModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D5882B1285A89FD005DDF00 /* mglCommandModel.swift */; };
+		4D5F729D2B45B07600B4DA29 /* mglCreateTextureCommand.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D5F729C2B45B07600B4DA29 /* mglCreateTextureCommand.swift */; };
+		4D5F729F2B45B6C000B4DA29 /* mglSetRenderTargetCommand.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D5F729E2B45B6C000B4DA29 /* mglSetRenderTargetCommand.swift */; };
 		4D8B32812824627800278B6F /* mglDepthStencilConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D8B32802824627800278B6F /* mglDepthStencilConfig.swift */; };
 		4DA4671F2763CB8E00B65B9F /* mglServer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DA4671E2763CB8E00B65B9F /* mglServer.swift */; };
 		4DCD58472B3615BF00E08547 /* mglFlushCommand.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DCD58462B3615BF00E08547 /* mglFlushCommand.swift */; };
 		4DCD58492B36178E00E08547 /* mglSetClearColorCommand.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DCD58482B36178E00E08547 /* mglSetClearColorCommand.swift */; };
+		4DCD584B2B36335500E08547 /* mglRenderer2.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DCD584A2B36335500E08547 /* mglRenderer2.swift */; };
 		D08D4BBE23B8834C00A27C79 /* mglCommandInterface.swift in Sources */ = {isa = PBXBuildFile; fileRef = D08D4BBD23B8834C00A27C79 /* mglCommandInterface.swift */; };
 		D0A59C7A23C2E41900D3AE93 /* mglSecs.m in Sources */ = {isa = PBXBuildFile; fileRef = D0A59C7923C2E41900D3AE93 /* mglSecs.m */; };
 		D0F6B96E23B6D9E700B45409 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0F6B96D23B6D9E700B45409 /* AppDelegate.swift */; };
@@ -52,11 +55,14 @@
 		4D56190C27629A39009AB2E2 /* mglLocalClientServerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglLocalClientServerTests.swift; sourceTree = "<group>"; };
 		4D5619102762A8F4009AB2E2 /* mglLocalClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglLocalClient.swift; sourceTree = "<group>"; };
 		4D5882B1285A89FD005DDF00 /* mglCommandModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglCommandModel.swift; sourceTree = "<group>"; };
+		4D5F729C2B45B07600B4DA29 /* mglCreateTextureCommand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglCreateTextureCommand.swift; sourceTree = "<group>"; };
+		4D5F729E2B45B6C000B4DA29 /* mglSetRenderTargetCommand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglSetRenderTargetCommand.swift; sourceTree = "<group>"; };
 		4D8B32802824627800278B6F /* mglDepthStencilConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglDepthStencilConfig.swift; sourceTree = "<group>"; };
 		4DA4671B2763C16200B65B9F /* mglCommandTypes.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = mglCommandTypes.h; sourceTree = "<group>"; };
 		4DA4671E2763CB8E00B65B9F /* mglServer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglServer.swift; sourceTree = "<group>"; };
 		4DCD58462B3615BF00E08547 /* mglFlushCommand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglFlushCommand.swift; sourceTree = "<group>"; };
 		4DCD58482B36178E00E08547 /* mglSetClearColorCommand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglSetClearColorCommand.swift; sourceTree = "<group>"; };
+		4DCD584A2B36335500E08547 /* mglRenderer2.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglRenderer2.swift; sourceTree = "<group>"; };
 		D08D4BBD23B8834C00A27C79 /* mglCommandInterface.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglCommandInterface.swift; sourceTree = "<group>"; };
 		D0A59C7823C2E41900D3AE93 /* mglSecs.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = mglSecs.h; sourceTree = "<group>"; };
 		D0A59C7923C2E41900D3AE93 /* mglSecs.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = mglSecs.m; sourceTree = "<group>"; };
@@ -109,6 +115,8 @@
 			children = (
 				4DCD58462B3615BF00E08547 /* mglFlushCommand.swift */,
 				4DCD58482B36178E00E08547 /* mglSetClearColorCommand.swift */,
+				4D5F729C2B45B07600B4DA29 /* mglCreateTextureCommand.swift */,
+				4D5F729E2B45B6C000B4DA29 /* mglSetRenderTargetCommand.swift */,
 			);
 			path = commands;
 			sourceTree = "<group>";
@@ -150,6 +158,7 @@
 				4D56190A27628883009AB2E2 /* mglLocalServer.swift */,
 				D0F6B9A123B6ED4300B45409 /* mglPrimitives.swift */,
 				D0F6B99923B6DAD600B45409 /* mglRenderer.swift */,
+				4DCD584A2B36335500E08547 /* mglRenderer2.swift */,
 				4DA4671E2763CB8E00B65B9F /* mglServer.swift */,
 				D0F6B96F23B6D9E700B45409 /* mglViewController.swift */,
 				D0F6B97123B6D9E800B45409 /* Assets.xcassets */,
@@ -317,6 +326,8 @@
 				4DCD58492B36178E00E08547 /* mglSetClearColorCommand.swift in Sources */,
 				4D56190B27628883009AB2E2 /* mglLocalServer.swift in Sources */,
 				4D5619112762A8F4009AB2E2 /* mglLocalClient.swift in Sources */,
+				4D5F729F2B45B6C000B4DA29 /* mglSetRenderTargetCommand.swift in Sources */,
+				4DCD584B2B36335500E08547 /* mglRenderer2.swift in Sources */,
 				D08D4BBE23B8834C00A27C79 /* mglCommandInterface.swift in Sources */,
 				D0F6B97023B6D9E700B45409 /* mglViewController.swift in Sources */,
 				D0F6B99A23B6DAD600B45409 /* mglRenderer.swift in Sources */,
@@ -325,6 +336,7 @@
 				D0A59C7A23C2E41900D3AE93 /* mglSecs.m in Sources */,
 				D0F6B96E23B6D9E700B45409 /* AppDelegate.swift in Sources */,
 				D0F6B9A423B6EDE600B45409 /* mglShaders.metal in Sources */,
+				4D5F729D2B45B07600B4DA29 /* mglCreateTextureCommand.swift in Sources */,
 				4DCD58472B3615BF00E08547 /* mglFlushCommand.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

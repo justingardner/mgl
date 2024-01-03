@@ -29,7 +29,15 @@ class mglColorRenderingState {
     // The current config might be onscreenRenderingConfig, or one targeting a specific texture.
     private var currentColorRenderingConfig: mglColorRenderingConfig!
 
+    // A collection of user-managed textures to render to and/or blt to screen.
+    private var textureSequence = UInt32(1)
+    private var textures : [UInt32: MTLTexture] = [:]
+
+    private let library: MTLLibrary
+
     init(device: MTLDevice, library: MTLLibrary, view: MTKView) {
+        self.library = library
+
         // Default to onscreen rendering config.
         guard let onscreenRenderingConfig = mglOnscreenRenderingConfig(device: device, library: library, view: view) else {
             fatalError("Could not create onscreen rendering config, got nil!")
@@ -102,7 +110,7 @@ class mglColorRenderingState {
     }
 
     // Use the given texture as an offscreen rendering target.
-    func setRenderTarget(view: MTKView, library: MTLLibrary, targetTexture: MTLTexture) -> Bool {
+    func setRenderTarget(view: MTKView, targetTexture: MTLTexture) -> Bool {
         guard let newTextureRenderingConfig = mglOffScreenTextureRenderingConfig(device: mglRenderer.device, library: library, view: view, texture: targetTexture) else {
             os_log("(mglColorRenderingState) Could not create offscreen rendering config, got nil.",
                    log: .default, type: .error)
@@ -113,8 +121,27 @@ class mglColorRenderingState {
     }
 
     // Report the size of the onscreen drawable or offscreen texture.
-    func getSize(view: MTKView) -> (Float, Float){
+    func getSize(view: MTKView) -> (Float, Float) {
         return currentColorRenderingConfig.getSize(view: view)
+    }
+
+    // Add a new texture to the available blt sources and render targets.
+    func addTexture(texture: MTLTexture) -> UInt32 {
+        // Consume a texture number from the bookkeeping sequence.
+        let consumedTextureNumber = textureSequence
+        textures[consumedTextureNumber] = texture
+        textureSequence += 1
+        return consumedTextureNumber
+    }
+
+    // Get an existing texture from the collection, if one exists with the given number.
+    func getTexture(textureNumber: UInt32) -> MTLTexture? {
+        guard let texture = textures[textureNumber] else {
+            os_log("(mglColorRenderingState) Invalid texture number %{public}d, valid numbers are %{public}@.",
+                   log: .default, type: .error, textureNumber, String(describing: textures.keys))
+            return nil
+        }
+        return texture
     }
 }
 

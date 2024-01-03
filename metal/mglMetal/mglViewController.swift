@@ -13,14 +13,40 @@
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
 import Cocoa
 import MetalKit
+import os.log
 
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
 // ViewController
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
 class ViewController: NSViewController {
-    // holds our renderer class which does all the work
-    var renderer : mglRenderer?
-    
+    // holds our renderer class which does the main work, initialized during viewDidLoad()
+    var renderer: mglRenderer2?
+
+    // Open a connection to the client (eg Matlab)
+    // based on a default connection address or an address passed as a command line option:
+    //   mglMetal ... -mglConnectionAddress my-address
+    func commandInterfaceFromCliArgs() -> mglCommandInterface {
+        // Get the connection address to use from the command line
+        let arguments = CommandLine.arguments
+        let optionIndex = arguments.firstIndex(of: "-mglConnectionAddress") ?? -2
+        if optionIndex < 0 {
+            os_log("(MglViewController) No command line option passed for -mglConnectionAddress, using a default address.", log: .default, type: .info)
+        }
+        let address = arguments.indices.contains(optionIndex + 1) ? arguments[optionIndex + 1] : "mglMetal.socket"
+        os_log("(MglViewController) using connection addresss %{public}@", log: .default, type: .info, address)
+
+        // In the future we might inspect the address to decide what kind of server to create,
+        // like local socket vs internet socket, vs shared memory, etc.
+        // For now, we always interpret the address as a file system path for a local socket.
+        let server = mglLocalServer(pathToBind: address)
+        return mglCommandInterface(server: server)
+    }
+
+    // This is called normally from viewDidLoad(), or during testing.
+    func setUpRenderer(view: MTKView, commandInterface: mglCommandInterface) {
+        renderer = mglRenderer2(metalView: view, commandInterface: commandInterface)
+    }
+
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     // viewDidLoad
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
@@ -34,8 +60,8 @@ class ViewController: NSViewController {
 
         // Initialize our renderer - this is the function
         // that handles drawing and where all the action is.
-        renderer = mglRenderer(metalView: metalView)
-        
+        let commandInterface = commandInterfaceFromCliArgs()
+        setUpRenderer(view: metalView, commandInterface: commandInterface)
     }
 
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/

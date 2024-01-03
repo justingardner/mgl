@@ -10,43 +10,29 @@ import Foundation
 import MetalKit
 
 class mglSetClearColorCommand : mglCommand {
-    var framesRemaining: Int
-
     private let clearColor: MTLClearColor!
 
-    required init?(commandInterface: mglCommandInterface) {
+    init(red: Double, green: Double, blue: Double, alpha: Double = 1.0) {
+        clearColor = MTLClearColor(red: red, green: green, blue: blue, alpha: 1.0)
+        super.init(framesRemaining: 1)
+    }
+
+    init?(commandInterface: mglCommandInterface) {
         guard let color = commandInterface.readColor() else {
             return nil
         }
         clearColor = MTLClearColor(red: Double(color[0]), green: Double(color[1]), blue: Double(color[2]), alpha: 1)
-        framesRemaining = 1
+        super.init(framesRemaining: 1)
     }
 
-    func doNondrawingWork(
+    override func doNondrawingWork(
         view: MTKView,
         depthStencilState: mglDepthStencilState,
         colorRenderingState: mglColorRenderingState,
-        textures: inout [UInt32 : MTLTexture],
         deg2metal: inout simd_float4x4,
         errorMessage: inout String
     ) -> Bool {
         view.clearColor = clearColor
-        return true
-    }
-
-    func writeQueryResults(commandInterface: mglCommandInterface) -> Bool {
-        return true
-    }
-
-    func draw(
-        view: MTKView,
-        depthStencilState: mglDepthStencilState,
-        colorRenderingState: mglColorRenderingState,
-        textures: inout [UInt32 : MTLTexture],
-        deg2metal: inout simd_float4x4,
-        renderEncoder: MTLRenderCommandEncoder,
-        errorMessage: inout String
-    ) -> Bool {
         return true
     }
 }
