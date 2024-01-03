@@ -23,7 +23,7 @@ class mglCommandInterface {
 
     // This is used as a queue of commands that have been read fully but not yet processed / rendered.
     private var todo = [mglCommand]()
-    
+
     // This is used as a queue of commands that have been processed but results not yet sent to the client.
     private var done = [mglCommand]()
 
@@ -44,25 +44,58 @@ class mglCommandInterface {
     }
 
     // Wait for the next command from the client and read it fully before processing.
-    private func awaitCommand() -> mglCommand? {
+    // Require a MTLDevice so that we can immediately write data to device buffers, with no intermediate.
+    private func awaitCommand(device: MTLDevice) -> mglCommand? {
         // Consume the command code that tells us what to do next.
         // This will block until one arrives.
         guard let commandCode = readCommandCode() else {
             return nil
         }
 
-        // Note when the command was received, to be reported after processing.
+        // Acknowledge command received.
+        // Client should proceed to send command parameters, if any.
         let ackTime = secs.get()
+        _ = writeDouble(data: ackTime)
 
         // Instantiate a new command by reading it fully from the socket.
         // We read the whole command before processing it.
         // This will block until the whole command arrives.
         var command: mglCommand? = nil
         switch (commandCode) {
-        case mglFlush: command = mglFlushCommand(commandInterface: self)
-        case mglSetClearColor: command = mglSetClearColorCommand(commandInterface: self)
+        case mglPing: command = mglPingCommand()
+        case mglDrainSystemEvents: command = mglDrainSystemEventsCommand()
+        case mglFullscreen: command = mglFullscreenCommand()
+        case mglWindowed: command = mglWindowedCommand()
         case mglCreateTexture: command = mglCreateTextureCommand(commandInterface: self)
+        case mglReadTexture: command = mglReadTextureCommand(commandInterface: self)
         case mglSetRenderTarget: command = mglSetRenderTargetCommand(commandInterface: self)
+        case mglSetWindowFrameInDisplay: command = mglSetWindowFrameInDisplayCommand(commandInterface: self)
+        case mglGetWindowFrameInDisplay: command = mglGetWindowFrameInDisplayCommand()
+        case mglDeleteTexture: command = mglDeleteTextureCommand(commandInterface: self)
+        case mglSetViewColorPixelFormat: command = mglSetViewColorPixelFormatCommand(commandInterface: self)
+        case mglStartStencilCreation: command = mglStartStencilCreationCommand(commandInterface: self)
+        case mglFinishStencilCreation: command = mglFinishStencilCreationCommand()
+        case mglInfo: command = nil
+        case mglGetErrorMessage: command = nil
+        case mglFrameGrab: command = nil
+        case mglMinimize: command = nil
+        case mglDisplayCursor: command = mglDisplayCursorCommand(commandInterface: self)
+        case mglFlush: command = mglFlushCommand(commandInterface: self)
+        case mglBltTexture: command = nil
+        case mglSetXform: command = mglSetXformCommand(commandInterface: self)
+        case mglDots: command = nil
+        case mglLine: command = nil
+        case mglQuad: command = mglQuadCommand(commandInterface: self, device: device)
+        case mglPolygon: command = nil
+        case mglArcs: command = nil
+        case mglUpdateTexture: command = nil
+        case mglSelectStencil: command = mglSelectStencilCreationCommand(commandInterface: self)
+        case mglSetClearColor: command = mglSetClearColorCommand(commandInterface: self)
+        case mglRepeatFlicker: command = nil
+        case mglRepeatBlts: command = nil
+        case mglRepeatQuads: command = nil
+        case mglRepeatDots: command = nil
+        case mglRepeatFlush: command = nil
         default:
             command = nil
         }
@@ -82,11 +115,11 @@ class mglCommandInterface {
 
     // Collaborate with mglRenderer: here's what to render next.
     // TODO: this will change when we're enqueueing a batch.
-    func awaitNext() -> mglCommand? {
+    func awaitNext(device: MTLDevice) -> mglCommand? {
         if todo.count > 0 {
             return todo.removeFirst()
         }
-        return awaitCommand()
+        return awaitCommand(device: device)
     }
 
     // Collaborate with mglRenderer: this is done, ready to send results back to the client.
@@ -97,7 +130,6 @@ class mglCommandInterface {
         // If we're not still working on a batch, we can send all our results to the client.
         if todo.isEmpty {
             for doneCommand in done {
-                _ = writeDouble(data: doneCommand.results.ackTime)
                 _ = doneCommand.writeQueryResults(commandInterface: self)
                 if doneCommand.results.success {
                     _ = writeDouble(data: doneCommand.results.processedTime)

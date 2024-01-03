@@ -82,7 +82,7 @@ class mglColorRenderingState {
     }
 
     // Select a pixel format for onscreen rendering.
-    func setOnscreenColorPixelFormat(view: MTKView, library: MTLLibrary, pixelFormat: MTLPixelFormat) -> Bool {
+    func setOnscreenColorPixelFormat(view: MTKView, pixelFormat: MTLPixelFormat) -> Bool {
         view.colorPixelFormat = pixelFormat
 
         // Recreate the onscreen color rendering config so that render pipelines will use the new color pixel format.
@@ -137,11 +137,28 @@ class mglColorRenderingState {
     // Get an existing texture from the collection, if one exists with the given number.
     func getTexture(textureNumber: UInt32) -> MTLTexture? {
         guard let texture = textures[textureNumber] else {
-            os_log("(mglColorRenderingState) Invalid texture number %{public}d, valid numbers are %{public}@.",
+            os_log("(mglColorRenderingState) Get invalid texture number %{public}d, valid numbers are %{public}@.",
                    log: .default, type: .error, textureNumber, String(describing: textures.keys))
             return nil
         }
         return texture
+    }
+
+    // Remove and return an existing texture from the collection, if one exists with the given number.
+    func removeTexture(textureNumber: UInt32) -> MTLTexture? {
+        guard let texture = textures.removeValue(forKey: textureNumber) else {
+            os_log("(mglColorRenderingState) Remove invalid texture number %{public}d, valid numbers are %{public}@.",
+                   log: .default, type: .error, textureNumber, String(describing: textures.keys))
+            return nil
+        }
+
+        os_log("(mglColorRenderingState) Removed texture number %{public}d, remaining numbers are %{public}@.",
+               log: .default, type: .info, textureNumber, String(describing: textures.keys))
+        return texture
+    }
+
+    func getTextureCount() -> UInt32 {
+        return UInt32(textures.count)
     }
 }
 

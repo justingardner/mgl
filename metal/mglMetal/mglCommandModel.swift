@@ -38,7 +38,7 @@ class mglCommand {
 
     // Each command shoud provide two ways to init():
     //  - directly in memory, for use during tests
-    //  - by reading from an mglCommandInterface, for use with a connected client
+    //  - by reading from an mglCommandInterface, for use with a connected client, allowed to fail and return nil
     // Both inits can call up to this as "super.init()"
     init(framesRemaining: Int = 0) {
         self.framesRemaining = framesRemaining

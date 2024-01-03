@@ -12,6 +12,7 @@ import MetalKit
 class mglCreateTextureCommand : mglCommand {
     private let texture: MTLTexture
     var textureNumber: UInt32 = 0
+    var textureCount: UInt32 = 0
 
     init(texture: MTLTexture) {
         self.texture = texture
@@ -33,7 +34,23 @@ class mglCreateTextureCommand : mglCommand {
         deg2metal: inout simd_float4x4,
         errorMessage: inout String
     ) -> Bool {
-        self.textureNumber = colorRenderingState.addTexture(texture: texture)
+        textureNumber = colorRenderingState.addTexture(texture: texture)
+        textureCount = colorRenderingState.getTextureCount()
+        return true
+    }
+
+    override func writeQueryResults(commandInterface : mglCommandInterface) -> Bool {
+        if (textureNumber < 1) {
+            // A heads up that something went wrong.
+            _ = commandInterface.writeDouble(data: -commandInterface.secs.get())
+        }
+
+        // A heads up that return data is on the way.
+        _ = commandInterface.writeDouble(data: commandInterface.secs.get())
+
+        // Specific return data for this command.
+        _ = commandInterface.writeUInt32(data: textureNumber)
+        _ = commandInterface.writeUInt32(data: textureCount)
         return true
     }
 }

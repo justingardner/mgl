@@ -12,7 +12,7 @@ import os.log
 
 class mglRenderer2: NSObject {
     // GPU Device
-    static var device : MTLDevice!
+    private let device: MTLDevice
 
     // commandQueue which tells the device what to do
     static var commandQueue: MTLCommandQueue!
@@ -50,6 +50,7 @@ class mglRenderer2: NSObject {
         guard let device = MTLCreateSystemDefaultDevice() else {
             fatalError("GPU not available")
         }
+        self.device = device
         metalView.device = device
         mglRenderer.device = device
 
@@ -105,7 +106,7 @@ extension mglRenderer2: MTKViewDelegate {
             return
         }
 
-        guard var command = commandInterface.awaitNext() else {
+        guard var command = commandInterface.awaitNext(device: device) else {
             return
         }
 
@@ -198,7 +199,7 @@ extension mglRenderer2: MTKViewDelegate {
             os_log("(mglRenderer2) I did one of these: %{public}@", log: .default, type: .info, String(describing: command))
 
             // Get a new command and keep going.
-            if let nextCommand = commandInterface.awaitNext() {
+            if let nextCommand = commandInterface.awaitNext(device: device) {
                 command = nextCommand
                 command.results.success = command.doNondrawingWork(
                     view: view,

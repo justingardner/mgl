@@ -604,7 +604,7 @@ extension mglRenderer: MTKViewDelegate {
         default: format = .bgra8Unorm
         }
 
-        return colorRenderingState.setOnscreenColorPixelFormat(view: view, library: library, pixelFormat: format)
+        return colorRenderingState.setOnscreenColorPixelFormat(view: view, pixelFormat: format)
     }
 
     func drainSystemEvents(view: MTKView) -> Bool {
