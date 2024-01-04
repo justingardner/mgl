@@ -8,26 +8,23 @@
 
 import Foundation
 import MetalKit
-import OSLog
 
 class mglDrainSystemEventsCommand : mglCommand {
     override func doNondrawingWork(
+        logger: mglLogger,
         view: MTKView,
         depthStencilState: mglDepthStencilState,
         colorRenderingState: mglColorRenderingState,
-        deg2metal: inout simd_float4x4,
-        errorMessage: inout String
+        deg2metal: inout simd_float4x4
     ) -> Bool {
         guard let window = view.window else {
-            os_log("(mglDrainSystemEventsCommand) Could not get window from view, skipping drain events command.",
-                   log: .default, type: .error)
+            logger.error(component: "mglDrainSystemEventsCommand", details: "Could not get window from view, skipping drain events command.")
             return false
         }
 
         var event = window.nextEvent(matching: .any)
         while (event != nil) {
-            os_log("(mglDrainSystemEventsCommand) Processing OS event: %{public}@",
-                   log: .default, type: .info, String(describing: event))
+            logger.info(component: "mglDrainSystemEventsCommand", details: "Processing OS event: \(String(describing: event))")
             event = window.nextEvent(matching: .any)
         }
         return true

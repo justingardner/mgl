@@ -10,13 +10,17 @@ import XCTest
 @testable import mglMetal
 
 class mglLocalSocketTests: XCTestCase {
+    private let logger = getMglLogger()
+    private let socketPath = "test"
 
-    // Server and client are created for each test method.
-    static let socketPath = "test"
-    let server = mglLocalServer(pathToBind: socketPath)
-    let client = mglLocalClient(pathToConnect: socketPath)
+    private var server: mglLocalServer!
+    private var client: mglLocalClient!
 
     override func setUpWithError() throws {
+        // Server and client are (re)created for each test method.
+        server = mglLocalServer(logger: logger, pathToBind: socketPath)
+        client = mglLocalClient(logger: logger, pathToConnect: socketPath)
+
         // Sanity check server status before connection accepted.
         XCTAssertGreaterThanOrEqual(server.boundSocketDescriptor, 0)
         XCTAssertFalse(server.clientIsAccepted())
@@ -78,5 +82,4 @@ class mglLocalSocketTests: XCTestCase {
         XCTAssertTrue(bytesSentFromServer.elementsEqual(clientBuffer))
         XCTAssertFalse(client.dataWaiting())
     }
-
 }

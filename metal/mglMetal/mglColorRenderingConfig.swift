@@ -8,7 +8,6 @@
 
 import Foundation
 import MetalKit
-import os.log
 
 /*
  mglColorRenderingState keeps track the current color rendering state for the app, including:
@@ -23,6 +22,8 @@ import os.log
  mglRenderer just needs to call mglColorRenderingState methods at the right times.
  */
 class mglColorRenderingState {
+    private let logger: mglLogger
+
     // The usual config for on-screen rendering.
     private var onscreenRenderingConfig: mglColorRenderingConfig!
 
@@ -35,11 +36,17 @@ class mglColorRenderingState {
 
     private let library: MTLLibrary
 
-    init(device: MTLDevice, library: MTLLibrary, view: MTKView) {
+    init(logger: mglLogger, device: MTLDevice, library: MTLLibrary, view: MTKView) {
+        self.logger = logger
         self.library = library
 
         // Default to onscreen rendering config.
-        guard let onscreenRenderingConfig = mglOnscreenRenderingConfig(device: device, library: library, view: view) else {
+        guard let onscreenRenderingConfig = mglOnscreenRenderingConfig(
+            logger: logger,
+            device: device,
+            library: library,
+            view: view
+        ) else {
             fatalError("Could not create onscreen rendering config, got nil!")
         }
         self.onscreenRenderingConfig = onscreenRenderingConfig
@@ -86,9 +93,13 @@ class mglColorRenderingState {
         view.colorPixelFormat = pixelFormat
 
         // Recreate the onscreen color rendering config so that render pipelines will use the new color pixel format.
-        guard let newOnscreenRenderingConfig = mglOnscreenRenderingConfig(device: mglRenderer.device, library: library, view: view) else {
-            os_log("(mglColorRenderingState) Could not create onscreen rendering config for pixel format %{public}@.",
-                   log: .default, type: .error, String(describing: view.colorPixelFormat))
+        guard let newOnscreenRenderingConfig = mglOnscreenRenderingConfig(
+            logger: logger,
+            device: mglRenderer.device,
+            library: library,
+            view: view
+        ) else {
+            logger.error(component: "mglColorRenderingState", details: "Could not create onscreen rendering config for pixel format \(String(describing: view.colorPixelFormat)).")
             return false
         }
 
@@ -111,9 +122,14 @@ class mglColorRenderingState {
 
     // Use the given texture as an offscreen rendering target.
     func setRenderTarget(view: MTKView, targetTexture: MTLTexture) -> Bool {
-        guard let newTextureRenderingConfig = mglOffScreenTextureRenderingConfig(device: mglRenderer.device, library: library, view: view, texture: targetTexture) else {
-            os_log("(mglColorRenderingState) Could not create offscreen rendering config, got nil.",
-                   log: .default, type: .error)
+        guard let newTextureRenderingConfig = mglOffScreenTextureRenderingConfig(
+            logger: logger,
+            device: mglRenderer.device,
+            library: library,
+            view: view,
+            texture: targetTexture
+        ) else {
+            logger.error(component: "mglColorRenderingState", details: "Could not create offscreen rendering config, got nil.")
             return false
         }
         currentColorRenderingConfig = newTextureRenderingConfig
@@ -137,8 +153,7 @@ class mglColorRenderingState {
     // Get an existing texture from the collection, if one exists with the given number.
     func getTexture(textureNumber: UInt32) -> MTLTexture? {
         guard let texture = textures[textureNumber] else {
-            os_log("(mglColorRenderingState) Get invalid texture number %{public}d, valid numbers are %{public}@.",
-                   log: .default, type: .error, textureNumber, String(describing: textures.keys))
+            logger.error(component: "mglColorRenderingState", details: "Can't get invalid texture number \(textureNumber), valid numbers are \(String(describing: textures.keys))")
             return nil
         }
         return texture
@@ -147,13 +162,11 @@ class mglColorRenderingState {
     // Remove and return an existing texture from the collection, if one exists with the given number.
     func removeTexture(textureNumber: UInt32) -> MTLTexture? {
         guard let texture = textures.removeValue(forKey: textureNumber) else {
-            os_log("(mglColorRenderingState) Remove invalid texture number %{public}d, valid numbers are %{public}@.",
-                   log: .default, type: .error, textureNumber, String(describing: textures.keys))
+            logger.error(component: "mglColorRenderingState", details: "Can't remove invalid texture number \(textureNumber), valid numbers are \(String(describing: textures.keys))")
             return nil
         }
 
-        os_log("(mglColorRenderingState) Removed texture number %{public}d, remaining numbers are %{public}@.",
-               log: .default, type: .info, textureNumber, String(describing: textures.keys))
+        logger.info(component: "mglColorRenderingState", details: "Removed texture number \(textureNumber), remaining numbers are \(String(describing: textures.keys))")
         return texture
     }
 
@@ -178,13 +191,14 @@ private protocol mglColorRenderingConfig {
 }
 
 private class mglOnscreenRenderingConfig : mglColorRenderingConfig {
+    private let logger: mglLogger
     let dotsPipelineState: MTLRenderPipelineState
     let arcsPipelineState: MTLRenderPipelineState
     let verticesWithColorPipelineState: MTLRenderPipelineState
     let texturePipelineState: MTLRenderPipelineState
 
-    init?(device: MTLDevice, library: MTLLibrary, view: MTKView) {
-        // Until an explicit OOP command model exists, we can just call static functions of mglRenderer.
+    init?(logger: mglLogger, device: MTLDevice, library: MTLLibrary, view: MTKView) {
+        self.logger = logger
         do {
             dotsPipelineState = try device.makeRenderPipelineState(
                 descriptor: dotsPipelineStateDescriptor(
@@ -211,7 +225,7 @@ private class mglOnscreenRenderingConfig : mglColorRenderingConfig {
                     stencilPixelFormat: view.depthStencilPixelFormat,
                     library: library))
         } catch let error {
-            os_log("Could not create onscreen pipeline state: %@", log: .default, type: .error, String(describing: error))
+            logger.error(component: "mglOnscreenRenderingConfig", details: "Could not create onscreen pipeline state: \(String(describing: error))")
             return nil
         }
     }
@@ -234,13 +248,14 @@ private class mglOnscreenRenderingConfig : mglColorRenderingConfig {
     // has to be drawn into an offscreen texture, so for now, this function just returns
     // nil to notify that the frameGrab is impossible
     func frameGrab() -> (width: Int, height: Int, pointer: UnsafeMutablePointer<Float>?) {
-        os_log("(mglColorRenderingConfig:frameGrab) Cannot get frame because render target is the screen", log: .default, type: .error)
+        logger.error(component: "mglOnscreenRenderingConfig", details: "Cannot get frame because render target is the screen")
         return (0,0,nil)
     }
 
 }
 
 private class mglOffScreenTextureRenderingConfig : mglColorRenderingConfig {
+    private let logger: mglLogger
     let dotsPipelineState: MTLRenderPipelineState
     let arcsPipelineState: MTLRenderPipelineState
     let verticesWithColorPipelineState: MTLRenderPipelineState
@@ -250,7 +265,8 @@ private class mglOffScreenTextureRenderingConfig : mglColorRenderingConfig {
     let depthStencilTexture: MTLTexture
     let renderPassDescriptor: MTLRenderPassDescriptor
 
-    init?(device: MTLDevice, library: MTLLibrary, view: MTKView, texture: MTLTexture) {
+    init?(logger: mglLogger, device: MTLDevice, library: MTLLibrary, view: MTKView, texture: MTLTexture) {
+        self.logger = logger
         self.colorTexture = texture
 
         let depthStencilTextureDescriptor = MTLTextureDescriptor.texture2DDescriptor(
@@ -261,7 +277,7 @@ private class mglOffScreenTextureRenderingConfig : mglColorRenderingConfig {
         depthStencilTextureDescriptor.storageMode = .private
         depthStencilTextureDescriptor.usage = .renderTarget
         guard let depthStencilTexture = device.makeTexture(descriptor: depthStencilTextureDescriptor) else {
-            os_log("Could not create offscreen depth-and-stencil texture, got nil!", log: .default, type: .error)
+            logger.error(component: "mglOffScreenTextureRenderingConfig", details: "Could not create offscreen depth-and-stencil texture, got nil!")
             return nil
         }
         self.depthStencilTexture = depthStencilTexture
@@ -301,7 +317,7 @@ private class mglOffScreenTextureRenderingConfig : mglColorRenderingConfig {
                     stencilPixelFormat: view.depthStencilPixelFormat,
                     library: library))
         } catch let error {
-            os_log("(mglColorRenderingConfig) Could not create offscreen pipeline state: %@", log: .default, type: .error, String(describing: error))
+            logger.error(component: "mglOffScreenTextureRenderingConfig", details: "Could not create offscreen pipeline state: \(String(describing: error))")
             return nil
         }
     }
@@ -348,7 +364,7 @@ private class mglOffScreenTextureRenderingConfig : mglColorRenderingConfig {
         }
         else {
             // write log message
-            os_log("(mglColorRenderingConfig:frameGrab) Render target texture is not in rgba32float format", log: .default, type: .error)
+            logger.error(component: "mglOffScreenTextureRenderingConfig", details: "Cannot get frame because render target texture is not in rgba32float format")
 
             // could not get bytes, return 0,0,nil
             return (0,0,nil)

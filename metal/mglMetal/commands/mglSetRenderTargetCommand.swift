@@ -8,7 +8,6 @@
 
 import Foundation
 import MetalKit
-import OSLog
 
 class mglSetRenderTargetCommand : mglCommand {
     let textureNumber: UInt32
@@ -27,20 +26,18 @@ class mglSetRenderTargetCommand : mglCommand {
     }
 
     override func doNondrawingWork(
+        logger: mglLogger,
         view: MTKView,
         depthStencilState: mglDepthStencilState,
         colorRenderingState: mglColorRenderingState,
-        deg2metal: inout simd_float4x4,
-        errorMessage: inout String
+        deg2metal: inout simd_float4x4
     ) -> Bool {
         guard let targetTexture = colorRenderingState.getTexture(textureNumber: textureNumber) else {
-            os_log("(mglSetRenderTargetCommand) For textureNumber %{public}d, choosing onscreen rendering.",
-                   log: .default, type: .info, textureNumber)
+            logger.info(component: "mglSetRenderTargetCommand", details: "For textureNumber \(textureNumber), choosing onscreen rendering.")
             return colorRenderingState.setOnscreenRenderingTarget()
         }
 
-        os_log("(mglSetRenderTargetCommand) For textureNumber %{public}d, choosing offscreen rendering to texture.",
-               log: .default, type: .info, textureNumber)
+        logger.info(component: "mglSetRenderTargetCommand", details: "For textureNumber \(textureNumber), choosing offscreen rendering to texture.")
         return colorRenderingState.setRenderTarget(view: view, targetTexture: targetTexture)
     }
 }

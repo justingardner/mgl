@@ -8,28 +8,25 @@
 
 import Foundation
 import MetalKit
-import OSLog
 
 class mglWindowedCommand : mglCommand {
     override func doNondrawingWork(
+        logger: mglLogger,
         view: MTKView,
         depthStencilState: mglDepthStencilState,
         colorRenderingState: mglColorRenderingState,
-        deg2metal: inout simd_float4x4,
-        errorMessage: inout String
+        deg2metal: inout simd_float4x4
     ) -> Bool {
         NSCursor.unhide()
         mglDisplayCursorCommand.cursorHidden = false
 
         guard let window = view.window else {
-            os_log("(mglWindowedCommand) Could not get window from view, skipping windowed command.",
-                   log: .default, type: .error)
+            logger.error(component: "mglWindowedCommand", details: "Could not get window from view, skipping windowed command.")
             return false
         }
 
         if !window.styleMask.contains(.fullScreen) {
-            os_log("(mglWindowedCommand) App is already windowed, skipping windowed command.",
-                   log: .default, type: .info)
+            logger.info(component: "mglWindowedCommand", details: "App is already windowed, skipping windowed command.")
         } else {
             window.toggleFullScreen(nil)
         }

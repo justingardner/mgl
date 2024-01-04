@@ -30,12 +30,12 @@ class mglQuadCommand : mglCommand {
     }
 
     override func draw(
+        logger: mglLogger,
         view: MTKView,
         depthStencilState: mglDepthStencilState,
         colorRenderingState: mglColorRenderingState,
         deg2metal: inout simd_float4x4,
-        renderEncoder: MTLRenderCommandEncoder,
-        errorMessage: inout String
+        renderEncoder: MTLRenderCommandEncoder
     ) -> Bool {
         // Render vertices as triangles, expect two triangles per quad.
         renderEncoder.setRenderPipelineState(colorRenderingState.getVerticesWithColorPipelineState())

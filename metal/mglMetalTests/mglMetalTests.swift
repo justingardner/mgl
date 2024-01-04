@@ -12,16 +12,16 @@ import MetalKit
 
 // Helpful post on setting up this kind of test: http://fullytyped.com/2019/01/07/on-screen-unit-tests/
 class mglMetalTests: XCTestCase {
+    private let testAddress = "mglMetalTests.socket"
 
-    static let testAddress = "mglMetalTests.socket"
-    let server = mglLocalServer(pathToBind: testAddress)
-    let client = mglLocalClient(pathToConnect: testAddress)
+    private var server: mglLocalServer!
+    private var client: mglLocalClient!
 
-    var viewController: ViewController!
-    var view: MTKView!
-    var commandInterface: mglCommandInterface!
+    private var viewController: ViewController!
+    private var view: MTKView!
+    private var commandInterface: mglCommandInterface!
 
-    var offscreenTexture: MTLTexture!
+    private var offscreenTexture: MTLTexture!
 
     override func setUp() {
         // XCTestCase automatically launches our whole app and runs these tests in the same process.
@@ -33,8 +33,12 @@ class mglMetalTests: XCTestCase {
         view = viewController.view as? MTKView
         view.isPaused = true
 
+        // Create a client-server pair we can use to test-drive the app.
+        server = mglLocalServer(logger: viewController.logger, pathToBind: testAddress)
+        client = mglLocalClient(logger: viewController.logger, pathToConnect: testAddress)
+
         // Use a private server and connection address during testing instead of the default.
-        commandInterface = mglCommandInterface(server: server)
+        commandInterface = mglCommandInterface(logger: viewController.logger, server: server)
         viewController.setUpRenderer(view: view, commandInterface: commandInterface)
 
         // Trigger one frame to allow the server to accept the test client's connection.

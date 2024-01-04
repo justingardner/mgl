@@ -28,18 +28,21 @@ class mglCreateTextureCommand : mglCommand {
     }
 
     override func doNondrawingWork(
+        logger: mglLogger,
         view: MTKView,
         depthStencilState: mglDepthStencilState,
         colorRenderingState: mglColorRenderingState,
-        deg2metal: inout simd_float4x4,
-        errorMessage: inout String
+        deg2metal: inout simd_float4x4
     ) -> Bool {
         textureNumber = colorRenderingState.addTexture(texture: texture)
         textureCount = colorRenderingState.getTextureCount()
         return true
     }
 
-    override func writeQueryResults(commandInterface : mglCommandInterface) -> Bool {
+    override func writeQueryResults(
+        logger: mglLogger,
+        commandInterface : mglCommandInterface
+    ) -> Bool {
         if (textureNumber < 1) {
             // A heads up that something went wrong.
             _ = commandInterface.writeDouble(data: -commandInterface.secs.get())

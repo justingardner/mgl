@@ -13,12 +13,14 @@
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
 import Cocoa
 import MetalKit
-import os.log
 
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
 // ViewController
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
 class ViewController: NSViewController {
+    // A common logging interface for app components to share.
+    let logger = getMglLogger()
+
     // holds our renderer class which does the main work, initialized during viewDidLoad()
     var renderer: mglRenderer2?
 
@@ -30,21 +32,21 @@ class ViewController: NSViewController {
         let arguments = CommandLine.arguments
         let optionIndex = arguments.firstIndex(of: "-mglConnectionAddress") ?? -2
         if optionIndex < 0 {
-            os_log("(MglViewController) No command line option passed for -mglConnectionAddress, using a default address.", log: .default, type: .info)
+            logger.info(component: "ViewController", details: "No command line option passed for -mglConnectionAddress, using a default address.")
         }
         let address = arguments.indices.contains(optionIndex + 1) ? arguments[optionIndex + 1] : "mglMetal.socket"
-        os_log("(MglViewController) using connection addresss %{public}@", log: .default, type: .info, address)
+        logger.info(component: "ViewController", details: "Using connection addresss \(address)")
 
         // In the future we might inspect the address to decide what kind of server to create,
         // like local socket vs internet socket, vs shared memory, etc.
         // For now, we always interpret the address as a file system path for a local socket.
-        let server = mglLocalServer(pathToBind: address)
-        return mglCommandInterface(server: server)
+        let server = mglLocalServer(logger: logger, pathToBind: address)
+        return mglCommandInterface(logger: logger, server: server)
     }
 
     // This is called normally from viewDidLoad(), or during testing.
     func setUpRenderer(view: MTKView, commandInterface: mglCommandInterface) {
-        renderer = mglRenderer2(metalView: view, commandInterface: commandInterface)
+        renderer = mglRenderer2(logger: logger, metalView: view, commandInterface: commandInterface)
     }
 
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
@@ -79,7 +81,5 @@ class ViewController: NSViewController {
         // Update the view, if already loaded.
         }
     }
-
-
 }
 

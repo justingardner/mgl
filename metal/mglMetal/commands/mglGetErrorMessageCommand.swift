@@ -1,18 +1,19 @@
 //
-//  mglPingCommand.swift
+//  mglGetErrorMessageCommand.swift
 //  mglMetal
 //
-//  Created by Benjamin Heasly on 1/3/24.
+//  Created by Benjamin Heasly on 1/4/24.
 //  Copyright © 2024 GRU. All rights reserved.
 //
 
 import Foundation
 
-class mglPingCommand : mglCommand {
+class mglGetErrorMessageCommand : mglCommand {
     override func writeQueryResults(
         logger: mglLogger,
         commandInterface : mglCommandInterface
     ) -> Bool {
-        return commandInterface.writeCommand(data: mglPing) == mglSizeOfCommandCodeArray(1)
+        _ = commandInterface.writeString(data: logger.getErrorMessage())
+        return true
     }
 }

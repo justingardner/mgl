@@ -10,7 +10,6 @@
 
 import Foundation
 import MetalKit
-import os.log
 
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
 // This class combines an mglServer instance with
@@ -19,6 +18,8 @@ import os.log
 // supported commands and data types.
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
 class mglCommandInterface {
+    private let logger: mglLogger
+
     private let server: mglServer
 
     // This is used as a queue of commands that have been read fully but not yet processed / rendered.
@@ -33,7 +34,8 @@ class mglCommandInterface {
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     // init
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
-    init(server: mglServer) {
+    init(logger: mglLogger, server: mglServer) {
+        self.logger = logger
         self.server = server
     }
 
@@ -75,8 +77,8 @@ class mglCommandInterface {
         case mglSetViewColorPixelFormat: command = mglSetViewColorPixelFormatCommand(commandInterface: self)
         case mglStartStencilCreation: command = mglStartStencilCreationCommand(commandInterface: self)
         case mglFinishStencilCreation: command = mglFinishStencilCreationCommand()
-        case mglInfo: command = nil
-        case mglGetErrorMessage: command = nil
+        case mglInfo: command = mglInfoCommand()
+        case mglGetErrorMessage: command = mglGetErrorMessageCommand()
         case mglFrameGrab: command = nil
         case mglMinimize: command = nil
         case mglDisplayCursor: command = mglDisplayCursorCommand(commandInterface: self)
@@ -130,11 +132,11 @@ class mglCommandInterface {
         // If we're not still working on a batch, we can send all our results to the client.
         if todo.isEmpty {
             for doneCommand in done {
-                _ = doneCommand.writeQueryResults(commandInterface: self)
+                _ = doneCommand.writeQueryResults(logger: logger, commandInterface: self)
                 if doneCommand.results.success {
                     _ = writeDouble(data: doneCommand.results.processedTime)
                 } else {
-                    os_log("(mglRenderer) %{public}@ failed", log: .default, type: .error, String(describing: doneCommand))
+                    logger.error(component: "mglCommandInterface", details: "Command failed: \(String(describing: doneCommand))")
                     _ = writeDouble(data: -doneCommand.results.processedTime)
                 }
             }
@@ -190,7 +192,7 @@ class mglCommandInterface {
             numBytes = numBytes+bytesRead;
         }
         // display how much data we read.
-        os_log("(mglCommandInterface:clearReadData) Dumped %{public}d bytes", log: .default, type: .info, numBytes);
+        logger.info(component: "mglCommandInterface", details: "clearReadData dumped \(numBytes) bytes")
     }
 
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
@@ -201,7 +203,7 @@ class mglCommandInterface {
         let expectedByteCount = MemoryLayout<mglCommandCode>.size
         let bytesRead = server.readData(buffer: &data, expectedByteCount: expectedByteCount)
         if (bytesRead != expectedByteCount) {
-            os_log("(mglCommandInterface) Expeted to read command code ${public}d bytes but read %{public}d.", log: .default, type: .error, expectedByteCount, bytesRead)
+            logger.error(component: "mglCommandInterface", details: "Expeted to read command code \(expectedByteCount) bytes but read \(bytesRead)")
             return nil
         }
         return data
@@ -215,7 +217,7 @@ class mglCommandInterface {
         let expectedByteCount = MemoryLayout<mglUInt32>.size
         let bytesRead = server.readData(buffer: &data, expectedByteCount: expectedByteCount)
         if (bytesRead != expectedByteCount) {
-            os_log("(mglCommandInterface) Expeted to read uint32 ${public}d bytes but read %{public}d.", log: .default, type: .error, expectedByteCount, bytesRead)
+            logger.error(component: "mglCommandInterface", details: "Expeted to read uint32 \(expectedByteCount) bytes but read \(bytesRead)")
             return nil
         }
         return data
@@ -235,7 +237,7 @@ class mglCommandInterface {
         let expectedByteCount = MemoryLayout<mglFloat>.size
         let bytesRead = server.readData(buffer: &data, expectedByteCount: expectedByteCount)
         if (bytesRead != expectedByteCount) {
-            os_log("(mglCommandInterface) Expeted to read float ${public}d bytes but read %{public}d.", log: .default, type: .error, expectedByteCount, bytesRead)
+            logger.error(component: "mglCommandInterface", details: "Expeted to read float \(expectedByteCount) bytes but read \(bytesRead)")
             return nil
         }
         return data
@@ -253,7 +255,7 @@ class mglCommandInterface {
         let expectedByteCount = Int(mglSizeOfFloatRgbColor())
         let bytesRead = server.readData(buffer: data, expectedByteCount: expectedByteCount)
         if (bytesRead != expectedByteCount) {
-            os_log("(mglCommandInterface) Expeted to read rgb color ${public}d bytes but read %{public}d.", log: .default, type: .error, expectedByteCount, bytesRead)
+            logger.error(component: "mglCommandInterface", details: "Expeted to read rgb color \(expectedByteCount) bytes but read \(bytesRead)")
             return nil
         }
 
@@ -273,7 +275,7 @@ class mglCommandInterface {
         let expectedByteCount = Int(mglSizeOfFloat4x4Matrix())
         let bytesRead = server.readData(buffer: data, expectedByteCount: expectedByteCount)
         if (bytesRead != expectedByteCount) {
-            os_log("(mglCommandInterface) Expeted to read 4x4 float ${public}d bytes but read %{public}d.", log: .default, type: .error, expectedByteCount, bytesRead)
+            logger.error(component: "mglCommandInterface", details: "Expeted to read 4x4 float \(expectedByteCount) bytes but read \(bytesRead)")
             return nil
         }
 
@@ -301,13 +303,13 @@ class mglCommandInterface {
         // get an MTLBuffer from the GPU
         // With storageModeManaged, we must explicitly sync the data to the GPU, below.
         guard let vertexBuffer = device.makeBuffer(length: expectedByteCount, options: .storageModeManaged) else {
-            os_log("(mglCommandInterface) Could not make vertex buffer of size %{public}d", log: .default, type: .error, expectedByteCount)
+            logger.error(component: "mglCommandInterface", details: "Could not make vertex buffer of size \(expectedByteCount)")
             return nil
         }
 
         let bytesRead = server.readData(buffer: vertexBuffer.contents(), expectedByteCount: expectedByteCount)
         if (bytesRead != expectedByteCount) {
-            os_log("(mglCommandInterface) Expected to read vertex buffer of size %{public}d but read %{public}d", log: .default, type: .error, expectedByteCount, bytesRead)
+            logger.error(component: "mglCommandInterface", details: "Expected to read vertex buffer of size \(expectedByteCount) but read \(bytesRead)")
             return nil
         }
 
@@ -352,7 +354,7 @@ class mglCommandInterface {
         // With storageModeManaged, we must explicitly sync the data to the GPU, below.
         let bufferByteSize = alignedRowByteCount * Int(textureHeight)
         guard let textureBuffer = device.makeBuffer(length: bufferByteSize, options: .storageModeManaged) else {
-            os_log("(mglCommandInterface) Could not make texture buffer of size %{public}d image width %{public}d aligned buffer width %{public}d and image height %{public}d", log: .default, type: .error, bufferByteSize, textureWidth, alignedRowByteCount, textureHeight)
+            logger.error(component: "mglCommandInterface", details: "Could not make texture buffer of size \(bufferByteSize) image width \(textureWidth) aligned buffer width \(alignedRowByteCount) and image height \(textureHeight)")
             return nil
         }
 
@@ -361,13 +363,13 @@ class mglCommandInterface {
         let bytesRead = imageRowsToBuffer(buffer: textureBuffer, imageRowByteCount: imageRowByteCount, alignedRowByteCount: alignedRowByteCount, rowCount: Int(textureHeight))
         let expectedByteCount = imageRowByteCount * Int(textureHeight)
         if (bytesRead != expectedByteCount) {
-            os_log("(mglCommandInterface) Could not read expected bytes %{public}d for texture, read %{public}d", log: .default, type: .error, expectedByteCount, bytesRead)
+            logger.error(component: "mglCommandInterface", details: "Could not read expected bytes \(expectedByteCount) for texture, read \(bytesRead)")
             return nil
         }
 
         // Now make the buffer into a texture.
         guard let texture = textureBuffer.makeTexture(descriptor: textureDescriptor, offset: 0, bytesPerRow: alignedRowByteCount) else {
-            os_log("(mglCommandInterface) Could not make texture from texture buffer of size %{public}d image width %{public}d aligned buffer width %{public}d and image height %{public}d", log: .default, type: .error, bufferByteSize, textureWidth, alignedRowByteCount, textureHeight)
+            logger.error(component: "mglCommandInterface", details: "Could not make texture from texture buffer of size \(bufferByteSize) image width \(textureWidth) aligned buffer width \(alignedRowByteCount) and image height \(textureHeight)")
             return nil
         }
 
@@ -380,7 +382,7 @@ class mglCommandInterface {
             let bufferRow = buffer.contents().advanced(by: row * alignedRowByteCount)
             let rowBytesRead = server.readData(buffer: bufferRow, expectedByteCount: imageRowByteCount)
             if (rowBytesRead != imageRowByteCount) {
-                os_log("(mglCommandInterface) Expected to read %{public}d bytes but read %{public}d for image row %{public}d of %{public}d", log: .default, type: .error, imageRowByteCount, rowBytesRead, row, rowCount)
+                logger.error(component: "mglCommandInterface", details: "Expected to read \(imageRowByteCount) bytes but read \(rowBytesRead) for image row \(row) of \(rowCount)")
             }
             imageBytesRead += rowBytesRead
         }
@@ -397,7 +399,7 @@ class mglCommandInterface {
             let bufferRow = buffer.contents().advanced(by: row * alignedRowByteCount)
             let rowBytesSent = server.sendData(buffer: bufferRow, byteCount: imageRowByteCount)
             if (rowBytesSent != imageRowByteCount) {
-                os_log("(mglCommandInterface) Expected to send %{public}d bytes but sent %{public}d for image row %{public}d of %{public}d", log: .default, type: .error, imageRowByteCount, rowBytesSent, row, rowCount)
+                logger.error(component: "mglCommandInterface", details: "Expected to send \(imageRowByteCount) bytes but read \(rowBytesSent) for image row \(row) of \(rowCount)")
             }
             imageBytesSent += rowBytesSent
         }

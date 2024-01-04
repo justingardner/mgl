@@ -8,7 +8,6 @@
 
 import Foundation
 import MetalKit
-import OSLog
 
 class mglGetWindowFrameInDisplayCommand : mglCommand {
     private var displayNumber: UInt32 = 0
@@ -18,27 +17,24 @@ class mglGetWindowFrameInDisplayCommand : mglCommand {
     private var windowHeight: UInt32 = 0
 
     override func doNondrawingWork(
+        logger: mglLogger,
         view: MTKView,
         depthStencilState: mglDepthStencilState,
         colorRenderingState: mglColorRenderingState,
-        deg2metal: inout simd_float4x4,
-        errorMessage: inout String
+        deg2metal: inout simd_float4x4
     ) -> Bool {
         guard let window = view.window else {
-            os_log("(mglGetWindowFrameInDisplayCommand) Could get window from view, skipping get window frame command.",
-                   log: .default, type: .error)
+            logger.error(component: "mglGetWindowFrameInDisplayCommand", details: "Could get window from view, skipping get window frame command.")
             return false
         }
 
         guard let screen = window.screen else {
-            os_log("(mglGetWindowFrameInDisplayCommand) Could get screen from window, skipping get window frame command.",
-                   log: .default, type: .error)
+            logger.error(component: "mglGetWindowFrameInDisplayCommand", details: "Could get screen from window, skipping get window frame command.")
             return false
         }
 
         guard let screenIndex = NSScreen.screens.firstIndex(of: screen) else {
-            os_log("(mglGetWindowFrameInDisplayCommand) Could get screen index from screens, skipping get window frame command.",
-                   log: .default, type: .error)
+            logger.error(component: "mglGetWindowFrameInDisplayCommand", details: "Could get screen index from screens, skipping get window frame command.")
             return false
         }
 
@@ -55,7 +51,10 @@ class mglGetWindowFrameInDisplayCommand : mglCommand {
         return true
     }
 
-    override func writeQueryResults(commandInterface : mglCommandInterface) -> Bool {
+    override func writeQueryResults(
+        logger: mglLogger,
+        commandInterface : mglCommandInterface
+    ) -> Bool {
         if displayNumber < 1 {
             _ = commandInterface.writeDouble(data: -commandInterface.secs.get())
             return false

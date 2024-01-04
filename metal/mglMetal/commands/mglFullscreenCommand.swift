@@ -12,21 +12,19 @@ import OSLog
 
 class mglFullscreenCommand : mglCommand {
     override func doNondrawingWork(
+        logger: mglLogger,
         view: MTKView,
         depthStencilState: mglDepthStencilState,
         colorRenderingState: mglColorRenderingState,
-        deg2metal: inout simd_float4x4,
-        errorMessage: inout String
+        deg2metal: inout simd_float4x4
     ) -> Bool {
         guard let window = view.window else {
-            os_log("(mglFullscreenCommand) Could not get window from view, skipping fullscreen command.",
-                   log: .default, type: .error)
+            logger.error(component: "mglFullscreenCommand", details: "Could not get window from view, skipping fullscreen command.")
             return false
         }
 
         if window.styleMask.contains(.fullScreen) {
-            os_log("(mglFullscreenCommand) App is already fullscreen, skipping fullscreen command.",
-                   log: .default, type: .info)
+            logger.info(component: "mglFullscreenCommand", details: " App is already fullscreen, skipping fullscreen command.")
         } else {
             window.toggleFullScreen(nil)
             NSCursor.hide()

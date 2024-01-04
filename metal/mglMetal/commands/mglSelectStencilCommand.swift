@@ -26,12 +26,12 @@ class mglSelectStencilCreationCommand : mglCommand {
     }
 
     override func draw(
+        logger: mglLogger,
         view: MTKView,
         depthStencilState: mglDepthStencilState,
         colorRenderingState: mglColorRenderingState,
         deg2metal: inout simd_float4x4,
-        renderEncoder: MTLRenderCommandEncoder,
-        errorMessage: inout String
+        renderEncoder: MTLRenderCommandEncoder
     ) -> Bool {
         return depthStencilState.selectStencil(view: view, renderEncoder: renderEncoder, stencilNumber: stencilNumber)
     }

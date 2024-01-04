@@ -30,11 +30,11 @@ class mglStartStencilCreationCommand : mglCommand {
     }
 
     override func doNondrawingWork(
+        logger: mglLogger,
         view: MTKView,
         depthStencilState: mglDepthStencilState,
         colorRenderingState: mglColorRenderingState,
-        deg2metal: inout simd_float4x4,
-        errorMessage: inout String
+        deg2metal: inout simd_float4x4
     ) -> Bool {
         return depthStencilState.startStencilCreation(view: view, stencilNumber: stencilNumber, isInverted: isInverted)
     }

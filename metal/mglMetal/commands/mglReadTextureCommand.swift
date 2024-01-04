@@ -8,7 +8,6 @@
 
 import Foundation
 import MetalKit
-import OSLog
 
 class mglReadTextureCommand : mglCommand {
     let textureNumber: UInt32
@@ -28,11 +27,11 @@ class mglReadTextureCommand : mglCommand {
     }
 
     override func doNondrawingWork(
+        logger: mglLogger,
         view: MTKView,
         depthStencilState: mglDepthStencilState,
         colorRenderingState: mglColorRenderingState,
-        deg2metal: inout simd_float4x4,
-        errorMessage: inout String
+        deg2metal: inout simd_float4x4
     ) -> Bool {
         guard let existingTexture = colorRenderingState.getTexture(textureNumber: textureNumber) else {
             return false
@@ -41,17 +40,18 @@ class mglReadTextureCommand : mglCommand {
         return true
     }
 
-    override func writeQueryResults(commandInterface : mglCommandInterface) -> Bool {
+    override func writeQueryResults(
+        logger: mglLogger,
+        commandInterface : mglCommandInterface
+    ) -> Bool {
         guard let unboxedTexture = texture else {
-            os_log("(mglReadTextureCommand) Unable to read null texture",
-                   log: .default, type: .error)
+            logger.error(component: "mglReadTextureCommand", details: "Unable to read null texture")
             _ = commandInterface.writeDouble(data: -commandInterface.secs.get())
             return false
         }
 
         guard let buffer = unboxedTexture.buffer else {
-            os_log("(mglReadTextureCommand) Unable to access buffer of texture %{public}@",
-                   log: .default, type: .error, String(describing: unboxedTexture))
+            logger.error(component: "mglReadTextureCommand", details: "Unable to access buffer of texture \(String(describing: unboxedTexture))")
             _ = commandInterface.writeDouble(data: -commandInterface.secs.get())
             return false
         }

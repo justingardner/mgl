@@ -7,17 +7,19 @@
 //
 
 import Foundation
-import os.log
 
 class mglLocalClient {
+    let logger: mglLogger
 
     let pollMilliseconds = Int32(10)
 
     let pathToConnect: String
     var socketDescriptor: Int32
 
-    init(pathToConnect: String) {
-        os_log("(mglLocalClient) Starting with path to connect: %{public}@", log: .default, type: .info, String(describing: pathToConnect))
+    init(logger: mglLogger, pathToConnect: String) {
+        self.logger = logger
+
+        logger.info(component: "mglLocalClient", details: "Starting with path to connect: \(pathToConnect)")
         self.pathToConnect = pathToConnect
 
         socketDescriptor = socket(AF_UNIX, SOCK_STREAM, 0)
@@ -45,7 +47,7 @@ class mglLocalClient {
             fatalError("(mglLocalClient) Could not connect to the path: \(connectResult) errno: \(errno)")
         }
 
-        os_log("(mglLocalClient) Ready and connected to path: %{public}@", log: .default, type: .info, String(describing: pathToConnect))
+        logger.info(component: "mglLocalClient", details: "Ready and connected to path: \(pathToConnect)")
     }
 
     deinit {
@@ -73,9 +75,9 @@ class mglLocalClient {
     func readData(buffer: UnsafeMutableRawPointer, expectedByteCount: Int) -> Int {
         let bytesRead = recv(socketDescriptor, buffer, expectedByteCount, MSG_WAITALL);
         if bytesRead < 0 {
-            os_log("(mglLocalClient) Error reading %{public}d bytes from server, read %{public}d, errno %{public}d", log: .default, type: .error, expectedByteCount, bytesRead, errno)
+            logger.error(component: "mglLocalClient", details: "Error reading \(expectedByteCount) bytes from server, read \(bytesRead), errno \(errno)")
         } else if bytesRead == 0 {
-            os_log("(mglLocalClient) Server disconnected before sending %{public}d bytes, disconnecting this end, too.", log: .default, type: .error, expectedByteCount)
+            logger.error(component: "mglLocalClient", details: "Server disconnected before sending \(expectedByteCount) bytes, disconnecting this end, too")
             disconnect()
         }
         return bytesRead
@@ -95,9 +97,9 @@ class mglLocalClient {
             totalSent += sent
         }
         if totalSent < 0 {
-            os_log("(mglLocalClient) Error sending %{public}d bytes, sent %{public}d, errno %{public}d", log: .default, type: .error, byteCount, totalSent, errno)
+            logger.error(component: "mglLocalClient", details: "Error sending \(byteCount) bytes, sent \(totalSent), errno \(errno)")
         } else if totalSent != byteCount {
-            os_log("(mglLocalClient) Sent %{public}d bytes, but expected to send %{public}d, errno %{public}d", log: .default, type: .error, totalSent, byteCount, errno)
+            logger.error(component: "mglLocalClient", details: "Sent \(totalSent) bytes, but expected to send \(byteCount), errno \(errno)")
         }
         return totalSent
     }

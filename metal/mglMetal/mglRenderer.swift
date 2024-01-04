@@ -100,12 +100,13 @@ class mglRenderer: NSObject {
         // while other parts treat depth and stenciling as separate features.
         metalView.depthStencilPixelFormat = .depth32Float_stencil8
         metalView.clearDepth = 1.0
-        depthStencilState = mglDepthStencilState(device: device)
+        let logger = getMglLogger()
+        depthStencilState = mglDepthStencilState(logger: logger, device: device)
 
         // Initialize color rendering, default to onscreen.
         // Default gray clear color applies to onscreen and/or offscreen texture.
         metalView.clearColor = MTLClearColor(red: 0.5, green: 0.5, blue: 0.5, alpha: 1.0)
-        colorRenderingState = mglColorRenderingState(device: device, library: library, view: metalView)
+        colorRenderingState = mglColorRenderingState(logger: logger, device: device, library: library, view: metalView)
 
         // init the super class
         super.init()

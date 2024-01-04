@@ -38,7 +38,7 @@ class mglCommand {
 
     // Each command shoud provide two ways to init():
     //  - directly in memory, for use during tests
-    //  - by reading from an mglCommandInterface, for use with a connected client, allowed to fail and return nil
+    //  - by reading from an mglCommandInterface and/or writing to an MTLDevice, for use with a connected client, allowed to fail and return nil
     // Both inits can call up to this as "super.init()"
     init(framesRemaining: Int = 0) {
         self.framesRemaining = framesRemaining
@@ -50,11 +50,11 @@ class mglCommand {
     // Return true to indicate success / false for failure.
     // Update errorMessage as needed to add helpful failure info.
     func doNondrawingWork(
+        logger: mglLogger,
         view: MTKView,
         depthStencilState: mglDepthStencilState,
         colorRenderingState: mglColorRenderingState,
-        deg2metal: inout simd_float4x4,
-        errorMessage: inout String
+        deg2metal: inout simd_float4x4
     ) -> Bool {
         return true
     }
@@ -62,19 +62,22 @@ class mglCommand {
     // Write any stashed query results to the command interface, to send them back to the client.
     // Return true to indicate success / false for failure.
     // Update errorMessage as needed to add helpful failure info.
-    func writeQueryResults(commandInterface : mglCommandInterface) -> Bool {
+    func writeQueryResults(
+        logger: mglLogger,
+        commandInterface : mglCommandInterface
+    ) -> Bool {
         return true
     }
 
     // Do drawing during a render pass.
     // If this updates deg2metal, it must also set vertex bytes on the render encoder (usually happens before darw() is called)
     func draw(
+        logger: mglLogger,
         view: MTKView,
         depthStencilState: mglDepthStencilState,
         colorRenderingState: mglColorRenderingState,
         deg2metal: inout simd_float4x4,
-        renderEncoder: MTLRenderCommandEncoder,
-        errorMessage: inout String
+        renderEncoder: MTLRenderCommandEncoder
     ) -> Bool {
         return true
     }

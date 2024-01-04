@@ -8,7 +8,6 @@
 
 import Foundation
 import MetalKit
-import OSLog
 
 class mglSetWindowFrameInDisplayCommand : mglCommand {
     private let displayNumber: UInt32
@@ -43,11 +42,11 @@ class mglSetWindowFrameInDisplayCommand : mglCommand {
     }
 
     override func doNondrawingWork(
+        logger: mglLogger,
         view: MTKView,
         depthStencilState: mglDepthStencilState,
         colorRenderingState: mglColorRenderingState,
-        deg2metal: inout simd_float4x4,
-        errorMessage: inout String
+        deg2metal: inout simd_float4x4
     ) -> Bool {
         // Convert Matlab's 1-based display number to a zero-based screen index.
         let screenIndex = displayNumber == 0 ? Array<NSScreen>.Index(0) : Array<NSScreen>.Index(displayNumber - 1)
@@ -67,19 +66,16 @@ class mglSetWindowFrameInDisplayCommand : mglCommand {
         let windowScreenFrame = screen.convertRectFromBacking(windowNativeFrame)
 
         guard let window = view.window else {
-            os_log("(mglSetWindowFrameInDisplayCommand) Could not get window from view, skipping set window frame command.",
-                   log: .default, type: .error)
+            logger.error(component: "mglSetWindowFrameInDisplayCommand", details: "Could not get window from view, skipping set window frame command.")
             return false
         }
 
         if window.styleMask.contains(.fullScreen) {
-            os_log("(mglSetWindowFrameInDisplayCommand) App is fullscreen, skipping set window frame command.",
-                   log: .default, type: .info)
+            logger.info(component: "mglSetWindowFrameInDisplayCommand", details: "App is fullscreen, skipping set window frame command.")
             return false
         }
 
-        os_log("(mglSetWindowFrameInDisplayCommand) Setting window to display %{public}d frame %{public}@.",
-               log: .default, type: .info, displayNumber, String(describing: windowScreenFrame))
+        logger.info(component: "mglSetWindowFrameInDisplayCommand", details: "Setting window to display \(displayNumber) frame \(String(describing: windowScreenFrame)).")
         window.setFrame(windowScreenFrame, display: true)
         return true
     }

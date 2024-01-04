@@ -8,7 +8,6 @@
 
 import Foundation
 import MetalKit
-import os.log
 
 /*
  mglDepthStencilState keeps track the current depth and stencil state for the app, including:
@@ -25,6 +24,8 @@ import os.log
  mglRenderer just needs to call configureRenderPassDescriptor() and configureRenderEncoder() at the right time.
  */
 class mglDepthStencilState {
+    private let logger: mglLogger
+
     // For each stencil plane, a config we want to apply that stencil.
     private var applyStencilConfig = [mglDepthStencilConfig]()
 
@@ -35,7 +36,9 @@ class mglDepthStencilState {
     // The current config, one of the above.
     private var currentDepthStencilConfig: mglDepthStencilConfig!
 
-    init(device: MTLDevice) {
+    init(logger: mglLogger, device: MTLDevice) {
+        self.logger = logger
+
         // Set up to support 8 stencil planes.
         for index in 0 ..< 8 {
             let number = UInt32(index)
@@ -66,21 +69,18 @@ class mglDepthStencilState {
     func startStencilCreation(view: MTKView, stencilNumber: UInt32, isInverted: Bool) -> Bool {
         let stencilIndex = Array<mglDepthStencilConfig>.Index(stencilNumber)
         if (!createStencilConfig.indices.contains(stencilIndex)) {
-            os_log("(mglDepthStencilState) Got stencil number to create %{public}d but only numbers 0-7 are supported.",
-                   log: .default, type: .error, stencilNumber)
+            logger.error(component: "mglDepthStencilState", details: "Got stencil number to create \(stencilNumber) but only numbers 0-7 are supported.")
             return false
         }
 
-        os_log("(mglDepthStencilState) Creating stencil number %{public}d, with isInverted %{public}d.",
-               log: .default, type: .info, stencilNumber, isInverted)
+        logger.info(component: "mglDepthStencilState", details: "Creating stencil number \(stencilNumber), with isInverted \(isInverted).")
         currentDepthStencilConfig = isInverted ? createInvertedStencilConfig[stencilIndex] : createStencilConfig[stencilIndex]
         return true
     }
 
     // Collaborate with mglRenderer to finish creating the stencil plane at the given number.
     func finishStencilCreation(view: MTKView) -> Bool {
-        os_log("(mglDepthStencilState) Finishing stencil creation.",
-               log: .default, type: .info)
+        logger.info(component: "mglDepthStencilState", details: "Finishing stencil creation.")
         currentDepthStencilConfig = applyStencilConfig[0]
         return true
     }
@@ -89,13 +89,11 @@ class mglDepthStencilState {
     func selectStencil(view: MTKView, renderEncoder: MTLRenderCommandEncoder, stencilNumber: UInt32) -> Bool {
         let stencilIndex = Array<mglDepthStencilConfig>.Index(stencilNumber)
         if (!applyStencilConfig.indices.contains(stencilIndex)) {
-            os_log("(mglDepthStencilState) Got stencil number to select %{public}d but only numbers 0-7 are supported.",
-                   log: .default, type: .error, stencilNumber)
+            logger.error(component: "mglDepthStencilState", details: "Got stencil number to select \(stencilNumber) but only numbers 0-7 are supported.")
             return false
         }
 
-        os_log("(mglDepthStencilState) Selecting stencil number %{public}d.",
-               log: .default, type: .info, stencilNumber)
+        logger.info(component: "mglDepthStencilState", details: "Selecting stencil number \(stencilNumber).")
         currentDepthStencilConfig = applyStencilConfig[stencilIndex]
         currentDepthStencilConfig.configureRenderEncoder(renderEncoder: renderEncoder)
         return true

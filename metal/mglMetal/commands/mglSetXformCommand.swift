@@ -26,12 +26,12 @@ class mglSetXformCommand : mglCommand {
     }
 
     override func draw(
+        logger: mglLogger,
         view: MTKView,
         depthStencilState: mglDepthStencilState,
         colorRenderingState: mglColorRenderingState,
         deg2metal: inout simd_float4x4,
-        renderEncoder: MTLRenderCommandEncoder,
-        errorMessage: inout String
+        renderEncoder: MTLRenderCommandEncoder
     ) -> Bool {
         // Update the app state to use this transform on subsequent render passes / frames.
         deg2metal = self.deg2metal

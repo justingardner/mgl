@@ -7,9 +7,9 @@
 //
 
 import Foundation
-import os.log
 
 class mglLocalServer : mglServer {
+    let logger: mglLogger
 
     let pathToBind: String
     let maxConnections: Int32 = Int32(500)
@@ -18,8 +18,10 @@ class mglLocalServer : mglServer {
     let boundSocketDescriptor: Int32
     var acceptedSocketDescriptor: Int32 = -1
 
-    init(pathToBind: String, maxConnections: Int32 = Int32(500), pollMilliseconds: Int32 = Int32(10)) {
-        os_log("(mglLocalServer) Starting with path to bind: %{public}@", log: .default, type: .info, String(describing: pathToBind))
+    init(logger: mglLogger, pathToBind: String, maxConnections: Int32 = Int32(500), pollMilliseconds: Int32 = Int32(10)) {
+        self.logger = logger
+
+        logger.info(component: "mglLocalServer", details: "Starting with path to bind: \(pathToBind)")
         self.pathToBind = pathToBind
 
         if FileManager.default.fileExists(atPath: pathToBind) {
@@ -66,7 +68,7 @@ class mglLocalServer : mglServer {
             fatalError("(mglLocalServer) Could not listen for connections: \(listenResult) errno: \(errno)")
         }
 
-        os_log("(mglLocalServer) Ready and listening for connections at path: %{public}@", log: .default, type: .info, String(describing: pathToBind))
+        logger.info(component: "mglLocalServer", details: "Ready and listening for connections at path: \(pathToBind)")
     }
 
     deinit {
@@ -94,13 +96,13 @@ class mglLocalServer : mglServer {
 
         acceptedSocketDescriptor = accept(boundSocketDescriptor, nil, nil)
         if (acceptedSocketDescriptor >= 0) {
-            os_log("(mglLocalServer) Accepted a new client connection at path: %{public}@", log: .default, type: .info, String(describing: pathToBind))
+            logger.info(component: "mglLocalServer", details: "Accepted a new client connection at path: \(pathToBind)")
             return true
         }
 
         // Since this is a nonblockign socket, it's OK for accept to return -1 -- as long as errno is EAGAIN or EWOULDBLOCK.
         if (errno != EAGAIN && errno != EWOULDBLOCK) {
-            os_log("(mglLocalServer) Could not accept client connection, got result %{public}d, errno %{public}d", log: .default, type: .error, acceptedSocketDescriptor, errno)
+            logger.error(component: "mglLocalServer", details: "Could not accept client connection, got result \(acceptedSocketDescriptor), errno \(errno)")
         }
         return false;
     }
@@ -135,9 +137,9 @@ class mglLocalServer : mglServer {
         }
 
         if totalRead < 0 {
-            os_log("(mglLocalServer) Error reading %{public}d bytes from server, read %{public}d, errno %{public}d", log: .default, type: .error, expectedByteCount, totalRead, errno)
+            logger.error(component: "mglLocalServer", details: "Error reading \(expectedByteCount) bytes from server, read \(totalRead), errno \(errno)")
         } else if totalRead == 0 {
-            os_log("(mglLocalServer) Client disconnected before sending %{public}d bytes, disconnecting this end, too.", log: .default, type: .error, expectedByteCount)
+            logger.error(component: "mglLocalServer", details: "Client disconnected before sending \(expectedByteCount) bytes, disconnecting this end, too.")
             disconnect()
         }
         return totalRead
@@ -157,12 +159,10 @@ class mglLocalServer : mglServer {
             totalSent += sent
         }
         if totalSent < 0 {
-            os_log("(mglLocalServer) Error sending %{public}d bytes, sent %{public}d, errno %{public}d", log: .default, type: .error, byteCount, totalSent, errno)
+            logger.error(component: "mglLocalServer", details: "Error sending \(byteCount) bytes, sent \(totalSent), errno \(errno)")
         } else if totalSent != byteCount {
-            os_log("(mglLocalServer) Sent %{public}d bytes, but expected to send %{public}d, errno %{public}d", log: .default, type: .error, totalSent, byteCount, errno)
-
+            logger.error(component: "mglLocalServer", details: "Sent \(totalSent) bytes, but expected to send \(byteCount), errno \(errno)")
         }
         return totalSent
     }
-
 }

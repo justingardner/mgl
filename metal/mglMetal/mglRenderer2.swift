@@ -8,9 +8,10 @@
 
 import Foundation
 import MetalKit
-import os.log
 
 class mglRenderer2: NSObject {
+    private let logger: mglLogger
+
     // GPU Device
     private let device: MTLDevice
 
@@ -39,11 +40,8 @@ class mglRenderer2: NSObject {
     // utility to get system nano time
     let secs = mglSecs()
 
-    // a string to store the last error message (which can be retrieved via
-    // the command mglGetErrorMessage
-    var errorMessage = ""
-
-    init(metalView: MTKView, commandInterface: mglCommandInterface) {
+    init(logger: mglLogger, metalView: MTKView, commandInterface: mglCommandInterface) {
+        self.logger = logger
         self.commandInterface = commandInterface
 
         // Initialize the GPU device.
@@ -65,12 +63,12 @@ class mglRenderer2: NSObject {
         // while other parts treat depth and stenciling as separate features.
         metalView.depthStencilPixelFormat = .depth32Float_stencil8
         metalView.clearDepth = 1.0
-        depthStencilState = mglDepthStencilState(device: device)
+        depthStencilState = mglDepthStencilState(logger: logger, device: device)
 
         // Initialize color rendering, default to onscreen.
         // Default gray clear color applies to onscreen and/or offscreen texture.
         metalView.clearColor = MTLClearColor(red: 0.5, green: 0.5, blue: 0.5, alpha: 1.0)
-        colorRenderingState = mglColorRenderingState(device: device, library: library, view: metalView)
+        colorRenderingState = mglColorRenderingState(logger: logger, device: device, library: library, view: metalView)
 
         // init the super class
         super.init()
@@ -78,14 +76,14 @@ class mglRenderer2: NSObject {
         // Tell the view that this class will be used as the delegate for draw() and resize() callbacks.
         metalView.delegate = self
 
-        os_log("(mglRenderer2) Init OK.", log: .default, type: .info)
+        logger.info(component: "mglRenderer2", details: "Init OK.")
     }
 }
 
 
 extension mglRenderer2: MTKViewDelegate {
     func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {
-        os_log("(mglRenderer2) drawableSizeWillChange %{public}@", log: .default, type: .info, String(describing: size))
+        logger.info(component: "mglRenderer2", details: "drawableSizeWillChange \(String(describing: size))")
     }
 
     // We expect the view to be configured for "Timed updates" (the default),
@@ -111,11 +109,11 @@ extension mglRenderer2: MTKViewDelegate {
         }
 
         command.results.success = command.doNondrawingWork(
+            logger: logger,
             view: view,
             depthStencilState: depthStencilState,
             colorRenderingState: colorRenderingState,
-            deg2metal: &deg2metal,
-            errorMessage: &errorMessage
+            deg2metal: &deg2metal
         )
 
         // Non-drawing commands will go only this far, with no rendering on this frame.
@@ -147,8 +145,7 @@ extension mglRenderer2: MTKViewDelegate {
         // Does the system "know best" and we are blocking/synchronizing as expected?
         // Or is there somethign else we can do about these long call durations?
         guard let drawable = view.currentDrawable else {
-            errorMessage = "(mglRenderer2) Could not get current drawable, aborting render pass."
-            os_log("(mglRenderer2) Could not get current drawable, aborting render pass.", log: .default, type: .error)
+            logger.error(component: "mglRenderer2", details: "Could not get current drawable, aborting render pass.")
             command.results.success = false
             command.results.processedTime = secs.get()
             commandInterface.done(command: command)
@@ -160,8 +157,7 @@ extension mglRenderer2: MTKViewDelegate {
         // It's possible to swap the order of these calls.
         // But whichever one we call first seems to pay the same blocking/synchronization price when memory usage is high.
         guard let renderPassDescriptor = colorRenderingState.getRenderPassDescriptor(view: view) else {
-            errorMessage = "(mglRenderer2) Could not get render pass descriptor from current color rendering config, aborting render pass."
-            os_log("(mglRenderer2) Could not get render pass descriptor from current color rendering config, aborting render pass.", log: .default, type: .error)
+            logger.error(component: "mglRenderer2", details: "Could not get render pass descriptor from current color rendering config, aborting render pass.")
             // we have failed, so return failure to acknwoledge previous command
             command.results.success = false
             command.results.processedTime = secs.get()
@@ -172,8 +168,7 @@ extension mglRenderer2: MTKViewDelegate {
 
         guard let commandBuffer = mglRenderer.commandQueue.makeCommandBuffer(),
               let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor) else {
-            errorMessage = "(mglRenderer2) Could not get command buffer and renderEncoder from the command queue, aborting render pass."
-            os_log("(mglRenderer2) Could not get command buffer and renderEncoder from the command queue, aborting render pass.", log: .default, type: .error)
+            logger.error(component: "mglRenderer2", details: "Could not get command buffer and renderEncoder from the command queue, aborting render pass.")
             command.results.success = false
             command.results.processedTime = secs.get()
             commandInterface.done(command: command)
@@ -186,27 +181,27 @@ extension mglRenderer2: MTKViewDelegate {
 
         while !(command is mglFlushCommand) {
             command.results.success = command.draw(
+                logger: logger,
                 view: view,
                 depthStencilState: depthStencilState,
                 colorRenderingState: colorRenderingState,
                 deg2metal: &deg2metal,
-                renderEncoder: renderEncoder,
-                errorMessage: &errorMessage
+                renderEncoder: renderEncoder
             )
             command.framesRemaining -= 1
             commandInterface.done(command: command)
 
-            os_log("(mglRenderer2) I did one of these: %{public}@", log: .default, type: .info, String(describing: command))
+            logger.info(component: "mglRenderer2", details: "I did one of these: \(String(describing: command)).")
 
             // Get a new command and keep going.
             if let nextCommand = commandInterface.awaitNext(device: device) {
                 command = nextCommand
                 command.results.success = command.doNondrawingWork(
+                    logger: logger,
                     view: view,
                     depthStencilState: depthStencilState,
                     colorRenderingState: colorRenderingState,
-                    deg2metal: &deg2metal,
-                    errorMessage: &errorMessage
+                    deg2metal: &deg2metal
                 )
             } else {
                 continue
