@@ -55,7 +55,7 @@ class mglCommandInterface {
         }
 
         // Acknowledge command received.
-        // Client should proceed to send command parameters, if any.
+        // Client should then send over any command-specific parameters.
         let ackTime = secs.get()
         _ = writeDouble(data: ackTime)
 
@@ -79,25 +79,25 @@ class mglCommandInterface {
         case mglFinishStencilCreation: command = mglFinishStencilCreationCommand()
         case mglInfo: command = mglInfoCommand()
         case mglGetErrorMessage: command = mglGetErrorMessageCommand()
-        case mglFrameGrab: command = nil
-        case mglMinimize: command = nil
+        case mglFrameGrab: command = mglFrameGrabCommand()
+        case mglMinimize: command = mglMinimizeCommand(commandInterface: self)
         case mglDisplayCursor: command = mglDisplayCursorCommand(commandInterface: self)
         case mglFlush: command = mglFlushCommand(commandInterface: self)
-        case mglBltTexture: command = nil
+        case mglBltTexture: command = mglBltTextureCommand(commandInterface: self, device: device)
         case mglSetXform: command = mglSetXformCommand(commandInterface: self)
-        case mglDots: command = nil
-        case mglLine: command = nil
+        case mglDots: command = mglDotsCommand(commandInterface: self, device: device)
+        case mglLine: command = mglLineCommand(commandInterface: self, device: device)
         case mglQuad: command = mglQuadCommand(commandInterface: self, device: device)
-        case mglPolygon: command = nil
-        case mglArcs: command = nil
-        case mglUpdateTexture: command = nil
+        case mglPolygon: command = mglPolygonCommand(commandInterface: self, device: device)
+        case mglArcs: command = mglArcsCommand(commandInterface: self, device: device)
+        case mglUpdateTexture: command = mglUpdateTextureCommand(commandInterface: self, device: device)
         case mglSelectStencil: command = mglSelectStencilCreationCommand(commandInterface: self)
         case mglSetClearColor: command = mglSetClearColorCommand(commandInterface: self)
-        case mglRepeatFlicker: command = nil
-        case mglRepeatBlts: command = nil
-        case mglRepeatQuads: command = nil
-        case mglRepeatDots: command = nil
-        case mglRepeatFlush: command = nil
+        case mglRepeatFlicker: command = mglRepeatFlickerCommand(commandInterface: self)
+        case mglRepeatBlts: command = mglRepeatBltsCommand(commandInterface: self)
+        case mglRepeatQuads: command = mglRepeatQuadsCommand(commandInterface: self)
+        case mglRepeatDots: command = mglRepeatDotsCommand(commandInterface: self)
+        case mglRepeatFlush: command = mglRepeatFlushCommand(commandInterface: self)
         default:
             command = nil
         }
@@ -125,6 +125,12 @@ class mglCommandInterface {
     }
 
     // Collaborate with mglRenderer: this is done, ready to send results back to the client.
+    // TODO: distinguish between:
+    //      - done: record and acknowledge success
+    //      - fail: record and acknowledge failure
+    //      - repeat: send incremental progress for each processed frame?
+    // TODO: consider allowing the same repeating command to be "done" more than once, taking a results snapshot each time
+    // TODO: consider ditching repeating commands in favor of explicitly queued commands
     func done(command: mglCommand) {
         command.results.processedTime = secs.get()
         done.append(command)

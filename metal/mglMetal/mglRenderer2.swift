@@ -100,6 +100,8 @@ extension mglRenderer2: MTKViewDelegate {
     }
 
     private func render(in view: MTKView) {
+        // TODO: allow a case for repeating command with >0 frames remaining.
+        // TOOD: Do repeating commands get re-added to the todo queue??
         if !commandInterface.commandWaiting() {
             return
         }
@@ -189,7 +191,11 @@ extension mglRenderer2: MTKViewDelegate {
                 renderEncoder: renderEncoder
             )
             command.framesRemaining -= 1
+            // TODO: when remaining is >0, should command interface add back to front of todo queue?
+            // TOOD: should command interface add a copy of the command and results to the done queue?
             commandInterface.done(command: command)
+
+            // TODO: break for repeating commands, which automatically flush every time.
 
             logger.info(component: "mglRenderer2", details: "I did one of these: \(String(describing: command)).")
 

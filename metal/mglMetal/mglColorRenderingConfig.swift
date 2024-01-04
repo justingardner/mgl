@@ -173,6 +173,10 @@ class mglColorRenderingState {
     func getTextureCount() -> UInt32 {
         return UInt32(textures.count)
     }
+
+    func getTextureNumbers() -> Array<UInt32> {
+        return Array(textures.keys).sorted()
+    }
 }
 
 // This declares the operations that mglRenderer relies on to set up Metal rendering passes and pipelines.

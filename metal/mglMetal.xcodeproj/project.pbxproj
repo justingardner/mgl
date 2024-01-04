@@ -14,6 +14,19 @@
 		4D5782C92B4722110050EF81 /* mglInfoCommand.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D5782C82B4722110050EF81 /* mglInfoCommand.swift */; };
 		4D5782CB2B472AAE0050EF81 /* mglLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D5782CA2B472AAE0050EF81 /* mglLogger.swift */; };
 		4D5782CD2B4748530050EF81 /* mglGetErrorMessageCommand.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D5782CC2B4748530050EF81 /* mglGetErrorMessageCommand.swift */; };
+		4D5782CF2B474BA60050EF81 /* mglFrameGrabCommand.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D5782CE2B474BA60050EF81 /* mglFrameGrabCommand.swift */; };
+		4D5782D12B474DA30050EF81 /* mglMinimizeCommand.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D5782D02B474DA30050EF81 /* mglMinimizeCommand.swift */; };
+		4D5782D32B474E820050EF81 /* mglBltTextureCommand.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D5782D22B474E820050EF81 /* mglBltTextureCommand.swift */; };
+		4D5782D52B4752D00050EF81 /* mglDotsCommand.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D5782D42B4752D00050EF81 /* mglDotsCommand.swift */; };
+		4D5782D72B4753AC0050EF81 /* mglLineCommand.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D5782D62B4753AC0050EF81 /* mglLineCommand.swift */; };
+		4D5782D92B47547C0050EF81 /* mglPolygonCommand.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D5782D82B47547C0050EF81 /* mglPolygonCommand.swift */; };
+		4D5782DB2B4755010050EF81 /* mglArcsConmmand.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D5782DA2B4755010050EF81 /* mglArcsConmmand.swift */; };
+		4D5782DD2B4757520050EF81 /* mglUpdateTextureCommand.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D5782DC2B4757520050EF81 /* mglUpdateTextureCommand.swift */; };
+		4D5782DF2B4761350050EF81 /* mglRepeatFlickerCommand.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D5782DE2B4761350050EF81 /* mglRepeatFlickerCommand.swift */; };
+		4D5782E12B4764F60050EF81 /* mglRepeatBltsCommand.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D5782E02B4764F60050EF81 /* mglRepeatBltsCommand.swift */; };
+		4D5782E32B4767730050EF81 /* mglRepeatQuadsCommand.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D5782E22B4767730050EF81 /* mglRepeatQuadsCommand.swift */; };
+		4D5782E52B47693D0050EF81 /* mglRepeatDotsCommand.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D5782E42B47693D0050EF81 /* mglRepeatDotsCommand.swift */; };
+		4D5782E72B476A370050EF81 /* mglRepeatFlushCommand.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D5782E62B476A370050EF81 /* mglRepeatFlushCommand.swift */; };
 		4D5882B2285A89FD005DDF00 /* mglCommandModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D5882B1285A89FD005DDF00 /* mglCommandModel.swift */; };
 		4D5F729D2B45B07600B4DA29 /* mglCreateTextureCommand.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D5F729C2B45B07600B4DA29 /* mglCreateTextureCommand.swift */; };
 		4D5F729F2B45B6C000B4DA29 /* mglSetRenderTargetCommand.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D5F729E2B45B6C000B4DA29 /* mglSetRenderTargetCommand.swift */; };
@@ -75,6 +88,19 @@
 		4D5782C82B4722110050EF81 /* mglInfoCommand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglInfoCommand.swift; sourceTree = "<group>"; };
 		4D5782CA2B472AAE0050EF81 /* mglLogger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglLogger.swift; sourceTree = "<group>"; };
 		4D5782CC2B4748530050EF81 /* mglGetErrorMessageCommand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglGetErrorMessageCommand.swift; sourceTree = "<group>"; };
+		4D5782CE2B474BA60050EF81 /* mglFrameGrabCommand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglFrameGrabCommand.swift; sourceTree = "<group>"; };
+		4D5782D02B474DA30050EF81 /* mglMinimizeCommand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglMinimizeCommand.swift; sourceTree = "<group>"; };
+		4D5782D22B474E820050EF81 /* mglBltTextureCommand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglBltTextureCommand.swift; sourceTree = "<group>"; };
+		4D5782D42B4752D00050EF81 /* mglDotsCommand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglDotsCommand.swift; sourceTree = "<group>"; };
+		4D5782D62B4753AC0050EF81 /* mglLineCommand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglLineCommand.swift; sourceTree = "<group>"; };
+		4D5782D82B47547C0050EF81 /* mglPolygonCommand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglPolygonCommand.swift; sourceTree = "<group>"; };
+		4D5782DA2B4755010050EF81 /* mglArcsConmmand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglArcsConmmand.swift; sourceTree = "<group>"; };
+		4D5782DC2B4757520050EF81 /* mglUpdateTextureCommand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglUpdateTextureCommand.swift; sourceTree = "<group>"; };
+		4D5782DE2B4761350050EF81 /* mglRepeatFlickerCommand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglRepeatFlickerCommand.swift; sourceTree = "<group>"; };
+		4D5782E02B4764F60050EF81 /* mglRepeatBltsCommand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglRepeatBltsCommand.swift; sourceTree = "<group>"; };
+		4D5782E22B4767730050EF81 /* mglRepeatQuadsCommand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglRepeatQuadsCommand.swift; sourceTree = "<group>"; };
+		4D5782E42B47693D0050EF81 /* mglRepeatDotsCommand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglRepeatDotsCommand.swift; sourceTree = "<group>"; };
+		4D5782E62B476A370050EF81 /* mglRepeatFlushCommand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglRepeatFlushCommand.swift; sourceTree = "<group>"; };
 		4D5882B1285A89FD005DDF00 /* mglCommandModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglCommandModel.swift; sourceTree = "<group>"; };
 		4D5F729C2B45B07600B4DA29 /* mglCreateTextureCommand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglCreateTextureCommand.swift; sourceTree = "<group>"; };
 		4D5F729E2B45B6C000B4DA29 /* mglSetRenderTargetCommand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglSetRenderTargetCommand.swift; sourceTree = "<group>"; };
@@ -170,6 +196,19 @@
 				4D5F72BE2B45E87600B4DA29 /* mglQuadCommand.swift */,
 				4D5782C82B4722110050EF81 /* mglInfoCommand.swift */,
 				4D5782CC2B4748530050EF81 /* mglGetErrorMessageCommand.swift */,
+				4D5782CE2B474BA60050EF81 /* mglFrameGrabCommand.swift */,
+				4D5782D02B474DA30050EF81 /* mglMinimizeCommand.swift */,
+				4D5782D22B474E820050EF81 /* mglBltTextureCommand.swift */,
+				4D5782D42B4752D00050EF81 /* mglDotsCommand.swift */,
+				4D5782D62B4753AC0050EF81 /* mglLineCommand.swift */,
+				4D5782D82B47547C0050EF81 /* mglPolygonCommand.swift */,
+				4D5782DA2B4755010050EF81 /* mglArcsConmmand.swift */,
+				4D5782DC2B4757520050EF81 /* mglUpdateTextureCommand.swift */,
+				4D5782DE2B4761350050EF81 /* mglRepeatFlickerCommand.swift */,
+				4D5782E02B4764F60050EF81 /* mglRepeatBltsCommand.swift */,
+				4D5782E22B4767730050EF81 /* mglRepeatQuadsCommand.swift */,
+				4D5782E42B47693D0050EF81 /* mglRepeatDotsCommand.swift */,
+				4D5782E62B476A370050EF81 /* mglRepeatFlushCommand.swift */,
 			);
 			path = commands;
 			sourceTree = "<group>";
@@ -380,36 +419,49 @@
 				4D8B32812824627800278B6F /* mglDepthStencilConfig.swift in Sources */,
 				4D53454D28205AA400B61D3D /* mglColorRenderingConfig.swift in Sources */,
 				4D5F72AD2B45D8BD00B4DA29 /* mglWindowedCommand.swift in Sources */,
+				4D5782D32B474E820050EF81 /* mglBltTextureCommand.swift in Sources */,
+				4D5782DF2B4761350050EF81 /* mglRepeatFlickerCommand.swift in Sources */,
 				4D5F72AF2B45D93500B4DA29 /* mglSetWindowFrameInDisplayCommand.swift in Sources */,
 				4DCD58492B36178E00E08547 /* mglSetClearColorCommand.swift in Sources */,
 				4D56190B27628883009AB2E2 /* mglLocalServer.swift in Sources */,
 				4D5619112762A8F4009AB2E2 /* mglLocalClient.swift in Sources */,
 				4D5F72BD2B45E62900B4DA29 /* mglSelectStencilCommand.swift in Sources */,
 				4D5F729F2B45B6C000B4DA29 /* mglSetRenderTargetCommand.swift in Sources */,
+				4D5782DB2B4755010050EF81 /* mglArcsConmmand.swift in Sources */,
 				4D5F72B12B45DAE800B4DA29 /* mglGetWindowFrameInDisplayCommand.swift in Sources */,
 				4D5F72A92B45D60B00B4DA29 /* mglDrainSystemEventsCommand.swift in Sources */,
+				4D5782E72B476A370050EF81 /* mglRepeatFlushCommand.swift in Sources */,
+				4D5782D12B474DA30050EF81 /* mglMinimizeCommand.swift in Sources */,
 				4D5F72BB2B45E5DF00B4DA29 /* mglFinishStencilCreationCommand.swift in Sources */,
 				4D5F72B72B45E24F00B4DA29 /* mglSetXformCommand.swift in Sources */,
 				4DCD584B2B36335500E08547 /* mglRenderer2.swift in Sources */,
+				4D5782E32B4767730050EF81 /* mglRepeatQuadsCommand.swift in Sources */,
 				D08D4BBE23B8834C00A27C79 /* mglCommandInterface.swift in Sources */,
 				4D5F72A32B45CEFA00B4DA29 /* mglReadTextureCommand.swift in Sources */,
 				4D5F72A72B45D53500B4DA29 /* mglPingCommand.swift in Sources */,
+				4D5782D72B4753AC0050EF81 /* mglLineCommand.swift in Sources */,
 				D0F6B97023B6D9E700B45409 /* mglViewController.swift in Sources */,
 				D0F6B99A23B6DAD600B45409 /* mglRenderer.swift in Sources */,
 				4D5F72B92B45E4D500B4DA29 /* mglStartStencilCreationCommand.swift in Sources */,
+				4D5782CF2B474BA60050EF81 /* mglFrameGrabCommand.swift in Sources */,
 				4D5882B2285A89FD005DDF00 /* mglCommandModel.swift in Sources */,
 				4D5F72BF2B45E87600B4DA29 /* mglQuadCommand.swift in Sources */,
 				D0F6B9A223B6ED4300B45409 /* mglPrimitives.swift in Sources */,
 				D0A59C7A23C2E41900D3AE93 /* mglSecs.m in Sources */,
 				4D5F72A52B45D25900B4DA29 /* mglDeleteTextureCommand.swift in Sources */,
 				D0F6B96E23B6D9E700B45409 /* AppDelegate.swift in Sources */,
+				4D5782D92B47547C0050EF81 /* mglPolygonCommand.swift in Sources */,
+				4D5782D52B4752D00050EF81 /* mglDotsCommand.swift in Sources */,
 				4D5782C92B4722110050EF81 /* mglInfoCommand.swift in Sources */,
 				D0F6B9A423B6EDE600B45409 /* mglShaders.metal in Sources */,
 				4D5F72AB2B45D75300B4DA29 /* mglFullscreenCommand.swift in Sources */,
+				4D5782E12B4764F60050EF81 /* mglRepeatBltsCommand.swift in Sources */,
+				4D5782DD2B4757520050EF81 /* mglUpdateTextureCommand.swift in Sources */,
 				4D5782CD2B4748530050EF81 /* mglGetErrorMessageCommand.swift in Sources */,
 				4D5F729D2B45B07600B4DA29 /* mglCreateTextureCommand.swift in Sources */,
 				4DCD58472B3615BF00E08547 /* mglFlushCommand.swift in Sources */,
 				4D5F72B52B45E0A500B4DA29 /* mglDisplayCursorCommand.swift in Sources */,
+				4D5782E52B47693D0050EF81 /* mglRepeatDotsCommand.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
