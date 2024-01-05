@@ -65,7 +65,8 @@ class mglBltTextureCommand : mglCommand {
         renderEncoder: MTLRenderCommandEncoder
     ) -> Bool {
         // Make sure we have the actual requested texture.
-        guard let texture = colorRenderingState.getTexture(textureNumber: textureNumber) else {
+        guard let texture = colorRenderingState.getTexture(textureNumber: textureNumber),
+              let device = view.device else {
             return false
         }
 
@@ -77,7 +78,7 @@ class mglBltTextureCommand : mglCommand {
         samplerDescriptor.sAddressMode = addressMode
         samplerDescriptor.tAddressMode = addressMode
         samplerDescriptor.rAddressMode = addressMode
-        let samplerState = mglRenderer.device.makeSamplerState(descriptor: samplerDescriptor)
+        let samplerState = device.makeSamplerState(descriptor: samplerDescriptor)
 
         // Draw vertices as points with 5 values per vertex: [xyz uv].
         renderEncoder.setRenderPipelineState(colorRenderingState.getTexturePipelineState())

@@ -34,7 +34,7 @@ for ii = 1:nTextures
 end
 
 % Blt those textures sequentually, frame by frame.
-nFrames = 30;
+nFrames = 31;
 mglMetalRepeatingBlts(nFrames);
 
 % mglMetalRepeatingBlts should flush all on its own.

@@ -19,8 +19,8 @@ class mglCreateTextureCommand : mglCommand {
         super.init()
     }
 
-    init?(commandInterface: mglCommandInterface) {
-        guard let incomingTexture = commandInterface.createTexture(device: mglRenderer.device) else {
+    init?(commandInterface: mglCommandInterface, device: MTLDevice) {
+        guard let incomingTexture = commandInterface.createTexture(device: device) else {
             return nil
         }
         texture = incomingTexture

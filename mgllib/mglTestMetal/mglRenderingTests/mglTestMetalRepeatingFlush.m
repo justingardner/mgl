@@ -25,11 +25,11 @@ end
 
 %% How to:
 
-nFrames = 30;
+nFrames = 31;
 mglMetalRepeatingFlush(nFrames);
 
 % mglMetalRepeatingFlush should flush all on its own.
-disp('Flush for 30 frames should leave the screen blank');
+disp('Flush for 31 frames should leave the screen blank');
 
 % When it's done, make sure we have normal control again.
 % ie, calling flush shouldn't cause an error, get stuck, etc.

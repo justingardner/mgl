@@ -93,12 +93,13 @@ class mglColorRenderingState {
         view.colorPixelFormat = pixelFormat
 
         // Recreate the onscreen color rendering config so that render pipelines will use the new color pixel format.
-        guard let newOnscreenRenderingConfig = mglOnscreenRenderingConfig(
-            logger: logger,
-            device: mglRenderer.device,
-            library: library,
-            view: view
-        ) else {
+        guard let device = view.device,
+              let newOnscreenRenderingConfig = mglOnscreenRenderingConfig(
+                logger: logger,
+                device: device,
+                library: library,
+                view: view
+              ) else {
             logger.error(component: "mglColorRenderingState", details: "Could not create onscreen rendering config for pixel format \(String(describing: view.colorPixelFormat)).")
             return false
         }
@@ -122,13 +123,14 @@ class mglColorRenderingState {
 
     // Use the given texture as an offscreen rendering target.
     func setRenderTarget(view: MTKView, targetTexture: MTLTexture) -> Bool {
-        guard let newTextureRenderingConfig = mglOffScreenTextureRenderingConfig(
-            logger: logger,
-            device: mglRenderer.device,
-            library: library,
-            view: view,
-            texture: targetTexture
-        ) else {
+        guard let device = view.device,
+              let newTextureRenderingConfig = mglOffScreenTextureRenderingConfig(
+                logger: logger,
+                device: device,
+                library: library,
+                view: view,
+                texture: targetTexture
+              ) else {
             logger.error(component: "mglColorRenderingState", details: "Could not create offscreen rendering config, got nil.")
             return false
         }

@@ -48,10 +48,14 @@ class mglRepeatQuadsCommand : mglCommand {
         deg2metal: inout simd_float4x4,
         renderEncoder: MTLRenderCommandEncoder
     ) -> Bool {
+        guard let device = view.device else {
+            return false
+        }
+
         // Pack a vertex buffer with quads: each has 6 vertices (two triangels) and 6 values per vertex [xyz rgb].
-        let vertexCount = Int(6 * framesRemaining)
+        let vertexCount = Int(6 * objectCount)
         let byteCount = Int(mglSizeOfFloatVertexArray(mglUInt32(vertexCount), 6))
-        guard let vertexBuffer = mglRenderer.device.makeBuffer(length: byteCount, options: .storageModeManaged) else {
+        guard let vertexBuffer = device.makeBuffer(length: byteCount, options: .storageModeManaged) else {
             logger.error(component: "mglRepeatQuadsCommand", details: "Could not make vertex buffer of size \(byteCount)")
             return false
         }

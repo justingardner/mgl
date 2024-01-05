@@ -50,7 +50,6 @@ class mglRenderer2: NSObject {
         }
         self.device = device
         metalView.device = device
-        mglRenderer.device = device
 
         // Initialize the low-level Metal command queue.
         mglRenderer.commandQueue = device.makeCommandQueue()!

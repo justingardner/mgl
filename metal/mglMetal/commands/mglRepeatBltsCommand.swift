@@ -56,7 +56,7 @@ class mglRepeatBltsCommand : mglCommand {
 
         // Choose a next texture from the available textures, varying with the repeating command count.
         let textureNumbers = colorRenderingState.getTextureNumbers()
-        let textureIndex = Int(framesRemaining) % textureNumbers.count
+        let textureIndex = framesRemaining % textureNumbers.count
         let textureNumber = textureNumbers[textureIndex]
         guard let texture = colorRenderingState.getTexture(textureNumber: textureNumber) else {
             return false
@@ -95,7 +95,7 @@ class mglRepeatBltsCommand : mglCommand {
         logger: mglLogger,
         commandInterface : mglCommandInterface
     ) -> Bool {
-        // Report to the client when drawing commands were finished.
+        // Report to the client when drawing commands finished up.
         _ = commandInterface.writeDouble(data: drawTime)
         return true
     }

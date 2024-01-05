@@ -22,7 +22,7 @@ class mglArcsCommand : mglCommand {
     init?(commandInterface: mglCommandInterface, device: MTLDevice) {
         // read the center vertex for the arc from the commandInterface
         // extra values are rgba (1x4), radii (1x4), wedge (1x2), border (1x1)
-        guard let (centerVertex, arcCount) = commandInterface.readVertices(device: mglRenderer.device, extraVals: 11) else {
+        guard let (centerVertex, arcCount) = commandInterface.readVertices(device: device, extraVals: 11) else {
             return nil
         }
         self.centerVertex = centerVertex

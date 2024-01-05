@@ -25,7 +25,7 @@ end
 
 %% How to:
 
-nFrames = 30;
+nFrames = 31;
 nQuads = 100;
 randomSeed = 42;
 mglMetalRepeatingQuads(nFrames, nQuads, randomSeed);

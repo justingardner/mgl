@@ -14,7 +14,7 @@ class mglSetXformCommand : mglCommand {
 
     init(deg2metal: simd_float4x4) {
         self.deg2metal = deg2metal
-        super.init()
+        super.init(framesRemaining: 1)
     }
 
     init?(commandInterface: mglCommandInterface) {
@@ -22,7 +22,7 @@ class mglSetXformCommand : mglCommand {
             return nil
         }
         self.deg2metal = deg2metal
-        super.init()
+        super.init(framesRemaining: 1)
     }
 
     override func draw(

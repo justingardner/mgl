@@ -9,12 +9,12 @@
 import Foundation
 import MetalKit
 
-class mglSelectStencilCreationCommand : mglCommand {
+class mglSelectStencilCommand : mglCommand {
     private let stencilNumber: UInt32
 
     init(stencilNumber: UInt32) {
         self.stencilNumber = stencilNumber
-        super.init()
+        super.init(framesRemaining: 1)
     }
 
     init?(commandInterface: mglCommandInterface) {
@@ -22,7 +22,7 @@ class mglSelectStencilCreationCommand : mglCommand {
             return nil
         }
         self.stencilNumber = stencilNumber
-        super.init()
+        super.init(framesRemaining: 1)
     }
 
     override func draw(

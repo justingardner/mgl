@@ -30,7 +30,7 @@ mglVisualAngleCoordinates(50, [20, 20]);
 nDisks = 5;
 x = linspace(-5, 5, nDisks);
 y = linspace(5, -5, nDisks);
-size = 1;
+size = 0.5;
 color = [0.25, 0.5, 0.75, 1.0];
 mglGluDisk(x, y, size, color, 'ignored', 'ignored', 0);
 disp('There shoud be 5 disks across the diagonal.')

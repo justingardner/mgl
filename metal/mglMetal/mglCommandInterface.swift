@@ -68,7 +68,7 @@ class mglCommandInterface {
         case mglDrainSystemEvents: command = mglDrainSystemEventsCommand()
         case mglFullscreen: command = mglFullscreenCommand()
         case mglWindowed: command = mglWindowedCommand()
-        case mglCreateTexture: command = mglCreateTextureCommand(commandInterface: self)
+        case mglCreateTexture: command = mglCreateTextureCommand(commandInterface: self, device: device)
         case mglReadTexture: command = mglReadTextureCommand(commandInterface: self)
         case mglSetRenderTarget: command = mglSetRenderTargetCommand(commandInterface: self)
         case mglSetWindowFrameInDisplay: command = mglSetWindowFrameInDisplayCommand(commandInterface: self)
@@ -91,7 +91,7 @@ class mglCommandInterface {
         case mglPolygon: command = mglPolygonCommand(commandInterface: self, device: device)
         case mglArcs: command = mglArcsCommand(commandInterface: self, device: device)
         case mglUpdateTexture: command = mglUpdateTextureCommand(commandInterface: self, device: device)
-        case mglSelectStencil: command = mglSelectStencilCreationCommand(commandInterface: self)
+        case mglSelectStencil: command = mglSelectStencilCommand(commandInterface: self)
         case mglSetClearColor: command = mglSetClearColorCommand(commandInterface: self)
         case mglRepeatFlicker: command = mglRepeatFlickerCommand(commandInterface: self)
         case mglRepeatBlts: command = mglRepeatBltsCommand(commandInterface: self)
@@ -147,7 +147,6 @@ class mglCommandInterface {
 
     // Let a command report any query results, then report collected timestamps.
     private func reportResults(command: mglCommand) {
-        logger.info(component: "mglCommandInterface", details: "Report results \(String(describing: command))")
         _ = command.writeQueryResults(logger: logger, commandInterface: self)
         if command.results.success {
             _ = writeDouble(data: command.results.processedTime)
@@ -159,7 +158,6 @@ class mglCommandInterface {
 
     // Report one repetition of this command to the client and re-add it to todo so that it will repeat.
     func doAgain(command: mglCommand) {
-        logger.info(component: "mglCommandInterface", details: "Remaining \(command.framesRemaining) for command \(String(describing: command))")
         todo.insert(command, at: 0)
     }
 
