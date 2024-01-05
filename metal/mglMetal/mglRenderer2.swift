@@ -100,17 +100,21 @@ extension mglRenderer2: MTKViewDelegate {
     }
 
     private func render(in view: MTKView) {
-        // TODO: allow a case for repeating command with >0 frames remaining.
-        // TOOD: Do repeating commands get re-added to the todo queue??
+        // Report to the client about any commands that were completed on the previous frame.
+        // TODO: this may change when we incorporate the counters API.
+        commandInterface.reportDoneLater()
+
+        // Get the next command from the command interface.
+        // If there isn't any just return and we don't need to do anything during this frame.
         if !commandInterface.commandWaiting() {
             return
         }
-
         guard var command = commandInterface.awaitNext(device: device) else {
             return
         }
 
-        command.results.success = command.doNondrawingWork(
+        // Let the command do non-drawing work, like getting and setting the state of the app.
+        let nondrawingSuccess = command.doNondrawingWork(
             logger: logger,
             view: view,
             depthStencilState: depthStencilState,
@@ -118,14 +122,27 @@ extension mglRenderer2: MTKViewDelegate {
             deg2metal: &deg2metal
         )
 
-        // Non-drawing commands will go only this far, with no rendering on this frame.
+        // On failure, exit right away.
+        if !nondrawingSuccess {
+            commandInterface.done(command: command, success: false)
+            return
+        }
+
+        // On success, check whether the command also wants to draw something.
         if command.framesRemaining <= 0 {
+            // No "frames remaining" means that this nondrawing command is all done.
             commandInterface.done(command: command)
             return
         }
 
-        // Drawing commands will trigger a Metal rendering pass,
-        // and a tight loop accepting multiple drawing commands ending with a fluch command.
+        // Yes "frames remaining" means that this command wants to draw something.  So:
+        //  1. Set up a Metal rendering pass.
+        //  2. Enter a tight loop to accept more commands in the same frame.
+        //  3. Present the frame representing all commands until "flush".
+
+        //
+        // 1. Set up a Metal rendering pass.
+        //
 
         // This call to view.currentDrawable accesses an expensive system resource, the "drawable".
         // Normally this is fast and not a problem.
@@ -148,9 +165,7 @@ extension mglRenderer2: MTKViewDelegate {
         // Or is there somethign else we can do about these long call durations?
         guard let drawable = view.currentDrawable else {
             logger.error(component: "mglRenderer2", details: "Could not get current drawable, aborting render pass.")
-            command.results.success = false
-            command.results.processedTime = secs.get()
-            commandInterface.done(command: command)
+            commandInterface.done(command: command, success: false)
             return
         }
 
@@ -160,10 +175,7 @@ extension mglRenderer2: MTKViewDelegate {
         // But whichever one we call first seems to pay the same blocking/synchronization price when memory usage is high.
         guard let renderPassDescriptor = colorRenderingState.getRenderPassDescriptor(view: view) else {
             logger.error(component: "mglRenderer2", details: "Could not get render pass descriptor from current color rendering config, aborting render pass.")
-            // we have failed, so return failure to acknwoledge previous command
-            command.results.success = false
-            command.results.processedTime = secs.get()
-            commandInterface.done(command: command)
+            commandInterface.done(command: command, success: false)
             return
         }
         depthStencilState.configureRenderPassDescriptor(renderPassDescriptor: renderPassDescriptor)
@@ -171,9 +183,7 @@ extension mglRenderer2: MTKViewDelegate {
         guard let commandBuffer = mglRenderer.commandQueue.makeCommandBuffer(),
               let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor) else {
             logger.error(component: "mglRenderer2", details: "Could not get command buffer and renderEncoder from the command queue, aborting render pass.")
-            command.results.success = false
-            command.results.processedTime = secs.get()
-            commandInterface.done(command: command)
+            commandInterface.done(command: command, success: false)
             return
         }
         depthStencilState.configureRenderEncoder(renderEncoder: renderEncoder)
@@ -181,8 +191,15 @@ extension mglRenderer2: MTKViewDelegate {
         // Attach our view transform to the same location expected by all vertex shaders (our convention).
         renderEncoder.setVertexBytes(&deg2metal, length: MemoryLayout<float4x4>.stride, index: 1)
 
+        //
+        // 2. Enter a tight loop to accept more commands in the same frame.
+        //
+
         while !(command is mglFlushCommand) {
-            command.results.success = command.draw(
+            // This command is either:
+            //  - the command received above with framesRemaining > 0, which initiated this frame's tight loop
+            //  - another command received below which is being processed as part of the same frame
+            let drawSuccess = command.draw(
                 logger: logger,
                 view: view,
                 depthStencilState: depthStencilState,
@@ -190,33 +207,71 @@ extension mglRenderer2: MTKViewDelegate {
                 deg2metal: &deg2metal,
                 renderEncoder: renderEncoder
             )
+
+            // On failure, end the frame.
+            if !drawSuccess {
+                commandInterface.done(command: command, success: false)
+                renderEncoder.endEncoding()
+                colorRenderingState.finishDrawing(commandBuffer: commandBuffer, drawable: drawable)
+                return
+            }
+
+            // On success, count the command as having drawn a frame.
             command.framesRemaining -= 1
-            // TODO: when remaining is >0, should command interface add back to front of todo queue?
-            // TOOD: should command interface add a copy of the command and results to the done queue?
+
+            // We have special case for "repeating" commands which draw across multiple frames.
+            if command.framesRemaining > 0 {
+                // Re-add this command to process it again on the next frame.
+                commandInterface.doAgain(command: command)
+
+                // Automatically flush this command and report its timestamp at the start of the next frame.
+                commandInterface.done(command: command, sendNow: false)
+                renderEncoder.endEncoding()
+                colorRenderingState.finishDrawing(commandBuffer: commandBuffer, drawable: drawable)
+                return
+            }
+
+            // Normal, non-repeating commands can just be done now.
             commandInterface.done(command: command)
 
-            // TODO: break for repeating commands, which automatically flush every time.
-
-            logger.info(component: "mglRenderer2", details: "I did one of these: \(String(describing: command)).")
-
-            // Get a new command and keep going.
+            // Tight loop: wait for the next command here in the same frame.
             if let nextCommand = commandInterface.awaitNext(device: device) {
                 command = nextCommand
-                command.results.success = command.doNondrawingWork(
+
+                // Let the next command get or set app state, even during the frame tight loop.
+                let nextNondrawingSuccess = command.doNondrawingWork(
                     logger: logger,
                     view: view,
                     depthStencilState: depthStencilState,
                     colorRenderingState: colorRenderingState,
                     deg2metal: &deg2metal
                 )
+
+                // On failure, end the frame.
+                if !nextNondrawingSuccess {
+                    commandInterface.done(command: command, success: false)
+                    renderEncoder.endEncoding()
+                    colorRenderingState.finishDrawing(commandBuffer: commandBuffer, drawable: drawable)
+                    return
+                }
+
             } else {
-                continue
+                // This is unexpected, maybe the client disconnected or sent bad data.
+                // Just end the frame.
+                renderEncoder.endEncoding()
+                colorRenderingState.finishDrawing(commandBuffer: commandBuffer, drawable: drawable)
+                return
             }
         }
 
-        // We got a flush command, so finish this rendering pass.
+        // This command is the flush command that got us out of the frame tight loop.
+        // Report its processed time at the start of the next frame.
         command.framesRemaining -= 1
-        commandInterface.done(command: command)
+        commandInterface.done(command: command, sendNow: false)
+
+        //
+        // 3. Present the frame representing all commands until "flush".
+        //
 
         renderEncoder.endEncoding()
         colorRenderingState.finishDrawing(commandBuffer: commandBuffer, drawable: drawable)

@@ -68,6 +68,18 @@ class mglMetalTests: XCTestCase {
         }
     }
 
+    func assertTimestamps(count: Int, greaterThan: Double = 0.0) {
+        var timestamps = [Double](repeating: 0, count: count)
+        let bytesRead = timestamps.withUnsafeMutableBufferPointer {
+            client.readData(buffer: $0.baseAddress!, expectedByteCount: 8 * count)
+        }
+        XCTAssertEqual(bytesRead, 8 * count)
+
+        for timestamp in timestamps {
+            XCTAssertGreaterThan(timestamp, greaterThan)
+        }
+    }
+
     func testClearColorViaClientBytes() {
         // Send a clear command with the color green.
         let clear: [UInt16] = [mglSetClearColor.rawValue]
@@ -92,30 +104,22 @@ class mglMetalTests: XCTestCase {
         // Consume the clear and flush commands and present a frame for visual inspection.
         drawNextFrame(sleepTime: TimeInterval(1.0))
 
-        // Processing the clear command should change the view clear color.
+        // Processing the clear command should also set the view clear color.
         XCTAssertEqual(view.clearColor.red, 0.0)
         XCTAssertEqual(view.clearColor.green, 1.0)
         XCTAssertEqual(view.clearColor.blue, 0.0)
         XCTAssertEqual(view.clearColor.alpha, 1.0)
 
-        // The server should send back four sequential timestamps for:
-        //  - clear acknowledged
-        //  - clear processed
-        //  - flush acknowledged
-        //  - flush processed
-        XCTAssertTrue(client.dataWaiting())
+        // The server should send 3 timestamps right away:
+        //  - ack for clear
+        //  - processed for clear
+        //  - ack for flush
+        assertTimestamps(count: 3)
+        XCTAssertFalse(client.dataWaiting())
 
-        var clientBuffer = [Double](repeating: 0, count: 4)
-        let clientBytesRead = clientBuffer.withUnsafeMutableBufferPointer {
-            client.readData(buffer: $0.baseAddress!, expectedByteCount: 32)
-        }
-        XCTAssertEqual(clientBytesRead, 32)
-
-        // Any timestamp < 0 would indicate an error, which we dont't expect here.
-        XCTAssertGreaterThan(clientBuffer[0], 0)
-        XCTAssertGreaterThan(clientBuffer[1], clientBuffer[0])
-        XCTAssertGreaterThan(clientBuffer[2], clientBuffer[1])
-        XCTAssertGreaterThan(clientBuffer[3], clientBuffer[2])
+        // The last timestamp, processed for flush, waits until the start of the next frame.
+        drawNextFrame()
+        assertTimestamps(count: 1)
         XCTAssertFalse(client.dataWaiting())
     }
 
@@ -167,7 +171,6 @@ class mglMetalTests: XCTestCase {
         // Processing the clear command should change the view clear color.
         drawNextFrame()
         assertSuccess(command: clear)
-        assertSuccess(command: flush, startTime: clear.results.ackTime)
         XCTAssertEqual(view.clearColor.red, 0.0)
         XCTAssertEqual(view.clearColor.green, 0.0)
         XCTAssertEqual(view.clearColor.blue, 1.0)
@@ -176,5 +179,9 @@ class mglMetalTests: XCTestCase {
         // Processing the flush command should draw the clear color to all pixels.
         let expectedPixel = RGBAFloat32Pixel(r: 0.0, g: 0.0, b: 1.0, a: 1.0)
         assertAllOffscreenPixels(expectedPixel: expectedPixel)
+
+        // The the processed time for the flush command waits until the start of the next frame.
+        drawNextFrame()
+        assertSuccess(command: flush)
     }
 }

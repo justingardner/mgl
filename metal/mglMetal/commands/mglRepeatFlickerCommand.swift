@@ -15,6 +15,9 @@ class mglRepeatFlickerCommand : mglCommand {
     private let randomSeed: UInt32
     private let randomSource: GKMersenneTwisterRandomSource
 
+    private var secs = mglSecs()
+    private var drawTime: Double = 0.0
+
     init(repeatCount: UInt32, randomSeed: UInt32) {
         self.repeatCount = repeatCount
         self.randomSeed = randomSeed
@@ -48,6 +51,18 @@ class mglRepeatFlickerCommand : mglCommand {
         let clearColor = MTLClearColor(red: r, green: g, blue: b, alpha: 1)
         view.clearColor = clearColor
 
+        // Record draw time to send back to the client.
+        drawTime = secs.get()
+
+        return true
+    }
+
+    override func writeQueryResults(
+        logger: mglLogger,
+        commandInterface : mglCommandInterface
+    ) -> Bool {
+        // Report to the client when drawing commands were finished.
+        _ = commandInterface.writeDouble(data: drawTime)
         return true
     }
 }

@@ -124,30 +124,43 @@ class mglCommandInterface {
         return awaitCommand(device: device)
     }
 
-    // Collaborate with mglRenderer: this is done, ready to send results back to the client.
-    // TODO: distinguish between:
-    //      - done: record and acknowledge success
-    //      - fail: record and acknowledge failure
-    //      - repeat: send incremental progress for each processed frame?
-    // TODO: consider allowing the same repeating command to be "done" more than once, taking a results snapshot each time
-    // TODO: consider ditching repeating commands in favor of explicitly queued commands
-    func done(command: mglCommand) {
+    // Mark this command as done, for reporting back to the client.
+    func done(command: mglCommand, success: Bool = true, sendNow: Bool = true) {
+        command.results.success = success
         command.results.processedTime = secs.get()
-        done.append(command)
 
-        // If we're not still working on a batch, we can send all our results to the client.
-        if todo.isEmpty {
-            for doneCommand in done {
-                _ = doneCommand.writeQueryResults(logger: logger, commandInterface: self)
-                if doneCommand.results.success {
-                    _ = writeDouble(data: doneCommand.results.processedTime)
-                } else {
-                    logger.error(component: "mglCommandInterface", details: "Command failed: \(String(describing: doneCommand))")
-                    _ = writeDouble(data: -doneCommand.results.processedTime)
-                }
-            }
-            done.removeAll()
+        if sendNow {
+            reportResults(command: command)
+        } else {
+            done.append(command)
         }
+    }
+
+    func reportDoneLater() {
+        let processedTime = secs.get()
+        for doneCommand in done {
+            doneCommand.results.processedTime = processedTime
+            reportResults(command: doneCommand)
+        }
+        done.removeAll()
+    }
+
+    // Let a command report any query results, then report collected timestamps.
+    private func reportResults(command: mglCommand) {
+        logger.info(component: "mglCommandInterface", details: "Report results \(String(describing: command))")
+        _ = command.writeQueryResults(logger: logger, commandInterface: self)
+        if command.results.success {
+            _ = writeDouble(data: command.results.processedTime)
+        } else {
+            logger.error(component: "mglCommandInterface", details: "Command failed: \(String(describing: command))")
+            _ = writeDouble(data: -command.results.processedTime)
+        }
+    }
+
+    // Report one repetition of this command to the client and re-add it to todo so that it will repeat.
+    func doAgain(command: mglCommand) {
+        logger.info(component: "mglCommandInterface", details: "Remaining \(command.framesRemaining) for command \(String(describing: command))")
+        todo.insert(command, at: 0)
     }
 
     func commandWaiting() -> Bool {

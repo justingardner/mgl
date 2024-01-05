@@ -16,6 +16,9 @@ class mglRepeatDotsCommand : mglCommand {
     private let randomSeed: UInt32
     private let randomSource: GKMersenneTwisterRandomSource
 
+    private var secs = mglSecs()
+    private var drawTime: Double = 0.0
+
     init(repeatCount: UInt32, objectCount: UInt32, randomSeed: UInt32) {
         self.repeatCount = repeatCount
         self.objectCount = objectCount
@@ -62,6 +65,10 @@ class mglRepeatDotsCommand : mglCommand {
         renderEncoder.setRenderPipelineState(colorRenderingState.getDotsPipelineState())
         renderEncoder.setVertexBuffer(vertexBuffer, offset: 0, index: 0)
         renderEncoder.drawPrimitives(type: .point, vertexStart: 0, vertexCount: vertexCount)
+
+        // Record draw time to send back to the client.
+        drawTime = secs.get()
+
         return true
     }
 
@@ -87,5 +94,14 @@ class mglRepeatDotsCommand : mglCommand {
 
         // border size
         buffer[offset + 10] = 0
+    }
+
+    override func writeQueryResults(
+        logger: mglLogger,
+        commandInterface : mglCommandInterface
+    ) -> Bool {
+        // Report to the client when drawing commands were finished.
+        _ = commandInterface.writeDouble(data: drawTime)
+        return true
     }
 }
