@@ -9,6 +9,8 @@
 import Foundation
 import OSLog
 
+// A logger gives other app components a convenient interface for logging with.
+// It also remembers the last error message, so we can report this back to the client.
 protocol mglLogger {
     func info(component: String, details: String)
     func error(component: String, details: String)

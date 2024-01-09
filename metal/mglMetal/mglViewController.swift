@@ -19,6 +19,7 @@ import MetalKit
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
 class ViewController: NSViewController {
     // A common logging interface for app components to share.
+    // This handles some macOS version dependency, and remembers the app's last error message.
     let logger = getMglLogger()
 
     // holds our renderer class which does the main work, initialized during viewDidLoad()

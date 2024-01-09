@@ -26,9 +26,10 @@ class mglCommandInterface {
     private var todo = [mglCommand]()
 
     // This is used as a queue of commands that have been processed but results not yet sent to the client.
+    // TODO: this is not used much but will be used more when we implement command batches.
     private var done = [mglCommand]()
 
-    // utility to get system nano time
+    // Utility to get system nano time.
     let secs = mglSecs()
 
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
@@ -39,14 +40,19 @@ class mglCommandInterface {
         self.server = server
     }
 
-    // Add a command for processing to the todo queue -- used for testing.
-    func addTodo(command: mglCommand) {
+    // Add a command directly to the end of the unprocessed queue -- used during testing.
+    func addLast(command: mglCommand) {
         command.results.ackTime = secs.get()
         todo.append(command)
     }
 
-    // Wait for the next command from the client and read it fully before processing.
-    // Require a MTLDevice so that we can immediately write data to device buffers, with no intermediate.
+    // Add a command directly to the front of the unprocessed queue -- supports repeated commands.
+    func addNext(command: mglCommand) {
+        todo.insert(command, at: 0)
+    }
+
+    // Wait for the next command from the client, read it fully, and add to the todo queue for processing.
+    // Require a MTLDevice so that commands can immediately write data to GPU device buffers, with no intermediate.
     private func awaitCommand(device: MTLDevice) -> mglCommand? {
         // Consume the command code that tells us what to do next.
         // This will block until one arrives.
@@ -60,8 +66,7 @@ class mglCommandInterface {
         _ = writeDouble(data: ackTime)
 
         // Instantiate a new command by reading it fully from the socket.
-        // We read the whole command before processing it.
-        // This will block until the whole command arrives.
+        // This will block until all command-specific parameters arrive.
         var command: mglCommand? = nil
         switch (commandCode) {
         case mglPing: command = mglPingCommand()
@@ -102,8 +107,8 @@ class mglCommandInterface {
             command = nil
         }
 
-        // In case of an unknown command or error instantiating a known command,
-        // Clear out whatever's left on the socket and return to a known, ready state.
+        // In case of an unknown command or command init? error,
+        // clear out whatever's left on the socket and return to a known, ready state.
         if command == nil {
             clearReadData()
         }
@@ -111,56 +116,12 @@ class mglCommandInterface {
         // Note when this command was created.
         command?.results.ackTime = ackTime
 
-        // This is a whole command, ready to be processed.
+        // We got a whole command, ready to be processed.
         return command
     }
 
-    // Collaborate with mglRenderer: here's what to render next.
-    // TODO: this will change when we're enqueueing a batch.
-    func awaitNext(device: MTLDevice) -> mglCommand? {
-        if todo.count > 0 {
-            return todo.removeFirst()
-        }
-        return awaitCommand(device: device)
-    }
-
-    // Mark this command as done, for reporting back to the client.
-    func done(command: mglCommand, success: Bool = true, sendNow: Bool = true) {
-        command.results.success = success
-        command.results.processedTime = secs.get()
-
-        if sendNow {
-            reportResults(command: command)
-        } else {
-            done.append(command)
-        }
-    }
-
-    func reportDoneLater() {
-        let processedTime = secs.get()
-        for doneCommand in done {
-            doneCommand.results.processedTime = processedTime
-            reportResults(command: doneCommand)
-        }
-        done.removeAll()
-    }
-
-    // Let a command report any query results, then report collected timestamps.
-    private func reportResults(command: mglCommand) {
-        _ = command.writeQueryResults(logger: logger, commandInterface: self)
-        if command.results.success {
-            _ = writeDouble(data: command.results.processedTime)
-        } else {
-            logger.error(component: "mglCommandInterface", details: "Command failed: \(String(describing: command))")
-            _ = writeDouble(data: -command.results.processedTime)
-        }
-    }
-
-    // Report one repetition of this command to the client and re-add it to todo so that it will repeat.
-    func doAgain(command: mglCommand) {
-        todo.insert(command, at: 0)
-    }
-
+    // Collaborate with mglRenderer: is there a command available for processing.
+    // This will not block either way.
     func commandWaiting() -> Bool {
         // Look for commands already in memory, first.
         if !todo.isEmpty {
@@ -177,32 +138,45 @@ class mglCommandInterface {
         return server.dataWaiting()
     }
 
-    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
-    // acceptClientConnection
-    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
-    // TODO: remove me
-    func acceptClientConnection() -> Bool {
-        return server.acceptClientConnection()
+    // Collaborate with mglRenderer: here's what to process next.
+    // This will block until a command is available.
+    func awaitNext(device: MTLDevice) -> mglCommand? {
+        if todo.count > 0 {
+            return todo.removeFirst()
+        }
+        return awaitCommand(device: device)
     }
 
-    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
-    // dataWaiting
-    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
-    // TODO: remove me
-    func dataWaiting() -> Bool {
-        return server.dataWaiting()
+    // Collaborate with mglRenderer: this was fully processed.
+    func done(command: mglCommand, success: Bool = true) {
+        command.results.success = success
+        command.results.processedTime = secs.get()
+
+        // TODO: the done queue will be come important when we implement command batches.
+        done.append(command)
+        reportResults(command: command)
+    }
+
+    // Let a command report any query results that it stashed, then report the usual timestamps to the client.
+    private func reportResults(command: mglCommand) {
+        _ = command.writeQueryResults(logger: logger, commandInterface: self)
+        if command.results.success {
+            _ = writeDouble(data: command.results.processedTime)
+        } else {
+            logger.error(component: "mglCommandInterface", details: "Command failed: \(String(describing: command))")
+            _ = writeDouble(data: -command.results.processedTime)
+        }
     }
 
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     // clearReadData
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
-    // TODO: private
-    func clearReadData() {
+    private func clearReadData() {
         // declare a byte to dump
         var dumpByte = 0
         var numBytes = 0;
         // while there is data reading
-        while dataWaiting() {
+        while server.dataWaiting() {
             // read a byte
             let bytesRead = server.readData(buffer: &dumpByte, expectedByteCount: 1)
             //keep how many bytes we have read

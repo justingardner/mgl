@@ -42,5 +42,4 @@ class mglDotsCommand : mglCommand {
         renderEncoder.drawPrimitives(type: .point, vertexStart: 0, vertexCount: vertexCount)
         return true
     }
-
 }

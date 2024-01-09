@@ -151,22 +151,22 @@ class mglMetalTests: XCTestCase {
     func testClearColorInMemory() {
         // Create a texture for offscreen rendering.
         let createTexture = mglCreateTextureCommand(texture: offscreenTexture)
-        commandInterface.addTodo(command: createTexture)
+        commandInterface.addLast(command: createTexture)
         drawNextFrame()
         assertSuccess(command: createTexture)
         XCTAssertGreaterThan(createTexture.textureNumber, 0)
 
         // Asssign the new texture as the offscreen rendering target.
         let setRenderTarget = mglSetRenderTargetCommand(textureNumber: createTexture.textureNumber)
-        commandInterface.addTodo(command: setRenderTarget)
+        commandInterface.addLast(command: setRenderTarget)
         drawNextFrame()
         assertSuccess(command: setRenderTarget)
 
         // Enqueue clear and flush commands.
         let clear = mglSetClearColorCommand(red: 0.0, green: 0.0, blue: 1.0)
-        commandInterface.addTodo(command: clear)
+        commandInterface.addLast(command: clear)
         let flush = mglFlushCommand()
-        commandInterface.addTodo(command: flush)
+        commandInterface.addLast(command: flush)
 
         // Processing the clear command should change the view clear color.
         drawNextFrame()

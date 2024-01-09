@@ -13,6 +13,7 @@ class mglGetErrorMessageCommand : mglCommand {
         logger: mglLogger,
         commandInterface : mglCommandInterface
     ) -> Bool {
+        // Our mgl logger remembers the last error message!
         _ = commandInterface.writeString(data: logger.getErrorMessage())
         return true
     }

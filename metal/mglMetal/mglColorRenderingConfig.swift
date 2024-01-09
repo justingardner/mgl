@@ -24,6 +24,9 @@ import MetalKit
 class mglColorRenderingState {
     private let logger: mglLogger
 
+    // The Metal library that holds our compiled shaders.
+    private let library: MTLLibrary
+
     // The usual config for on-screen rendering.
     private var onscreenRenderingConfig: mglColorRenderingConfig!
 
@@ -34,10 +37,12 @@ class mglColorRenderingState {
     private var textureSequence = UInt32(1)
     private var textures : [UInt32: MTLTexture] = [:]
 
-    private let library: MTLLibrary
-
-    init(logger: mglLogger, device: MTLDevice, library: MTLLibrary, view: MTKView) {
+    init(logger: mglLogger, device: MTLDevice, view: MTKView) {
         self.logger = logger
+
+        guard let library = device.makeDefaultLibrary() else {
+            fatalError("Could not create Metal shader library!")
+        }
         self.library = library
 
         // Default to onscreen rendering config.
@@ -378,7 +383,14 @@ private class mglOffScreenTextureRenderingConfig : mglColorRenderingConfig {
     }
 }
 
-private func dotsPipelineStateDescriptor(colorPixelFormat:  MTLPixelFormat, depthPixelFormat:  MTLPixelFormat, stencilPixelFormat:  MTLPixelFormat, library: MTLLibrary?) -> MTLRenderPipelineDescriptor {
+// Create the config for drawing with our mgl "dots" shaders.
+// This depends on whether we're rendering to screen or to offscreen texture.
+private func dotsPipelineStateDescriptor(
+    colorPixelFormat:  MTLPixelFormat,
+    depthPixelFormat:  MTLPixelFormat,
+    stencilPixelFormat:  MTLPixelFormat,
+    library: MTLLibrary?
+) -> MTLRenderPipelineDescriptor {
     let pipelineDescriptor = MTLRenderPipelineDescriptor()
     pipelineDescriptor.depthAttachmentPixelFormat = depthPixelFormat
     pipelineDescriptor.stencilAttachmentPixelFormat = stencilPixelFormat
@@ -415,7 +427,14 @@ private func dotsPipelineStateDescriptor(colorPixelFormat:  MTLPixelFormat, dept
     return pipelineDescriptor
 }
 
-private func arcsPipelineStateDescriptor(colorPixelFormat:  MTLPixelFormat, depthPixelFormat:  MTLPixelFormat, stencilPixelFormat:  MTLPixelFormat, library: MTLLibrary?) -> MTLRenderPipelineDescriptor {
+// Create the config for drawing with our mgl "arcs" shaders.
+// This depends on whether we're rendering to screen or to offscreen texture.
+private func arcsPipelineStateDescriptor(
+    colorPixelFormat:  MTLPixelFormat,
+    depthPixelFormat:  MTLPixelFormat,
+    stencilPixelFormat:  MTLPixelFormat,
+    library: MTLLibrary?
+) -> MTLRenderPipelineDescriptor {
     let pipelineDescriptor = MTLRenderPipelineDescriptor()
     pipelineDescriptor.depthAttachmentPixelFormat = depthPixelFormat
     pipelineDescriptor.stencilAttachmentPixelFormat = stencilPixelFormat
@@ -465,7 +484,14 @@ private func arcsPipelineStateDescriptor(colorPixelFormat:  MTLPixelFormat, dept
     return pipelineDescriptor
 }
 
-private func bltTexturePipelineStateDescriptor(colorPixelFormat:  MTLPixelFormat, depthPixelFormat:  MTLPixelFormat, stencilPixelFormat:  MTLPixelFormat, library: MTLLibrary?) -> MTLRenderPipelineDescriptor {
+// Create the config for drawing with our mgl "textures" shaders.
+// This depends on whether we're rendering to screen or to offscreen texture.
+private func bltTexturePipelineStateDescriptor(
+    colorPixelFormat:  MTLPixelFormat,
+    depthPixelFormat:  MTLPixelFormat,
+    stencilPixelFormat:  MTLPixelFormat,
+    library: MTLLibrary?
+) -> MTLRenderPipelineDescriptor {
     let pipelineDescriptor = MTLRenderPipelineDescriptor()
     pipelineDescriptor.depthAttachmentPixelFormat = depthPixelFormat
     pipelineDescriptor.stencilAttachmentPixelFormat = stencilPixelFormat
@@ -493,7 +519,14 @@ private func bltTexturePipelineStateDescriptor(colorPixelFormat:  MTLPixelFormat
     return pipelineDescriptor
 }
 
-private func drawVerticesPipelineStateDescriptor(colorPixelFormat:  MTLPixelFormat, depthPixelFormat:  MTLPixelFormat, stencilPixelFormat:  MTLPixelFormat, library: MTLLibrary?) -> MTLRenderPipelineDescriptor {
+// Create the config for drawing with our mgl "color vertices" shaders.
+// This depends on whether we're rendering to screen or to offscreen texture.
+private func drawVerticesPipelineStateDescriptor(
+    colorPixelFormat:  MTLPixelFormat,
+    depthPixelFormat:  MTLPixelFormat,
+    stencilPixelFormat:  MTLPixelFormat,
+    library: MTLLibrary?
+) -> MTLRenderPipelineDescriptor {
     let pipelineDescriptor = MTLRenderPipelineDescriptor()
     pipelineDescriptor.depthAttachmentPixelFormat = depthPixelFormat
     pipelineDescriptor.stencilAttachmentPixelFormat = stencilPixelFormat

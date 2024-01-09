@@ -9,36 +9,41 @@
 import Foundation
 import MetalKit
 
+/*
+ This mglRenderer2 processes commands and handles details of setting up Metal rendering passes for each frame.
+ This takes unprocessed commands from our mglCommandInterface, but doesn't know about how the commands were created.
+ This processes each command in a few steps, but doesn't worry about the details of each command:
+  - doNondrawingWork() is a chance for each command to modify the state of this app and/or gather data about the system.
+  - draw() is a chance for each command to draw itself as part of a rendering pass / frame.
+  - filling in success status and timing data around each command
+ This reports completed commands back to our mglCommandInterface, but doesn't know what happens from there.
+ */
 class mglRenderer2: NSObject {
+    // A logging interface that handles macOS version dependency and remembers the last error message.
     private let logger: mglLogger
 
-    // GPU Device
+    // GPU Device!
     private let device: MTLDevice
 
-    // commandQueue which tells the device what to do
-    static var commandQueue: MTLCommandQueue!
+    // The Metal commandQueue tells the device what to do.
+    private let commandQueue: MTLCommandQueue!
 
-    // library holds compiled vertex and fragment shader programs
-    let library: MTLLibrary!
+    // Our command interface communicates with the client process like Matlab.
+    private let commandInterface : mglCommandInterface
 
-    // command interface communicates with the client process like Matlab
-    let commandInterface : mglCommandInterface
+    // This holds a flush command from the previous frame.
+    // It's "processed time" will be filled in at the start of the next frame.
+    // TODO: lastFlushCommand may change when we incorporate the counters API.
+    private var lastFlushCommand: mglCommand? = nil
 
     // Keep track of depth and stencil state, like creating vs applying a stencil, and which stencil.
-    let depthStencilState: mglDepthStencilState
+    private let depthStencilState: mglDepthStencilState
 
     // Keep track of color rendering state, like oncreen vs offscreen texture, and which texture.
-    let colorRenderingState: mglColorRenderingState
+    private let colorRenderingState: mglColorRenderingState
 
-    // keeps coordinate xform
-    var deg2metal = matrix_identity_float4x4
-
-    // a collection of user-managed textures to render to and/or blt to screen
-    var textureSequence = UInt32(1)
-    var textures : [UInt32: MTLTexture] = [:]
-
-    // utility to get system nano time
-    let secs = mglSecs()
+    // Keeps the current coordinate xform specified by the client, like screen pixels vs device visual degrees.
+    private var deg2metal = matrix_identity_float4x4
 
     init(logger: mglLogger, metalView: MTKView, commandInterface: mglCommandInterface) {
         self.logger = logger
@@ -52,22 +57,17 @@ class mglRenderer2: NSObject {
         metalView.device = device
 
         // Initialize the low-level Metal command queue.
-        mglRenderer.commandQueue = device.makeCommandQueue()!
-
-        // Create a library for storing the shaders.
-        library = device.makeDefaultLibrary()
+        commandQueue = device.makeCommandQueue()!
 
         // Inititialize 8 stencil planes and depth testing.
-        // Confusingly, some parts of the Metal API treat these as one feature,
-        // while other parts treat depth and stenciling as separate features.
         metalView.depthStencilPixelFormat = .depth32Float_stencil8
         metalView.clearDepth = 1.0
         depthStencilState = mglDepthStencilState(logger: logger, device: device)
 
         // Initialize color rendering, default to onscreen.
-        // Default gray clear color applies to onscreen and/or offscreen texture.
+        // Default gray clear color applies to onscreen presentation and offscreen rendering to texture.
         metalView.clearColor = MTLClearColor(red: 0.5, green: 0.5, blue: 0.5, alpha: 1.0)
-        colorRenderingState = mglColorRenderingState(logger: logger, device: device, library: library, view: metalView)
+        colorRenderingState = mglColorRenderingState(logger: logger, device: device, view: metalView)
 
         // init the super class
         super.init()
@@ -99,9 +99,11 @@ extension mglRenderer2: MTKViewDelegate {
     }
 
     private func render(in view: MTKView) {
-        // Report to the client about any commands that were completed on the previous frame.
-        // TODO: this may change when we incorporate the counters API.
-        commandInterface.reportDoneLater()
+        // TODO: lastFlushCommand may change when we incorporate the counters API.
+        if (lastFlushCommand != nil) {
+            commandInterface.done(command: lastFlushCommand!)
+            lastFlushCommand = nil
+        }
 
         // Get the next command from the command interface.
         // If there isn't any just return and we don't need to do anything during this frame.
@@ -179,7 +181,7 @@ extension mglRenderer2: MTKViewDelegate {
         }
         depthStencilState.configureRenderPassDescriptor(renderPassDescriptor: renderPassDescriptor)
 
-        guard let commandBuffer = mglRenderer.commandQueue.makeCommandBuffer(),
+        guard let commandBuffer = commandQueue.makeCommandBuffer(),
               let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor) else {
             logger.error(component: "mglRenderer2", details: "Could not get command buffer and renderEncoder from the command queue, aborting render pass.")
             commandInterface.done(command: command, success: false)
@@ -220,11 +222,12 @@ extension mglRenderer2: MTKViewDelegate {
 
             // We have special case for "repeating" commands which draw across multiple frames.
             if command.framesRemaining > 0 {
-                // Re-add this command to process it again on the next frame.
-                commandInterface.doAgain(command: command)
+                // Mark this command as done at the start of the next frame.
+                lastFlushCommand = command
 
-                // Automatically flush this command and report its timestamp at the start of the next frame.
-                commandInterface.done(command: command, sendNow: false)
+                // And also re-add this command so it will be the one processed on the next frame.
+                commandInterface.addNext(command: command)
+
                 renderEncoder.endEncoding()
                 colorRenderingState.finishDrawing(commandBuffer: commandBuffer, drawable: drawable)
                 return
@@ -264,9 +267,9 @@ extension mglRenderer2: MTKViewDelegate {
         }
 
         // This command is the flush command that got us out of the frame tight loop.
-        // Report its processed time at the start of the next frame.
+        // Mark it as done at the start of the next frame.
         command.framesRemaining -= 1
-        commandInterface.done(command: command, sendNow: false)
+        lastFlushCommand = command
 
         //
         // 3. Present the frame representing all commands until "flush".

@@ -58,7 +58,6 @@
 		D0F6B97523B6D9E800B45409 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = D0F6B97323B6D9E800B45409 /* Main.storyboard */; };
 		D0F6B98123B6D9E800B45409 /* mglMetalTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0F6B98023B6D9E800B45409 /* mglMetalTests.swift */; };
 		D0F6B98C23B6D9E800B45409 /* mglMetalUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0F6B98B23B6D9E800B45409 /* mglMetalUITests.swift */; };
-		D0F6B99A23B6DAD600B45409 /* mglRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0F6B99923B6DAD600B45409 /* mglRenderer.swift */; };
 		D0F6B9A223B6ED4300B45409 /* mglPrimitives.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0F6B9A123B6ED4300B45409 /* mglPrimitives.swift */; };
 		D0F6B9A423B6EDE600B45409 /* mglShaders.metal in Sources */ = {isa = PBXBuildFile; fileRef = D0F6B9A323B6EDE600B45409 /* mglShaders.metal */; };
 /* End PBXBuildFile section */
@@ -141,7 +140,6 @@
 		D0F6B98723B6D9E800B45409 /* mglMetalUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = mglMetalUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		D0F6B98B23B6D9E800B45409 /* mglMetalUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglMetalUITests.swift; sourceTree = "<group>"; };
 		D0F6B98D23B6D9E800B45409 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		D0F6B99923B6DAD600B45409 /* mglRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglRenderer.swift; sourceTree = "<group>"; };
 		D0F6B99D23B6DB3A00B45409 /* mglMetal-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "mglMetal-Bridging-Header.h"; sourceTree = "<group>"; };
 		D0F6B9A123B6ED4300B45409 /* mglPrimitives.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglPrimitives.swift; sourceTree = "<group>"; };
 		D0F6B9A323B6EDE600B45409 /* mglShaders.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; lineEnding = 0; path = mglShaders.metal; sourceTree = "<group>"; };
@@ -249,7 +247,6 @@
 				4D5619102762A8F4009AB2E2 /* mglLocalClient.swift */,
 				4D56190A27628883009AB2E2 /* mglLocalServer.swift */,
 				D0F6B9A123B6ED4300B45409 /* mglPrimitives.swift */,
-				D0F6B99923B6DAD600B45409 /* mglRenderer.swift */,
 				4DCD584A2B36335500E08547 /* mglRenderer2.swift */,
 				4DA4671E2763CB8E00B65B9F /* mglServer.swift */,
 				D0F6B96F23B6D9E700B45409 /* mglViewController.swift */,
@@ -441,7 +438,6 @@
 				4D5F72A72B45D53500B4DA29 /* mglPingCommand.swift in Sources */,
 				4D5782D72B4753AC0050EF81 /* mglLineCommand.swift in Sources */,
 				D0F6B97023B6D9E700B45409 /* mglViewController.swift in Sources */,
-				D0F6B99A23B6DAD600B45409 /* mglRenderer.swift in Sources */,
 				4D5F72B92B45E4D500B4DA29 /* mglStartStencilCreationCommand.swift in Sources */,
 				4D5782CF2B474BA60050EF81 /* mglFrameGrabCommand.swift in Sources */,
 				4D5882B2285A89FD005DDF00 /* mglCommandModel.swift in Sources */,
