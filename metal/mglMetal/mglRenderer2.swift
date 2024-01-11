@@ -105,12 +105,13 @@ extension mglRenderer2: MTKViewDelegate {
             lastFlushCommand = nil
         }
 
-        // Get the next command from the command interface.
-        // If there isn't any just return and we don't need to do anything during this frame.
-        if !commandInterface.commandWaiting() {
-            return
-        }
-        guard var command = commandInterface.awaitNext(device: device) else {
+        // Let the command interface read a new command from the client, if any.
+        // This will return after reading in zero or one commands -- it won't block.
+        commandInterface.readAny(device: device)
+
+        // Get the next command to be processed from the command interface, if any.
+        // If we don't get one this time, that's fine, we'll check again on the next frame.
+        guard var command = commandInterface.next() else {
             return
         }
 
@@ -237,7 +238,10 @@ extension mglRenderer2: MTKViewDelegate {
             commandInterface.done(command: command)
 
             // Tight loop: wait for the next command here in the same frame.
-            if let nextCommand = commandInterface.awaitNext(device: device) {
+            // At this point we assume the client has sent another command, or intends to soon.
+            // We don't want to exit the frame early on a race condition, so we are willing to block and wait.
+            commandInterface.awaitNext(device: device)
+            if let nextCommand = commandInterface.next() {
                 command = nextCommand
 
                 // Let the next command get or set app state, even during the frame tight loop.

@@ -68,7 +68,7 @@ class mglMetalTests: XCTestCase {
         }
     }
 
-    func assertTimestamps(count: Int, greaterThan: Double = 0.0) {
+    func assertTimestampReplies(count: Int, greaterThan: Double = 0.0) {
         var timestamps = [Double](repeating: 0, count: count)
         let bytesRead = timestamps.withUnsafeMutableBufferPointer {
             client.readData(buffer: $0.baseAddress!, expectedByteCount: 8 * count)
@@ -80,26 +80,27 @@ class mglMetalTests: XCTestCase {
         }
     }
 
-    func testClearColorViaClientBytes() {
-        // Send a clear command with the color green.
-        let clear: [UInt16] = [mglSetClearColor.rawValue]
-        let clearBytesSent = clear.withUnsafeBufferPointer {
-            client.sendData(buffer: $0.baseAddress!, byteCount: 2)
-        }
-        XCTAssertEqual(clearBytesSent, 2)
+    private func sendCommandCode(code: mglCommandCode) {
+        var codeValue = code.rawValue
+        let bytesSent = client.sendData(buffer: &codeValue, byteCount: 2)
+        XCTAssertEqual(bytesSent, 2)
+    }
 
-        let green: [Float32] = [0.0, 1.0, 0.0]
-        let greenBytesSent = green.withUnsafeBufferPointer {
+    private func sendColor(r: Float32, g: Float32, b: Float32) {
+        let color: [Float32] = [r, g, b]
+        let bytesSent = color.withUnsafeBufferPointer {
             client.sendData(buffer: $0.baseAddress!, byteCount: 12)
         }
-        XCTAssertEqual(greenBytesSent, 12)
+        XCTAssertEqual(bytesSent, 12)
+    }
+
+    func testClearColorViaClientBytes() {
+        // Send a clear command with the color green.
+        sendCommandCode(code: mglSetClearColor)
+        sendColor(r: 0.0, g: 1.0, b: 0.0)
 
         // Send a flush command to present the new clear color.
-        let flush: [UInt16] = [mglFlush.rawValue]
-        let flushBytesSent = flush.withUnsafeBufferPointer {
-            client.sendData(buffer: $0.baseAddress!, byteCount: 2)
-        }
-        XCTAssertEqual(flushBytesSent, 2)
+        sendCommandCode(code: mglFlush)
 
         // Consume the clear and flush commands and present a frame for visual inspection.
         drawNextFrame(sleepTime: TimeInterval(1.0))
@@ -114,12 +115,12 @@ class mglMetalTests: XCTestCase {
         //  - ack for clear
         //  - processed for clear
         //  - ack for flush
-        assertTimestamps(count: 3)
+        assertTimestampReplies(count: 3)
         XCTAssertFalse(client.dataWaiting())
 
         // The last timestamp, processed for flush, waits until the start of the next frame.
         drawNextFrame()
-        assertTimestamps(count: 1)
+        assertTimestampReplies(count: 1)
         XCTAssertFalse(client.dataWaiting())
     }
 
@@ -183,5 +184,27 @@ class mglMetalTests: XCTestCase {
         // The the processed time for the flush command waits until the start of the next frame.
         drawNextFrame()
         assertSuccess(command: flush)
+    }
+
+    func testCommandBatchViaClientBytes() {
+        // The command interface should start out with no batch happening.
+        XCTAssertEqual(commandInterface.getBatchState(), BatchState.none)
+
+        // Put the command interface into batch building mode.
+        sendCommandCode(code: mglStartBatch)
+        drawNextFrame()
+        assertTimestampReplies(count: 1)
+        XCTAssertEqual(commandInterface.getBatchState(), BatchState.building)
+
+        // Send several pairs of set-clear-color and flush commands.
+        // Each one should get back an ack time and a placeholder "processed" time.
+        sendCommandCode(code: mglSetClearColor)
+        sendColor(r: 1.0, g: 0.0, b: 0.0)
+        drawNextFrame()
+        assertTimestampReplies(count: 1)
+        assertTimestampReplies(count: 1, greaterThan: -1.0)
+
+        // TODO: better way to assert placeholder timestamp.
+        // TODO: more to come.
     }
 }

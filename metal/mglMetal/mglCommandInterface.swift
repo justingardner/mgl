@@ -11,6 +11,49 @@
 import Foundation
 import MetalKit
 
+/*
+ The command interface can be in three states, with respect to command batches.
+ The command codes startBatch, processBatch, and endBatch can cycle the command
+ interface through these states, in order.
+ */
+enum BatchState {
+    /*
+     The default state, "none", is normal operation where commands are processed and
+     reported to the client one at a time.
+     In this state socket operations and command processing are interleaved.
+     */
+    case none
+
+    /*
+     A "startBatch" command code moves the command interface into the "building" state.
+     This state is focused on socket operations but not command processing.
+     The client may send multiple commands and these will be fully read as usual,
+     then added to the todo queue for later processing.
+     For each command received in this state, the command interface will immediately
+     report placeholder command results to the client, in order to prevent client
+     blocking on each command submitted.
+     In this state awaitNext() will never report commands as available.
+     */
+    case building
+
+    /*
+     A "processBatch" command code moves the command interface into the "processing" state.
+     This state is focused on command processing but not socket operations.
+     In this astate awaitNext() will again expose enqueued todo commands to the renderer,
+     allowing the commands to be processed, in the order they arrived, as fast as they can.
+     Completed commands will be added to the done queue, for later reporting to the client.
+     This keeps the socket quiet during batch processing.
+
+     An "endBatch" command code moves the command interface back to the "done" state.
+     As part of this transition it will report all enqueued done commands to the client
+     in the order received and processed.  This reporting will include standard
+     timestamps for each command, but not any command-specific query results.
+     This keeps the batch results uniform, which should simplify client code for
+     handling the batch response.
+     */
+    case processing
+}
+
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
 // This class combines an mglServer instance with
 // the header mglCommandTypes.h, which is also used
@@ -25,9 +68,11 @@ class mglCommandInterface {
     // This is used as a queue of commands that have been read fully but not yet processed / rendered.
     private var todo = [mglCommand]()
 
-    // This is used as a queue of commands that have been processed but results not yet sent to the client.
-    // TODO: this is not used much but will be used more when we implement command batches.
+    // This is used as a queue of commands that have been processed but results not yet reported to the client.
     private var done = [mglCommand]()
+
+    // What state is the command interface in with respect to batches: none, building, or processing?
+    private var batchState: BatchState = .none
 
     // Utility to get system nano time.
     let secs = mglSecs()
@@ -40,15 +85,28 @@ class mglCommandInterface {
         self.server = server
     }
 
-    // Add a command directly to the end of the unprocessed queue -- used during testing.
-    func addLast(command: mglCommand) {
-        command.results.ackTime = secs.get()
-        todo.append(command)
+    // What is the current batch state -- used from tests.
+    func getBatchState() -> BatchState {
+        return batchState
     }
 
-    // Add a command directly to the front of the unprocessed queue -- supports repeated commands.
-    func addNext(command: mglCommand) {
-        todo.insert(command, at: 0)
+    func startBatch() -> mglCommand? {
+        self.batchState = .building
+        return nil
+    }
+
+    func processBatch() -> mglCommand? {
+        self.batchState = .processing
+        return nil
+    }
+
+    func endBatch() -> mglCommand? {
+        for doneCommand in done {
+            reportResults(command: doneCommand, includeQueryResults: false)
+        }
+        done.removeAll()
+        self.batchState = .none
+        return nil
     }
 
     // Wait for the next command from the client, read it fully, and add to the todo queue for processing.
@@ -61,14 +119,18 @@ class mglCommandInterface {
         }
 
         // Acknowledge command received.
-        // Client should then send over any command-specific parameters.
         let ackTime = secs.get()
         _ = writeDouble(data: ackTime)
 
-        // Instantiate a new command by reading it fully from the socket.
-        // This will block until all command-specific parameters arrive.
         var command: mglCommand? = nil
         switch (commandCode) {
+            // Transition batch state but don't initialize a new command -- these return a nil command.
+        case mglStartBatch: return startBatch()
+        case mglProcessBatch: return processBatch()
+        case mglEndBatch: return endBatch()
+
+            // Instantiate a new command by reading it fully from the socket.
+            // This will block until all command-specific parameters arrive.
         case mglPing: command = mglPingCommand()
         case mglDrainSystemEvents: command = mglDrainSystemEventsCommand()
         case mglFullscreen: command = mglFullscreenCommand()
@@ -116,35 +178,51 @@ class mglCommandInterface {
         // Note when this command was created.
         command?.results.ackTime = ackTime
 
+        // When building up a batch, unblock the client by sending immediate placeholder results.
+        if batchState == .building && command != nil {
+            reportResults(command: command!)
+        }
+
         // We got a whole command, ready to be processed.
         return command
     }
 
-    // Collaborate with mglRenderer: is there a command available for processing.
-    // This will not block either way.
-    func commandWaiting() -> Bool {
-        // Look for commands already in memory, first.
-        if !todo.isEmpty {
-            return true
+    // Read zero or one commands from the client into the todo queue.
+    func readAny(device: MTLDevice) {
+        // Give the client a chance to connect.
+        let dataWaiting = server.acceptClientConnection() && server.dataWaiting()
+        if !dataWaiting {
+            return
         }
 
-        // Give the client a chance to connect, if necessary.
-        let clientIsConnected = server.acceptClientConnection()
-        if !clientIsConnected {
-            return false
+        let command = awaitCommand(device: device)
+        if command != nil {
+            todo.append(command!)
         }
-
-        // Check if the client has sent any command bytes yet.
-        return server.dataWaiting()
     }
 
-    // Collaborate with mglRenderer: here's what to process next.
-    // This will block until a command is available.
-    func awaitNext(device: MTLDevice) -> mglCommand? {
+    // Make sure there's a command in the todo queue, blocking and waiting if necessary.
+    func awaitNext(device: MTLDevice) {
+        if todo.count > 0 {
+            return
+        }
+
+        let command = awaitCommand(device: device)
+        if command != nil {
+            todo.append(command!)
+        }
+    }
+
+    // Get the next command out of the todo queue.
+    func next() -> mglCommand? {
+        if batchState == BatchState.building {
+            return nil
+        }
+
         if todo.count > 0 {
             return todo.removeFirst()
         }
-        return awaitCommand(device: device)
+        return nil
     }
 
     // Collaborate with mglRenderer: this was fully processed.
@@ -152,15 +230,33 @@ class mglCommandInterface {
         command.results.success = success
         command.results.processedTime = secs.get()
 
-        // TODO: the done queue will be come important when we implement command batches.
-        done.append(command)
-        reportResults(command: command)
+        if batchState == .processing {
+            // When processing a batch, hold done command results for later.
+            done.append(command)
+        } else {
+            // Otherwise, report results immediately.
+            reportResults(command: command)
+        }
+    }
+
+    // Add a command directly to the end of the unprocessed queue -- used during testing.
+    func addLast(command: mglCommand) {
+        command.results.ackTime = secs.get()
+        todo.append(command)
+    }
+
+    // Add a command directly to the front of the unprocessed queue -- supports repeated commands.
+    func addNext(command: mglCommand) {
+        todo.insert(command, at: 0)
     }
 
     // Let a command report any query results that it stashed, then report the usual timestamps to the client.
-    private func reportResults(command: mglCommand) {
-        _ = command.writeQueryResults(logger: logger, commandInterface: self)
-        if command.results.success {
+    private func reportResults(command: mglCommand, includeQueryResults: Bool = true) {
+        if includeQueryResults {
+            _ = command.writeQueryResults(logger: logger, commandInterface: self)
+        }
+
+        if command.results.success || batchState == BatchState.building {
             _ = writeDouble(data: command.results.processedTime)
         } else {
             logger.error(component: "mglCommandInterface", details: "Command failed: \(String(describing: command))")
