@@ -30,6 +30,10 @@ ackTime = mglSocketRead(socketInfo, 'double');
 responseIncoming = mglSocketRead(socketInfo, 'double');
 processedTime = zeros([1, numel(socketInfo)]);
 displayNumber = zeros([1, numel(socketInfo)]);
+x = zeros([1, numel(socketInfo)]);
+y = zeros([1, numel(socketInfo)]);
+width = zeros([1, numel(socketInfo)]);
+height = zeros([1, numel(socketInfo)]);
 rect = zeros(numel(socketInfo), 4);
 for ii = 1:numel(socketInfo)
     if (responseIncoming(ii) < 0)

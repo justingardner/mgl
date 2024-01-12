@@ -25,11 +25,23 @@ end
 
 %% How to:
 
-nFrames = 31;
-mglMetalRepeatingFlush(nFrames);
+% Enqueue several flush commands without processing them yet.
+nFrames = 30;
+mglMetalStartBatch();
+for ii = 1:nFrames
+    mglFlush();
+end
 
-% mglMetalRepeatingFlush should flush all on its own.
-disp('Flush for 31 frames should leave the screen blank');
+% Start processing the commands as fast as possible.
+mglMetalProcessBatch();
+
+disp('Mgl Metal is repeating flush commands asynchronously.');
+
+% Wait for the commands to finish and gather the timing results.
+results = mglMetalFinishBatch();
+assert(numel(results) == nFrames, 'Number of batched command results must equal number of batched commands.');
+
+disp('Repeated flush commands should leave the screen blank.');
 
 % When it's done, make sure we have normal control again.
 % ie, calling flush shouldn't cause an error, get stuck, etc.

@@ -106,7 +106,7 @@ extension mglRenderer2: MTKViewDelegate {
         }
 
         // Let the command interface read a new command from the client, if any.
-        // This will return after reading in zero or one commands -- it won't block.
+        // This will return after reading in zero or more available commands -- it won't block.
         commandInterface.readAny(device: device)
 
         // Get the next command to be processed from the command interface, if any.

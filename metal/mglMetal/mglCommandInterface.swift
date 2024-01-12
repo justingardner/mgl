@@ -13,7 +13,7 @@ import MetalKit
 
 /*
  The command interface can be in three states, with respect to command batches.
- The command codes startBatch, processBatch, and endBatch can cycle the command
+ The command codes startBatch, processBatch, and finishBatch can cycle the command
  interface through these states, in order.
  */
 enum BatchState {
@@ -44,7 +44,7 @@ enum BatchState {
      Completed commands will be added to the done queue, for later reporting to the client.
      This keeps the socket quiet during batch processing.
 
-     An "endBatch" command code moves the command interface back to the "done" state.
+     A "finishBatch" command code moves the command interface back to the "done" state.
      As part of this transition it will report all enqueued done commands to the client
      in the order received and processed.  This reporting will include standard
      timestamps for each command, but not any command-specific query results.
@@ -100,7 +100,7 @@ class mglCommandInterface {
         return nil
     }
 
-    func endBatch() -> mglCommand? {
+    func finishBatch() -> mglCommand? {
         for doneCommand in done {
             reportResults(command: doneCommand, includeQueryResults: false)
         }
@@ -127,7 +127,7 @@ class mglCommandInterface {
             // Transition batch state but don't initialize a new command -- these return a nil command.
         case mglStartBatch: return startBatch()
         case mglProcessBatch: return processBatch()
-        case mglEndBatch: return endBatch()
+        case mglFinishBatch: return finishBatch()
 
             // Instantiate a new command by reading it fully from the socket.
             // This will block until all command-specific parameters arrive.
@@ -187,17 +187,20 @@ class mglCommandInterface {
         return command
     }
 
-    // Read zero or one commands from the client into the todo queue.
+    // Read zero or more available commands from the client into the todo queue.
+    // Don't block waiting for commands.
     func readAny(device: MTLDevice) {
         // Give the client a chance to connect.
-        let dataWaiting = server.acceptClientConnection() && server.dataWaiting()
-        if !dataWaiting {
+        if !server.acceptClientConnection() {
             return
         }
 
-        let command = awaitCommand(device: device)
-        if command != nil {
-            todo.append(command!)
+        // Keep reading commands as long as data is available.
+        while server.dataWaiting() {
+            let command = awaitCommand(device: device)
+            if command != nil {
+                todo.append(command!)
+            }
         }
     }
 

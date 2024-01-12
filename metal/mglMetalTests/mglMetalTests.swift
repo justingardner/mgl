@@ -281,7 +281,7 @@ class mglMetalTests: XCTestCase {
         XCTAssertFalse(client.dataWaiting())
 
         // Put the command interface back into its normal "none" state.
-        sendCommandCode(code: mglEndBatch)
+        sendCommandCode(code: mglFinishBatch)
         drawNextFrame()
         assertTimestampReplies(count: 1)
         XCTAssertEqual(commandInterface.getBatchState(), BatchState.none)
