@@ -41,9 +41,9 @@
 	<key>DTSDKName</key>
 	<string>macosx14.2</string>
 	<key>DTXcode</key>
-	<string>1510</string>
+	<string>1520</string>
 	<key>DTXcodeBuild</key>
-	<string>15C65</string>
+	<string>15C500b</string>
 	<key>LSMinimumSystemVersion</key>
 	<string>10.15</string>
 	<key>NSHumanReadableCopyright</key>
