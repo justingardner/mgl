@@ -115,6 +115,8 @@ extension mglRenderer2: MTKViewDelegate {
             return
         }
 
+        logger.info(component: "mglRenderer2", details: "starting with \(String(describing: command))")
+
         // Let the command do non-drawing work, like getting and setting the state of the app.
         let nondrawingSuccess = command.doNondrawingWork(
             logger: logger,
@@ -243,6 +245,8 @@ extension mglRenderer2: MTKViewDelegate {
             commandInterface.awaitNext(device: device)
             if let nextCommand = commandInterface.next() {
                 command = nextCommand
+
+                logger.info(component: "mglRenderer2", details: "looping with \(String(describing: nextCommand))")
 
                 // Let the next command get or set app state, even during the frame tight loop.
                 let nextNondrawingSuccess = command.doNondrawingWork(

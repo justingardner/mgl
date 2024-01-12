@@ -233,6 +233,13 @@ class mglCommandInterface {
         if batchState == .processing {
             // When processing a batch, hold done command results for later.
             done.append(command)
+
+            // At the end of the batch, send the client a heads up.
+            // This gives the client an event to sync on while waiting for batch completion.
+            // This also lets the client know how many command results to expect.
+            if todo.isEmpty {
+                _ = writeUInt32(data: UInt32(done.count))
+            }
         } else {
             // Otherwise, report results immediately.
             reportResults(command: command)

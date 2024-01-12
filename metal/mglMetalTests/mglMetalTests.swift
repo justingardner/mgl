@@ -32,6 +32,7 @@ class mglMetalTests: XCTestCase {
         // Tests will frames one at a time instead of using a scheduled frame rate.
         view = viewController.view as? MTKView
         view.isPaused = true
+        view.enableSetNeedsDisplay = false
 
         // Create a client-server pair we can use to test-drive the app.
         server = mglLocalServer(logger: viewController.logger, pathToBind: testAddress)
@@ -61,14 +62,14 @@ class mglMetalTests: XCTestCase {
         server.disconnect()
     }
 
-    private func drawNextFrame(sleepTime: TimeInterval = TimeInterval.zero) {
+    private func drawNextFrame(sleepSecs: TimeInterval = TimeInterval.zero) {
         view.draw()
-        if (sleepTime > TimeInterval.zero) {
-            Thread.sleep(forTimeInterval: sleepTime)
+        if (sleepSecs > TimeInterval.zero) {
+            Thread.sleep(forTimeInterval: sleepSecs)
         }
     }
 
-    func assertTimestampReplies(count: Int, greaterThan: Double = 0.0) {
+    func assertTimestampReplies(count: Int, atLeast: Double = 1.0) {
         var timestamps = [Double](repeating: 0, count: count)
         let bytesRead = timestamps.withUnsafeMutableBufferPointer {
             client.readData(buffer: $0.baseAddress!, expectedByteCount: 8 * count)
@@ -76,8 +77,15 @@ class mglMetalTests: XCTestCase {
         XCTAssertEqual(bytesRead, 8 * count)
 
         for timestamp in timestamps {
-            XCTAssertGreaterThan(timestamp, greaterThan)
+            XCTAssertGreaterThanOrEqual(timestamp, atLeast)
         }
+    }
+
+    func assertUInt32Reply(expected: UInt32) {
+        var value = UInt32(0)
+        let bytesRead = client.readData(buffer: &value, expectedByteCount: 4)
+        XCTAssertEqual(bytesRead, 4)
+        XCTAssertEqual(value, expected)
     }
 
     private func sendCommandCode(code: mglCommandCode) {
@@ -94,6 +102,13 @@ class mglMetalTests: XCTestCase {
         XCTAssertEqual(bytesSent, 12)
     }
 
+    func assertViewClearColor(r: Double, g: Double, b: Double) {
+        XCTAssertEqual(view.clearColor.red, r)
+        XCTAssertEqual(view.clearColor.green, g)
+        XCTAssertEqual(view.clearColor.blue, b)
+        XCTAssertEqual(view.clearColor.alpha, 1.0)
+    }
+
     func testClearColorViaClientBytes() {
         // Send a clear command with the color green.
         sendCommandCode(code: mglSetClearColor)
@@ -103,13 +118,10 @@ class mglMetalTests: XCTestCase {
         sendCommandCode(code: mglFlush)
 
         // Consume the clear and flush commands and present a frame for visual inspection.
-        drawNextFrame(sleepTime: TimeInterval(1.0))
+        drawNextFrame(sleepSecs: 0.5)
 
         // Processing the clear command should also set the view clear color.
-        XCTAssertEqual(view.clearColor.red, 0.0)
-        XCTAssertEqual(view.clearColor.green, 1.0)
-        XCTAssertEqual(view.clearColor.blue, 0.0)
-        XCTAssertEqual(view.clearColor.alpha, 1.0)
+        assertViewClearColor(r: 0.0, g: 1.0, b: 0.0)
 
         // The server should send 3 timestamps right away:
         //  - ack for clear
@@ -172,10 +184,7 @@ class mglMetalTests: XCTestCase {
         // Processing the clear command should change the view clear color.
         drawNextFrame()
         assertSuccess(command: clear)
-        XCTAssertEqual(view.clearColor.red, 0.0)
-        XCTAssertEqual(view.clearColor.green, 0.0)
-        XCTAssertEqual(view.clearColor.blue, 1.0)
-        XCTAssertEqual(view.clearColor.alpha, 1.0)
+        assertViewClearColor(r: 0.0, g: 0.0, b: 1.0)
 
         // Processing the flush command should draw the clear color to all pixels.
         let expectedPixel = RGBAFloat32Pixel(r: 0.0, g: 0.0, b: 1.0, a: 1.0)
@@ -187,10 +196,10 @@ class mglMetalTests: XCTestCase {
     }
 
     func testCommandBatchViaClientBytes() {
-        // The command interface should start out with no batch happening.
+        // The command interface should start out in its "none" state, with no batch happening.
         XCTAssertEqual(commandInterface.getBatchState(), BatchState.none)
 
-        // Put the command interface into batch building mode.
+        // Put the command interface into batch "building" state.
         sendCommandCode(code: mglStartBatch)
         drawNextFrame()
         assertTimestampReplies(count: 1)
@@ -198,13 +207,87 @@ class mglMetalTests: XCTestCase {
 
         // Send several pairs of set-clear-color and flush commands.
         // Each one should get back an ack time and a placeholder "processed" time.
+        // Red
         sendCommandCode(code: mglSetClearColor)
         sendColor(r: 1.0, g: 0.0, b: 0.0)
         drawNextFrame()
         assertTimestampReplies(count: 1)
-        assertTimestampReplies(count: 1, greaterThan: -1.0)
+        assertTimestampReplies(count: 1, atLeast: 0.0)
 
-        // TODO: better way to assert placeholder timestamp.
-        // TODO: more to come.
+        sendCommandCode(code: mglFlush)
+        drawNextFrame()
+        assertTimestampReplies(count: 1)
+        assertTimestampReplies(count: 1, atLeast: 0.0)
+
+        // Green
+        sendCommandCode(code: mglSetClearColor)
+        sendColor(r: 0.0, g: 1.0, b: 0.0)
+        drawNextFrame()
+        assertTimestampReplies(count: 1)
+        assertTimestampReplies(count: 1, atLeast: 0.0)
+
+        sendCommandCode(code: mglFlush)
+        drawNextFrame()
+        assertTimestampReplies(count: 1)
+        assertTimestampReplies(count: 1, atLeast: 0.0)
+
+        // Blue
+        sendCommandCode(code: mglSetClearColor)
+        sendColor(r: 0.0, g: 0.0, b: 1.0)
+        drawNextFrame()
+        assertTimestampReplies(count: 1)
+        assertTimestampReplies(count: 1, atLeast: 0.0)
+
+        sendCommandCode(code: mglFlush)
+        drawNextFrame()
+        assertTimestampReplies(count: 1)
+        assertTimestampReplies(count: 1, atLeast: 0.0)
+
+        // These commands should all be enqueued as todo, and not yet processed or reported.
+        XCTAssertFalse(client.dataWaiting())
+
+        // Since the commands aren't processed yet, the view's clear color should be default gray.
+        assertViewClearColor(r: 0.5, g: 0.5, b: 0.5)
+
+        // Put the command interface into batch "processing" state.
+        sendCommandCode(code: mglProcessBatch)
+        drawNextFrame(sleepSecs: 0.5)
+        assertTimestampReplies(count: 1)
+        XCTAssertEqual(commandInterface.getBatchState(), BatchState.processing)
+
+        // We should now see the clear colors in order: red, green, blue.
+        // The socket should remain quiet during processing.
+        // Red
+        assertViewClearColor(r: 1.0, g: 0.0, b: 0.0)
+        XCTAssertFalse(client.dataWaiting())
+
+        // Green
+        drawNextFrame(sleepSecs: 0.5)
+        assertViewClearColor(r: 0.0, g: 1.0, b: 0.0)
+        XCTAssertFalse(client.dataWaiting())
+
+        // Blue
+        drawNextFrame(sleepSecs: 0.5)
+        assertViewClearColor(r: 0.0, g: 0.0, b: 1.0)
+        XCTAssertFalse(client.dataWaiting())
+
+        // Wait for the signal that tells us all commands are processed.
+        // This also tells us how many responses are pending, in this case 6.
+        drawNextFrame()
+        XCTAssertTrue(client.dataWaiting())
+        assertUInt32Reply(expected: 6)
+
+        // The command responses should only be pending, not sent yet.
+        XCTAssertFalse(client.dataWaiting())
+
+        // Put the command interface back into its normal "none" state.
+        sendCommandCode(code: mglEndBatch)
+        drawNextFrame()
+        assertTimestampReplies(count: 1)
+        XCTAssertEqual(commandInterface.getBatchState(), BatchState.none)
+
+        // Expect 6 timestamp replies, one for each command.
+        assertTimestampReplies(count: 6)
+        XCTAssertFalse(client.dataWaiting())
     }
 }
