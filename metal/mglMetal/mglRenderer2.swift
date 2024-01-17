@@ -13,9 +13,9 @@ import MetalKit
  This mglRenderer2 processes commands and handles details of setting up Metal rendering passes for each frame.
  This takes unprocessed commands from our mglCommandInterface, but doesn't know about how the commands were created.
  This processes each command in a few steps, but doesn't worry about the details of each command:
-  - doNondrawingWork() is a chance for each command to modify the state of this app and/or gather data about the system.
-  - draw() is a chance for each command to draw itself as part of a rendering pass / frame.
-  - filling in success status and timing data around each command
+ - doNondrawingWork() is a chance for each command to modify the state of this app and/or gather data about the system.
+ - draw() is a chance for each command to draw itself as part of a rendering pass / frame.
+ - filling in success status and timing data around each command
  This reports completed commands back to our mglCommandInterface, but doesn't know what happens from there.
  */
 class mglRenderer2: NSObject {
@@ -25,11 +25,21 @@ class mglRenderer2: NSObject {
     // GPU Device!
     private let device: MTLDevice
 
+    // GPU and CPU buffers where we can gather and read out detailed redering pipeline timestamps (if GPU supports).
+    // We configure render passes to store timestamps in the GPU buffer, then explicitly blit the results to the CPU buffer.
+    // There's supposed to be an easier API with one shared GPU buffer, but it seems not to work in general -- even on an M1 iMac!
+    // https://developer.apple.com/documentation/metal/gpu_counters_and_counter_sample_buffers/converting_a_gpu_s_counter_data_into_a_readable_format#4098186
+    private let gpuTimestampBuffer: MTLCounterSampleBuffer?
+    private let cpuTimestampBuffer: MTLBuffer?
+
+    // Remember the presentation time of the most recent frame / drawable (if OS supports)
+    private var lastDrawablePresentedTime: Double = 0.0
+
     // The Metal commandQueue tells the device what to do.
     private let commandQueue: MTLCommandQueue!
 
     // Our command interface communicates with the client process like Matlab.
-    private let commandInterface : mglCommandInterface
+    private let commandInterface: mglCommandInterface
 
     // This holds a flush command from the previous frame.
     // It's "processed time" will be filled in at the start of the next frame.
@@ -56,6 +66,33 @@ class mglRenderer2: NSObject {
         self.device = device
         metalView.device = device
 
+        // Try to set up buffers to holder detailed pipeline stage timestamps.
+        // The timestamps we want are "stage boundary" timestamps before and after the vertex and fragment pipeline stages.
+        // Not all OS versions and GPUs support these timestamps.
+        let supportsStageBoundaryTimestamps = gpuSupportsStageBoundaryTimestamps(logger: logger, device: device)
+
+        // We also need to check whether the GPU is capable of repording timestamps to a buffer at all.
+        let timestampCounterSet = getGpuTimestampCounter(logger: logger, device: device)
+
+        if supportsStageBoundaryTimestamps && timestampCounterSet != nil {
+            // OK we can try to set up buffers for detailed pipeline timestamps.
+            gpuTimestampBuffer = makeGpuTimestampBuffer(logger: logger, device: device, counterSet: timestampCounterSet!)
+            cpuTimestampBuffer = makeCpuTimestampBuffer(logger: logger, device: device)
+            if gpuTimestampBuffer != nil && cpuTimestampBuffer != nil {
+                logger.info(component: "mglRenderer2",
+                            details: "OK -- Created GPU buffer to collect detailed pipeline stage timestamps.")
+            } else {
+                logger.info(component: "mglRenderer2",
+                            details: "Could not create GPU and CPU timestamp buffers -- frame times will be best-effort.")
+            }
+        } else {
+            // We'll have to fall back on best-effort CPU timestamps.
+            gpuTimestampBuffer = nil
+            cpuTimestampBuffer = nil
+            logger.info(component: "mglRenderer2",
+                        details: "GPU device does not support detailed pipeline stage timestmps, frame times will be best-effort.")
+        }
+
         // Initialize the low-level Metal command queue.
         commandQueue = device.makeCommandQueue()!
 
@@ -79,6 +116,94 @@ class mglRenderer2: NSObject {
     }
 }
 
+/*
+ Check whether the GPU device supports timestamp stampling at pipeline stage boundaries.
+ I.e., can we gather start and end of vertex and fragment pipeline stages?
+ This only seems to be available on macOS 11.0 and later (Big Sur 2020).
+ */
+private func gpuSupportsStageBoundaryTimestamps(logger: mglLogger, device: MTLDevice) -> Bool {
+    if #available(macOS 11.0, *) {
+        // Report all the supported boundaries.
+        let allBoundaries: [MTLCounterSamplingPoint: String] = [.atStageBoundary: "atStageBoundary",
+                                                                .atDrawBoundary: "atDrawBoundary",
+                                                                .atBlitBoundary: "atBlitBoundary",
+                                                                .atDispatchBoundary: "atDispatchBoundary",
+                                                                .atTileDispatchBoundary: "atTileDispatchBoundary"]
+        for (boundary, name) in allBoundaries {
+            let boundarySupported = device.supportsCounterSampling(boundary)
+            if boundarySupported {
+                logger.info(component: "mglRenderer2",
+                            details: "GPU device \"\(device.name)\" supports sampling at boundary \(name).")
+            } else {
+                logger.info(component: "mglRenderer2",
+                            details: "GPU device \"\(device.name)\" does not support sampling at boundary \(name).")
+            }
+        }
+
+        // Check the one we're specifically interested in.
+        return device.supportsCounterSampling(.atStageBoundary)
+    } else {
+        logger.info(component: "mglRenderer2",
+                    details: "GPU processing stage timestamps are only available on macOS 11.0 or later.")
+        return false
+    }
+}
+
+/*
+ Check which counter sets and counters the GPU device supports.
+ If the timestamp counter is available, return its counter set so we can use it to gather detailed frame timing.
+ */
+private func getGpuTimestampCounter(logger: mglLogger, device: MTLDevice) -> MTLCounterSet? {
+    guard let counterSets = device.counterSets else {
+        logger.info(component: "mglRenderer2",
+                    details: "GPU device \"\(device.name)\" doesn't support any counter sets.")
+        return nil
+    }
+
+    var timestampCounterSet: MTLCounterSet? = nil
+    for counterSet in counterSets {
+        for counter in counterSet.counters {
+            logger.info(component: "mglRenderer2",
+                        details: "GPU device \"\(device.name)\" supports counter set \"\(counterSet.name)\" with counter \"\(counter.name)\".")
+
+            if counterSet.name == MTLCommonCounterSet.timestamp.rawValue && counter.name == MTLCommonCounter.timestamp.rawValue {
+                timestampCounterSet = counterSet
+            }
+        }
+    }
+    return timestampCounterSet
+}
+
+/*
+ Create a new GPU buffer where we can store detailed pipline stage timestamps.
+ The buffer will be "private" for GPU access only.
+ The buffer will store 4 timestamps: vertex stage start and end, plus fragment stage start and end.
+ */
+private func makeGpuTimestampBuffer(logger: mglLogger, device: MTLDevice, counterSet: MTLCounterSet) -> MTLCounterSampleBuffer? {
+    let descriptor = MTLCounterSampleBufferDescriptor()
+    descriptor.counterSet = counterSet
+    descriptor.storageMode = .private
+    descriptor.sampleCount = 4
+    guard let buffer = try? device.makeCounterSampleBuffer(descriptor: descriptor) else {
+        logger.error(component: "mglRenderer2", details: "Device failed to create a GPU counter sample buffer.")
+        return nil
+    }
+    return buffer
+}
+
+/*
+ Create a new CPU buffer where we can read out detailed pipline stage timestamps.
+ The buffer will be "shared" for GPU as well as CPU access.
+ The buffer will store 4 timestamps: vertex stage start and end, plus fragment stage start and end.
+ */
+private func makeCpuTimestampBuffer(logger: mglLogger, device: MTLDevice) -> MTLBuffer? {
+    let counterBufferLength = MemoryLayout<MTLCounterResultTimestamp>.size * 4
+    guard let buffer = device.makeBuffer(length: counterBufferLength, options: .storageModeShared) else {
+        logger.error(component: "mglRenderer2", details: "Device failed to create a CPU counter sample buffer.")
+        return nil
+    }
+    return buffer
+}
 
 extension mglRenderer2: MTKViewDelegate {
     func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {
@@ -101,6 +226,7 @@ extension mglRenderer2: MTKViewDelegate {
     private func render(in view: MTKView) {
         // TODO: lastFlushCommand may change when we incorporate the counters API.
         if (lastFlushCommand != nil) {
+            lastFlushCommand!.results.presented = lastDrawablePresentedTime
             commandInterface.done(command: lastFlushCommand!)
             lastFlushCommand = nil
         }
@@ -114,8 +240,6 @@ extension mglRenderer2: MTKViewDelegate {
         guard var command = commandInterface.next() else {
             return
         }
-
-        logger.info(component: "mglRenderer2", details: "starting with \(String(describing: command))")
 
         // Let the command do non-drawing work, like getting and setting the state of the app.
         let nondrawingSuccess = command.doNondrawingWork(
@@ -173,6 +297,13 @@ extension mglRenderer2: MTKViewDelegate {
             return
         }
 
+        // Ask the drawable itself when it was presented, if OS supports.
+        if #available(macOS 10.15.4, *) {
+            view.currentDrawable?.addPresentedHandler({ drawable in
+                self.lastDrawablePresentedTime = drawable.presentedTime
+            })
+        }
+
         // This call to getRenderPassDescriptor(view: view) internally calls view.currentRenderPassDescriptor.
         // The call to view.currentRenderPassDescriptor impicitly accessed the view's currentDrawable, as mentioned above.
         // It's possible to swap the order of these calls.
@@ -183,6 +314,9 @@ extension mglRenderer2: MTKViewDelegate {
             return
         }
         depthStencilState.configureRenderPassDescriptor(renderPassDescriptor: renderPassDescriptor)
+
+        // If supported by OS and GPU, set up to store detailed pipeline stage timestamps during the render pass.
+        setUpRenderPassGpuTimestamps(renderPassDescriptor: renderPassDescriptor)
 
         guard let commandBuffer = commandQueue.makeCommandBuffer(),
               let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor) else {
@@ -232,6 +366,10 @@ extension mglRenderer2: MTKViewDelegate {
                 commandInterface.addNext(command: command)
 
                 renderEncoder.endEncoding()
+
+                // If supported by OS and GPU, resolve pipeline stage timestamps gethered during the render pass.
+                resolveRenderPassGpuTimestamps(commandBuffer: commandBuffer, command: command)
+
                 colorRenderingState.finishDrawing(commandBuffer: commandBuffer, drawable: drawable)
                 return
             }
@@ -245,8 +383,6 @@ extension mglRenderer2: MTKViewDelegate {
             commandInterface.awaitNext(device: device)
             if let nextCommand = commandInterface.next() {
                 command = nextCommand
-
-                logger.info(component: "mglRenderer2", details: "looping with \(String(describing: nextCommand))")
 
                 // Let the next command get or set app state, even during the frame tight loop.
                 let nextNondrawingSuccess = command.doNondrawingWork(
@@ -284,6 +420,69 @@ extension mglRenderer2: MTKViewDelegate {
         //
 
         renderEncoder.endEncoding()
+
+        // If supported by OS and GPU, resolve pipeline stage timestamps gethered during the render pass.
+        resolveRenderPassGpuTimestamps(commandBuffer: commandBuffer, command: command)
+
         colorRenderingState.finishDrawing(commandBuffer: commandBuffer, drawable: drawable)
+    }
+
+    /*
+     Set up the current render pass to record detailed pipeline stage timestamps, if supported by OS and GPU.
+     This only seems to be available on macOS 11.0 and later (Big Sur 2020).
+     */
+    private func setUpRenderPassGpuTimestamps(renderPassDescriptor: MTLRenderPassDescriptor) {
+        guard let gpuTimestampBuffer = self.gpuTimestampBuffer else {
+            return
+        }
+
+        if #available(macOS 11.0, *) {
+            guard let sampleAttachment = renderPassDescriptor.sampleBufferAttachments[0] else {
+                return
+            }
+            sampleAttachment.sampleBuffer = gpuTimestampBuffer
+            sampleAttachment.startOfVertexSampleIndex = 0
+            sampleAttachment.endOfVertexSampleIndex = 1
+            sampleAttachment.startOfFragmentSampleIndex = 2
+            sampleAttachment.endOfFragmentSampleIndex = 3
+        }
+    }
+
+    /*
+     Resolve detailed pipeline state timestamps from the GPU buffer to the CPU buffer.
+     There's supposed to be an easier API with one shared GPU buffer, but it seems not to work in general -- even on an M1 iMac!
+     https://developer.apple.com/documentation/metal/gpu_counters_and_counter_sample_buffers/converting_a_gpu_s_counter_data_into_a_readable_format#4098186
+     This only seems to be available on macOS 11.0 and later (Big Sur 2020).
+     */
+    private func resolveRenderPassGpuTimestamps(commandBuffer: MTLCommandBuffer, command: mglCommand) {
+        guard let gpuTimestampBuffer = self.gpuTimestampBuffer else {
+            return
+        }
+
+        guard let cpuTimestampBuffer = self.cpuTimestampBuffer else {
+            return
+        }
+
+        if #available(macOS 11.0, *) {
+            guard let bltCommandEncoder = commandBuffer.makeBlitCommandEncoder() else {
+                return
+            }
+
+            bltCommandEncoder.resolveCounters(gpuTimestampBuffer, range: 0..<4, destinationBuffer: cpuTimestampBuffer, destinationOffset: 0)
+            bltCommandEncoder.endEncoding()
+
+            commandBuffer.addCompletedHandler { [cpuTimestampBuffer, command] commandBuffer in
+                let elementSize = MemoryLayout<MTLCounterResultTimestamp>.size
+                let byteCount = elementSize * 4
+                let timestampSamples: [MTLCounterResultTimestamp] = Array(unsafeUninitializedCapacity: 4) { buffer, initializedCount in
+                    memcpy(buffer.baseAddress, cpuTimestampBuffer.contents(), byteCount)
+                    initializedCount = byteCount / elementSize
+                }
+                command.results.vertexStart = Double(timestampSamples[0].timestamp)
+                command.results.vertexEnd = Double(timestampSamples[1].timestamp)
+                command.results.fragmentStart = Double(timestampSamples[2].timestamp)
+                command.results.fragmentEnd = Double(timestampSamples[3].timestamp)
+            }
+        }
     }
 }

@@ -75,4 +75,9 @@ struct mglCommandResults {
     var success: Bool = false
     var ackTime: Double = 0.0
     var processedTime: Double = 0.0
+    var vertexStart: Double = 0.0
+    var vertexEnd: Double = 0.0
+    var fragmentStart: Double = 0.0
+    var fragmentEnd: Double = 0.0
+    var presented: Double = 0.0
 }

@@ -102,6 +102,20 @@ class mglMetalTests: XCTestCase {
         XCTAssertEqual(bytesSent, 12)
     }
 
+    private func sendUInt32(value: UInt32) {
+        var value2 = value
+        let bytesSent = client.sendData(buffer: &value2, byteCount: 4)
+        XCTAssertEqual(bytesSent, 4)
+    }
+
+    private func sendXYZRGBVertex(x: Float32, y: Float32, z: Float32, r: Float32, g: Float32, b: Float32) {
+        let vertex: [Float32] = [x, y, z, r, g, b]
+        let bytesSent = vertex.withUnsafeBufferPointer {
+            client.sendData(buffer: $0.baseAddress!, byteCount: 24)
+        }
+        XCTAssertEqual(bytesSent, 24)
+    }
+
     func assertViewClearColor(r: Double, g: Double, b: Double) {
         XCTAssertEqual(view.clearColor.red, r)
         XCTAssertEqual(view.clearColor.green, g)
@@ -288,6 +302,41 @@ class mglMetalTests: XCTestCase {
 
         // Expect 6 timestamp replies, one for each command.
         assertTimestampReplies(count: 6)
+        XCTAssertFalse(client.dataWaiting())
+    }
+
+    func testPolygonViaClientBytes() {
+        // Send a clear command with the color gray.
+        sendCommandCode(code: mglSetClearColor)
+        sendColor(r: 0.25, g: 0.25, b: 0.25)
+
+        // Send some rainbow polygon vertex data as [xyz rgb].
+        sendCommandCode(code: mglPolygon)
+        sendUInt32(value: 5)
+        sendXYZRGBVertex(x: -0.3, y: -0.4, z: 0.0, r: 1.0, g: 0.0, b: 0.0)
+        sendXYZRGBVertex(x: -0.6, y: 0.1, z: 0.0, r: 1.0, g: 0.0, b: 0.0)
+        sendXYZRGBVertex(x: 0.4, y: -0.2, z: 0.0, r: 0.0, g: 1.0, b: 0.0)
+        sendXYZRGBVertex(x: -0.5, y: 0.5, z: 0.0, r: 0.0, g: 1.0, b: 1.0)
+        sendXYZRGBVertex(x: 0.5, y: 0.3, z: 0.0, r: 0.0, g: 0.0, b: 1.0)
+
+        // Send a flush command to present the clear color and polygon.
+        sendCommandCode(code: mglFlush)
+
+        // Consume the commands and present a frame for visual inspection.
+        drawNextFrame(sleepSecs: 0.5)
+
+        // The server should send 5 timestamps right away:
+        //  - ack for clear
+        //  - processed for clear
+        //  - ack for polygon
+        //  - processed for polygon
+        //  - ack for flush
+        assertTimestampReplies(count: 5)
+        XCTAssertFalse(client.dataWaiting())
+
+        // The last timestamp, processed for flush, waits until the start of the next frame.
+        drawNextFrame()
+        assertTimestampReplies(count: 1)
         XCTAssertFalse(client.dataWaiting())
     }
 }
