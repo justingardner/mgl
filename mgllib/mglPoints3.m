@@ -1,12 +1,12 @@
 % mglPoints3.m
 %
 %        $Id$
-%      usage: [ackTime, processedTime] = mglPoints3(x, y, z, size, color, isRound, antialiasing)
+%      usage: results = mglPoints3(x, y, z, size, color, isRound, antialiasing)
 %         by: Benjamin Heasly
 %       date: 04/17/2022
 %  copyright: (c) 2006 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
 %    purpose: plot 3D points on a screen opened with mglOpen
-%      usage: [ackTime, processedTime] = mglPoints3(x, y, z, size, color, isRound, antialiasing)
+%      usage: results = mglPoints3(x, y, z, size, color, isRound, antialiasing)
 %             x,y,z = position of dots on screen
 %             size = size of dots (device units, not pixels)
 %             color of dots
@@ -20,7 +20,7 @@
 %mglVisualAngleCoordinates(57,[16 12]);
 %mglPoints3(16*rand(500,1)-8,12*rand(500,1)-6,zeros(500,1),2,1);
 %mglFlush
-function [ackTime, processedTime] = mglPoints3(x, y, z, size, color, isRound, antialiasing)
+function results = mglPoints3(x, y, z, size, color, isRound, antialiasing)
 
 nDots = numel(x);
 if ~isequal(numel(y), nDots)
@@ -71,4 +71,4 @@ end
 border = zeros(1, nDots, 'single');
 border(:) = antialiasing;
 
-[ackTime, processedTime] = mglMetalDots(xyz, rgba, wh, shape, border);
+results = mglMetalDots(xyz, rgba, wh, shape, border);

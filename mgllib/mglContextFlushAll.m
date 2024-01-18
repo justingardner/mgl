@@ -1,12 +1,12 @@
 % mglContextFlushAll: Flush all stashed and active mgl contexts.
 %
 %        $Id$
-%      usage: [ackTime, processedTime] = mglContextFlushAll()
+%      usage: results = mglContextFlushAll()
 %         by: ben heasly
 %       date: 09/07/2022
 %  copyright: (c) 2006 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
 %    purpose: Flush all stashed and active mgl contexts.
-%      usage: [ackTime, processedTime] = mglContextFlushAll()
+%      usage: results = mglContextFlushAll()
 %
 %             This will flush all known mgl contexts, including the active
 %             context in "global mgl", plus any contexts that were
@@ -26,7 +26,7 @@
 %
 %             % Clean up all contexts, whether active or stashed.
 %             mglContextCloseAll();
-function [ackTime, processedTime] = mglContextFlushAll()
+function results = mglContextFlushAll()
 
 % Collect socketInfo for all known contexts, active and/or stashed.
 % My (BSH) hope is to handle looping within the mglSocket* mex-functions
@@ -38,12 +38,11 @@ global mgl
 if isempty(mglStashedContexts)
     if isempty(mgl)
         % No active or stashed contexts found, no-op.
-        ackTime = [];
-        processedTime = [];
+        results = [];
         return;
     else
         % No stashed contexts, just flush the active one.
-        [ackTime, processedTime] = mglFlush(mgl.activeSockets);
+        results = mglFlush(mgl.activeSockets);
         return;
     end
 else
@@ -53,12 +52,12 @@ else
     stashedSocketInfo = cat(2, stashedActiveSockets{:});
     if isempty(mgl)
         % No active context, just flush the stashed ones.
-        [ackTime, processedTime] = mglFlush(stashedSocketInfo);
+        results = mglFlush(stashedSocketInfo);
         return;
     else
         % Both active and stashed contexts, flush them all!
         allSocketInfo = cat(2, mgl.activeSockets, stashedSocketInfo);
-        [ackTime, processedTime] = mglFlush(allSocketInfo);
+        results = mglFlush(allSocketInfo);
         return;
     end
 end

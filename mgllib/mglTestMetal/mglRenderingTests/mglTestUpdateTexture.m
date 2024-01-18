@@ -52,8 +52,7 @@ if (isInteractive)
     mglPause(0.5);
 
     nFrames = 300;
-    ackTimes = zeros(1,nFrames);
-    processedTimes = zeros(1,nFrames);
+    resultCell = cell(1, nFrames);
     shiftedImage = newImage;
     for iFrame = 1:nFrames
         shiftedImage(:,:,1) = circshift(shiftedImage(:,:,1), 1);
@@ -61,11 +60,12 @@ if (isInteractive)
         shiftedImage(:,:,3) = circshift(shiftedImage(:,:,3), 1);
         mglUpdateTexture(tex, shiftedImage);
         mglMetalBltTexture(tex,[0 0],0,0,0,0,2,2);
-        [ackTimes(iFrame), processedTimes(iFrame)] = mglFlush();
+        resultCell{iFrame} = mglFlush();
     end
+    results = [resultCell{:}];
     mglMetalFullscreen(false);
     name = sprintf('frame-by-frame texture updates %d x %d', textureWidth, textureHeight);
-    mglPlotFrameTimes(ackTimes, processedTimes, name);
+    mglPlotFrameTimes(results, name);
 end
 
 % Delete will have little effect, since we're about to mglClose().

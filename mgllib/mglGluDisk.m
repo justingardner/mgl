@@ -1,7 +1,7 @@
 % mglGluDisk - draw disk(s) at location x,y; alternative to glPoints for circular dots
 %
 %        $Id$
-%      usage: [ackTime, processedTime] = mglGluDisk(x, y, size, color, [nslices], [nloops], [antialiasing])
+%      usage: results = mglGluDisk(x, y, size, color, [nslices], [nloops], [antialiasing])
 %         by: Benjamin Heasly
 %       date: 03-17-2022
 %  copyright: (c) 2006 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
@@ -22,7 +22,7 @@
 %y = 12*rand(100,1)-6;
 %mglGluDisk(x, y, 0.1,  [0.1 0.6 1], 24, 2);
 %mglFlush();
-function [ackTime, processedTime] = mglGluDisk(x, y, size, color, nSlices, nLoops, antialiasing)
+function results = mglGluDisk(x, y, size, color, nSlices, nLoops, antialiasing)
 
 % These are no longer needed in Metal, but included for v2 code compatibility.
 nSlices = [];
@@ -75,4 +75,4 @@ border = zeros(1, nGluDisk, 'single');
 border(:) = antialiasing;
 
 % run arcs command
-[ackTime, processedTime] = mglMetalArcs(xyz,rgba,radii,wedge,border);
+results = mglMetalArcs(xyz,rgba,radii,wedge,border);

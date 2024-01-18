@@ -1,7 +1,7 @@
 % mglStencilCreateEnd
 %
 %        $Id$
-%      usage: [ackTime, processedTime] = mglStencilCreateEnd(socketInfo)
+%      usage: results = mglStencilCreateEnd(socketInfo)
 %         by: justin gardner
 %       date: 05/26/2006
 %  copyright: (c) 2006 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
@@ -22,7 +22,7 @@
 %mglPoints2(rand(1,5000)*500,rand(1,5000)*500);
 %mglFlush;
 %mglStencilSelect(0);
-function [ackTime, processedTime] = mglStencilCreateEnd(socketInfo)
+function results = mglStencilCreateEnd(socketInfo)
 
 if nargin < 1 || isempty(socketInfo)
     global mgl
@@ -36,4 +36,5 @@ mglFlush(socketInfo);
 % Get ready for regular drawign with no stencil selected.
 mglSocketWrite(socketInfo, socketInfo(1).command.mglFinishStencilCreation);
 ackTime = mglSocketRead(socketInfo, 'double');
-processedTime = mglSocketRead(socketInfo, 'double');
+results = mglReadCommandResults(socketInfo, ackTime);
+

@@ -56,4 +56,4 @@ commandCount = mglSocketRead(socketInfo, 'uint32');
 % Request all the command results.
 mglSocketWrite(socketInfo, socketInfo(1).command.mglFinishBatch);
 ackTime = mglSocketRead(socketInfo, 'double');
-results = mglSocketRead(socketInfo, 'double', commandCount);
+results = mglReadCommandResults(socketInfo, ackTime, [], commandCount);

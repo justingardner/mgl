@@ -1,7 +1,7 @@
 % mglClearScreen.m
 %
 %        $Id$
-%      usage: [ackTime, processedTime, setupTime] = mglClearScreen([clearColor], [clearBits])
+%      usage: results = mglClearScreen([clearColor], [clearBits])
 %         by: Justin Gardner
 %       date: 09/27/2021
 %  copyright: (c) 2021 Justin Gardner (GPL see mgl/COPYING)
@@ -29,7 +29,7 @@
 % mglClearScreen([0.7 0.2 0.5]);
 % mglFlush();
 %
-function [ackTime, processedTime, setupTime] = mglClearScreen(clearColor, clearBits, socketInfo)
+function results = mglClearScreen(clearColor, clearBits, socketInfo)
 
 if nargin == 2
   disp(sprintf('(mglClearScreen) clearBits not implemented in mgl 3.0'));
@@ -55,7 +55,7 @@ if numel(clearColor) == 1
   clearColor = [clearColor clearColor clearColor];
 elseif numel(clearColor) ~= 3
   disp(sprintf('(mglClearScreen) Color must be a scalar or an array of length 3 (found len: %i)',length(clearColor)));
-  ackTime = -mglGetSecs; processedTime = -mglGetSecs; setupTime = -mglGetSecs;
+  results = [];
   return
 end
 clearColor = clearColor(:);
@@ -73,10 +73,10 @@ setupTime = mglGetSecs();
 mglSocketWrite(socketInfo, socketInfo(1).command.mglSetClearColor);
 ackTime = mglSocketRead(socketInfo, 'double');
 mglSocketWrite(socketInfo, single(clearColor));
-processedTime = mglSocketRead(socketInfo, 'double');
+results = mglReadCommandResults(socketInfo, ackTime, setupTime);
 
 % check if processedTime is negative which indicates an error
-if processedTime < 0
+if any([results.processedTime] < 0)
   % display error
-  mglPrivateDisplayProcessingError(socketInfo, ackTime, processedTime, mfilename);
+  mglPrivateDisplayProcessingError(socketInfo, results, mfilename);
 end

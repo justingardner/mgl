@@ -1,12 +1,12 @@
 % mglMetalArcs.m
 %
 %        $Id$
-%      usage: [ackTime, processedTime] = mglMetalArcs(xyz, rgba, radii, wedge, border)
+%      usage: results = mglMetalArcs(xyz, rgba, radii, wedge, border)
 %         by: Benjamin heasly
 %       date: 03/17/2022
 %  copyright: (c) 2006 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
 %    purpose: Draw "vectorized" arcs with xyz, rgba, radii, wedge
-%      usage: [ackTime, processedTime] = mglMetalArcs(xyz, rgba, wh, radii, wedge, border)
+%      usage: results = mglMetalArcs(xyz, rgba, wh, radii, wedge, border)
 %             This is a common interface to mglMeal for circular arcs.
 %             xyz -- 3 x n matrix of point positions [x, y, z]
 %             rgba -- 4 x n matrix of point colors [r, g, b, a]
@@ -26,7 +26,7 @@
 % border = [0.1 0.1 0.1];
 % mglMetalArcs(xyz, rgba, radii, wedge, border);
 % mglFlush();
-function [ackTime, processedTime] = mglMetalArcs(xyz, rgba, radii, wedge, border, socketInfo)
+function results = mglMetalArcs(xyz, rgba, radii, wedge, border, socketInfo)
 
 if nargin < 5
   help mglMetalArcs
@@ -62,4 +62,4 @@ mglSocketWrite(socketInfo, socketInfo(1).command.mglArcs);
 ackTime = mglSocketRead(socketInfo, 'double');
 mglSocketWrite(socketInfo, uint32(nDots));
 mglSocketWrite(socketInfo, vertexData);
-processedTime = mglSocketRead(socketInfo, 'double');
+results = mglReadCommandResults(socketInfo, ackTime);

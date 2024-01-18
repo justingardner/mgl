@@ -1,6 +1,6 @@
 % mglMetalBltTexture.m
 %
-%       usage: [ackTime, processedTime, setupTime] = mglMetalBltTexture(tex, position, hAlignment, vAlignment, rotation, phase, width, height, socketInfo)
+%       usage: results = mglMetalBltTexture(tex, position, hAlignment, vAlignment, rotation, phase, width, height, socketInfo)
 %          by: justin gardner
 %        date: 09/28/2021
 %  copyright: (c) 2021 Justin Gardner (GPL see mgl/COPYING)
@@ -17,13 +17,11 @@
 % mglMetalBltTexture(imageTex,[0 0]);
 % mglFlush();
 %
-function [ackTime, processedTime, setupTime] = mglMetalBltTexture(tex, position, hAlignment, vAlignment, rotation, phase, width, height, socketInfo)
+function results = mglMetalBltTexture(tex, position, hAlignment, vAlignment, rotation, phase, width, height, socketInfo)
 
 % empty image, nothing to do.
 if isempty(tex)
-  ackTime = mglGetSecs;
-  processedTime = mglGetSecs;
-  setupTime = mglGetSecs;
+  results = [];
   return
 end
 
@@ -59,7 +57,7 @@ if nargin < 9 || isempty(socketInfo)
   socketInfo =  mglGetParam('activeSockets');
   % no open mgl window, return
   if isempty(socketInfo)
-    ackTime = -mglGetSecs;processedTime = -mglGetSecs;setupTime = -mglGetSecs;
+    results = [];
     disp(sprintf('(%s) No open mgl window',mfilename));
     return
   end
@@ -146,14 +144,10 @@ mglSocketWrite(socketInfo, uint32(nVertices));
 mglSocketWrite(socketInfo, single(verticesWithTextureCoordinates));
 mglSocketWrite(socketInfo, single(phase));
 mglSocketWrite(socketInfo, tex.textureNumber);
-processedTime = mglSocketRead(socketInfo, 'double');
+results = mglReadCommandResults(socketInfo, ackTime);
 
 % check if processedTime is negative which indicates an error
-if processedTime < 0
+if any([results.processedTime] < 0)
   % display error
-  mglPrivateDisplayProcessingError(socketInfo, ackTime, processedTime, mfilename);
+  mglPrivateDisplayProcessingError(socketInfo, results, mfilename);
 end
-
-
-
-

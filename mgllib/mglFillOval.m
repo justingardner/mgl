@@ -1,7 +1,7 @@
 % mglFillOval - draw filled oval(s) on the screen
 %
 %        $Id$
-%      usage: [ackTime, processedTime] = mglFillOval(x, y, size, color, antialiasing)
+%      usage: results = mglFillOval(x, y, size, color, antialiasing)
 %         by: Benjamin Heasly
 %       date: 03-17.2022
 %  copyright: (c) 2006 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
@@ -26,7 +26,7 @@
 %mglFillOval(x, y, sz,  [1 0 0]);
 %mglFlush();
 % 
-function [ackTime, processedTime] = mglFillOval(x, y, size, color, antialiasing)
+function results = mglFillOval(x, y, size, color, antialiasing)
 
 nArcs = numel(x);
 if ~isequal(numel(y), nArcs)
@@ -72,4 +72,4 @@ end
 border = zeros(1, nArcs, 'single');
 border(:) = antialiasing;
 
-[ackTime, processedTime] = mglMetalArcs(xyz, rgba, radii, wedge, border);
+results = mglMetalArcs(xyz, rgba, radii, wedge, border);

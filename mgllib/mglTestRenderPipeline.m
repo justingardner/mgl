@@ -132,7 +132,9 @@ for iFrame = 1:d.numFrames
   end
   
   % and flush
-  [d.timeVec(5,iFrame) d.timeVec(6,iFrame)] = mglFlush;
+  results = mglFlush();
+  d.timeVec(5,iFrame) = results.ackTime;
+  d.timeVec(6,iFrame) = results.processedTime;
   % and record time
   d.timeVec(7,iFrame) = mglGetSecs;
 end
@@ -152,14 +154,19 @@ for iFrame = 1:d.numFrames
   % get start time of frame
   d.timeVec(1,iFrame) = mglGetSecs;
   % draw quads
-  [d.timeVec(3,iFrame) d.timeVec(4,iFrame) d.timeVec(2,iFrame)] = mglQuad(2*rand(4,d.numQuads)-1,2*rand(4,d.numQuads)-1,rand(3,d.numQuads));
+  drawResults = mglQuad(2*rand(4,d.numQuads)-1,2*rand(4,d.numQuads)-1,rand(3,d.numQuads));
+  d.timeVec(3,iFrame) = drawResults.ackTime;
+  d.timeVec(4,iFrame) = drawResults.processedTime;
+  d.timeVec(2,iFrame) = drawResults.setupTime;
   % draw photoDiodeRect if need be
   if d.photoDiodeTest
     if iseven(iFrame), photoDiodeColor = d.photoDiodeColor; else photoDiodeColor = [0 0 0]; end
     mglQuad(d.photoDiodeX,d.photoDiodeY,photoDiodeColor);
   end
   % and flush
-  [d.timeVec(5,iFrame) d.timeVec(6,iFrame)] = mglFlush;
+  results = mglFlush();
+  d.timeVec(5,iFrame) = results.ackTime;
+  d.timeVec(6,iFrame) = results.processedTime;
   % and record time
   d.timeVec(7,iFrame) = mglGetSecs;
 end
@@ -179,14 +186,19 @@ for iFrame = 1:d.numFrames
   % get start time of frame
   d.timeVec(1,iFrame) = mglGetSecs;
   % draw dots
-  [d.timeVec(3,iFrame) d.timeVec(4,iFrame) d.timeVec(2,iFrame)] = mglPoints2c(2*rand(1,d.numPoints)-1,2*rand(1,d.numPoints)-1,0.005*ones(d.numPoints,2),rand(1,d.numPoints),rand(1,d.numPoints),rand(1,d.numPoints));
+  drawResults = mglPoints2c(2*rand(1,d.numPoints)-1,2*rand(1,d.numPoints)-1,0.005*ones(d.numPoints,2),rand(1,d.numPoints),rand(1,d.numPoints),rand(1,d.numPoints));
+  d.timeVec(3,iFrame) = drawResults.ackTime;
+  d.timeVec(4,iFrame) = drawResults.processedTime;
+  d.timeVec(2,iFrame) = drawResults.setupTime;
   % draw photoDiodeRect if need be
   if d.photoDiodeTest
     if iseven(iFrame), photoDiodeColor = d.photoDiodeColor; else photoDiodeColor = [0 0 0]; end
     mglQuad(d.photoDiodeX,d.photoDiodeY,photoDiodeColor);
   end
   % and flush
-  [d.timeVec(5,iFrame) d.timeVec(6,iFrame)] = mglFlush;
+  results = mglFlush();
+  d.timeVec(5,iFrame) = results.ackTime;
+  d.timeVec(6,iFrame) = results.processedTime;
   % and record time
   d.timeVec(7,iFrame) = mglGetSecs;
 end
@@ -219,14 +231,19 @@ for iFrame = 1:d.numFrames
   % get start time of frame
   d.timeVec(1,iFrame) = mglGetSecs;
   % draw texture
-  [d.timeVec(3,iFrame) d.timeVec(4,iFrame) d.timeVec(2,iFrame)] = mglBltTexture(tex(mod(iFrame,d.numBlt)+1),[0 0 2 2]);
+  drawResults = mglBltTexture(tex(mod(iFrame,d.numBlt)+1),[0 0 2 2]);
+  d.timeVec(3,iFrame) = drawResults.ackTime;
+  d.timeVec(4,iFrame) = drawResults.processedTime;
+  d.timeVec(2,iFrame) = drawResults.setupTime;
   % draw photoDiodeRect if need be
   if d.photoDiodeTest
     if iseven(iFrame), photoDiodeColor = d.photoDiodeColor; else photoDiodeColor = [0 0 0]; end
     mglQuad(d.photoDiodeX,d.photoDiodeY,photoDiodeColor);
   end
   % and flush
-  [d.timeVec(5,iFrame) d.timeVec(6,iFrame)] = mglFlush;
+  results = mglFlush();
+  d.timeVec(5,iFrame) = results.ackTime;
+  d.timeVec(6,iFrame) = results.processedTime;
   % and record time
   d.timeVec(7,iFrame) = mglGetSecs;
 end
@@ -246,14 +263,19 @@ for iFrame = 1:d.numFrames
   % get start time of frame
   d.timeVec(1,iFrame) = mglGetSecs;
   % set the clear color
-  [d.timeVec(3,iFrame) d.timeVec(4,iFrame) d.timeVec(2,iFrame)] = mglClearScreen(rand(1,3));
+  drawResults = mglClearScreen(rand(1,3));
+  d.timeVec(3,iFrame) = drawResults.ackTime;
+  d.timeVec(4,iFrame) = drawResults.processedTime;
+  d.timeVec(2,iFrame) = drawResults.setupTime;
   % draw photoDiodeRect if need be
   if d.photoDiodeTest
     if iseven(iFrame), photoDiodeColor = d.photoDiodeColor; else photoDiodeColor = [0 0 0]; end
     mglQuad(d.photoDiodeX,d.photoDiodeY,photoDiodeColor);
   end
   % and flush
-  [d.timeVec(5,iFrame) d.timeVec(6,iFrame)] = mglFlush;
+  results = mglFlush();
+  d.timeVec(5,iFrame) = results.ackTime;
+  d.timeVec(6,iFrame) = results.processedTime;
   % and record time
   d.timeVec(7,iFrame) = mglGetSecs;
 end

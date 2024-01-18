@@ -1,6 +1,6 @@
 % mglFLush: Commit a frame of drawing commands and wait for the next frame.                            
 %                                                                                                      
-%      usage: [info, ackTime, processedTime] = mglInfo(socketInfo)
+%      usage: [info, results] = mglInfo(socketInfo)
 %         by: justin gardner
 %       date: 01/26/2023                                                                               
 %  copyright: (c) 2021 Justin Gardner (GPL see mgl/COPYING)                                            
@@ -9,7 +9,7 @@
 %       e.g.: mglOpen;                                                                                 
 %             info = mglInfo;
 %
-function [info,ackTime, processedTime] = mglInfo(socketInfo)                                               
+function [info, results] = mglInfo(socketInfo)
 % set return structure
 info = [];
 
@@ -18,7 +18,7 @@ if nargin < 1 || isempty(socketInfo)
   socketInfo =  mglGetParam('activeSockets');
   % no open mgl window, return
   if isempty(socketInfo)
-    ackTime = -mglGetSecs;processedTime = -mglGetSecs;
+    results = [];
     disp(sprintf('(%s) No open mgl window',mfilename));
     return
   end
@@ -77,8 +77,7 @@ while dataType ~= socketInfo(1).command.mglSendFinished
   dataType = mglSocketRead(socketInfo, 'uint16');
 end
 
-processedTime = mglSocketRead(socketInfo, 'double');
-if processedTime < 0
+results = mglReadCommandResults(socketInfo, ackTime);
+if any([results.processedTime] < 0)
   disp(sprintf('(mglFlush) Error processing command.'));
 end
-

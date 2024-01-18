@@ -56,8 +56,7 @@ if (isInteractive)
     deltaR = 0.005;
     deltaTheta = 0.03;
     nFrames = 1000;
-    ackTimes = zeros(1,nFrames);
-    processedTimes = zeros(1,nFrames);
+    resultCell = cell(1, nFrames);
     r = 0.25*rand(1,nVertices)+0.01;
     theta = rand(1,nVertices)*2*pi;
     x = cos(theta).*r;
@@ -65,7 +64,7 @@ if (isInteractive)
 
     for iFrame = 1:nFrames
         mglPoints2(x,y,0.01,[1 1 1]);
-        [ackTimes(iFrame), processedTimes(iFrame)] = mglFlush();
+        resultCell{iFrame} = mglFlush();
 
         r = r + deltaR;
         theta = theta + deltaTheta;
@@ -74,6 +73,6 @@ if (isInteractive)
         x = cos(theta).*r;
         y = sin(theta).*r;
     end
-
-    mglPlotFrameTimes(ackTimes, processedTimes, 'moving dots');
+    results = [resultCell{:}];
+    mglPlotFrameTimes(results , 'moving dots');
 end

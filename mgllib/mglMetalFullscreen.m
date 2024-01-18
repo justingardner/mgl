@@ -1,6 +1,6 @@
 % mglMetalFullscreen.m
 %
-%       usage: [ackTime, processedTime] = mglMetalFullscreen(isFullscreen, socketInfo)
+%       usage: results = mglMetalFullscreen(isFullscreen, socketInfo)
 %          by: Benjamin Heasly
 %        date: 27 April 2022
 %   copyright: (c) 2021 Justin Gardner (GPL see mgl/COPYING)
@@ -24,7 +24,7 @@
 %              mglMetalFullscreen(true, socketInfo);
 %              pause(5);
 %              mglMetalFullscreen(false, socketInfo);
-function [ackTime, processedTime] = mglMetalFullscreen(isFullscreen, socketInfo)
+function results = mglMetalFullscreen(isFullscreen, socketInfo)
 
 if nargin < 1
     isFullscreen = true;
@@ -46,7 +46,7 @@ else
     mglSocketWrite(socketInfo, socketInfo.command.mglWindowed);
 end
 ackTime = mglSocketRead(socketInfo, 'double');
-processedTime = mglSocketRead(socketInfo, 'double');
+results = mglReadCommandResults(socketInfo, ackTime);
 
 % Only update the mgl context from the primary window.
 if isfield(mgl, 's') && isequal(socketInfo, mgl.s)

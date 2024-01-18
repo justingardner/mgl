@@ -53,14 +53,13 @@ if (isInteractive)
     % Animate the checkers in a flickering pattern.
     nFlicker = 10;
     nFlush = 10;
-    ackTimes = zeros(1, 2*nFlush*nFlicker);
-    processedTimes = zeros(1, 2*nFlush*nFlicker);
+    resultCell = cell(1, nFlicker + nFlush + nFlush);
     iFrame = 1;
     for iFlicker = 1:nFlicker
         % Draw several frames of regular color.
         for iFlush = 1:nFlush
             mglQuad(x,y,color);
-            [ackTimes(iFrame), processedTimes(iFrame)] = mglFlush();
+            resultCell{iFrame} = mglFlush();
             iFrame = iFrame + 1;
         end
 
@@ -68,10 +67,10 @@ if (isInteractive)
         for iFlush = 1:nFlush
             % draw the quads
             mglQuad(x,y,inverseColor);
-            [ackTimes(iFrame), processedTimes(iFrame)] = mglFlush();
+            resultCell{iFrame} = mglFlush();
             iFrame = iFrame + 1;
         end
     end
-
-    mglPlotFrameTimes(ackTimes, processedTimes, 'Flickering quads');
+    results = [resultCell{:}];
+    mglPlotFrameTimes(results, 'Flickering quads');
 end

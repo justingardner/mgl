@@ -37,12 +37,11 @@
 %
 % % display it
 % image(frame(:,:,1:3))
-function [frame, ackTime, processedTime] = mglFrameGrab(grabMode)
+function [frame, results] = mglFrameGrab(grabMode)
 
 % default values for return variables
 frame = [];
-ackTime = [];
-processedTime = [];
+results = [];
 
 % check whether mgl is running
 if ~mglMetalIsRunning
@@ -124,7 +123,7 @@ frame = mglSocketRead(socketInfo,'single',4,dataWidth,dataHeight);
 frame = permute(frame,[2 3 1]);
 
 %mglSocketWrite(socketInfo, single(v));
-processedTime = mglSocketRead(socketInfo, 'double');
+results = mglReadCommandResults(socketInfo, ackTime);
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%

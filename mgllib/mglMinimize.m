@@ -11,11 +11,10 @@
 % mglOpen;
 % mglMinimize;
 % 
-function [ackTime, processedTime] = mglMinimize(restore)
+function results = mglMinimize(restore)
 
-% default values for return variables
-ackTime = [];
-processedTime = [];
+% default values for return
+results = [];
 
 % get socket
 global mgl;
@@ -33,4 +32,4 @@ else
 end
   
 % get processed time
-processedTime = mglSocketRead(socketInfo, 'double');
+results = mglReadCommandResults(socketInfo, ackTime);

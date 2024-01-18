@@ -1,7 +1,7 @@
 % mglStencilCreateBegin
 %
 %        $Id$
-%      usage: [ackTime, processedTime] = mglStencilCreateBegin(stencilNumber, invert, socketInfo)
+%      usage: results = mglStencilCreateBegin(stencilNumber, invert, socketInfo)
 %         by: justin gardner and ben heasly
 %       date: 05/26/2006
 %  copyright: (c) 2006 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
@@ -26,7 +26,7 @@
 %mglPoints2(rand(1,5000)*500,rand(1,5000)*500);
 %mglFlush;
 %mglStencilSelect(0);
-function [ackTime, processedTime] = mglStencilCreateBegin(stencilNumber, invert, socketInfo)
+function results = mglStencilCreateBegin(stencilNumber, invert, socketInfo)
 
 if nargin < 2
     invert = 0;
@@ -56,12 +56,12 @@ mglQuad(x', y', rgb', [], socketInfo);
 mglStencilCreateEnd(socketInfo);
 
 % Now let the caller draw into the requested stencil plane.
-[ackTime, processedTime] = startStencilCreation(stencilNumber, invert, socketInfo);
+results = startStencilCreation(stencilNumber, invert, socketInfo);
 
 
-function [ackTime, processedTime] = startStencilCreation(stencilNumber, invert, socketInfo)
+function results = startStencilCreation(stencilNumber, invert, socketInfo)
 mglSocketWrite(socketInfo, socketInfo(1).command.mglStartStencilCreation);
 ackTime = mglSocketRead(socketInfo, 'double');
 mglSocketWrite(socketInfo, uint32(stencilNumber));
 mglSocketWrite(socketInfo, uint32(invert));
-processedTime = mglSocketRead(socketInfo, 'double');
+results = mglReadCommandResults(socketInfo, ackTime);

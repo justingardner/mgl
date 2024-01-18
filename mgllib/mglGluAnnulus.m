@@ -1,7 +1,7 @@
 % mglGluAnnulus - draw annulus/annuli at location x,y
 %
 %        $Id$
-%      usage: [ackTime, processedTime] = mglGluAnnulus(x, y, isize, osize, color, [nslices], [nloops], [antialiasing])
+%      usage: results = mglGluAnnulus(x, y, isize, osize, color, [nslices], [nloops], [antialiasing])
 %         by: Benjamin Heasly
 %       date: 03-17-2022
 %  copyright: (c) 2006 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
@@ -25,7 +25,7 @@
 %colors = jet(4)';
 %mglGluAnnulus(x, y, isize, osize, colors);
 %mglFlush();
-function [ackTime, processedTime] = mglGluAnnulus(x, y, isize, osize, color, nSlices, nLoops, antialiasing)
+function results = mglGluAnnulus(x, y, isize, osize, color, nSlices, nLoops, antialiasing)
 
 % These are no longer needed in Metal, but included for v2 code compatibility.
 nSlices = [];
@@ -80,4 +80,4 @@ border(:) = antialiasing;
 
 wedge = zeros(2, nDots, 'single');
 wedge(2,:) = 2*pi;
-[ackTime, processedTime] = mglMetalArcs(xyz, rgba, radii, wedge, border);
+results = mglMetalArcs(xyz, rgba, radii, wedge, border);
