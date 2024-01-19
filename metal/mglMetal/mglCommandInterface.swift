@@ -101,9 +101,7 @@ class mglCommandInterface {
     }
 
     func finishBatch() -> mglCommand? {
-        for doneCommand in done {
-            reportResults(command: doneCommand, includeQueryResults: false)
-        }
+        writeBatchResults()
         done.removeAll()
         self.batchState = .none
         return nil
@@ -175,12 +173,15 @@ class mglCommandInterface {
             clearReadData()
         }
 
+        // Note the command code so we can echo it later.
+        command?.results.commandCode = commandCode
+
         // Note when this command was created.
         command?.results.ackTime = ackTime
 
         // When building up a batch, unblock the client by sending immediate placeholder results.
         if batchState == .building && command != nil {
-            reportResults(command: command!)
+            writeResults(command: command!, asPlaceholder: true)
         }
 
         // We got a whole command, ready to be processed.
@@ -228,7 +229,7 @@ class mglCommandInterface {
         return nil
     }
 
-    // Collaborate with mglRenderer: this was fully processed.
+    // Collaborate with mglRenderer: this command was fully processed.
     func done(command: mglCommand, success: Bool = true) {
         command.results.success = success
         command.results.processedTime = secs.get()
@@ -245,7 +246,7 @@ class mglCommandInterface {
             }
         } else {
             // Otherwise, report results immediately.
-            reportResults(command: command)
+            writeResults(command: command)
         }
     }
 
@@ -260,18 +261,58 @@ class mglCommandInterface {
         todo.insert(command, at: 0)
     }
 
-    // Let a command report any query results that it stashed, then report the usual timestamps to the client.
-    private func reportResults(command: mglCommand, includeQueryResults: Bool = true) {
-        if includeQueryResults {
-            _ = command.writeQueryResults(logger: logger, commandInterface: self)
-        }
+    // Report command-specific results and timestamps.
+    private func writeResults(command: mglCommand, asPlaceholder: Bool = false) {
+        // Write command-specific query results, if any.
+        _ = command.writeQueryResults(logger: logger, commandInterface: self)
 
-        if command.results.success || batchState == BatchState.building {
+        // Echo the command code.
+        _ = writeCommand(data: command.results.commandCode)
+
+        // Report an explicit status and the processed time,
+        // which also represents error status as a negative timestamp.
+        if command.results.success || asPlaceholder {
+            _ = writeUInt32(data: 1)
             _ = writeDouble(data: command.results.processedTime)
         } else {
+            _ = writeUInt32(data: 0)
             logger.error(component: "mglCommandInterface", details: "Command failed: \(String(describing: command))")
             _ = writeDouble(data: -command.results.processedTime)
         }
+
+        // Report additional, detailed timestamps.
+        _ = writeDouble(data: command.results.vertexStart)
+        _ = writeDouble(data: command.results.vertexEnd)
+        _ = writeDouble(data: command.results.fragmentStart)
+        _ = writeDouble(data: command.results.fragmentEnd)
+        _ = writeDouble(data: command.results.drawableAcquired)
+        _ = writeDouble(data: command.results.drawablePresented)
+    }
+
+    // Report generic results and timestamps for a command batch.
+    // This omits any command-specific query results.
+    // This writes one field at a time across all commands,
+    // hopefully allowing the client to read in a "vectorized" fashion.
+    private func writeBatchResults() {
+        // Echo the command codes.
+        for command in done { _ = writeCommand(data: command.results.commandCode) }
+
+        // Report explicit statuses.
+        for command in done { _ = writeUInt32(data: command.results.success ? 1 : 0) }
+
+        // Report processed times, which also represents error status as negatives.
+        for command in done {
+            let timestamp = command.results.success ? command.results.processedTime : -command.results.processedTime
+            _ = writeDouble(data: timestamp)
+        }
+
+        // Report additional, detailed timestamps.
+        for command in done { _ = writeDouble(data: command.results.vertexStart) }
+        for command in done { _ = writeDouble(data: command.results.vertexEnd) }
+        for command in done { _ = writeDouble(data: command.results.fragmentStart) }
+        for command in done { _ = writeDouble(data: command.results.fragmentEnd) }
+        for command in done { _ = writeDouble(data: command.results.drawableAcquired) }
+        for command in done { _ = writeDouble(data: command.results.drawablePresented) }
     }
 
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/

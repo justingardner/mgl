@@ -69,16 +69,35 @@ class mglMetalTests: XCTestCase {
         }
     }
 
-    func assertTimestampReplies(count: Int, atLeast: Double = 1.0) {
-        var timestamps = [Double](repeating: 0, count: count)
-        let bytesRead = timestamps.withUnsafeMutableBufferPointer {
-            client.readData(buffer: $0.baseAddress!, expectedByteCount: 8 * count)
-        }
-        XCTAssertEqual(bytesRead, 8 * count)
+    func assertTimestampReply(atLeast: Double = 0.0) {
+        var timestamp = 0.0
+        let bytesRead = client.readData(buffer: &timestamp, expectedByteCount: 8)
+        XCTAssertEqual(bytesRead, 8)
+        XCTAssertGreaterThanOrEqual(timestamp, atLeast)
+    }
 
-        for timestamp in timestamps {
-            XCTAssertGreaterThanOrEqual(timestamp, atLeast)
-        }
+    func assertCommandResultsReply(
+        commandCode: mglCommandCode,
+        status: UInt32 = 1,
+        processedAtLeast: Double = 0.0,
+        timestampAtLeast: Double = 0.0
+    ) {
+        assertCommandCodeReply(expected: commandCode)
+        assertUInt32Reply(expected: status)
+        assertTimestampReply(atLeast: processedAtLeast)
+        assertTimestampReply(atLeast: timestampAtLeast)
+        assertTimestampReply(atLeast: timestampAtLeast)
+        assertTimestampReply(atLeast: timestampAtLeast)
+        assertTimestampReply(atLeast: timestampAtLeast)
+        assertTimestampReply(atLeast: timestampAtLeast)
+        assertTimestampReply(atLeast: timestampAtLeast)
+    }
+
+    func assertCommandCodeReply(expected: mglCommandCode) {
+        var commandCode = mglUnknownCommand
+        let bytesRead = client.readData(buffer: &commandCode, expectedByteCount: 2)
+        XCTAssertEqual(bytesRead, 2)
+        XCTAssertEqual(commandCode, expected)
     }
 
     func assertUInt32Reply(expected: UInt32) {
@@ -88,8 +107,8 @@ class mglMetalTests: XCTestCase {
         XCTAssertEqual(value, expected)
     }
 
-    private func sendCommandCode(code: mglCommandCode) {
-        var codeValue = code.rawValue
+    private func sendCommandCode(commandCode: mglCommandCode) {
+        var codeValue = commandCode.rawValue
         let bytesSent = client.sendData(buffer: &codeValue, byteCount: 2)
         XCTAssertEqual(bytesSent, 2)
     }
@@ -125,35 +144,45 @@ class mglMetalTests: XCTestCase {
 
     func testClearColorViaClientBytes() {
         // Send a clear command with the color green.
-        sendCommandCode(code: mglSetClearColor)
+        sendCommandCode(commandCode: mglSetClearColor)
         sendColor(r: 0.0, g: 1.0, b: 0.0)
 
         // Send a flush command to present the new clear color.
-        sendCommandCode(code: mglFlush)
+        sendCommandCode(commandCode: mglFlush)
 
         // Consume the clear and flush commands and present a frame for visual inspection.
         drawNextFrame(sleepSecs: 0.5)
 
-        // Processing the clear command should also set the view clear color.
+        // Processing the clear command should have set the view's clear color for future frames.
         assertViewClearColor(r: 0.0, g: 1.0, b: 0.0)
 
-        // The server should send 3 timestamps right away:
-        //  - ack for clear
-        //  - processed for clear
-        //  - ack for flush
-        assertTimestampReplies(count: 3)
+        // The server should send an ack timestamp for each command.
+        // These look out of order here in this test because we're calling drawNextFrame() synchronously.
+        // We don't want to enter the drawing tight loop until after sending the flush.
+        // A client in another process should expect see interleaved ack, results, ack, results...
+        assertTimestampReply()
+        assertTimestampReply()
+
+        // The server should send a result record for the clear color command.
+        assertCommandResultsReply(commandCode: mglSetClearColor)
         XCTAssertFalse(client.dataWaiting())
 
-        // The last timestamp, processed for flush, waits until the start of the next frame.
+        // The last result record, for flush, waits until the start of the next frame.
         drawNextFrame()
-        assertTimestampReplies(count: 1)
+        assertCommandResultsReply(commandCode: mglFlush)
         XCTAssertFalse(client.dataWaiting())
     }
 
-    private func assertSuccess(command: mglCommand, startTime: Double = 0.0) {
+    private func assertSuccess(command: mglCommand, timestampAtLeast: Double = 0.0) {
         XCTAssertTrue(command.results.success)
-        XCTAssertGreaterThan(command.results.ackTime, startTime)
-        XCTAssertGreaterThan(command.results.processedTime, command.results.ackTime)
+        XCTAssertGreaterThanOrEqual(command.results.ackTime, timestampAtLeast)
+        XCTAssertGreaterThanOrEqual(command.results.processedTime, timestampAtLeast)
+        XCTAssertGreaterThanOrEqual(command.results.vertexStart, timestampAtLeast)
+        XCTAssertGreaterThanOrEqual(command.results.vertexEnd, timestampAtLeast)
+        XCTAssertGreaterThanOrEqual(command.results.fragmentStart, timestampAtLeast)
+        XCTAssertGreaterThanOrEqual(command.results.fragmentEnd, timestampAtLeast)
+        XCTAssertGreaterThanOrEqual(command.results.drawableAcquired, timestampAtLeast)
+        XCTAssertGreaterThanOrEqual(command.results.drawablePresented, timestampAtLeast)
     }
 
     private struct RGBAFloat32Pixel : Equatable {
@@ -214,48 +243,48 @@ class mglMetalTests: XCTestCase {
         XCTAssertEqual(commandInterface.getBatchState(), BatchState.none)
 
         // Put the command interface into batch "building" state.
-        sendCommandCode(code: mglStartBatch)
+        sendCommandCode(commandCode: mglStartBatch)
         drawNextFrame()
-        assertTimestampReplies(count: 1)
+        assertTimestampReply()
         XCTAssertEqual(commandInterface.getBatchState(), BatchState.building)
 
         // Send several pairs of set-clear-color and flush commands.
-        // Each one should get back an ack time and a placeholder "processed" time.
+        // Each one should get back an ack time and a placeholder results record.
         // Red
-        sendCommandCode(code: mglSetClearColor)
+        sendCommandCode(commandCode: mglSetClearColor)
         sendColor(r: 1.0, g: 0.0, b: 0.0)
         drawNextFrame()
-        assertTimestampReplies(count: 1)
-        assertTimestampReplies(count: 1, atLeast: 0.0)
+        assertTimestampReply()
+        assertCommandResultsReply(commandCode: mglSetClearColor)
 
-        sendCommandCode(code: mglFlush)
+        sendCommandCode(commandCode: mglFlush)
         drawNextFrame()
-        assertTimestampReplies(count: 1)
-        assertTimestampReplies(count: 1, atLeast: 0.0)
+        assertTimestampReply()
+        assertCommandResultsReply(commandCode: mglFlush)
 
         // Green
-        sendCommandCode(code: mglSetClearColor)
+        sendCommandCode(commandCode: mglSetClearColor)
         sendColor(r: 0.0, g: 1.0, b: 0.0)
         drawNextFrame()
-        assertTimestampReplies(count: 1)
-        assertTimestampReplies(count: 1, atLeast: 0.0)
+        assertTimestampReply()
+        assertCommandResultsReply(commandCode: mglSetClearColor)
 
-        sendCommandCode(code: mglFlush)
+        sendCommandCode(commandCode: mglFlush)
         drawNextFrame()
-        assertTimestampReplies(count: 1)
-        assertTimestampReplies(count: 1, atLeast: 0.0)
+        assertTimestampReply()
+        assertCommandResultsReply(commandCode: mglFlush)
 
         // Blue
-        sendCommandCode(code: mglSetClearColor)
+        sendCommandCode(commandCode: mglSetClearColor)
         sendColor(r: 0.0, g: 0.0, b: 1.0)
         drawNextFrame()
-        assertTimestampReplies(count: 1)
-        assertTimestampReplies(count: 1, atLeast: 0.0)
+        assertTimestampReply()
+        assertCommandResultsReply(commandCode: mglSetClearColor)
 
-        sendCommandCode(code: mglFlush)
+        sendCommandCode(commandCode: mglFlush)
         drawNextFrame()
-        assertTimestampReplies(count: 1)
-        assertTimestampReplies(count: 1, atLeast: 0.0)
+        assertTimestampReply()
+        assertCommandResultsReply(commandCode: mglFlush)
 
         // These commands should all be enqueued as todo, and not yet processed or reported.
         XCTAssertFalse(client.dataWaiting())
@@ -264,9 +293,9 @@ class mglMetalTests: XCTestCase {
         assertViewClearColor(r: 0.5, g: 0.5, b: 0.5)
 
         // Put the command interface into batch "processing" state.
-        sendCommandCode(code: mglProcessBatch)
+        sendCommandCode(commandCode: mglProcessBatch)
         drawNextFrame(sleepSecs: 0.5)
-        assertTimestampReplies(count: 1)
+        assertTimestampReply()
         XCTAssertEqual(commandInterface.getBatchState(), BatchState.processing)
 
         // We should now see the clear colors in order: red, green, blue.
@@ -286,7 +315,7 @@ class mglMetalTests: XCTestCase {
         XCTAssertFalse(client.dataWaiting())
 
         // Wait for the signal that tells us all commands are processed.
-        // This also tells us how many responses are pending, in this case 6.
+        // This also tells us how many result records are pending, in this case 6.
         drawNextFrame()
         XCTAssertTrue(client.dataWaiting())
         assertUInt32Reply(expected: 6)
@@ -295,23 +324,55 @@ class mglMetalTests: XCTestCase {
         XCTAssertFalse(client.dataWaiting())
 
         // Put the command interface back into its normal "none" state.
-        sendCommandCode(code: mglFinishBatch)
+        sendCommandCode(commandCode: mglFinishBatch)
         drawNextFrame()
-        assertTimestampReplies(count: 1)
+        assertTimestampReply()
         XCTAssertEqual(commandInterface.getBatchState(), BatchState.none)
 
-        // Expect 6 timestamp replies, one for each command.
-        assertTimestampReplies(count: 6)
+        // Expect a batch of results records.
+        // These arrive in "vectorized" order, one field at a time across all records.
+        // Command code.
+        assertCommandCodeReply(expected: mglSetClearColor)
+        assertCommandCodeReply(expected: mglFlush)
+        assertCommandCodeReply(expected: mglSetClearColor)
+        assertCommandCodeReply(expected: mglFlush)
+        assertCommandCodeReply(expected: mglSetClearColor)
+        assertCommandCodeReply(expected: mglFlush)
+
+        // Status.
+        for _ in 0..<6 { assertUInt32Reply(expected: 1) }
+
+        // Processed Time
+        for _ in 0..<6 { assertTimestampReply() }
+
+        // Vertex start.
+        for _ in 0..<6 { assertTimestampReply() }
+
+        // Vertex end.
+        for _ in 0..<6 { assertTimestampReply() }
+
+        // Fragment start.
+        for _ in 0..<6 { assertTimestampReply() }
+
+        // Fragment end.
+        for _ in 0..<6 { assertTimestampReply() }
+
+        // Drawable acquired.
+        for _ in 0..<6 { assertTimestampReply() }
+
+        // Drawable presented.
+        for _ in 0..<6 { assertTimestampReply() }
+
         XCTAssertFalse(client.dataWaiting())
     }
 
     func testPolygonViaClientBytes() {
         // Send a clear command with the color gray.
-        sendCommandCode(code: mglSetClearColor)
+        sendCommandCode(commandCode: mglSetClearColor)
         sendColor(r: 0.25, g: 0.25, b: 0.25)
 
         // Send some rainbow polygon vertex data as [xyz rgb].
-        sendCommandCode(code: mglPolygon)
+        sendCommandCode(commandCode: mglPolygon)
         sendUInt32(value: 5)
         sendXYZRGBVertex(x: -0.3, y: -0.4, z: 0.0, r: 1.0, g: 0.0, b: 0.0)
         sendXYZRGBVertex(x: -0.6, y: 0.1, z: 0.0, r: 1.0, g: 0.0, b: 0.0)
@@ -320,23 +381,27 @@ class mglMetalTests: XCTestCase {
         sendXYZRGBVertex(x: 0.5, y: 0.3, z: 0.0, r: 0.0, g: 0.0, b: 1.0)
 
         // Send a flush command to present the clear color and polygon.
-        sendCommandCode(code: mglFlush)
+        sendCommandCode(commandCode: mglFlush)
 
         // Consume the commands and present a frame for visual inspection.
         drawNextFrame(sleepSecs: 0.5)
 
-        // The server should send 5 timestamps right away:
-        //  - ack for clear
-        //  - processed for clear
-        //  - ack for polygon
-        //  - processed for polygon
-        //  - ack for flush
-        assertTimestampReplies(count: 5)
+        // The server should send an ack timestamp for each command.
+        // These look out of order here in this test because we're calling drawNextFrame() synchronously.
+        // We don't want to enter the drawing tight loop until after sending the flush.
+        // A client in another process should expect see interleaved ack, results, ack, results...
+        assertTimestampReply()
+        assertTimestampReply()
+        assertTimestampReply()
+
+        // The server should send a results record for the clear color and polygon commands.
+        assertCommandResultsReply(commandCode: mglSetClearColor)
+        assertCommandResultsReply(commandCode: mglPolygon)
         XCTAssertFalse(client.dataWaiting())
 
-        // The last timestamp, processed for flush, waits until the start of the next frame.
+        // The last result record, for flush, waits until the start of the next frame.
         drawNextFrame()
-        assertTimestampReplies(count: 1)
+        assertCommandResultsReply(commandCode: mglFlush)
         XCTAssertFalse(client.dataWaiting())
     }
 }

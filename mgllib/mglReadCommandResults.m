@@ -15,7 +15,7 @@
 % Output:
 %
 %   results:        struct array with fields describing command results
-%                   including: 
+%                   including:
 %                       - ackTime: an element of the given ackTime
 %                       - setupTime: an element of the given setupTime
 %                       - processedTime: completion timestamp reported by
@@ -57,11 +57,15 @@ if nargin < 2 || isempty(ackTime)
 end
 
 % Read results one field at a time, across all commands and sockets.
-
-% command code uint16
-% status uint16
+commandCode = mglSocketRead(socketInfo, 'uint16', commandCount);
+success = mglSocketRead(socketInfo, 'uint32', commandCount);
 processedTime = mglSocketRead(socketInfo, 'double', commandCount);
-% other timestamps
+vertexStart = mglSocketRead(socketInfo, 'double', commandCount);
+vertexEnd = mglSocketRead(socketInfo, 'double', commandCount);
+fragmentStart = mglSocketRead(socketInfo, 'double', commandCount);
+fragmentEnd = mglSocketRead(socketInfo, 'double', commandCount);
+drawableAcquired = mglSocketRead(socketInfo, 'double', commandCount);
+drawablePresented = mglSocketRead(socketInfo, 'double', commandCount);
 
 % Deal results to a struct array of size [commandCount, numel(socketInfo)].
 % mglSocketRead represents socket index as the 4th matrix dimension, to
@@ -70,9 +74,17 @@ processedTime = mglSocketRead(socketInfo, 'double', commandCount);
 % dimensions.
 resultSize = [commandCount, numel(socketInfo)];
 results = struct( ...
+    'commandCode', sizeForStruct(commandCode, resultSize), ...
+    'success', sizeForStruct(success, resultSize), ...
     'ackTime', sizeForStruct(ackTime, resultSize), ...
     'setupTime', sizeForStruct(setupTime, resultSize), ...
-    'processedTime', sizeForStruct(processedTime, resultSize));
+    'processedTime', sizeForStruct(processedTime, resultSize), ...
+    'vertexStart', sizeForStruct(vertexStart, resultSize), ...
+    'vertexEnd', sizeForStruct(vertexEnd, resultSize), ...
+    'fragmentStart', sizeForStruct(fragmentStart, resultSize), ...
+    'fragmentEnd', sizeForStruct(fragmentEnd, resultSize), ...
+    'drawableAcquired', sizeForStruct(drawableAcquired, resultSize), ...
+    'drawablePresented', sizeForStruct(drawablePresented, resultSize));
 
 % Convert x to something we can pass to struct():
 %   - a cell array of the expected size

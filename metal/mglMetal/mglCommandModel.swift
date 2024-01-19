@@ -72,6 +72,7 @@ class mglCommand {
  Holder for status and timing around each command, to be set by mglCommandInterface and mglRenderer.
  */
 struct mglCommandResults {
+    var commandCode: mglCommandCode = mglUnknownCommand
     var success: Bool = false
     var ackTime: Double = 0.0
     var processedTime: Double = 0.0
@@ -79,5 +80,6 @@ struct mglCommandResults {
     var vertexEnd: Double = 0.0
     var fragmentStart: Double = 0.0
     var fragmentEnd: Double = 0.0
-    var presented: Double = 0.0
+    var drawableAcquired: Double = 0.0
+    var drawablePresented: Double = 0.0
 }
