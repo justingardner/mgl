@@ -1,4 +1,11 @@
-% Read a uniform struct array of results from some Mgl Metal commands.
+% mglReadCommandResults: Read a results struct for Mgl Metal commands.
+%
+%      usage: results = mglReadCommandResults(socketInfo, ackTime, setupTime, commandCount)
+%         by: Benjamin Heasly
+%       date: 01/19/2024
+%  copyright: (c) 2006 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
+%    purpose: Read a results struct for Mgl Metal commands.
+%      usage: results = mglReadCommandResults(socketInfo, ackTime, setupTime, commandCount)
 %
 % Inputs:
 %
@@ -60,10 +67,10 @@ end
 commandCode = mglSocketRead(socketInfo, 'uint16', commandCount);
 success = mglSocketRead(socketInfo, 'uint32', commandCount);
 processedTime = mglSocketRead(socketInfo, 'double', commandCount);
-vertexStart = mglSocketRead(socketInfo, 'double', commandCount);
-vertexEnd = mglSocketRead(socketInfo, 'double', commandCount);
-fragmentStart = mglSocketRead(socketInfo, 'double', commandCount);
-fragmentEnd = mglSocketRead(socketInfo, 'double', commandCount);
+vertexStart = mglSocketRead(socketInfo, 'double', commandCount) / 1e9;
+vertexEnd = mglSocketRead(socketInfo, 'double', commandCount) / 1e9;
+fragmentStart = mglSocketRead(socketInfo, 'double', commandCount) / 1e9;
+fragmentEnd = mglSocketRead(socketInfo, 'double', commandCount) / 1e9;
 drawableAcquired = mglSocketRead(socketInfo, 'double', commandCount);
 drawablePresented = mglSocketRead(socketInfo, 'double', commandCount);
 

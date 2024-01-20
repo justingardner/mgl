@@ -252,6 +252,7 @@ private class mglOnscreenRenderingConfig : mglColorRenderingConfig {
     func finishDrawing(commandBuffer: MTLCommandBuffer, drawable: CAMetalDrawable) {
         commandBuffer.present(drawable)
         commandBuffer.commit()
+        commandBuffer.waitUntilCompleted()
     }
 
     // frameGrab, since everything is being drawn to a CAMetalDrawable, it does not
@@ -350,8 +351,6 @@ private class mglOffScreenTextureRenderingConfig : mglColorRenderingConfig {
 
         commandBuffer.present(drawable)
         commandBuffer.commit()
-
-        // Wait until the bltCommandEncoder is done syncing data from GPU to CPU.
         commandBuffer.waitUntilCompleted()
     }
 

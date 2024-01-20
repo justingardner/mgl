@@ -32,9 +32,6 @@ class mglRenderer2: NSObject {
     private let gpuTimestampBuffer: MTLCounterSampleBuffer?
     private let cpuTimestampBuffer: MTLBuffer?
 
-    // Remember timing around drawable acquisition and presentation (if OS supports)
-    private var drawablePresentedTime: Double = 0.0
-
     // Utility to get system nano time.
     let secs = mglSecs()
 
@@ -45,8 +42,11 @@ class mglRenderer2: NSObject {
     private let commandInterface: mglCommandInterface
 
     // This holds a flush command from the previous frame.
-    // Its timing results will be filled in at the start of the next frame.
+    // For older systems, we don't know the previous frame is complete until the start of the next frame.
     private var lastFlushCommand: mglCommand? = nil
+
+    // For macOS 11.0 we can try to get the drawable presented time from a system callback.
+    private var lastDrawablePresented: CFTimeInterval = 0.0
 
     // Keep track of depth and stencil state, like creating vs applying a stencil, and which stencil.
     private let depthStencilState: mglDepthStencilState
@@ -139,20 +139,16 @@ extension mglRenderer2: MTKViewDelegate {
     // This is called by the system on a frame-by-frame schedule.
     private func render(in view: MTKView) {
         if (lastFlushCommand != nil) {
-            // This block will execute on the next frame, after we drew graphics and presented a previous frame.
-            // This is a convenient place/time to report what happened on the previous frame.
-
-            // When was the previous frame presented?
-            if drawablePresentedTime == 0.0 {
-                // On older systems this is when we make a best effort to *measure* the presented time.
-                lastFlushCommand!.results.drawablePresented = secs.get()
+            if #available(macOS 10.15.4, *) {
+                // On newer systems we learn about the previous frame presentation time in a callback.
+                // There's a race condition here I'm not sure how to resolve.
+                // I think this timestamp will often be off by one frame.
+                lastFlushCommand!.results.drawablePresented = lastDrawablePresented
             } else {
-                // On macOS 11.0 and later, we can read out the presented time recorded for us by the system.
-                // See the drawable addPresentedHandler(), below.
-                lastFlushCommand!.results.drawablePresented = drawablePresentedTime
+                // On older systems (before macOS 11.0) we wait for the next frame before calling the previous frame complete.
+                // The start of this frame is our best effort to measure the presentation time of the previous frame.
+                lastFlushCommand!.results.drawablePresented = secs.get()
             }
-
-            // We now consider this flush command complete, and we don't expect this block to run until we draw again.
             commandInterface.done(command: lastFlushCommand!)
             lastFlushCommand = nil
         }
@@ -226,20 +222,6 @@ extension mglRenderer2: MTKViewDelegate {
         // Record how long it took to acquire the drawable in response to this drawing command.
         command.results.drawableAcquired = secs.get()
 
-        // If supported, let the system tell us when the drawable was presented.
-        self.drawablePresentedTime = 0.0
-        if #available(macOS 10.15.4, *) {
-            view.currentDrawable?.addPresentedHandler({ [weak self] drawable in
-                // This weak and strong self business is clunky but recommended.
-                // https://developer.apple.com/documentation/metal/mtldrawable/2806858-addpresentedhandler
-                // It prevents circular referencing between self (this mglRenderer2) and the callback itself (also an object).
-                guard let strongSelf = self else {
-                    return
-                }
-                strongSelf.drawablePresentedTime = drawable.presentedTime
-            })
-        }
-
         // This call to getRenderPassDescriptor(view: view) internally calls view.currentRenderPassDescriptor.
         // The call to view.currentRenderPassDescriptor impicitly accessed the view's currentDrawable, as mentioned above.
         // It's possible to swap the order of these calls.
@@ -249,6 +231,7 @@ extension mglRenderer2: MTKViewDelegate {
             commandInterface.done(command: command, success: false)
             return
         }
+
         depthStencilState.configureRenderPassDescriptor(renderPassDescriptor: renderPassDescriptor)
 
         // If supported by OS and GPU, set up to store detailed pipeline stage timestamps during the render pass.
@@ -297,8 +280,8 @@ extension mglRenderer2: MTKViewDelegate {
 
             // We have special case for "repeating" commands which draw across multiple frames.
             if command.framesRemaining > 0 {
-                // Mark this command as done at the start of the next frame.
-                lastFlushCommand = command
+                // Mark this command as done, after it's been presented.
+                setUpDrawablePresentedTimestamp(drawable: drawable, command: command)
 
                 // And also re-add this command so it will be the one processed on the next frame.
                 commandInterface.addNext(command: command)
@@ -349,9 +332,9 @@ extension mglRenderer2: MTKViewDelegate {
         }
 
         // This command is the flush command that got us out of the frame tight loop.
-        // We'll report out timing details from this "lastFlushCommand" at the start of the next frame.
+        // Mark it as done, after it's been presented.
         command.framesRemaining -= 1
-        lastFlushCommand = command
+        setUpDrawablePresentedTimestamp(drawable: drawable, command: command)
 
         //
         // 3. Present the frame representing all commands until "flush".
@@ -363,6 +346,26 @@ extension mglRenderer2: MTKViewDelegate {
         resolveRenderPassGpuTimestamps(commandBuffer: commandBuffer, command: command)
 
         colorRenderingState.finishDrawing(commandBuffer: commandBuffer, drawable: drawable)
+    }
+
+    // Using the "lastFlushCommand" approach actually makes things go faster.
+    // If we wait for drawable presentation before "done"ing the command, we often end up stalling an extra frame.
+    // I think this means:
+    //  - the start of the next "render" is not necessarily after the presentation of the previous frame
+    //  - I think there's a race between these
+    //  - currently, if we lose the race, we miss a frame, which seems to be most of the time but not always
+    //  - we might need a different way to read back frame presentation times - save them for a later query?
+    private func setUpDrawablePresentedTimestamp(drawable: MTLDrawable, command: mglCommand) {
+        self.lastFlushCommand = command
+        if #available(macOS 10.15.4, *) {
+            // If supported, let the system call back to tell us when the drawable was presented.
+            drawable.addPresentedHandler({ [weak self] drawable in
+                guard let strongSelf = self else {
+                    return
+                }
+                strongSelf.lastDrawablePresented = drawable.presentedTime
+            })
+        }
     }
 
     /*
