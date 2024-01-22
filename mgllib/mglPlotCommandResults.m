@@ -26,21 +26,30 @@ if nargin < 4 || isempty(refreshRate)
 end
 expectedFrameTime = 1 / refreshRate;
 
-% Choose a baseline for aligning frames next to each other.
-baseline = zeros(1, numel(flushResults));%[flushResults.fragmentEnd];
-
 figure('Name', figureName);
-title('Frame timing wrt baseline');
+subplot(2, 1, 1);
+plot(1000 * diff([flushResults.drawablePresented]), 'm*');
 grid('on');
-ylabel('seconds');
+ylabel('milliseconds');
+
+subplot(2, 1, 2);
+ylabel('milliseconds');
 xlabel('frame number');
 
-plotTimestamps(drawResults, baseline, 'setupTime', 'draw setup', '.', 'green');
-plotTimestamps(drawResults, baseline, 'ackTime', 'draw ack',  'o', 'green');
-plotTimestamps(drawResults, baseline, 'drawableAcquired', 'drawable acquired', '+', 'magenta');
-plotTimestamps(drawResults, baseline, 'processedTime', 'draw done', 'x', 'green');
+ylim(expectedFrameTime * [-3 1] * 1000);
+
+% Choose a baseline for aligning within each frame.
+baseline = [flushResults.processedTime];
+
+if nargin > 1 && ~isempty(drawResults)
+    plotTimestamps(drawResults, baseline, 'setupTime', 'draw setup', '.', 'green');
+    plotTimestamps(drawResults, baseline, 'ackTime', 'draw ack',  'o', 'green');
+    plotTimestamps(drawResults, baseline, 'drawableAcquired', 'drawable acquired', '+', 'magenta');
+    plotTimestamps(drawResults, baseline, 'processedTime', 'draw done', 'x', 'green');
+end
 
 plotTimestamps(flushResults, baseline, 'ackTime', 'flush ack', 'o', 'black');
+plotTimestamps(flushResults, baseline, 'drawableAcquired', 'drawable acquired', '+', 'magenta');
 plotTimestamps(flushResults, baseline, 'vertexStart', 'vertex start', 'o', 'red');
 plotTimestamps(flushResults, baseline, 'vertexEnd', 'vertex end', '.', 'red');
 plotTimestamps(flushResults, baseline, 'fragmentStart', 'fragment start', 'o', 'blue');
@@ -57,7 +66,7 @@ timestamps = [results.(fieldName)];
 hasData = timestamps ~= 0;
 line( ...
     xAxis(hasData), ...
-    timestamps(hasData) - baseline(hasData), ...
+    1000 * (timestamps(hasData) - baseline(hasData)), ...
     'LineStyle', 'none', ...
     'Marker', marker, ...
     'Color', color, ...

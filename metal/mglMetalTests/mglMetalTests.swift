@@ -156,15 +156,12 @@ class mglMetalTests: XCTestCase {
         // Processing the clear command should have set the view's clear color for future frames.
         assertViewClearColor(r: 0.0, g: 1.0, b: 0.0)
 
-        // The server should send an ack timestamp for each command.
-        // These look out of order here in this test because we're calling drawNextFrame() synchronously.
-        // We don't want to enter the drawing tight loop until after sending the flush.
-        // A client in another process should expect see interleaved ack, results, ack, results...
+        // The server should send an ack timestamp and results record for the clear color command.
         assertTimestampReply()
-        assertTimestampReply()
-
-        // The server should send a result record for the clear color command.
         assertCommandResultsReply(commandCode: mglSetClearColor)
+
+        // It should send the ack timestamp for the flush command as well.
+        assertTimestampReply()
         XCTAssertFalse(client.dataWaiting())
 
         // The last result record, for flush, waits until the start of the next frame.
@@ -229,13 +226,13 @@ class mglMetalTests: XCTestCase {
         assertSuccess(command: clear)
         assertViewClearColor(r: 0.0, g: 0.0, b: 1.0)
 
-        // Processing the flush command should draw the clear color to all pixels.
-        let expectedPixel = RGBAFloat32Pixel(r: 0.0, g: 0.0, b: 1.0, a: 1.0)
-        assertAllOffscreenPixels(expectedPixel: expectedPixel)
-
         // The the processed time for the flush command waits until the start of the next frame.
         drawNextFrame()
         assertSuccess(command: flush)
+
+        // Presenting the frame command should draw the clear color to all pixels.
+        let expectedPixel = RGBAFloat32Pixel(r: 0.0, g: 0.0, b: 1.0, a: 1.0)
+        assertAllOffscreenPixels(expectedPixel: expectedPixel)
     }
 
     func testCommandBatchViaClientBytes() {
@@ -386,17 +383,16 @@ class mglMetalTests: XCTestCase {
         // Consume the commands and present a frame for visual inspection.
         drawNextFrame(sleepSecs: 0.5)
 
-        // The server should send an ack timestamp for each command.
-        // These look out of order here in this test because we're calling drawNextFrame() synchronously.
-        // We don't want to enter the drawing tight loop until after sending the flush.
-        // A client in another process should expect see interleaved ack, results, ack, results...
+        // The server should send an ack timestamp and results record for each command.
         assertTimestampReply()
+        assertCommandResultsReply(commandCode: mglSetClearColor)
+
         assertTimestampReply()
+        assertCommandResultsReply(commandCode: mglPolygon)
+
         assertTimestampReply()
 
         // The server should send a results record for the clear color and polygon commands.
-        assertCommandResultsReply(commandCode: mglSetClearColor)
-        assertCommandResultsReply(commandCode: mglPolygon)
         XCTAssertFalse(client.dataWaiting())
 
         // The last result record, for flush, waits until the start of the next frame.

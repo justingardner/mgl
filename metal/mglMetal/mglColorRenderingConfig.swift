@@ -250,9 +250,6 @@ private class mglOnscreenRenderingConfig : mglColorRenderingConfig {
     }
 
     func finishDrawing(commandBuffer: MTLCommandBuffer, drawable: CAMetalDrawable) {
-        commandBuffer.present(drawable)
-        commandBuffer.commit()
-        commandBuffer.waitUntilCompleted()
     }
 
     // frameGrab, since everything is being drawn to a CAMetalDrawable, it does not
@@ -345,13 +342,10 @@ private class mglOffScreenTextureRenderingConfig : mglColorRenderingConfig {
     }
 
     func finishDrawing(commandBuffer: MTLCommandBuffer, drawable: CAMetalDrawable) {
+        // Make sure the CPU can read the rendering results when we're done.
         let bltCommandEncoder = commandBuffer.makeBlitCommandEncoder()
         bltCommandEncoder?.synchronize(resource: colorTexture)
         bltCommandEncoder?.endEncoding()
-
-        commandBuffer.present(drawable)
-        commandBuffer.commit()
-        commandBuffer.waitUntilCompleted()
     }
 
     // frameGrab, this will write the bytes of the texture into an array

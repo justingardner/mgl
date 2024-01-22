@@ -41,12 +41,10 @@ class mglRenderer2: NSObject {
     // Our command interface communicates with the client process like Matlab.
     private let commandInterface: mglCommandInterface
 
-    // This holds a flush command from the previous frame.
-    // For older systems, we don't know the previous frame is complete until the start of the next frame.
-    private var lastFlushCommand: mglCommand? = nil
-
-    // For macOS 11.0 we can try to get the drawable presented time from a system callback.
-    private var lastDrawablePresented: CFTimeInterval = 0.0
+    // Keep track of one frame in-flight at a time.
+    private var flushInFlight: mglCommand? = nil
+    private var flushInFlightSemaphore = DispatchSemaphore(value: 0)
+    private var lastPresentedTime: CFTimeInterval = 0.0
 
     // Keep track of depth and stencil state, like creating vs applying a stencil, and which stencil.
     private let depthStencilState: mglDepthStencilState
@@ -114,6 +112,13 @@ class mglRenderer2: NSObject {
         // Tell the view that this class will be used as the delegate for draw() and resize() callbacks.
         metalView.delegate = self
 
+        // Get some info about the underlying layer and drawables.
+        let layer = metalView.layer as? CAMetalLayer
+        if layer != nil {
+            logger.info(component: "mglRenderer2", details: "View's CAMetalLayer has maximumDrawableCount: \(layer!.maximumDrawableCount).")
+            logger.info(component: "mglRenderer2", details: "View's CAMetalLayer has displaySyncEnabled: \(layer!.displaySyncEnabled).")
+        }
+
         logger.info(component: "mglRenderer2", details: "Init OK.")
     }
 }
@@ -138,19 +143,16 @@ extension mglRenderer2: MTKViewDelegate {
 
     // This is called by the system on a frame-by-frame schedule.
     private func render(in view: MTKView) {
-        if (lastFlushCommand != nil) {
-            if #available(macOS 10.15.4, *) {
-                // On newer systems we learn about the previous frame presentation time in a callback.
-                // There's a race condition here I'm not sure how to resolve.
-                // I think this timestamp will often be off by one frame.
-                lastFlushCommand!.results.drawablePresented = lastDrawablePresented
-            } else {
-                // On older systems (before macOS 11.0) we wait for the next frame before calling the previous frame complete.
-                // The start of this frame is our best effort to measure the presentation time of the previous frame.
-                lastFlushCommand!.results.drawablePresented = secs.get()
-            }
-            commandInterface.done(command: lastFlushCommand!)
-            lastFlushCommand = nil
+        // Resolve the current flush command in-flight, if any.
+        // This could involve a short wait to make sure:
+        //  - any previous renders to texture are done and synced for CPU access like reading / frame grabbing.
+        //  - any GPU timestamp samples are synced for CPU access and reporting.
+        // We don't expect to wait much, if at all.
+        // But this is a sync point for consistency betweeh CPU and GPU, which in general are asynchronous.
+        if flushInFlight != nil {
+            waitForFlushInFlight()
+            commandInterface.done(command: flushInFlight!)
+            flushInFlight = nil
         }
 
         // Let the command interface read new commands from the client, if any.
@@ -220,7 +222,7 @@ extension mglRenderer2: MTKViewDelegate {
         }
 
         // Record how long it took to acquire the drawable in response to this drawing command.
-        command.results.drawableAcquired = secs.get()
+        let drawableAcquired = secs.get()
 
         // This call to getRenderPassDescriptor(view: view) internally calls view.currentRenderPassDescriptor.
         // The call to view.currentRenderPassDescriptor impicitly accessed the view's currentDrawable, as mentioned above.
@@ -235,7 +237,7 @@ extension mglRenderer2: MTKViewDelegate {
         depthStencilState.configureRenderPassDescriptor(renderPassDescriptor: renderPassDescriptor)
 
         // If supported by OS and GPU, set up to store detailed pipeline stage timestamps during the render pass.
-        // Later, when we have a flush command in hand, we'll read the timestamps into the flush command results.
+        // Later, when we have a flush command in hand, we'll read the timestamps into the flush command's results struct.
         setUpRenderPassGpuTimestamps(renderPassDescriptor: renderPassDescriptor)
 
         // The command buffer and render encoder are how we instruct the GPU to draw things on each frame.
@@ -258,6 +260,7 @@ extension mglRenderer2: MTKViewDelegate {
             // Here at the top of the tight loop, this command is either:
             //  - the command received above with framesRemaining > 0, which initiated this frame's tight loop
             //  - another command received below which is being processed as part of the same frame
+            command.results.drawableAcquired = drawableAcquired
             let drawSuccess = command.draw(
                 logger: logger,
                 view: view,
@@ -272,6 +275,8 @@ extension mglRenderer2: MTKViewDelegate {
                 commandInterface.done(command: command, success: false)
                 renderEncoder.endEncoding()
                 colorRenderingState.finishDrawing(commandBuffer: commandBuffer, drawable: drawable)
+                commandBuffer.present(drawable)
+                commandBuffer.commit()
                 return
             }
 
@@ -280,18 +285,22 @@ extension mglRenderer2: MTKViewDelegate {
 
             // We have special case for "repeating" commands which draw across multiple frames.
             if command.framesRemaining > 0 {
-                // Mark this command as done, after it's been presented.
-                setUpDrawablePresentedTimestamp(drawable: drawable, command: command)
-
-                // And also re-add this command so it will be the one processed on the next frame.
-                commandInterface.addNext(command: command)
-
+                // Done adding drawing commands for this frame.
                 renderEncoder.endEncoding()
 
                 // If supported by OS and GPU, resolve pipeline stage timestamps gethered during the render pass.
                 resolveRenderPassGpuTimestamps(commandBuffer: commandBuffer, command: command)
 
+                // Set up this command as the flush command in-flight.
+                setUpFlushInFlight(drawable: drawable, commandBuffer: commandBuffer, command: command)
+
+                // Present this frame.
                 colorRenderingState.finishDrawing(commandBuffer: commandBuffer, drawable: drawable)
+                commandBuffer.present(drawable)
+                commandBuffer.commit()
+
+                // And also re-add this command so it will be the one processed on the next frame.
+                commandInterface.addNext(command: command)
                 return
             }
 
@@ -319,53 +328,86 @@ extension mglRenderer2: MTKViewDelegate {
                     commandInterface.done(command: command, success: false)
                     renderEncoder.endEncoding()
                     colorRenderingState.finishDrawing(commandBuffer: commandBuffer, drawable: drawable)
+                    commandBuffer.present(drawable)
+                    commandBuffer.commit()
                     return
                 }
 
             } else {
                 // This is unexpected, maybe the client disconnected or sent bad data.
                 // Just end the frame.
+                commandInterface.done(command: command, success: false)
                 renderEncoder.endEncoding()
                 colorRenderingState.finishDrawing(commandBuffer: commandBuffer, drawable: drawable)
+                commandBuffer.present(drawable)
+                commandBuffer.commit()
                 return
             }
         }
-
-        // This command is the flush command that got us out of the frame tight loop.
-        // Mark it as done, after it's been presented.
-        command.framesRemaining -= 1
-        setUpDrawablePresentedTimestamp(drawable: drawable, command: command)
 
         //
         // 3. Present the frame representing all commands until "flush".
         //
 
+        // This command is the flush command that got us out of the frame tight loop.
+        command.results.drawableAcquired = drawableAcquired
+        command.framesRemaining -= 1
+
+        // Done adding drawing commands for this frame.
         renderEncoder.endEncoding()
 
         // If supported by OS and GPU, resolve pipeline stage timestamps gethered during the render pass.
         resolveRenderPassGpuTimestamps(commandBuffer: commandBuffer, command: command)
 
+        // Set up this command as the flush command in-flight.
+        // We'll report this to the client at the start of the next frame's render() call.
+        setUpFlushInFlight(drawable: drawable, commandBuffer: commandBuffer, command: command)
+
+        // Present this frame.
         colorRenderingState.finishDrawing(commandBuffer: commandBuffer, drawable: drawable)
+        commandBuffer.present(drawable)
+        commandBuffer.commit()
     }
 
-    // Using the "lastFlushCommand" approach actually makes things go faster.
-    // If we wait for drawable presentation before "done"ing the command, we often end up stalling an extra frame.
-    // I think this means:
-    //  - the start of the next "render" is not necessarily after the presentation of the previous frame
-    //  - I think there's a race between these
-    //  - currently, if we lose the race, we miss a frame, which seems to be most of the time but not always
-    //  - we might need a different way to read back frame presentation times - save them for a later query?
-    private func setUpDrawablePresentedTimestamp(drawable: MTLDrawable, command: mglCommand) {
-        self.lastFlushCommand = command
+    // Wait for a flush command in-flight, as set up by setUpFlushInFlight().
+    // This waits until we know the command is complete and records a completion timesetamp.
+    private func waitForFlushInFlight() {
+        // Don't start the next command until the previous frame is done processing.
+        // We don't expect this wait to be long, if at all.
+        flushInFlightSemaphore.wait()
         if #available(macOS 10.15.4, *) {
-            // If supported, let the system call back to tell us when the drawable was presented.
+            // The previous drawable.addPresentedHandler() should have filled presented time for the drawable.
+            flushInFlight?.results.drawablePresented = lastPresentedTime
+        } else {
+            // Make a best effort to record a presented time for the previous flush -- now.
+            flushInFlight?.results.drawablePresented = secs.get()
+        }
+    }
+
+    // Set up a flush command as being in-flight, which means:
+    // The client may be blocked, waiting for this command to be complete.
+    // We won't report it as complete until we think the the drawable has been presented.
+    // We'll report this to the client at the start of the next frame's render() call.
+    private func setUpFlushInFlight(drawable: MTLDrawable, commandBuffer: MTLCommandBuffer, command: mglCommand) {
+        if #available(macOS 10.15.4, *) {
+            // If supported, let the system tell us when drawables / frames are presented.
             drawable.addPresentedHandler({ [weak self] drawable in
                 guard let strongSelf = self else {
                     return
                 }
-                strongSelf.lastDrawablePresented = drawable.presentedTime
+                strongSelf.lastPresentedTime = drawable.presentedTime
             })
         }
+
+        // Setting flushInFlight will make us wait for completion at the start of the next frame's render() call.
+        // So, always pair setting flushInFlight with a semaphore signal().
+        // In this case, let the system call back when the command is all done processing, and signal then.
+        // Note: "done processing" means ready to present on the screen,
+        // but actual presentation on the screen may happen later, on the system's schedule.
+        commandBuffer.addCompletedHandler { [flushInFlightSemaphore] commandBuffer in
+            flushInFlightSemaphore.signal()
+        }
+        self.flushInFlight = command
     }
 
     /*

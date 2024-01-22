@@ -13,7 +13,7 @@ class mglLocalServer : mglServer {
 
     let pathToBind: String
     let maxConnections: Int32 = Int32(500)
-    let pollMilliseconds: Int32 = Int32(10)
+    let pollMilliseconds: Int32 = Int32(2)
 
     let boundSocketDescriptor: Int32
     var acceptedSocketDescriptor: Int32 = -1
