@@ -47,25 +47,24 @@ mglFlush();
 
 if (isInteractive)
     input('Hit ENTER to test frame-by-frame texture updates (fullscreen): ');
-    mglFlush();
     mglMetalFullscreen();
     mglPause(0.5);
+    mglFlush();
 
     nFrames = 300;
-    resultCell = cell(1, nFrames);
+    draws = cell(1, nFrames);
+    flushes = cell(1, nFrames);
     shiftedImage = newImage;
     for iFrame = 1:nFrames
         shiftedImage(:,:,1) = circshift(shiftedImage(:,:,1), 1);
         shiftedImage(:,:,2) = circshift(shiftedImage(:,:,2), 1);
         shiftedImage(:,:,3) = circshift(shiftedImage(:,:,3), 1);
-        mglUpdateTexture(tex, shiftedImage);
+        draws{iFrame} = mglUpdateTexture(tex, shiftedImage);
         mglMetalBltTexture(tex,[0 0],0,0,0,0,2,2);
-        resultCell{iFrame} = mglFlush();
+        flushes{iFrame} = mglFlush();
     end
-    results = [resultCell{:}];
-    mglMetalFullscreen(false);
     name = sprintf('frame-by-frame texture updates %d x %d', textureWidth, textureHeight);
-    mglPlotFrameTimes(results, name);
+    mglPlotCommandResults(flushes, draws, name);
 end
 
 % Delete will have little effect, since we're about to mglClose().

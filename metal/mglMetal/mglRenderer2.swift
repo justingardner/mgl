@@ -156,7 +156,11 @@ extension mglRenderer2: MTKViewDelegate {
         }
 
         // Let the command interface read new commands from the client, if any.
-        // This will return after reading in zero or more available commands -- it won't block.
+        // This will wait up to a new milliseconds before timing out.
+        // Waiting a little is good here: it gives the client a chance to compute and send the next command.
+        // If we didn't wait here, the client might miss its chance to draw into this frame,
+        // so we'd drop this frame and wait all the way until the next frame before reading the next command.
+        // However, we dont' want to wait forever, so this won't block indefinitely.
         commandInterface.readAny(device: device)
 
         // Get the next command to be processed from the command interface, if any.

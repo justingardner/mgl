@@ -12,14 +12,16 @@ class mglLocalServer : mglServer {
     let logger: mglLogger
 
     let pathToBind: String
-    let maxConnections: Int32 = Int32(500)
-    let pollMilliseconds: Int32 = Int32(2)
+    let maxConnections: Int32
+    let pollMilliseconds: Int32
 
     let boundSocketDescriptor: Int32
     var acceptedSocketDescriptor: Int32 = -1
 
     init(logger: mglLogger, pathToBind: String, maxConnections: Int32 = Int32(500), pollMilliseconds: Int32 = Int32(10)) {
         self.logger = logger
+        self.maxConnections = maxConnections
+        self.pollMilliseconds = pollMilliseconds
 
         logger.info(component: "mglLocalServer", details: "Starting with path to bind: \(pathToBind)")
         self.pathToBind = pathToBind
@@ -108,12 +110,16 @@ class mglLocalServer : mglServer {
     }
 
     func dataWaiting() -> Bool {
+        return dataWaiting(timeout: pollMilliseconds)
+    }
+
+    func dataWaiting(timeout: Int32) -> Bool {
         var pfd = pollfd()
         pfd.fd = acceptedSocketDescriptor;
         pfd.events = Int16(POLLIN);
         pfd.revents = 0;
         _ = withUnsafeMutablePointer(to: &pfd) {
-            poll($0, 1, pollMilliseconds)
+            poll($0, 1, timeout)
         }
         return pfd.revents == POLLIN
     }

@@ -196,7 +196,8 @@ class mglCommandInterface {
             return
         }
 
-        if batchState == BatchState.building {
+        switch (batchState) {
+        case BatchState.building:
             // Keep reading commands as long as data is available.
             // So we can build up the batch as fast as possible, and not wait for render() calls.
             // This always incurs one polling timeout at the end.
@@ -206,17 +207,27 @@ class mglCommandInterface {
                     todo.append(command!)
                 }
             }
-        } else {
-            // Read up to one command and return as fast as possible.
-            // If there is data waiting, we won't incur any polling timeout.
+        case BatchState.none:
+            // Read up to one command after waiting up to the default timeout.
+            // We might expect a full command here, which might the client a few ms to compute.
+            // If there is data waiting, we won't incur any timeout.
             if server.dataWaiting() {
                 let command = awaitCommand(device: device)
                 if command != nil {
                     todo.append(command!)
                 }
             }
+        case BatchState.processing:
+            // Read up to one command after waiting a short timeout.
+            // We don't expect new, full commands here, but we do want to remain responsive.
+            // If there is data waiting, we won't incur any timeout.
+            if server.dataWaiting(timeout: 1) {
+                let command = awaitCommand(device: device)
+                if command != nil {
+                    todo.append(command!)
+                }
+            }
         }
-
     }
 
     // Make sure there's a command in the todo queue, blocking and waiting if necessary.

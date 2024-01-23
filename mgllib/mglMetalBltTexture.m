@@ -144,7 +144,7 @@ mglSocketWrite(socketInfo, uint32(nVertices));
 mglSocketWrite(socketInfo, single(verticesWithTextureCoordinates));
 mglSocketWrite(socketInfo, single(phase));
 mglSocketWrite(socketInfo, tex.textureNumber);
-results = mglReadCommandResults(socketInfo, ackTime);
+results = mglReadCommandResults(socketInfo, ackTime, setupTime);
 
 % check if processedTime is negative which indicates an error
 if any([results.processedTime] < 0)

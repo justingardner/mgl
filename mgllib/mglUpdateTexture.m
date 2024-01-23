@@ -65,11 +65,13 @@ end
 % mglMetalCreateTexture has additional commentary on this!
 im = permute(im, [3,2,1]);
 
+setupTime = mglGetSecs();
+
 mglSocketWrite(socketInfo, socketInfo(1).command.mglUpdateTexture);
 ackTime = mglSocketRead(socketInfo, 'double');
 mglSocketWrite(socketInfo, uint32(tex.textureNumber));
 mglSocketWrite(socketInfo, uint32(newWidth));
 mglSocketWrite(socketInfo, uint32(newHeight));
 mglSocketWrite(socketInfo, single(im(:)));
-results = mglReadCommandResults(socketInfo, ackTime);
+results = mglReadCommandResults(socketInfo, ackTime, setupTime);
 

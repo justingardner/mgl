@@ -47,8 +47,8 @@ disp('There should be 1000 dots in a circular pattern (Glass) centered in the wi
 mglFlush();
 
 if (isInteractive)
-    %input('Hit ENTER to test moving dots (fullscreen): ');
     mglFlush();
+    input('Hit ENTER to test moving dots (fullscreen): ');
     mglMetalFullscreen;
     mglPause(0.5)
 
@@ -61,11 +61,11 @@ if (isInteractive)
     x = cos(theta).*r;
     y = sin(theta).*r;
 
-    drawResultCell = cell(1, nFrames);
-    flushResultCell = cell(1, nFrames);
+    draws = cell(1, nFrames);
+    flushes = cell(1, nFrames);
     for iFrame = 1:nFrames
-        drawResultCell{iFrame} = mglPoints2(x,y,0.01,[1 1 1]);
-        flushResultCell{iFrame} = mglFlush();
+        draws{iFrame} = mglPoints2(x,y,0.01,[1 1 1]);
+        flushes{iFrame} = mglFlush();
 
         r = r + deltaR;
         theta = theta + deltaTheta;
@@ -74,7 +74,5 @@ if (isInteractive)
         x = cos(theta).*r;
         y = sin(theta).*r;
     end
-    drawResults = [drawResultCell{:}];
-    flushResults = [flushResultCell{:}];
-    mglPlotCommandResults(flushResults, drawResults, 'moving dots');
+    mglPlotCommandResults(flushes, draws, 'moving dots');
 end

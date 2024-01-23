@@ -63,5 +63,9 @@ assert(numel(results) == commandCount, 'Number of batched command results must e
 disp('A red oval and blue polygon should sweep over a green background.');
 
 if (isInteractive)
+    codes = mglSocketCommandTypes();
+    isPolygon = [results.commandCode] == codes.mglPolygon;
+    isFlush = [results.commandCode] == codes.mglFlush;
+    mglPlotCommandResults(results(isFlush), results(isPolygon), "Batch");
     mglPause();
 end

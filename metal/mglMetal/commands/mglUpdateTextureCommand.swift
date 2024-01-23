@@ -16,7 +16,7 @@ class mglUpdateTextureCommand : mglCommand {
     init(textureNumber: UInt32, newTexture: MTLTexture) {
         self.textureNumber = textureNumber
         self.newTexture = newTexture
-        super.init()
+        super.init(framesRemaining: 1)
     }
 
     // This reads the new, incoming texture data into a temporary texture buffer.
@@ -32,7 +32,7 @@ class mglUpdateTextureCommand : mglCommand {
         }
         self.textureNumber = textureNumber
         self.newTexture = newTexture
-        super.init()
+        super.init(framesRemaining: 1)
     }
 
     override func doNondrawingWork(

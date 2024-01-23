@@ -1,4 +1,4 @@
-% mglPlotCommandResults: visualize a sequence of command/frame times.
+% mglPlotCommandResults: plot a sequence of command/frame time records.
 %
 %      usage: mglPlotCommandResults(flushResults)
 %         by: Benjamin Heasly
@@ -14,7 +14,11 @@
 %   drawResults:    struct array of command results from drawing commands,
 %                   over the same frames as flushResults.
 %
-function mglPlotCommandResults(flushResults, drawResults, figureName, refreshRate)
+function f = mglPlotCommandResults(flushes, draws, figureName, refreshRate)
+
+if iscell(flushes)
+    flushes = [flushes{:}];
+end
 
 if nargin < 3 || isempty(figureName)
     figureName = 'Frame Times';
@@ -24,42 +28,59 @@ if nargin < 4 || isempty(refreshRate)
     displays = mglDescribeDisplays();
     refreshRate = displays(1).refreshRate;
 end
-expectedFrameTime = 1 / refreshRate;
+expectedFrameMillis = 1000 / refreshRate;
 
-figure('Name', figureName);
-subplot(2, 1, 1);
-plot(1000 * diff([flushResults.drawablePresented]), 'm*');
+f = figure('Name', figureName);
+
+% Choose flush presentation time as the baseline.
+% Since this is scheduled (in general) and reported (macOS 15.4+) by the
+% system, I expect this to be the steadiest baseline for comparison.
+
+presentationTimes = [flushes.drawablePresented];
+
+% Show the frame-to-frame intervals reported by the system.
+subplot(3, 1, 1);
+plot(1000 * diff(presentationTimes), 'Marker', '*', 'Color', 'magenta');
+plotHorizontal(1, numel(flushes), expectedFrameMillis);
+plotHorizontal(1, numel(flushes), 2 * expectedFrameMillis);
+title('system-reported presentation intervals')
 grid('on');
-ylabel('milliseconds');
+ylabel('ms');
+ylim([0 3 * expectedFrameMillis]);
 
-subplot(2, 1, 2);
-ylabel('milliseconds');
-xlabel('frame number');
-
-ylim(expectedFrameTime * [-3 1] * 1000);
-
-% Choose a baseline for aligning within each frame.
-baseline = [flushResults.processedTime];
-
-if nargin > 1 && ~isempty(drawResults)
-    plotTimestamps(drawResults, baseline, 'setupTime', 'draw setup', '.', 'green');
-    plotTimestamps(drawResults, baseline, 'ackTime', 'draw ack',  'o', 'green');
-    plotTimestamps(drawResults, baseline, 'drawableAcquired', 'drawable acquired', '+', 'magenta');
-    plotTimestamps(drawResults, baseline, 'processedTime', 'draw done', 'x', 'green');
+% Show detailed timing info within each frame relative to baseline.
+subplot(3, 1, 2:3);
+if nargin > 1 && ~isempty(draws)
+    if iscell(draws)
+        draws = [draws{:}];
+    end
+    plotTimestamps(draws, presentationTimes, 'setupTime', 'draw setup', '.', 'green');
+    plotTimestamps(draws, presentationTimes, 'ackTime', 'draw ack',  'o', 'green');
+    plotTimestamps(draws, presentationTimes, 'drawableAcquired', 'drawable acquired', '+', 'magenta');
+    plotTimestamps(draws, presentationTimes, 'processedTime', 'draw done', 'x', 'green');
 end
 
-plotTimestamps(flushResults, baseline, 'ackTime', 'flush ack', 'o', 'black');
-plotTimestamps(flushResults, baseline, 'drawableAcquired', 'drawable acquired', '+', 'magenta');
-plotTimestamps(flushResults, baseline, 'vertexStart', 'vertex start', 'o', 'red');
-plotTimestamps(flushResults, baseline, 'vertexEnd', 'vertex end', '.', 'red');
-plotTimestamps(flushResults, baseline, 'fragmentStart', 'fragment start', 'o', 'blue');
-plotTimestamps(flushResults, baseline, 'fragmentEnd', 'fragment end', '.', 'blue');
-plotTimestamps(flushResults, baseline, 'drawablePresented', 'previous presented', '*', 'magenta');
-plotTimestamps(flushResults, baseline, 'processedTime', 'flush done', 'x', 'black');
+plotTimestamps(flushes, presentationTimes, 'ackTime', 'flush ack', 'o', 'black');
+plotTimestamps(flushes, presentationTimes, 'drawableAcquired', 'drawable acquired', '+', 'magenta');
+plotTimestamps(flushes, presentationTimes, 'vertexStart', 'vertex start', 'o', 'red');
+plotTimestamps(flushes, presentationTimes, 'vertexEnd', 'vertex end', '.', 'red');
+plotTimestamps(flushes, presentationTimes, 'fragmentStart', 'fragment start', 'o', 'blue');
+plotTimestamps(flushes, presentationTimes, 'fragmentEnd', 'fragment end', '.', 'blue');
+plotTimestamps(flushes, presentationTimes, 'drawablePresented', 'previous presented', '*', 'magenta');
+plotTimestamps(flushes, presentationTimes, 'processedTime', 'flush done', 'x', 'black');
 
-legend();
+title('sub-frame timestamps wrt system-reported presentation time')
+grid('on');
+ylabel('ms');
+xlabel('frame number');
+legend('AutoUpdate', 'off');
 
-% Dig out one field of results and plot nonzero values wrt baseline.
+ylim(expectedFrameMillis * [-2 2]);
+plotHorizontal(1, numel(flushes), expectedFrameMillis);
+plotHorizontal(1, numel(flushes), -expectedFrameMillis);
+
+
+%% Dig out one field of results and plot nonzero values wrt baseline.
 function plotTimestamps(results, baseline, fieldName, displayName, marker, color)
 xAxis = 1:numel(baseline);
 timestamps = [results.(fieldName)];
@@ -71,3 +92,13 @@ line( ...
     'Marker', marker, ...
     'Color', color, ...
     'DisplayName', displayName);
+
+
+%% Plot a horizontal line representing an expected frame time.
+function plotHorizontal(left, right, height)
+line( ...
+    [left, right], ...
+    height * [1 1], ...
+    'Marker', 'none', ...
+    'LineStyle', '--', ...
+    'Color', 'red');
