@@ -36,48 +36,47 @@ f = figure('Name', figureName);
 % Since this is scheduled (in general) and reported (macOS 15.4+) by the
 % system, I expect this to be the steadiest baseline for comparison.
 
-presentationTimes = [flushes.drawablePresented];
+lastPresented = [flushes.drawablePresented];
 
-% Show the frame-to-frame intervals reported by the system.
-subplot(3, 1, 1);
-plot(1000 * diff(presentationTimes), 'Marker', '*', 'Color', 'magenta');
-plotHorizontal(1, numel(flushes), expectedFrameMillis);
-plotHorizontal(1, numel(flushes), 2 * expectedFrameMillis);
-title('system-reported presentation intervals')
-grid('on');
-ylabel('ms');
-ylim([0 3 * expectedFrameMillis]);
+% Show when each flush got presented -- which we learn from the next flush.
+% Include the connecting line so we can see frames that went out of bounds.
+line(1:(numel(lastPresented)-1), 1000 * diff(lastPresented), ...
+    'LineStyle', '-', ...
+    'Marker', 'o', ...
+    'Color', 'magenta', ...
+    'DisplayName', 'drawable presented');
 
-% Show detailed timing info within each frame relative to baseline.
-subplot(3, 1, 2:3);
+% Show info about drawing commands, if any.
 if nargin > 1 && ~isempty(draws)
     if iscell(draws)
         draws = [draws{:}];
     end
-    plotTimestamps(draws, presentationTimes, 'setupTime', 'draw setup', '.', 'green');
-    plotTimestamps(draws, presentationTimes, 'ackTime', 'draw ack',  'o', 'green');
-    plotTimestamps(draws, presentationTimes, 'drawableAcquired', 'drawable acquired', '+', 'magenta');
-    plotTimestamps(draws, presentationTimes, 'processedTime', 'draw done', 'x', 'green');
+    plotTimestamps(draws, lastPresented, 'setupTime', 'client setup', '.', 'cyan');
+    plotTimestamps(draws, lastPresented, 'ackTime', 'draw ack',  '.', 'black');
+    plotTimestamps(draws, lastPresented, 'processedTime', 'draw done', 'o', 'black');
 end
 
-plotTimestamps(flushes, presentationTimes, 'ackTime', 'flush ack', 'o', 'black');
-plotTimestamps(flushes, presentationTimes, 'drawableAcquired', 'drawable acquired', '+', 'magenta');
-plotTimestamps(flushes, presentationTimes, 'vertexStart', 'vertex start', 'o', 'red');
-plotTimestamps(flushes, presentationTimes, 'vertexEnd', 'vertex end', '.', 'red');
-plotTimestamps(flushes, presentationTimes, 'fragmentStart', 'fragment start', 'o', 'blue');
-plotTimestamps(flushes, presentationTimes, 'fragmentEnd', 'fragment end', '.', 'blue');
-plotTimestamps(flushes, presentationTimes, 'drawablePresented', 'previous presented', '*', 'magenta');
-plotTimestamps(flushes, presentationTimes, 'processedTime', 'flush done', 'x', 'black');
+% Show lots of detail about flush commands!
+plotTimestamps(flushes, lastPresented, 'vertexStart', 'vertex start', '.', 'red');
+plotTimestamps(flushes, lastPresented, 'vertexEnd', 'vertex end', '.', 'red');
+plotTimestamps(flushes, lastPresented, 'fragmentStart', 'fragment start', '.', 'green');
+plotTimestamps(flushes, lastPresented, 'fragmentEnd', 'fragment end', '.', 'green');
 
-title('sub-frame timestamps wrt system-reported presentation time')
+plotTimestamps(flushes, lastPresented, 'drawableAcquired', 'drawable acquired', '.', 'magenta');
+
+plotTimestamps(flushes, lastPresented, 'ackTime', 'flush ack', '.', 'blue');
+plotTimestamps(flushes, lastPresented, 'processedTime', 'flush done', 'o', 'blue');
+
+title('sub-frame timestamps wrt last drawable presentation')
 grid('on');
 ylabel('ms');
+ylim(expectedFrameMillis * [-1.5 1.5]);
 xlabel('frame number');
+
 legend('AutoUpdate', 'off');
 
-ylim(expectedFrameMillis * [-2 2]);
-plotHorizontal(1, numel(flushes), expectedFrameMillis);
-plotHorizontal(1, numel(flushes), -expectedFrameMillis);
+plotHorizontal(1, numel(flushes), expectedFrameMillis, 'red');
+plotHorizontal(1, numel(flushes), -expectedFrameMillis, 'red');
 
 
 %% Dig out one field of results and plot nonzero values wrt baseline.
@@ -85,8 +84,7 @@ function plotTimestamps(results, baseline, fieldName, displayName, marker, color
 xAxis = 1:numel(baseline);
 timestamps = [results.(fieldName)];
 hasData = timestamps ~= 0;
-line( ...
-    xAxis(hasData), ...
+line(xAxis(hasData), ...
     1000 * (timestamps(hasData) - baseline(hasData)), ...
     'LineStyle', 'none', ...
     'Marker', marker, ...
@@ -95,10 +93,9 @@ line( ...
 
 
 %% Plot a horizontal line representing an expected frame time.
-function plotHorizontal(left, right, height)
-line( ...
-    [left, right], ...
+function plotHorizontal(left, right, height, color)
+line([left, right], ...
     height * [1 1], ...
     'Marker', 'none', ...
     'LineStyle', '--', ...
-    'Color', 'red');
+    'Color', color);

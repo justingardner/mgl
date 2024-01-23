@@ -84,7 +84,7 @@ mglClose;
 %%%%%%%%%%%%%%
 function d = parseArgs(args,d)
 
-getArgs(args,{'screenNum=1','runTests=[]','testLen=5','dropThreshold=0.1','numQuads=250','numPoints=10000','bltSize=[]','numBlt=30','initWaitTime=1','n=[]','photoDiodeTest=0','photoDiodeRect=[-1 -1 0.5 0.5]','photoDiodeColor=[1 1 1]'});
+getArgs(args,{'screenNum=1','runTests=[]','testLen=5','dropThreshold=0.1','numQuads=250','numPoints=10000','bltSize=[]','numBlt=30','initWaitTime=1','n=[]','photoDiodeTest=0','photoDiodeRect=[-1 -1 0.5 0.5]','photoDiodeColor=[1 1 1]', 'batchMode=0'});
 
 % set some parameters
 d.screenNum = screenNum;
@@ -109,6 +109,9 @@ d.photoDiodeRect = photoDiodeRect;
 d.photoDiodeColor = photoDiodeColor;
 d.photoDiodeX = [d.photoDiodeRect(1) d.photoDiodeRect(1) d.photoDiodeRect(1)+d.photoDiodeRect(3) d.photoDiodeRect(1)+d.photoDiodeRect(3)]';
 d.photoDiodeY = [d.photoDiodeRect(2) d.photoDiodeRect(2)+d.photoDiodeRect(4) d.photoDiodeRect(2)+d.photoDiodeRect(4) d.photoDiodeRect(2)]';
+
+d.batchMode = batchMode;
+
 %%%%%%%%%%%%%%
 % testFlush
 %%%%%%%%%%%%%%
@@ -117,7 +120,12 @@ function d = testFlush(d)
 d.testName = 'Flush test';
 disppercent(-inf,sprintf('(mglTestRenderPipeline) Testing flush. Please wait %0.1f secs',d.testLen));
 
+if d.batchMode
+    mglMetalStartBatch();
+end
+
 % do the appropriate number of flush
+flushes = cell(1, d.numFrames);
 for iFrame = 1:d.numFrames
   % get start time of frame
   d.timeVec(1,iFrame) = mglGetSecs;
@@ -132,11 +140,22 @@ for iFrame = 1:d.numFrames
   end
   
   % and flush
-  results = mglFlush();
-  d.timeVec(5,iFrame) = results.ackTime;
-  d.timeVec(6,iFrame) = results.processedTime;
+  flushes{iFrame} = mglFlush();
+  d.timeVec(5,iFrame) = flushes{iFrame}.ackTime;
+  d.timeVec(6,iFrame) = flushes{iFrame}.processedTime;
   % and record time
   d.timeVec(7,iFrame) = mglGetSecs;
+end
+
+if d.batchMode
+    mglMetalProcessBatch();
+    commands = mglMetalFinishBatch();
+    codes = mglSocketCommandTypes();
+    d.flushes = commands([commands.commandCode] == codes.mglFlush);
+    d.draws = [];
+else
+    d.flushes = flushes;
+    d.draws = [];
 end
 
 disppercent(inf);
@@ -149,26 +168,46 @@ function d = testQuads(d)
 d.testName = sprintf('%i Quads test',d.numQuads);
 disppercent(-inf,sprintf('(mglTestRenderPipeline) Testing quads. Please wait %0.1f secs',d.testLen));
 
+if d.batchMode
+    mglMetalStartBatch();
+end
+
 % do the appropriate number of flush
+draws = cell(1, d.numFrames);
+flushes = cell(1, d.numFrames);
 for iFrame = 1:d.numFrames
   % get start time of frame
   d.timeVec(1,iFrame) = mglGetSecs;
   % draw quads
-  drawResults = mglQuad(2*rand(4,d.numQuads)-1,2*rand(4,d.numQuads)-1,rand(3,d.numQuads));
-  d.timeVec(3,iFrame) = drawResults.ackTime;
-  d.timeVec(4,iFrame) = drawResults.processedTime;
-  d.timeVec(2,iFrame) = drawResults.setupTime;
+  draws{iFrame} = mglQuad(2*rand(4,d.numQuads)-1,2*rand(4,d.numQuads)-1,rand(3,d.numQuads));
+  d.timeVec(3,iFrame) = draws{iFrame}.ackTime;
+  d.timeVec(4,iFrame) = draws{iFrame}.processedTime;
+  d.timeVec(2,iFrame) = draws{iFrame}.setupTime;
   % draw photoDiodeRect if need be
   if d.photoDiodeTest
     if iseven(iFrame), photoDiodeColor = d.photoDiodeColor; else photoDiodeColor = [0 0 0]; end
     mglQuad(d.photoDiodeX,d.photoDiodeY,photoDiodeColor);
   end
   % and flush
-  results = mglFlush();
-  d.timeVec(5,iFrame) = results.ackTime;
-  d.timeVec(6,iFrame) = results.processedTime;
+  flushes{iFrame} = mglFlush();
+  d.timeVec(5,iFrame) = flushes{iFrame}.ackTime;
+  d.timeVec(6,iFrame) = flushes{iFrame}.processedTime;
   % and record time
   d.timeVec(7,iFrame) = mglGetSecs;
+end
+
+if d.batchMode
+    mglMetalProcessBatch();
+    commands = mglMetalFinishBatch();
+    codes = mglSocketCommandTypes();
+    d.flushes = commands([commands.commandCode] == codes.mglFlush);
+
+    % TODO: this would break if photoDiodeTest also draws quds.
+    % Add a correlation ID to commands?
+    d.draws = commands([commands.commandCode] == codes.mglQuad);
+else
+    d.flushes = flushes;
+    d.draws = draws;
 end
 
 disppercent(inf);
@@ -181,26 +220,43 @@ function d = testPoints(d)
 d.testName = sprintf('%i dots test',d.numPoints);
 disppercent(-inf,sprintf('(mglTestRenderPipeline) Testing dots. Please wait %0.1f secs',d.testLen));
 
+if d.batchMode
+    mglMetalStartBatch();
+end
+
 % do the appropriate number of flush
+draws = cell(1, d.numFrames);
+flushes = cell(1, d.numFrames);
 for iFrame = 1:d.numFrames
   % get start time of frame
   d.timeVec(1,iFrame) = mglGetSecs;
   % draw dots
-  drawResults = mglPoints2c(2*rand(1,d.numPoints)-1,2*rand(1,d.numPoints)-1,0.005*ones(d.numPoints,2),rand(1,d.numPoints),rand(1,d.numPoints),rand(1,d.numPoints));
-  d.timeVec(3,iFrame) = drawResults.ackTime;
-  d.timeVec(4,iFrame) = drawResults.processedTime;
-  d.timeVec(2,iFrame) = drawResults.setupTime;
+  draws{iFrame} = mglPoints2c(2*rand(1,d.numPoints)-1,2*rand(1,d.numPoints)-1,0.005*ones(d.numPoints,2),rand(1,d.numPoints),rand(1,d.numPoints),rand(1,d.numPoints));
+  d.timeVec(3,iFrame) = draws{iFrame}.ackTime;
+  d.timeVec(4,iFrame) = draws{iFrame}.processedTime;
+  d.timeVec(2,iFrame) = draws{iFrame}.setupTime;
   % draw photoDiodeRect if need be
   if d.photoDiodeTest
     if iseven(iFrame), photoDiodeColor = d.photoDiodeColor; else photoDiodeColor = [0 0 0]; end
     mglQuad(d.photoDiodeX,d.photoDiodeY,photoDiodeColor);
   end
   % and flush
-  results = mglFlush();
-  d.timeVec(5,iFrame) = results.ackTime;
-  d.timeVec(6,iFrame) = results.processedTime;
+  flushes{iFrame} = mglFlush();
+  d.timeVec(5,iFrame) = flushes{iFrame}.ackTime;
+  d.timeVec(6,iFrame) = flushes{iFrame}.processedTime;
   % and record time
   d.timeVec(7,iFrame) = mglGetSecs;
+end
+
+if d.batchMode
+    mglMetalProcessBatch();
+    commands = mglMetalFinishBatch();
+    codes = mglSocketCommandTypes();
+    d.flushes = commands([commands.commandCode] == codes.mglFlush);
+    d.draws = commands([commands.commandCode] == codes.mglDots);
+else
+    d.flushes = flushes;
+    d.draws = draws;
 end
 
 disppercent(inf);
@@ -226,26 +282,43 @@ disppercent(inf);
 d.testName = sprintf('%ix%i n=%i Blt test',d.bltSize(1),d.bltSize(2),d.numBlt);
 disppercent(-inf,sprintf('(mglTestRenderPipeline) Testing %s. Please wait %0.1f secs',d.testName,d.testLen));
 
+if d.batchMode
+    mglMetalStartBatch();
+end
+
 % do the appropriate number of flush
+draws = cell(1, d.numFrames);
+flushes = cell(1, d.numFrames);
 for iFrame = 1:d.numFrames
   % get start time of frame
   d.timeVec(1,iFrame) = mglGetSecs;
   % draw texture
-  drawResults = mglBltTexture(tex(mod(iFrame,d.numBlt)+1),[0 0 2 2]);
-  d.timeVec(3,iFrame) = drawResults.ackTime;
-  d.timeVec(4,iFrame) = drawResults.processedTime;
-  d.timeVec(2,iFrame) = drawResults.setupTime;
+  draws{iFrame} = mglBltTexture(tex(mod(iFrame,d.numBlt)+1),[0 0 2 2]);
+  d.timeVec(3,iFrame) = draws{iFrame}.ackTime;
+  d.timeVec(4,iFrame) = draws{iFrame}.processedTime;
+  d.timeVec(2,iFrame) = draws{iFrame}.setupTime;
   % draw photoDiodeRect if need be
   if d.photoDiodeTest
     if iseven(iFrame), photoDiodeColor = d.photoDiodeColor; else photoDiodeColor = [0 0 0]; end
     mglQuad(d.photoDiodeX,d.photoDiodeY,photoDiodeColor);
   end
   % and flush
-  results = mglFlush();
-  d.timeVec(5,iFrame) = results.ackTime;
-  d.timeVec(6,iFrame) = results.processedTime;
+  flushes{iFrame} = mglFlush();
+  d.timeVec(5,iFrame) = flushes{iFrame}.ackTime;
+  d.timeVec(6,iFrame) = flushes{iFrame}.processedTime;
   % and record time
   d.timeVec(7,iFrame) = mglGetSecs;
+end
+
+if d.batchMode
+    mglMetalProcessBatch();
+    commands = mglMetalFinishBatch();
+    codes = mglSocketCommandTypes();
+    d.flushes = commands([commands.commandCode] == codes.mglFlush);
+    d.draws = commands([commands.commandCode] == codes.mglBltTexture);
+else
+    d.flushes = flushes;
+    d.draws = draws;
 end
 
 disppercent(inf);
@@ -258,26 +331,43 @@ function d = testClearScreen(d)
 d.testName = sprintf('Clear screen test');
 disppercent(-inf,sprintf('(mglTestRenderPipeline) Testing clear screen. Please wait %0.1f secs',d.testLen));
 
+if d.batchMode
+    mglMetalStartBatch();
+end
+
 % do the appropriate number of flush
+draws = cell(1, d.numFrames);
+flushes = cell(1, d.numFrames);
 for iFrame = 1:d.numFrames
   % get start time of frame
   d.timeVec(1,iFrame) = mglGetSecs;
   % set the clear color
-  drawResults = mglClearScreen(rand(1,3));
-  d.timeVec(3,iFrame) = drawResults.ackTime;
-  d.timeVec(4,iFrame) = drawResults.processedTime;
-  d.timeVec(2,iFrame) = drawResults.setupTime;
+  draws{iFrame} = mglClearScreen(rand(1,3));
+  d.timeVec(3,iFrame) = draws{iFrame}.ackTime;
+  d.timeVec(4,iFrame) = draws{iFrame}.processedTime;
+  d.timeVec(2,iFrame) = draws{iFrame}.setupTime;
   % draw photoDiodeRect if need be
   if d.photoDiodeTest
     if iseven(iFrame), photoDiodeColor = d.photoDiodeColor; else photoDiodeColor = [0 0 0]; end
     mglQuad(d.photoDiodeX,d.photoDiodeY,photoDiodeColor);
   end
   % and flush
-  results = mglFlush();
-  d.timeVec(5,iFrame) = results.ackTime;
-  d.timeVec(6,iFrame) = results.processedTime;
+  flushes{iFrame} = mglFlush();
+  d.timeVec(5,iFrame) = flushes{iFrame}.ackTime;
+  d.timeVec(6,iFrame) = flushes{iFrame}.processedTime;
   % and record time
   d.timeVec(7,iFrame) = mglGetSecs;
+end
+
+if d.batchMode
+    mglMetalProcessBatch();
+    commands = mglMetalFinishBatch();
+    codes = mglSocketCommandTypes();
+    d.flushes = commands([commands.commandCode] == codes.mglFlush);
+    d.draws = commands([commands.commandCode] == codes.mglSetClearColor);
+else
+    d.flushes = flushes;
+    d.draws = draws;
 end
 
 disppercent(inf);
@@ -309,3 +399,12 @@ dropFrames = sum((d.timeVec(end,:)-d.timeVec(1,:)) > ((1+d.dropThreshold)/d.fram
 title(sprintf('(%s) %i fames took longer than %0.1f%% than expected at %i Hz',d.testName,dropFrames,100*d.dropThreshold,d.frameRate));
 
 legend('Matlab setup','Draw commands Ack','Draw commands Processed','Flush Ack','Flush processed','End of frame loop');
+
+% Plot sub-frame timestamps, too -- which is relatively new.
+% There might be a good way to consolidate this new plot with the existing.
+if d.batchMode
+    figureName = [d.testName ' (batch)'];
+else
+    figureName = [d.testName ' (interactive)'];
+end
+mglPlotCommandResults(d.flushes, d.draws, figureName);
