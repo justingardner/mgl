@@ -22,8 +22,8 @@ These can drive Mgl Metal with formatted bytes, like the Matlab client, or by pa
 
 ### command interface
 
-The Mgl Metal [command interface](metal/mglMetal/mglCommandInterface.swift) uses a [socket server](metal/mglMetal/mglServer.swift) to receive formatted bytes from the client.
-Based on specific [command codes](metal/mglMetal/mglCommandTypes.h) received, it instantiates command objects and adds these to its **todo** queue for processing.
+The Mgl Metal [command interface](mglMetal/mglCommandInterface.swift) uses a [socket server](mglMetal/mglServer.swift) to receive formatted bytes from the client.
+Based on specific [command codes](mglMetal/mglCommandTypes.h) received, it instantiates command objects and adds these to its **todo** queue for processing.
 
 The command interface also takes processed commands from its **done** queue and writes timing and other results to the socket for the client to read.
 
@@ -32,7 +32,7 @@ Instead, it lets the renderer component (below) do the processing.  It exposes t
 
 ### renderer
 
-The Mgl Metal [renderer](metal/mglMetal/mglRenderer2.swift) takes one command at a time from the command interface (above) and processes it.  Processing a command can include getting or setting the state of the Mgl Metal app itself, and/or rendering graphics.
+The Mgl Metal [renderer](mglMetal/mglRenderer2.swift) takes one command at a time from the command interface (above) and processes it.  Processing a command can include getting or setting the state of the Mgl Metal app itself, and/or rendering graphics.
 
 The renderer manages short-lived system resources for each frame including:
 
@@ -41,8 +41,8 @@ The renderer manages short-lived system resources for each frame including:
 
 The renderer also manages its own long-lived state including:
 
- - [depth and stencil state](metal/mglMetal/mglDepthStencilConfig.swift) for stencils being created or applied
- - [color rendering state](metal/mglMetal/mglColorRenderingConfig.swift) for the onscreen pixel format, custom textures, and onscreen vs offscreen rendering targets
+ - [depth and stencil state](mglMetal/mglDepthStencilConfig.swift) for stencils being created or applied
+ - [color rendering state](mglMetal/mglColorRenderingConfig.swift) for the onscreen pixel format, custom textures, and onscreen vs offscreen rendering targets
  - the `deg2metal` coordinate transform matrix applied to rendered scenes
  - the system's GPU device
 
@@ -50,7 +50,7 @@ The renderer doesn't know the details of any particular command or how these get
 
 ### command model
 
-The Mgl Metal [command model](metal/mglMetal/mglCommandModel.swift) is an abstraction that covers all commands, allowing them to fit a common shape expected by the command interface and the renderer.  Within this model, each command is free to manage its own details.  Mgl Metal has many specific command [implementations](https://github.com/justingardner/mgl/tree/commandModel/metal/mglMetal/commands) for different tasks.
+The Mgl Metal [command model](mglMetal/mglCommandModel.swift) is an abstraction that covers all commands, allowing them to fit a common shape expected by the command interface and the renderer.  Within this model, each command is free to manage its own details.  Mgl Metal has many specific command [implementations](https://github.com/justingardner/mgl/tree/commandModel/metal/mglMetal/commands) for different tasks.
 
 Once a command object is read from the socket and initialized it is considered ready for processing, either immediately or at a later time.  This means each command must store its own parameters and data.  usually this means reading command-specific values from the command interface as part of a command's `init?()` method.  Some commands will also write data to GPU buffers during `init()?`, and store references the buffers.
 
@@ -67,15 +67,15 @@ Here's sequential walkthrough of how a command moves through the app.
 
 ### 1. initialized from client bytes
 
-A command starts when a connected client sends a [command code](metal/mglMetal/mglCommandTypes.h) to the socket server.
+A command starts when a connected client sends a [command code](mglMetal/mglCommandTypes.h) to the socket server.
 The command interface reads this code and sends back an **ack** timestamp to the client.
 Based on the specific command code the command interface chooses a command implementation and calls its `init?()` method, to obtain a new command object.
 
 Here are some examples of command initialization and `init?()` implementations:
 
- - [mglFlushCommand](metal/mglMetal/commands/mglFlushCommand.swift) requires no parameters or other data and initializes unconditionally.
- - [mglSetClearColorCommand](metal/mglMetal/commands/mglSetClearColorCommand.swift) requires a color paramter.  It attempts to read this color from the command interface and stores the result in one of its own fields.
- - [mglDotsCommand](metal/mglMetal/commands/mglDotsCommand.swift) requires vertex data.  It attempts to read a vertex array from the command interface and stores the result directly to a GPU device buffer.
+ - [mglFlushCommand](mglMetal/commands/mglFlushCommand.swift) requires no parameters or other data and initializes unconditionally.
+ - [mglSetClearColorCommand](mglMetal/commands/mglSetClearColorCommand.swift) requires a color paramter.  It attempts to read this color from the command interface and stores the result in one of its own fields.
+ - [mglDotsCommand](mglMetal/commands/mglDotsCommand.swift) requires vertex data.  It attempts to read a vertex array from the command interface and stores the result directly to a GPU device buffer.
 
 Once initialized commands are considered complete and ready for processing, either immediately or at a later time.
 
@@ -97,17 +97,17 @@ This is a chance for the command to get or set the state of the Mgl Metal app an
 
 Here are some examples of non-drawing work:
 
- - [mglSetClearColorCommand](metal/mglMetal/commands/mglSetClearColorCommand.swift) updates the clear color of the app's Metal View, to be applied to the next rendering pass.
- - [mglCreateTextureCommand](metal/mglMetal/commands/mglCreateTextureCommand.swift) initializes a new Metal texture and remembers its new texture number, to return to the client.
- - [mglDotsCommand](metal/mglMetal/commands/mglDotsCommand.swift) uses the default no-op, since it's only interested in drawing (below).
+ - [mglSetClearColorCommand](mglMetal/commands/mglSetClearColorCommand.swift) updates the clear color of the app's Metal View, to be applied to the next rendering pass.
+ - [mglCreateTextureCommand](mglMetal/commands/mglCreateTextureCommand.swift) initializes a new Metal texture and remembers its new texture number, to return to the client.
+ - [mglDotsCommand](mglMetal/commands/mglDotsCommand.swift) uses the default no-op, since it's only interested in drawing (below).
 
 Some commands will be complete here.  Others will also want to draw graphics.  When the renderer gets a drawing command it will set up a Metal render pass and enter a tight loop to receive additional commands that should `draw()` into the same frame.  Each of these commands will have `doNondrawingWork()` and `draw()` called before being added to the command interface's **done** queue.
 
 Here are some drawing examples:
 
- - [mglDotsCommand](metal/mglMetal/commands/mglDotsCommand.swift) encodes Metal commands for the current render pass in order to send its vertex data through the Mgl Metal "dots" shaders.
- - [mglSetClearColorCommand](metal/mglMetal/commands/mglSetClearColorCommand.swift) and [mglCreateTextureCommand](metal/mglMetal/commands/mglCreateTextureCommand.swift) use the default no-op `draw()` implementation.  These can be used during a rendering tight loop to modify the state of the app, but they won't draw anything.
- - [mglFlushCommand](metal/mglMetal/commands/mglFlushCommand.swift) is a special case that tells the app to exit the drawing tight loop, end the rendering pass, and present the current frame.
+ - [mglDotsCommand](mglMetal/commands/mglDotsCommand.swift) encodes Metal commands for the current render pass in order to send its vertex data through the Mgl Metal "dots" shaders.
+ - [mglSetClearColorCommand](mglMetal/commands/mglSetClearColorCommand.swift) and [mglCreateTextureCommand](mglMetal/commands/mglCreateTextureCommand.swift) use the default no-op `draw()` implementation.  These can be used during a rendering tight loop to modify the state of the app, but they won't draw anything.
+ - [mglFlushCommand](mglMetal/commands/mglFlushCommand.swift) is a special case that tells the app to exit the drawing tight loop, end the rendering pass, and present the current frame.
 
 ### 4. added to **done**
 
@@ -125,9 +125,9 @@ Each **done** command is reported back to the client including:
 
 First, the command interface calls a command's `writeQueryResults()` method to send optional, command-specific data.  Here are some examples of command-specific query results:
 
- - [mglCreateTextureCommand](metal/mglMetal/commands/mglCreateTextureCommand.swift) writes the new texture number of its new texture to the command interface.
- - [mglReadTextureCommand](metal/mglMetal/commands/mglReadTextureCommand.swift) does a sanity check to see if it has texture image data to report.  If not, it writes a negative "heads up" to the client indicating that no image data will follow.  Otherwise, it writes a positive "heads up" followed by image data.
- - [mglDotsCommand](metal/mglMetal/commands/mglDotsCommand.swift) uses the default-no-op since it has no command-specific results to report to the client.
+ - [mglCreateTextureCommand](mglMetal/commands/mglCreateTextureCommand.swift) writes the new texture number of its new texture to the command interface.
+ - [mglReadTextureCommand](mglMetal/commands/mglReadTextureCommand.swift) does a sanity check to see if it has texture image data to report.  If not, it writes a negative "heads up" to the client indicating that no image data will follow.  Otherwise, it writes a positive "heads up" followed by image data.
+ - [mglDotsCommand](mglMetal/commands/mglDotsCommand.swift) uses the default-no-op since it has no command-specific results to report to the client.
 
 Finally, the command interface writes a standard record of staus and timing for each command.  These results are gathered automatically by the command interface and the renderer and assigned to commands wherever applicable and available.  They include:
 
@@ -142,6 +142,6 @@ Finally, the command interface writes a standard record of staus and timing for 
  - `drawableAcquired` CPU time when Mgl Metal got hold of the system drawable for a frame (for flush and drawing commands)
  - `drawablePresented` CPU time when the system presented the drawable for the previous frame (for flush commands)
 
-The Matlab client expects all these fields to be reported for each command and reads the results with [mglReadCommandResults](mgllib/mglReadCommandResults.m).
+The Matlab client expects all these fields to be reported for each command and reads the results with [mglReadCommandResults](../mgllib/mglReadCommandResults.m).
 
 Once a command has been reported back to the client, it ends and goes away.
