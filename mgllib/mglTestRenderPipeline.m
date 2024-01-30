@@ -121,7 +121,7 @@ d.testName = 'Flush test';
 disppercent(-inf,sprintf('(mglTestRenderPipeline) Testing flush. Please wait %0.1f secs',d.testLen));
 
 if d.batchMode
-    mglMetalStartBatch();
+    batchInfo = mglMetalStartBatch();
 end
 
 % do the appropriate number of flush
@@ -148,8 +148,8 @@ for iFrame = 1:d.numFrames
 end
 
 if d.batchMode
-    mglMetalProcessBatch();
-    commands = mglMetalFinishBatch();
+    batchInfo = mglMetalProcessBatch(batchInfo);
+    commands = mglMetalFinishBatch(batchInfo);
     codes = mglSocketCommandTypes();
     d.flushes = commands([commands.commandCode] == codes.mglFlush);
     d.draws = [];
@@ -169,7 +169,7 @@ d.testName = sprintf('%i Quads test',d.numQuads);
 disppercent(-inf,sprintf('(mglTestRenderPipeline) Testing quads. Please wait %0.1f secs',d.testLen));
 
 if d.batchMode
-    mglMetalStartBatch();
+    batchInfo = mglMetalStartBatch();
 end
 
 % do the appropriate number of flush
@@ -197,8 +197,8 @@ for iFrame = 1:d.numFrames
 end
 
 if d.batchMode
-    mglMetalProcessBatch();
-    commands = mglMetalFinishBatch();
+    batchInfo = mglMetalProcessBatch(batchInfo);
+    commands = mglMetalFinishBatch(batchInfo);
     codes = mglSocketCommandTypes();
     d.flushes = commands([commands.commandCode] == codes.mglFlush);
 
@@ -221,7 +221,7 @@ d.testName = sprintf('%i dots test',d.numPoints);
 disppercent(-inf,sprintf('(mglTestRenderPipeline) Testing dots. Please wait %0.1f secs',d.testLen));
 
 if d.batchMode
-    mglMetalStartBatch();
+    batchInfo = mglMetalStartBatch();
 end
 
 % do the appropriate number of flush
@@ -249,8 +249,8 @@ for iFrame = 1:d.numFrames
 end
 
 if d.batchMode
-    mglMetalProcessBatch();
-    commands = mglMetalFinishBatch();
+    batchInfo = mglMetalProcessBatch(batchInfo);
+    commands = mglMetalFinishBatch(batchInfo);
     codes = mglSocketCommandTypes();
     d.flushes = commands([commands.commandCode] == codes.mglFlush);
     d.draws = commands([commands.commandCode] == codes.mglDots);
@@ -283,7 +283,7 @@ d.testName = sprintf('%ix%i n=%i Blt test',d.bltSize(1),d.bltSize(2),d.numBlt);
 disppercent(-inf,sprintf('(mglTestRenderPipeline) Testing %s. Please wait %0.1f secs',d.testName,d.testLen));
 
 if d.batchMode
-    mglMetalStartBatch();
+    batchInfo = mglMetalStartBatch();
 end
 
 % do the appropriate number of flush
@@ -311,8 +311,8 @@ for iFrame = 1:d.numFrames
 end
 
 if d.batchMode
-    mglMetalProcessBatch();
-    commands = mglMetalFinishBatch();
+    batchInfo = mglMetalProcessBatch(batchInfo);
+    commands = mglMetalFinishBatch(batchInfo);
     codes = mglSocketCommandTypes();
     d.flushes = commands([commands.commandCode] == codes.mglFlush);
     d.draws = commands([commands.commandCode] == codes.mglBltTexture);
@@ -332,7 +332,7 @@ d.testName = sprintf('Clear screen test');
 disppercent(-inf,sprintf('(mglTestRenderPipeline) Testing clear screen. Please wait %0.1f secs',d.testLen));
 
 if d.batchMode
-    mglMetalStartBatch();
+    batchInfo = mglMetalStartBatch();
 end
 
 % do the appropriate number of flush
@@ -360,8 +360,8 @@ for iFrame = 1:d.numFrames
 end
 
 if d.batchMode
-    mglMetalProcessBatch();
-    commands = mglMetalFinishBatch();
+    batchInfo = mglMetalProcessBatch(batchInfo);
+    commands = mglMetalFinishBatch(batchInfo);
     codes = mglSocketCommandTypes();
     d.flushes = commands([commands.commandCode] == codes.mglFlush);
     d.draws = commands([commands.commandCode] == codes.mglSetClearColor);
@@ -382,9 +382,13 @@ figure;
 % plot the data
 plot(1000*(d.timeVec(2,:)-d.timeVec(1,:)),'c.'); hold on
 plot(1000*(d.timeVec(3,:)-d.timeVec(1,:)),'k.');
-plot(1000*(d.timeVec(4,:)-d.timeVec(1,:)),'g.');
+if ~all([d.timeVec(4,:)] == 0)
+    plot(1000*(d.timeVec(4,:)-d.timeVec(1,:)),'g.');
+end
 plot(1000*(d.timeVec(5,:)-d.timeVec(1,:)),'b.');
-plot(1000*(d.timeVec(6,:)-d.timeVec(1,:)),'bo');
+if ~all([d.timeVec(4,:)] == 0)
+    plot(1000*(d.timeVec(6,:)-d.timeVec(1,:)),'bo');
+end
 plot(1000*(d.timeVec(end,:)-d.timeVec(1,:)),'r.');
 hline(1000/d.frameRate,'r');
 hline((1+d.dropThreshold)*(1000/d.frameRate),'r:');

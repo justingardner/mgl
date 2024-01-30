@@ -1,14 +1,19 @@
 % mglMetalProcessBatch: start processing Metal commands enqueued earlier.
 %
-%      usage: ackTime = mglMetalProcessBatch()
+%      usage: batchInfo = mglMetalProcessBatch(batchInfo)
 %         by: ben heasly
 %       date: 01/12/2024
 %  copyright: (c) 2006 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
 %    purpose: Put the Mgl Metal app into its batch "processing" state.
-%      usage: ackTime = mglMetalProcessBatch()
+%      usage: batchInfo = mglMetalProcessBatch(batchInfo)
+%
+%             Inputs:
+%               - batchInfo - a struct of batch info and timestamps, as
+%                             from mglMetalStartBatch()
 %
 %             Returns:
-%               - ackTime, a timestamp confirming the state change
+%               - batchInfo - the given struct with a processing start
+%                             timestamp
 %
 %             In batch "processing" state, the MglMetal is focused on
 %             command processing and rendering but not communicating with
@@ -28,7 +33,7 @@
 %
 %             % Here's a command batch example.
 %             mglOpen();
-%             mglMetalStartBatch();
+%             batchInfo = mglMetalStartBatch();
 %
 %             % Queue up three frames, each with a different clear color.
 %             % This part is all communication and no processing.
@@ -41,22 +46,23 @@
 %
 %             % Let the Mgl Metal app process the batch as fast as if can.
 %             % This part is all processing and no communication.
-%             mglMetalProcessBatch();
+%             batchInfo = mglMetalProcessBatch(batchInfo);
 %
 %             % Potentially do other things while the batch is going.
 %             disp('A batch is running asynchronously!')
 %
 %             % Wait for the batch to finish.
 %             % This should give us 6 results, one for each queued command.
-%             results = mglMetalFinishBatch()
+%             % Passing in batchInfo converts GPU timestamps to CPU time.
+%             results = mglMetalFinishBatch(batchInfo)
 %
 %             mglClose();
-function ackTime = mglMetalProcessBatch(socketInfo)
+function batchInfo = mglMetalProcessBatch(batchInfo, socketInfo)
 
 global mgl
-if nargin < 1 || isempty(socketInfo)
+if nargin < 2 || isempty(socketInfo)
     socketInfo = mgl.activeSockets;
 end
 
 mglSocketWrite(socketInfo, socketInfo(1).command.mglProcessBatch);
-ackTime = mglSocketRead(socketInfo, 'double');
+batchInfo.processAckTime = mglSocketRead(socketInfo, 'double');

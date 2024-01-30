@@ -45,6 +45,7 @@
 		4D5F72BB2B45E5DF00B4DA29 /* mglFinishStencilCreationCommand.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D5F72BA2B45E5DE00B4DA29 /* mglFinishStencilCreationCommand.swift */; };
 		4D5F72BD2B45E62900B4DA29 /* mglSelectStencilCommand.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D5F72BC2B45E62900B4DA29 /* mglSelectStencilCommand.swift */; };
 		4D5F72BF2B45E87600B4DA29 /* mglQuadCommand.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D5F72BE2B45E87600B4DA29 /* mglQuadCommand.swift */; };
+		4D755E062B6941FB00ACB083 /* mglSampleTimestampsCommand.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D755E052B6941FB00ACB083 /* mglSampleTimestampsCommand.swift */; };
 		4D8B32812824627800278B6F /* mglDepthStencilConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D8B32802824627800278B6F /* mglDepthStencilConfig.swift */; };
 		4DA4671F2763CB8E00B65B9F /* mglServer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DA4671E2763CB8E00B65B9F /* mglServer.swift */; };
 		4DCD58472B3615BF00E08547 /* mglFlushCommand.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DCD58462B3615BF00E08547 /* mglFlushCommand.swift */; };
@@ -118,6 +119,7 @@
 		4D5F72BA2B45E5DE00B4DA29 /* mglFinishStencilCreationCommand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglFinishStencilCreationCommand.swift; sourceTree = "<group>"; };
 		4D5F72BC2B45E62900B4DA29 /* mglSelectStencilCommand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglSelectStencilCommand.swift; sourceTree = "<group>"; };
 		4D5F72BE2B45E87600B4DA29 /* mglQuadCommand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglQuadCommand.swift; sourceTree = "<group>"; };
+		4D755E052B6941FB00ACB083 /* mglSampleTimestampsCommand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglSampleTimestampsCommand.swift; sourceTree = "<group>"; };
 		4D8B32802824627800278B6F /* mglDepthStencilConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglDepthStencilConfig.swift; sourceTree = "<group>"; };
 		4DA4671B2763C16200B65B9F /* mglCommandTypes.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = mglCommandTypes.h; sourceTree = "<group>"; };
 		4DA4671E2763CB8E00B65B9F /* mglServer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglServer.swift; sourceTree = "<group>"; };
@@ -207,6 +209,7 @@
 				4D5782E22B4767730050EF81 /* mglRepeatQuadsCommand.swift */,
 				4D5782E42B47693D0050EF81 /* mglRepeatDotsCommand.swift */,
 				4D5782E62B476A370050EF81 /* mglRepeatFlushCommand.swift */,
+				4D755E052B6941FB00ACB083 /* mglSampleTimestampsCommand.swift */,
 			);
 			path = commands;
 			sourceTree = "<group>";
@@ -456,6 +459,7 @@
 				4D5782CD2B4748530050EF81 /* mglGetErrorMessageCommand.swift in Sources */,
 				4D5F729D2B45B07600B4DA29 /* mglCreateTextureCommand.swift in Sources */,
 				4DCD58472B3615BF00E08547 /* mglFlushCommand.swift in Sources */,
+				4D755E062B6941FB00ACB083 /* mglSampleTimestampsCommand.swift in Sources */,
 				4D5F72B52B45E0A500B4DA29 /* mglDisplayCursorCommand.swift in Sources */,
 				4D5782E52B47693D0050EF81 /* mglRepeatDotsCommand.swift in Sources */,
 			);

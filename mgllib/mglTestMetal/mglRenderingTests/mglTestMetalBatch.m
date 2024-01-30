@@ -27,7 +27,7 @@ end
 
 % Start a new batch.
 % In this state the Mgl Metal app will accept commands to process later.
-mglMetalStartBatch()
+batchInfo = mglMetalStartBatch();
 
 % Enqueue several drawing and non-drawing commands.
 mglVisualAngleCoordinates(50, [20, 20]);
@@ -51,12 +51,12 @@ end
 
 % Process the batch -- nothing will appear until we do this.
 % In this state the Mgl Metal app will process commands enqueued above.
-mglMetalProcessBatch();
+batchInfo = mglMetalProcessBatch(batchInfo);
 
 disp('Mgl Metal is executing commands asynchronously.');
 
 % Wait for the commands to finish, and gather the timing results.
-results = mglMetalFinishBatch();
+results = mglMetalFinishBatch(batchInfo);
 commandCount = 4 + 1 + 1 + 3 * numel(xSweep);
 assert(numel(results) == commandCount, 'Number of batched command results must equal number of batched commands.');
 

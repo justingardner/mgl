@@ -147,6 +147,7 @@ class mglCommandInterface {
         case mglFrameGrab: command = mglFrameGrabCommand()
         case mglMinimize: command = mglMinimizeCommand(commandInterface: self)
         case mglDisplayCursor: command = mglDisplayCursorCommand(commandInterface: self)
+        case mglSampleTimestamps: command = mglSampleTimestampsCommand(device: device)
         case mglFlush: command = mglFlushCommand(commandInterface: self)
         case mglBltTexture: command = mglBltTextureCommand(commandInterface: self, device: device)
         case mglSetXform: command = mglSetXformCommand(commandInterface: self)

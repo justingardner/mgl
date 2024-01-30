@@ -14,15 +14,15 @@
 		</data>
 		<key>Resources/Base.lproj/Main.storyboardc/Info.plist</key>
 		<data>
-		NiSsnNtBJT2n9EZXVDkctqSBdUc=
+		faGazw0Vz3bvZDBbsKiq4rThd/8=
 		</data>
 		<key>Resources/Base.lproj/Main.storyboardc/MainMenu.nib</key>
 		<data>
-		+nFAgxq2wgM+EdO4pCVjnNdsj1Y=
+		Q6Jyzc/a9VRndQdtO9hKS9Ol2YQ=
 		</data>
 		<key>Resources/Base.lproj/Main.storyboardc/NSWindowController-B8D-0N-5wS.nib</key>
 		<data>
-		N8lFrLkevSEmXPS0WkWCVVyjEuM=
+		Iy/4ow544v4qggd1RKNFU+rlMSI=
 		</data>
 		<key>Resources/Base.lproj/Main.storyboardc/XfG-lQ-9wD-view-m2S-Jp-Qdl.nib</key>
 		<data>
@@ -30,11 +30,92 @@
 		</data>
 		<key>Resources/default.metallib</key>
 		<data>
-		oEsb6qsRjbF1WRcYCD53NijRiLA=
+		V3xdYEOgTN+db6jnntMz1y+/4XU=
 		</data>
 	</dict>
 	<key>files2</key>
 	<dict>
+		<key>Frameworks/XCTAutomationSupport.framework</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			qgovFnU3KbwKbtkhooXMhSUwo3s=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"aa0a2f16753729bc0a6ed921a285cc852530a37b" or cdhash H"fb0210f4c0d8ba8bf088c670b977f2f5c8438ded" or cdhash H"f96c9f8d2160b4dd97441493eb5bc2d13081ddb2"</string>
+		</dict>
+		<key>Frameworks/XCTest.framework</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			KN98B4j2hKrLzeAqJb9eJGK9Ltk=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"28df7c0788f684aacbcde02a25bf5e2462bd2ed9" or cdhash H"4d78101f1811dae640d22daf94abaa96f3c60337" or cdhash H"ab4c6fdda9ad024aed4a98cbf9139ba97dbb4ea2"</string>
+		</dict>
+		<key>Frameworks/XCTestCore.framework</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			VTIJYlQyXJIhNtAUxz5e6N9V7ls=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"5532096254325c922136d014c73e5ee8df55ee5b" or cdhash H"4712b72906bb27732ccd8ab8d4304f3160d7d194" or cdhash H"f773018a3cf9a7d62420a3c8ed2c7c4759b40bf1"</string>
+		</dict>
+		<key>Frameworks/XCTestSupport.framework</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			4+zxRj4O1jVmG60yP+BIi1Abg/Q=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"e3ecf1463e0ed635661bad323fe0488b501b83f4" or cdhash H"d813a821f4910d0af8b3b8ace76d3ba62f967235" or cdhash H"6b4ae86236e2bae271b2ca7d486df16e0e7ad5a1"</string>
+		</dict>
+		<key>Frameworks/XCUIAutomation.framework</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			YDBNVnnINmULxr6CLYxVZkyPCug=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"60304d5679c836650bc6be822d8c55664c8f0ae8" or cdhash H"12cc148ee11095233e17f3f48d6ea525845b6974" or cdhash H"ffe1ff55b94e73fdb7aa96f3738036b4c8f0adc2"</string>
+		</dict>
+		<key>Frameworks/XCUnit.framework</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			RBql2Srp/FXcCKLA6RL9Q0JeuBQ=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"441aa5d92ae9fc55dc08a2c0e912fd43425eb814" or cdhash H"6b1df3b82854ae49c2bdc6857c079412d0ece15f" or cdhash H"d0df8e7f80e58eff688a65c290daab21df5836a3"</string>
+		</dict>
+		<key>Frameworks/libXCTestBundleInject.dylib</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			BT7ErMZOkKXM3lehI7IHRHH6sH8=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"053ec4acc64e90a5ccde57a123b2074471fab07f" or cdhash H"0c8a325aa63e5e82e227702f525e9a7b58e8b239" or cdhash H"f9d9df69215053abf3ea4d212ad23b92349a3a2a"</string>
+		</dict>
+		<key>Frameworks/libXCTestSwiftSupport.dylib</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			/8YqEkFQTfmiIHvYw1In61OjO0I=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"ffc62a1241504df9a2207bd8c35227eb53a33b42" or cdhash H"c416302d79ba6a641fad30c9eb432f6d724a8b9b" or cdhash H"9d13f59fb20a3c26993120b338ea915fc7040c4c"</string>
+		</dict>
+		<key>PlugIns/mglMetalTests.xctest</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			bhJ98AI2XcZQfiiZ3DK+4pyDnhE=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"6e127df002365dc6507e2899dc32bee29c839e11"</string>
+		</dict>
 		<key>Resources/AppIcon.icns</key>
 		<dict>
 			<key>hash2</key>
@@ -53,21 +134,21 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			bO3ockBtk4bjqaeD+tJT8oiDSLgBby0o9gAHvhX9xYw=
+			VHe3fWzDAjNp7FyC65k3mTUfvtWeD6qVjRv74g2dXbo=
 			</data>
 		</dict>
 		<key>Resources/Base.lproj/Main.storyboardc/MainMenu.nib</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			G6JuyBaU65LKNdFRUuDbdCniENyY3CLXai8+r+hOf38=
+			Jh8CSrxbbmxB/q4y5mSvWO6CfPYspL+sJfGhN579Bzo=
 			</data>
 		</dict>
 		<key>Resources/Base.lproj/Main.storyboardc/NSWindowController-B8D-0N-5wS.nib</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			QO53RbA4jf/8EV2qWrwic78eL6KuQhHPmpTCBes1ST8=
+			oMk6erkkXG0/2vWjKI7KH2qN9jiwE4aBFYforx4jMRU=
 			</data>
 		</dict>
 		<key>Resources/Base.lproj/Main.storyboardc/XfG-lQ-9wD-view-m2S-Jp-Qdl.nib</key>
@@ -81,7 +162,7 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			QgKduL2r3kKEvrfKLxTalrGHb///RKqBFMpqkOoyOyA=
+			n0qoeahStIZhme5UoaUg0fGPV26404WkjBHn/9qdC2E=
 			</data>
 		</dict>
 	</dict>

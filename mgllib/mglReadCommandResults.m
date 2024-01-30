@@ -67,10 +67,10 @@ end
 commandCode = mglSocketRead(socketInfo, 'uint16', commandCount);
 success = mglSocketRead(socketInfo, 'uint32', commandCount);
 processedTime = mglSocketRead(socketInfo, 'double', commandCount);
-vertexStart = mglSocketRead(socketInfo, 'double', commandCount) / 1e9;
-vertexEnd = mglSocketRead(socketInfo, 'double', commandCount) / 1e9;
-fragmentStart = mglSocketRead(socketInfo, 'double', commandCount) / 1e9;
-fragmentEnd = mglSocketRead(socketInfo, 'double', commandCount) / 1e9;
+vertexStart = mglSocketRead(socketInfo, 'double', commandCount);
+vertexEnd = mglSocketRead(socketInfo, 'double', commandCount);
+fragmentStart = mglSocketRead(socketInfo, 'double', commandCount);
+fragmentEnd = mglSocketRead(socketInfo, 'double', commandCount);
 drawableAcquired = mglSocketRead(socketInfo, 'double', commandCount);
 drawablePresented = mglSocketRead(socketInfo, 'double', commandCount);
 
