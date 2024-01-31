@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		4D12ED2A2B6AE78600E80F64 /* file_example_MP4_480_1_5MG.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = 4D12ED292B6AE78600E80F64 /* file_example_MP4_480_1_5MG.mp4 */; };
+		4D12ED2C2B6AE80D00E80F64 /* readme.txt in Resources */ = {isa = PBXBuildFile; fileRef = 4D12ED2B2B6AE80D00E80F64 /* readme.txt */; };
 		4D53454D28205AA400B61D3D /* mglColorRenderingConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D53454C28205AA400B61D3D /* mglColorRenderingConfig.swift */; };
 		4D56190B27628883009AB2E2 /* mglLocalServer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D56190A27628883009AB2E2 /* mglLocalServer.swift */; };
 		4D56190D27629A39009AB2E2 /* mglLocalClientServerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D56190C27629A39009AB2E2 /* mglLocalClientServerTests.swift */; };
@@ -45,6 +47,7 @@
 		4D5F72BB2B45E5DF00B4DA29 /* mglFinishStencilCreationCommand.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D5F72BA2B45E5DE00B4DA29 /* mglFinishStencilCreationCommand.swift */; };
 		4D5F72BD2B45E62900B4DA29 /* mglSelectStencilCommand.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D5F72BC2B45E62900B4DA29 /* mglSelectStencilCommand.swift */; };
 		4D5F72BF2B45E87600B4DA29 /* mglQuadCommand.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D5F72BE2B45E87600B4DA29 /* mglQuadCommand.swift */; };
+		4D6593722B6A9EE90033D95E /* mglCreateVideoCommand.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D6593712B6A9EE90033D95E /* mglCreateVideoCommand.swift */; };
 		4D755E062B6941FB00ACB083 /* mglSampleTimestampsCommand.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D755E052B6941FB00ACB083 /* mglSampleTimestampsCommand.swift */; };
 		4D8B32812824627800278B6F /* mglDepthStencilConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D8B32802824627800278B6F /* mglDepthStencilConfig.swift */; };
 		4DA4671F2763CB8E00B65B9F /* mglServer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DA4671E2763CB8E00B65B9F /* mglServer.swift */; };
@@ -81,6 +84,8 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		4D12ED292B6AE78600E80F64 /* file_example_MP4_480_1_5MG.mp4 */ = {isa = PBXFileReference; lastKnownFileType = file; path = file_example_MP4_480_1_5MG.mp4; sourceTree = "<group>"; };
+		4D12ED2B2B6AE80D00E80F64 /* readme.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = readme.txt; sourceTree = "<group>"; };
 		4D53454C28205AA400B61D3D /* mglColorRenderingConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglColorRenderingConfig.swift; sourceTree = "<group>"; };
 		4D56190A27628883009AB2E2 /* mglLocalServer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglLocalServer.swift; sourceTree = "<group>"; };
 		4D56190C27629A39009AB2E2 /* mglLocalClientServerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglLocalClientServerTests.swift; sourceTree = "<group>"; };
@@ -119,6 +124,7 @@
 		4D5F72BA2B45E5DE00B4DA29 /* mglFinishStencilCreationCommand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglFinishStencilCreationCommand.swift; sourceTree = "<group>"; };
 		4D5F72BC2B45E62900B4DA29 /* mglSelectStencilCommand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglSelectStencilCommand.swift; sourceTree = "<group>"; };
 		4D5F72BE2B45E87600B4DA29 /* mglQuadCommand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglQuadCommand.swift; sourceTree = "<group>"; };
+		4D6593712B6A9EE90033D95E /* mglCreateVideoCommand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglCreateVideoCommand.swift; sourceTree = "<group>"; };
 		4D755E052B6941FB00ACB083 /* mglSampleTimestampsCommand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglSampleTimestampsCommand.swift; sourceTree = "<group>"; };
 		4D8B32802824627800278B6F /* mglDepthStencilConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglDepthStencilConfig.swift; sourceTree = "<group>"; };
 		4DA4671B2763C16200B65B9F /* mglCommandTypes.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = mglCommandTypes.h; sourceTree = "<group>"; };
@@ -210,6 +216,7 @@
 				4D5782E42B47693D0050EF81 /* mglRepeatDotsCommand.swift */,
 				4D5782E62B476A370050EF81 /* mglRepeatFlushCommand.swift */,
 				4D755E052B6941FB00ACB083 /* mglSampleTimestampsCommand.swift */,
+				4D6593712B6A9EE90033D95E /* mglCreateVideoCommand.swift */,
 			);
 			path = commands;
 			sourceTree = "<group>";
@@ -266,9 +273,11 @@
 		D0F6B97F23B6D9E800B45409 /* mglMetalTests */ = {
 			isa = PBXGroup;
 			children = (
+				4D12ED292B6AE78600E80F64 /* file_example_MP4_480_1_5MG.mp4 */,
 				D0F6B98023B6D9E800B45409 /* mglMetalTests.swift */,
 				D0F6B98223B6D9E800B45409 /* Info.plist */,
 				4D56190C27629A39009AB2E2 /* mglLocalClientServerTests.swift */,
+				4D12ED2B2B6AE80D00E80F64 /* readme.txt */,
 			);
 			path = mglMetalTests;
 			sourceTree = "<group>";
@@ -396,6 +405,8 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				4D12ED2C2B6AE80D00E80F64 /* readme.txt in Resources */,
+				4D12ED2A2B6AE78600E80F64 /* file_example_MP4_480_1_5MG.mp4 in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -439,6 +450,7 @@
 				D08D4BBE23B8834C00A27C79 /* mglCommandInterface.swift in Sources */,
 				4D5F72A32B45CEFA00B4DA29 /* mglReadTextureCommand.swift in Sources */,
 				4D5F72A72B45D53500B4DA29 /* mglPingCommand.swift in Sources */,
+				4D6593722B6A9EE90033D95E /* mglCreateVideoCommand.swift in Sources */,
 				4D5782D72B4753AC0050EF81 /* mglLineCommand.swift in Sources */,
 				D0F6B97023B6D9E700B45409 /* mglViewController.swift in Sources */,
 				4D5F72B92B45E4D500B4DA29 /* mglStartStencilCreationCommand.swift in Sources */,

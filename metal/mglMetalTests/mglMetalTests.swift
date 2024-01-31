@@ -400,4 +400,59 @@ class mglMetalTests: XCTestCase {
         assertCommandResultsReply(commandCode: mglFlush)
         XCTAssertFalse(client.dataWaiting())
     }
+
+    func testVideo() {
+        // Create a video command.
+        // In this sketchy version so far, the "create" command holds the video state and extracts successive frames.
+        let bundle = Bundle(for: mglMetalTests.self)
+        let videoPath = bundle.path(forResource: "file_example_MP4_480_1_5MG", ofType: "mp4")!
+        let video = mglCreateVideoCommand(filePath: videoPath)
+
+        // Start with one flush, since that's the first reply we expect in each loop iteration.
+        let flush = mglFlushCommand()
+        flush.results.commandCode = mglFlush
+        commandInterface.addLast(command: flush)
+        drawNextFrame()
+
+        // I got 901 frames in this video by trial an error.
+        // Finishing clean is a TODO.
+        let nFrames = 901
+        for frame in 1 ... nFrames {
+            // Fade the background from black to white over the course of playback.
+            let g = Double(frame) / Double(nFrames)
+            let clear = mglSetClearColorCommand(red: g, green: g, blue: g)
+            clear.results.commandCode = mglSetClearColor
+            commandInterface.addLast(command: clear)
+
+            // Draw the next video frame as a Metal texture.
+            commandInterface.addLast(command: video)
+
+            // Draw one red dot sweeping over the background and the video.
+            // [xyz rgba wh isRound borderSize]
+            let p = Float32((g * 2) - 1)
+            let vertexData: [Float32] = [p, p, 0, 1, 0, 0, 1, 20, 20, 1, 0.1]
+            let vertexBuffer = vertexData.withUnsafeBytes { rawData in
+                view.device!.makeBuffer(bytes: rawData.baseAddress!, length: vertexData.count * 4)!
+            }
+            let dots = mglDotsCommand(vertexBufferDots: vertexBuffer, vertexCount: 1)
+            dots.results.commandCode = mglDots
+            commandInterface.addLast(command: dots)
+
+            // Flush the display frame to animate over the video.
+            let flush = mglFlushCommand()
+            flush.results.commandCode = mglFlush
+            commandInterface.addLast(command: flush)
+            drawNextFrame()
+
+            // Read replies off the socket so that the socket queue doesn't fill up and block writes.
+            // Video command is just a sketch for now, so it looks like mglUnknownCommand.
+            assertCommandResultsReply(commandCode: mglFlush)
+            assertCommandResultsReply(commandCode: mglSetClearColor)
+            assertCommandResultsReply(commandCode: mglUnknownCommand)
+            assertCommandResultsReply(commandCode: mglDots)
+        }
+
+        drawNextFrame()
+        assertCommandResultsReply(commandCode: mglFlush)
+    }
 }
