@@ -430,11 +430,14 @@ class mglMetalTests: XCTestCase {
             // Draw one red dot sweeping over the background and the video.
             // [xyz rgba wh isRound borderSize]
             let p = Float32((g * 2) - 1)
-            let vertexData: [Float32] = [p, p, 0, 1, 0, 0, 1, 20, 20, 1, 0.1]
+            let vertexData: [Float32] = [
+                p, p, 0, 1, 0, 0, 1, 20, 20, 1, 0.1,
+                p, p, 1, 0, 0, 1, 1, 40, 40, 1, 0.1
+            ]
             let vertexBuffer = vertexData.withUnsafeBytes { rawData in
                 view.device!.makeBuffer(bytes: rawData.baseAddress!, length: vertexData.count * 4)!
             }
-            let dots = mglDotsCommand(vertexBufferDots: vertexBuffer, vertexCount: 1)
+            let dots = mglDotsCommand(vertexBufferDots: vertexBuffer, vertexCount: 2)
             dots.results.commandCode = mglDots
             commandInterface.addLast(command: dots)
 
