@@ -2,35 +2,6 @@
 //  mglStencilConfig.swift
 //  mglMetal
 //
-//  This captures "things we need to do to set up and apply stencils".
-//  What does that mean?
-//  Things like choosing whether we're creating vs applying a stencil,
-//  and which stencil plane we're creating or applying,
-//  or maybe we're not using a stencil at all.
-//
-//  The Metal API is confusing regarding the config for stencils and depth tests.
-//  In some parts of the API, these are treated as one feature.
-//  For example, the MTLView combines thses with one property, depthStencilPixelFormat.
-//  We can specify a pixel format like depth32Float_stencil8,
-//  as a way to say that we want both depth and stencil behavior.
-//
-//  On the other hand, MTLRenderPassDescriptor has separate properties for
-//  depthAttachment vs stencilAttachment.
-//  Some of the config for these we want to be different, like the storeAction.
-//  But the actual textures backing these attachments can be the same object.
-//
-//  Similarly, MTLRenderPipelineDescriptor has separate properties for
-//  depthAttachmentPixelFormat vs stencilAttachmentPixelFormat,
-//  even though these both might have the same value of depth32Float_stencil8.
-//
-//  MTLDepthStencilDescriptor deals with both stencils and depth,
-//  this is where we specify behaviors like writing to stencil vs using a stencil as a mask.
-//
-//  So, long way of saying -- the API is confusing and we need to coordinate
-//  things across a few different parts of the API.
-//  Instead of adding lots of conditionals, each time we touch one of those parts of the API,
-//  better to combine cohesive sets of behavior in one place here.
-//
 //  Created by Benjamin Heasly on 5/5/22.
 //  Copyright © 2022 GRU. All rights reserved.
 //
@@ -38,12 +9,105 @@
 import Foundation
 import MetalKit
 
-protocol mglDepthStencilConfig {
+/*
+ mglDepthStencilState keeps track the current depth and stencil state for the app, including:
+ - whether we're creating or applying a stencil
+ - which of 8 stencil planes we're creating or applying, if any
+
+ The Metal API combines depth config and stencil config into one slightly confusing concept.
+ So, this is also where we enable depth testing.
+
+ Depth and stencil config needs to be applied at a couple of points for each render pass.
+ At each point we need to be consistent about what state we're in and which plane we're using.
+ mglDepthStencilState encloses the state-dependent consistency with a polymorphic/strategy approach,
+ which seems nicer than having lots of conditionals in the render pass setup code.
+ mglRenderer just needs to call configureRenderPassDescriptor() and configureRenderEncoder() at the right time.
+ */
+class mglDepthStencilState {
+    private let logger: mglLogger
+
+    // For each stencil plane, a config we want to apply that stencil.
+    private var applyStencilConfig = [mglDepthStencilConfig]()
+
+    // For each stencil plane, configs to use when we are creating that stencil.
+    private var createStencilConfig = [mglDepthStencilConfig]()
+    private var createInvertedStencilConfig = [mglDepthStencilConfig]()
+
+    // The current config, one of the above.
+    private var currentDepthStencilConfig: mglDepthStencilConfig!
+
+    init(logger: mglLogger, device: MTLDevice) {
+        self.logger = logger
+
+        // Set up to support 8 stencil planes.
+        for index in 0 ..< 8 {
+            let number = UInt32(index)
+
+            // Config to apply the stencil for this plane.
+            applyStencilConfig.append(mglEnableDepthAndStencilTest(stencilNumber: number, device: device))
+
+            // Configs to create the stencil for this plane.
+            createStencilConfig.append(mglEnableDepthAndStencilCreate(stencilNumber: number, isInverted: false, device: device))
+            createInvertedStencilConfig.append(mglEnableDepthAndStencilCreate(stencilNumber: number, isInverted: true, device: device))
+        }
+
+        // By default, enable the 0th stencil plane (ie no stencil) along with depth testing.
+        currentDepthStencilConfig = applyStencilConfig[0]
+    }
+
+    // Collaborate with mglRenderer to set up a render pass.
+    func configureRenderPassDescriptor(renderPassDescriptor: MTLRenderPassDescriptor) {
+        currentDepthStencilConfig.configureRenderPassDescriptor(renderPassDescriptor: renderPassDescriptor)
+    }
+
+    // Collaborate with mglRenderer to set up a render pass.
+    func configureRenderEncoder(renderEncoder: MTLRenderCommandEncoder) {
+        currentDepthStencilConfig.configureRenderEncoder(renderEncoder: renderEncoder)
+    }
+
+    // Collaborate with mglRenderer to start creating the stencil plane at the given number.
+    func startStencilCreation(view: MTKView, stencilNumber: UInt32, isInverted: Bool) -> Bool {
+        let stencilIndex = Array<mglDepthStencilConfig>.Index(stencilNumber)
+        if (!createStencilConfig.indices.contains(stencilIndex)) {
+            logger.error(component: "mglDepthStencilState", details: "Got stencil number to create \(stencilNumber) but only numbers 0-7 are supported.")
+            return false
+        }
+
+        logger.info(component: "mglDepthStencilState", details: "Creating stencil number \(stencilNumber), with isInverted \(isInverted).")
+        currentDepthStencilConfig = isInverted ? createInvertedStencilConfig[stencilIndex] : createStencilConfig[stencilIndex]
+        return true
+    }
+
+    // Collaborate with mglRenderer to finish creating the stencil plane at the given number.
+    func finishStencilCreation(view: MTKView) -> Bool {
+        logger.info(component: "mglDepthStencilState", details: "Finishing stencil creation.")
+        currentDepthStencilConfig = applyStencilConfig[0]
+        return true
+    }
+
+    // Collaborate with mglRenderer to apply the stencil plane at the given number.
+    func selectStencil(view: MTKView, renderEncoder: MTLRenderCommandEncoder, stencilNumber: UInt32) -> Bool {
+        let stencilIndex = Array<mglDepthStencilConfig>.Index(stencilNumber)
+        if (!applyStencilConfig.indices.contains(stencilIndex)) {
+            logger.error(component: "mglDepthStencilState", details: "Got stencil number to select \(stencilNumber) but only numbers 0-7 are supported.")
+            return false
+        }
+
+        logger.info(component: "mglDepthStencilState", details: "Selecting stencil number \(stencilNumber).")
+        currentDepthStencilConfig = applyStencilConfig[stencilIndex]
+        currentDepthStencilConfig.configureRenderEncoder(renderEncoder: renderEncoder)
+        return true
+    }
+}
+
+// Abstract the depth and stencil operations needed for setting up a render pass.
+private protocol mglDepthStencilConfig {
     func configureRenderPassDescriptor(renderPassDescriptor: MTLRenderPassDescriptor)
     func configureRenderEncoder(renderEncoder: MTLRenderCommandEncoder)
 }
 
-class mglEnableDepthAndStencilTest : mglDepthStencilConfig {
+// Implement details for how we apply a stencil plane and depth test.
+private class mglEnableDepthAndStencilTest : mglDepthStencilConfig {
     let stencilMask: UInt32
     let depthStencilState: MTLDepthStencilState?
 
@@ -85,7 +149,8 @@ class mglEnableDepthAndStencilTest : mglDepthStencilConfig {
     }
 }
 
-class mglEnableDepthAndStencilCreate : mglDepthStencilConfig {
+// Implement details for how we create a stencil plane and depth test.
+private class mglEnableDepthAndStencilCreate : mglDepthStencilConfig {
     let stencilMask: UInt32
     let stencilRefValue: UInt32
     let depthStencilState: MTLDepthStencilState?

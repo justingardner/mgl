@@ -1,5 +1,5 @@
 %        $Id$
-%      usage: [currentMatrix, ackTime, processedTime] = mglTransform(operation, value, socketInfo)
+%      usage: [currentMatrix, results] = mglTransform(operation, value, socketInfo)
 %         by: Ben Heasly
 %       date: 2021-12-03
 %  copyright: (c) 2006 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
@@ -17,10 +17,9 @@
 %             This function is usually not called directly, but
 %             called by mglVisualAngleCoordinates or
 %             mglScreenCoordinates to set the transforms
-function [currentMatrix, ackTime, processedTime] = mglTransform(operation, value, socketInfo)
+function [currentMatrix, results] = mglTransform(operation, value, socketInfo)
 
-ackTime = [];
-processedTime = [];
+results = [];
 
 persistent mglTransformIsNotOpenGLAnymore
 if isempty(mglTransformIsNotOpenGLAnymore)
@@ -58,4 +57,4 @@ end
 mglSocketWrite(socketInfo, socketInfo(1).command.mglSetXform);
 ackTime = mglSocketRead(socketInfo, 'double');
 mglSocketWrite(socketInfo, single(mgl.currentMatrix));
-processedTime = mglSocketRead(socketInfo, 'double');
+results = mglReadCommandResults(socketInfo, ackTime);

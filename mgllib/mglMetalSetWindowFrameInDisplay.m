@@ -1,6 +1,6 @@
 % mglMetalSetWindowFrameInDisplay.m
 %
-%      usage: [ackTime, processedTime] = mglMetalSetWindowFrameInDisplay(displayNumber, rect, socketInfo)
+%      usage: results = mglMetalSetWindowFrameInDisplay(displayNumber, rect, socketInfo)
 %         by: Benjamin Heasly
 %       date: 03/11/2022
 %  copyright: (c) 2006 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
@@ -17,7 +17,7 @@
 %
 %             mglMetalSetWindowFrameInDisplay(1, [100, 200, 64, 48], socketInfo);
 %
-function [ackTime, processedTime] = mglMetalSetWindowFrameInDisplay(displayNumber, rect, socketInfo)
+function results = mglMetalSetWindowFrameInDisplay(displayNumber, rect, socketInfo)
 
 if nargin < 3 || isempty(socketInfo)
     global mgl
@@ -41,4 +41,4 @@ mglSocketWrite(socketInfo, uint32(x));
 mglSocketWrite(socketInfo, uint32(y));
 mglSocketWrite(socketInfo, uint32(width));
 mglSocketWrite(socketInfo, uint32(height));
-processedTime = mglSocketRead(socketInfo, 'double');
+results = mglReadCommandResults(socketInfo, ackTime);

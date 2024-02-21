@@ -7,35 +7,79 @@
 //
 
 import Foundation
+import MetalKit
 
-/**
- Over in mglRenderer, we're handling all of the socket and rendering flow control, as well as the inner details of rendering commands.
- As we go and grow, I think a pattern is emerging among the rendering commands, which we might want to factor out into an explicit OOP command model.
- This could help us clarify what we want a "command" to be, and separate the duties between socket stuff, flow control stuff, and inner graphics details.
- Doing this might give us confidence that adding or modifying a particular command would not have unintended effects on other commands.
- It might also allow user-defined commands to be loaded as runtime plugins, if we go that route, but providing a protocol/interface to write code to.
- It might also support future commands that are "close to the metal", which may need to maintain and manage their own state, across several frames.
-
- As a start, I'll make notes here about the config, state, and operations that seem to might go into each command, things we might want to factor out.
- My source for this is the current code in mglRenderer, which has grown to be somewhat long, around 1000 lines.
- Later, maybe this file here can become the place where we define an actual Swift protocol called mglCommandModel.
-
- Many commands seem to:
-  - have its own, associated command code in mglCommandTypes
-  - have a few utility functions associated with it, for example to parse numeric params into Swift Enum values.
-  - have side-effects on the overall mglMetal app with things like fullscreen vs windowed mode, stencil state, clear color, etc.
-  - be able to create a suitable render pipeline descriptor, for a given set of pixel formats
-  - be able to configure an instance of itself with any necessary params, given an mglCommandInterface to read from
-  - report configuration success or failure as a return value
-  - be able to add itself to a render pass, given the current view and command encoder
-  - report render pass success or failure as a return value
-  - be able to write any requested data back to the caller, given an mglCommandInterface to write to
-  - report data write pass success or failure as a return value
-
- It might be that commands also should:
-  - have a counter for how many times to repeat itself as part of a frame sequence
-  - be able to load configuration (as from a socket) once at the start of a frame sequence, and reuse the config throughout the sequence
-  - be able to report whether it's in the middle of a repetition sequence
-  - be able to configure an instance of itself from a regular init() method, *without* an mglCommandInterface, for standalone testing.
-  - be able to return requested data back to the caller as regular variables, *without* an mglCommandInterface, for standalone testing.
+/*
+ mglCommand factors out a pattern common to all mgl Metal commands.
  */
+class mglCommand {
+    // Here is where mglCommandInterface and mglRenderer can record and report what happened to this command.
+    var results = mglCommandResults()
+
+    // How many frames left to draw for this command instance?
+    // Most drawing commands would start with with framesRemaining == 1, meaning draw once and move on.
+    // Drawing commands that start with framesRemaining > 1 support repeated drawing across a number of frames.
+    // mglRenderer decrements framesRemaining after drawing each fram.
+    // Non-drawing commands would start with framesRemaining <= 0.
+    var framesRemaining: Int = 0
+
+    // Each command shoud provide two ways to init():
+    //  - directly in memory, for use during tests
+    //  - by reading from an mglCommandInterface and/or writing to an MTLDevice
+    // The second one works with a connected client and is allowed allowed to fail and return nil.
+    // Both inits should call up to this as "super.init()" to initialize framesRemaining.
+    init(framesRemaining: Int = 0) {
+        self.framesRemaining = framesRemaining
+    }
+
+    // Get a chance to query and/or modify the app's state.
+    // Stash any query results / references on the command instance until writeResults() is called.
+    // Stashing gives us data to inspect during tests, and will keep the socket quiet during batched command runs.
+    // Return true to indicate success / false for failure.
+    func doNondrawingWork(
+        logger: mglLogger,
+        view: MTKView,
+        depthStencilState: mglDepthStencilState,
+        colorRenderingState: mglColorRenderingState,
+        deg2metal: inout simd_float4x4
+    ) -> Bool {
+        return true
+    }
+
+    // Write any stashed query results to the command interface, to send them back to the client.
+    // Return true to indicate success / false for failure.
+    func writeQueryResults(
+        logger: mglLogger,
+        commandInterface : mglCommandInterface
+    ) -> Bool {
+        return true
+    }
+
+    // Do drawing during a render pass.
+    func draw(
+        logger: mglLogger,
+        view: MTKView,
+        depthStencilState: mglDepthStencilState,
+        colorRenderingState: mglColorRenderingState,
+        deg2metal: inout simd_float4x4,
+        renderEncoder: MTLRenderCommandEncoder
+    ) -> Bool {
+        return true
+    }
+}
+
+/*
+ Holder for status and timing around each command, to be set by mglCommandInterface and mglRenderer.
+ */
+struct mglCommandResults {
+    var commandCode: mglCommandCode = mglUnknownCommand
+    var success: Bool = false
+    var ackTime: Double = 0.0
+    var processedTime: Double = 0.0
+    var vertexStart: Double = 0.0
+    var vertexEnd: Double = 0.0
+    var fragmentStart: Double = 0.0
+    var fragmentEnd: Double = 0.0
+    var drawableAcquired: Double = 0.0
+    var drawablePresented: Double = 0.0
+}

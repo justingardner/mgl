@@ -26,7 +26,7 @@
 %mglPolygon(x, y, [1 0 0]);
 %mglFlush();
 
-function [ackTime, processedTime] = mglPolygon(x, y, color, socketInfo)
+function results = mglPolygon(x, y, color, socketInfo)
 
 global mgl;
 
@@ -74,4 +74,4 @@ mglSocketWrite(socketInfo, socketInfo(1).command.mglPolygon);
 ackTime = mglSocketRead(socketInfo, 'double');
 mglSocketWrite(socketInfo, uint32(n));
 mglSocketWrite(socketInfo, vertices);
-processedTime = mglSocketRead(socketInfo, 'double');
+results = mglReadCommandResults(socketInfo, ackTime);

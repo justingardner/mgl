@@ -20,7 +20,7 @@
 % mglBltTexture(texture,[0 0]);
 % mglFlush;
 % mglDeleteTexture(texture);
-function [texture, ackTime, processedTime] = mglDeleteTexture(texture, socketInfo)
+function [texture, results] = mglDeleteTexture(texture, socketInfo)
 
 if nargin < 1
     help mglDeleteTexture
@@ -34,16 +34,18 @@ end
 
 if isfield(texture,'textureNumber')
     % if texture is an array then we delete each element separately
+    resultCell = cell(size(texture));
     for i = 1:length(texture)
-        [ackTime, processedTime] = deleteTexture(texture(i).textureNumber, socketInfo);
+        resultCell{i} = deleteTexture(texture(i).textureNumber, socketInfo);
     end
+    results = [resultCell{:}];
     texture(i).textureNumber = -1;
 else
     disp('(mglDeleteTexture) Input is not a texture');
 end
 
-function [ackTime, processedTime] = deleteTexture(textureNumber, socketInfo)
+function results = deleteTexture(textureNumber, socketInfo)
 mglSocketWrite(socketInfo, socketInfo(1).command.mglDeleteTexture);
 ackTime = mglSocketRead(socketInfo, 'double');
 mglSocketWrite(socketInfo, textureNumber);
-processedTime = mglSocketRead(socketInfo, 'double');
+results = mglReadCommandResults(socketInfo, ackTime);

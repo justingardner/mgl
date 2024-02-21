@@ -31,12 +31,12 @@ mglFlush();
 
 % Stencil 1 hides everything except a circle on the left side of the screen.
 mglStencilCreateBegin(1);
-mglFillOval(-4, 0, [8, 8]);
+mglFillOval(-4, 0, [4, 4]);
 mglStencilCreateEnd();
 
 % Stencil 2 shows everything except a circle on the right side of the screen.
 mglStencilCreateBegin(2, 1);
-mglFillOval(4, 0, [8, 8]);
+mglFillOval(4, 0, [4, 4]);
 mglStencilCreateEnd();
 
 % Stencil 3 is initialized to clear, hiding all regions.

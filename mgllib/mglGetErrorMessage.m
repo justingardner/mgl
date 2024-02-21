@@ -5,7 +5,7 @@
 %       date: 01/26/23
 %    purpose: Gets an error message from the mglMetal app
 %
-function [msg, ackTime, processedTime] = mglGetErrorMessage(socketInfo)
+function [msg, results] = mglGetErrorMessage(socketInfo)
 
 if nargin < 1 || isempty(socketInfo)
     global mgl
@@ -23,7 +23,7 @@ while ~mglSocketDataWaiting(socketInfo),end
 msg = mglSocketReadString(socketInfo);
 
 % get the processed Time
-processedTime = mglSocketRead(socketInfo, 'double');
-if processedTime < 0
+results = mglReadCommandResults(socketInfo, ackTime);
+if any([results.processedTime] < 0)
   disp(sprintf('(mglGetErrorMessage) Error processing command.'));
 end

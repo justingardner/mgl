@@ -41,7 +41,9 @@
 %             % Restore the default format (no arg).
 %             mglOpen();
 %             mglMetalSetViewColorPixelFormat();
-function [ackTime, processedTime] = mglMetalSetViewColorPixelFormat(formatIndex, socketInfo)
+function results = mglMetalSetViewColorPixelFormat(formatIndex, socketInfo)
+
+results = [];
 
 if nargin < 1
     formatIndex = 0;
@@ -51,7 +53,6 @@ if nargin < 2 || isempty(socketInfo)
   socketInfo =  mglGetParam('activeSockets');
   % no open mgl window, return
   if isempty(socketInfo)
-    ackTime = -mglGetSecs;processedTime = -mglGetSecs;
     disp(sprintf('(%s) No open mgl window',mfilename));
     return
   end
@@ -65,4 +66,5 @@ end
 mglSocketWrite(socketInfo, socketInfo(1).command.mglSetViewColorPixelFormat);
 ackTime = mglSocketRead(socketInfo, 'double');
 mglSocketWrite(socketInfo, uint32(formatIndex));
-processedTime = mglSocketRead(socketInfo, 'double');
+results = mglReadCommandResults(socketInfo, ackTime);
+

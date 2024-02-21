@@ -25,12 +25,12 @@ end
 
 %% How to:
 
-nFrames = 30;
+nFrames = 31;
 randomSeed = 42;
 mglMetalRepeatingFlicker(nFrames, randomSeed);
 
 % mglMetalRepeatingFlicker should flush all on its own.
-disp('Flicker for 30 frames with random seed 42 should leave us with a lavender clear color');
+disp('Flicker for 31 frames with random seed 42 should leave us with a lavender clear color');
 
 % When it's done, make sure we have normal control again.
 % ie, calling flush shouldn't cause an error, get stuck, etc.

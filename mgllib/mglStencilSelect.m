@@ -1,7 +1,7 @@
 % mglStencilSelect 
 %
 %        $Id$
-%      usage: [ackTime, processedTime] = mglStencilSelect(stencilNumber)
+%      usage: results = mglStencilSelect(stencilNumber)
 %         by: justin gardner and ben heasly
 %       date: 05/26/2006
 %  copyright: (c) 2006 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
@@ -22,7 +22,7 @@
 %mglPoints2(rand(1,5000)*500,rand(1,5000)*500);
 %mglFlush;
 %mglStencilSelect(0);
-function [ackTime, processedTime] = mglStencilSelect(stencilNumber, socketInfo)
+function results = mglStencilSelect(stencilNumber, socketInfo)
 
 if nargin < 2 || isempty(socketInfo)
     global mgl
@@ -32,4 +32,4 @@ end
 mglSocketWrite(socketInfo, socketInfo(1).command.mglSelectStencil);
 ackTime = mglSocketRead(socketInfo, 'double');
 mglSocketWrite(socketInfo, uint32(stencilNumber));
-processedTime = mglSocketRead(socketInfo, 'double');
+results = mglReadCommandResults(socketInfo, ackTime);

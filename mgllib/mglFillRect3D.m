@@ -1,6 +1,6 @@
 % mglFillRect3D - draw filled rectangle(s) on the screen
 %
-%      usage: [ackTime, processedTime] = mglFillRect3D(x, y, z, size, [rgb], [rotation], [antialias])
+%      usage: results = mglFillRect3D(x, y, z, size, [rgb], [rotation], [antialias])
 %         by: Benjamin Heasly
 %       date: 03-17-2022
 %  copyright: (c) 2006 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
@@ -28,7 +28,7 @@
 % rotData = [45 0 1 0];  % 45 degrees about the y-axis.
 % mglFillRect3D(x, y, z, sz, [1 1 0], rotData);
 % mglFlush();
-function [ackTime, processedTime] = mglFillRect3D(x, y, z, size, rgb, rotation, antialias, socketInfo)
+function results = mglFillRect3D(x, y, z, size, rgb, rotation, antialias, socketInfo)
 
 if nargin < 4
     help mglFillRect3D
@@ -118,7 +118,7 @@ mglSocketWrite(socketInfo, socketInfo(1).command.mglQuad);
 ackTime = mglSocketRead(socketInfo, 'double');
 mglSocketWrite(socketInfo, uint32(nVertices));
 mglSocketWrite(socketInfo, vertexData);
-processedTime = mglSocketRead(socketInfo, 'double');
+results = mglReadCommandResults(socketInfo, ackTime);
 
 
 % https://www.cs.sfu.ca/~haoz/teaching/htmlman/rotate.html

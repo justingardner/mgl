@@ -13,11 +13,10 @@
 %
 %mglOpen();
 %mglDisplayCursor(1);
-function [ackTime, processedTime] = mglDisplayCursor(dispCursor)
+function results = mglDisplayCursor(dispCursor)
 
 % default values for return variables
-ackTime = [];
-processedTime = [];
+results = [];
 
 % get socket
 global mgl;
@@ -35,4 +34,4 @@ else
 end
   
 % get processed time
-processedTime = mglSocketRead(socketInfo, 'double');
+results = mglReadCommandResults(socketInfo, ackTime);

@@ -2,33 +2,193 @@
 //  mglColorRenderingConfig.swift
 //  mglMetal
 //
-//  This caputres "things we need to do to set up for color rendering".
-//  What does that mean?  Things like setting up a Metal render pass descriptor
-//  And managing textures to hold color and/or depth data.
-//
-//  Why is it worth extracthing this out of the mglRenderer?
-//  Because we have at least two different flavors of color rendering:
-//  Normal on-screen rendering, and off-screen rendering to a chosen texture.
-//
-//  There are several places in mglRenderer where we do similar-but-differrent things,
-//  Depending on which flavor of color rendering we're doing.
-//  This caused too many if-else sections scattered around the code,
-//  that all needed to work together.
-//  Better to group all the "ifs" into one place, and the "elses" into another.
-//
 //  Created by Benjamin Heasly on 5/2/22.
 //  Copyright © 2022 GRU. All rights reserved.
 //
 
 import Foundation
 import MetalKit
-import os.log
 
+/*
+ mglColorRenderingState keeps track the current color rendering state for the app, including:
+ - whether we're rendering to screen or to an offscreen texture
+ - how to set up a rendering pass for screen or texture
+ - depth and stencil textures that correspond to the color rendering target
 
-// This declares the operations that mglRenderer relies on,
-// to set up Metal rendering passes and pipelines.
+ Color rendering config needs to be applied at a couple of points for each render pass.
+ At each point we need to be consistent about what state we're in and which texture to target.
+ mglColorRenderingState encloses the state-dependent consistency with a polymorphic/strategy approach,
+ which seems nicer than having lots of conditionals in the render pass setup code.
+ mglRenderer just needs to call mglColorRenderingState methods at the right times.
+ */
+class mglColorRenderingState {
+    private let logger: mglLogger
+
+    // The Metal library that holds our compiled shaders.
+    private let library: MTLLibrary
+
+    // The usual config for on-screen rendering.
+    private var onscreenRenderingConfig: mglColorRenderingConfig!
+
+    // The current config might be onscreenRenderingConfig, or one targeting a specific texture.
+    private var currentColorRenderingConfig: mglColorRenderingConfig!
+
+    // A collection of user-managed textures to render to and/or blt to screen.
+    private var textureSequence = UInt32(1)
+    private var textures : [UInt32: MTLTexture] = [:]
+
+    init(logger: mglLogger, device: MTLDevice, view: MTKView) {
+        self.logger = logger
+
+        guard let library = device.makeDefaultLibrary() else {
+            fatalError("Could not create Metal shader library!")
+        }
+        self.library = library
+
+        // Default to onscreen rendering config.
+        guard let onscreenRenderingConfig = mglOnscreenRenderingConfig(
+            logger: logger,
+            device: device,
+            library: library,
+            view: view
+        ) else {
+            fatalError("Could not create onscreen rendering config, got nil!")
+        }
+        self.onscreenRenderingConfig = onscreenRenderingConfig
+        self.currentColorRenderingConfig = onscreenRenderingConfig
+    }
+
+    // Collaborate with mglRenderer to set up a render pass.
+    func getRenderPassDescriptor(view: MTKView) -> MTLRenderPassDescriptor? {
+        return currentColorRenderingConfig.getRenderPassDescriptor(view: view)
+    }
+
+    // Collaborate with mglRenderer to set up a render pass.
+    func finishDrawing(commandBuffer: MTLCommandBuffer, drawable: CAMetalDrawable) {
+        return currentColorRenderingConfig.finishDrawing(commandBuffer: commandBuffer, drawable: drawable)
+    }
+
+    // Collaborate with mglRenderer to set up a render pass.
+    func getDotsPipelineState() -> MTLRenderPipelineState {
+        return currentColorRenderingConfig.dotsPipelineState
+    }
+
+    // Collaborate with mglRenderer to set up a render pass.
+    func getArcsPipelineState() -> MTLRenderPipelineState {
+        return currentColorRenderingConfig.arcsPipelineState
+    }
+
+    // Collaborate with mglRenderer to set up a render pass.
+    func getTexturePipelineState() -> MTLRenderPipelineState {
+        return currentColorRenderingConfig.texturePipelineState
+    }
+
+    // Collaborate with mglRenderer to set up a render pass.
+    func getVerticesWithColorPipelineState() -> MTLRenderPipelineState {
+        return currentColorRenderingConfig.verticesWithColorPipelineState
+    }
+
+    // Let mglRenderer grab the current fame from a texture target.
+    func frameGrab() -> (width: Int, height: Int, pointer: UnsafeMutablePointer<Float>?) {
+        return currentColorRenderingConfig.frameGrab()
+    }
+
+    // Select a pixel format for onscreen rendering.
+    func setOnscreenColorPixelFormat(view: MTKView, pixelFormat: MTLPixelFormat) -> Bool {
+        view.colorPixelFormat = pixelFormat
+
+        // Recreate the onscreen color rendering config so that render pipelines will use the new color pixel format.
+        guard let device = view.device,
+              let newOnscreenRenderingConfig = mglOnscreenRenderingConfig(
+                logger: logger,
+                device: device,
+                library: library,
+                view: view
+              ) else {
+            logger.error(component: "mglColorRenderingState", details: "Could not create onscreen rendering config for pixel format \(String(describing: view.colorPixelFormat)).")
+            return false
+        }
+
+        if (self.currentColorRenderingConfig is mglOnscreenRenderingConfig) {
+            // Start using the new config right away!
+            self.currentColorRenderingConfig = newOnscreenRenderingConfig
+        }
+
+        // Remember the new onscreen config for later, even if we're currently rendering offscreen.
+        self.onscreenRenderingConfig = newOnscreenRenderingConfig
+
+        return true
+    }
+
+    // Default back to onscreen rendering.
+    func setOnscreenRenderingTarget() -> Bool {
+        currentColorRenderingConfig = onscreenRenderingConfig
+        return true
+    }
+
+    // Use the given texture as an offscreen rendering target.
+    func setRenderTarget(view: MTKView, targetTexture: MTLTexture) -> Bool {
+        guard let device = view.device,
+              let newTextureRenderingConfig = mglOffScreenTextureRenderingConfig(
+                logger: logger,
+                device: device,
+                library: library,
+                view: view,
+                texture: targetTexture
+              ) else {
+            logger.error(component: "mglColorRenderingState", details: "Could not create offscreen rendering config, got nil.")
+            return false
+        }
+        currentColorRenderingConfig = newTextureRenderingConfig
+        return true
+    }
+
+    // Report the size of the onscreen drawable or offscreen texture.
+    func getSize(view: MTKView) -> (Float, Float) {
+        return currentColorRenderingConfig.getSize(view: view)
+    }
+
+    // Add a new texture to the available blt sources and render targets.
+    func addTexture(texture: MTLTexture) -> UInt32 {
+        // Consume a texture number from the bookkeeping sequence.
+        let consumedTextureNumber = textureSequence
+        textures[consumedTextureNumber] = texture
+        textureSequence += 1
+        return consumedTextureNumber
+    }
+
+    // Get an existing texture from the collection, if one exists with the given number.
+    func getTexture(textureNumber: UInt32) -> MTLTexture? {
+        guard let texture = textures[textureNumber] else {
+            logger.error(component: "mglColorRenderingState", details: "Can't get invalid texture number \(textureNumber), valid numbers are \(String(describing: textures.keys))")
+            return nil
+        }
+        return texture
+    }
+
+    // Remove and return an existing texture from the collection, if one exists with the given number.
+    func removeTexture(textureNumber: UInt32) -> MTLTexture? {
+        guard let texture = textures.removeValue(forKey: textureNumber) else {
+            logger.error(component: "mglColorRenderingState", details: "Can't remove invalid texture number \(textureNumber), valid numbers are \(String(describing: textures.keys))")
+            return nil
+        }
+
+        logger.info(component: "mglColorRenderingState", details: "Removed texture number \(textureNumber), remaining numbers are \(String(describing: textures.keys))")
+        return texture
+    }
+
+    func getTextureCount() -> UInt32 {
+        return UInt32(textures.count)
+    }
+
+    func getTextureNumbers() -> Array<UInt32> {
+        return Array(textures.keys).sorted()
+    }
+}
+
+// This declares the operations that mglRenderer relies on to set up Metal rendering passes and pipelines.
 // It will have different implementations for on-screen vs off-screen rendering.
-protocol mglColorRenderingConfig {
+private protocol mglColorRenderingConfig {
     var dotsPipelineState: MTLRenderPipelineState { get }
     var arcsPipelineState: MTLRenderPipelineState { get }
     var verticesWithColorPipelineState: MTLRenderPipelineState { get }
@@ -41,41 +201,42 @@ protocol mglColorRenderingConfig {
     func frameGrab()->(width: Int, height: Int, pointer: UnsafeMutablePointer<Float>?)
 }
 
-class mglOnscreenRenderingConfig : mglColorRenderingConfig {
+private class mglOnscreenRenderingConfig : mglColorRenderingConfig {
+    private let logger: mglLogger
     let dotsPipelineState: MTLRenderPipelineState
     let arcsPipelineState: MTLRenderPipelineState
     let verticesWithColorPipelineState: MTLRenderPipelineState
     let texturePipelineState: MTLRenderPipelineState
 
-    init?(device: MTLDevice, library: MTLLibrary, view: MTKView) {
-        // Until an explicit OOP command model exists, we can just call static functions of mglRenderer.
+    init?(logger: mglLogger, device: MTLDevice, library: MTLLibrary, view: MTKView) {
+        self.logger = logger
         do {
             dotsPipelineState = try device.makeRenderPipelineState(
-                descriptor: mglRenderer.dotsPipelineStateDescriptor(
+                descriptor: dotsPipelineStateDescriptor(
                     colorPixelFormat: view.colorPixelFormat,
                     depthPixelFormat: view.depthStencilPixelFormat,
                     stencilPixelFormat: view.depthStencilPixelFormat,
                     library: library))
             arcsPipelineState = try device.makeRenderPipelineState(
-                descriptor: mglRenderer.arcsPipelineStateDescriptor(
+                descriptor: arcsPipelineStateDescriptor(
                     colorPixelFormat: view.colorPixelFormat,
                     depthPixelFormat: view.depthStencilPixelFormat,
                     stencilPixelFormat: view.depthStencilPixelFormat,
                     library: library))
             verticesWithColorPipelineState = try device.makeRenderPipelineState(
-                descriptor: mglRenderer.drawVerticesPipelineStateDescriptor(
+                descriptor: drawVerticesPipelineStateDescriptor(
                     colorPixelFormat: view.colorPixelFormat,
                     depthPixelFormat: view.depthStencilPixelFormat,
                     stencilPixelFormat: view.depthStencilPixelFormat,
                     library: library))
             texturePipelineState = try device.makeRenderPipelineState(
-                descriptor: mglRenderer.bltTexturePipelineStateDescriptor(
+                descriptor: bltTexturePipelineStateDescriptor(
                     colorPixelFormat: view.colorPixelFormat,
                     depthPixelFormat: view.depthStencilPixelFormat,
                     stencilPixelFormat: view.depthStencilPixelFormat,
                     library: library))
         } catch let error {
-            os_log("Could not create onscreen pipeline state: %@", log: .default, type: .error, String(describing: error))
+            logger.error(component: "mglOnscreenRenderingConfig", details: "Could not create onscreen pipeline state: \(String(describing: error))")
             return nil
         }
     }
@@ -89,8 +250,6 @@ class mglOnscreenRenderingConfig : mglColorRenderingConfig {
     }
 
     func finishDrawing(commandBuffer: MTLCommandBuffer, drawable: CAMetalDrawable) {
-        commandBuffer.present(drawable)
-        commandBuffer.commit()
     }
 
     // frameGrab, since everything is being drawn to a CAMetalDrawable, it does not
@@ -98,13 +257,14 @@ class mglOnscreenRenderingConfig : mglColorRenderingConfig {
     // has to be drawn into an offscreen texture, so for now, this function just returns
     // nil to notify that the frameGrab is impossible
     func frameGrab() -> (width: Int, height: Int, pointer: UnsafeMutablePointer<Float>?) {
-      os_log("(mglColorRenderingConfig:frameGrab) Cannot get frame because render target is the screen", log: .default, type: .error)
-      return (0,0,nil)
+        logger.error(component: "mglOnscreenRenderingConfig", details: "Cannot get frame because render target is the screen")
+        return (0,0,nil)
     }
 
 }
 
-class mglOffScreenTextureRenderingConfig : mglColorRenderingConfig {
+private class mglOffScreenTextureRenderingConfig : mglColorRenderingConfig {
+    private let logger: mglLogger
     let dotsPipelineState: MTLRenderPipelineState
     let arcsPipelineState: MTLRenderPipelineState
     let verticesWithColorPipelineState: MTLRenderPipelineState
@@ -114,7 +274,8 @@ class mglOffScreenTextureRenderingConfig : mglColorRenderingConfig {
     let depthStencilTexture: MTLTexture
     let renderPassDescriptor: MTLRenderPassDescriptor
 
-    init?(device: MTLDevice, library: MTLLibrary, view: MTKView, texture: MTLTexture) {
+    init?(logger: mglLogger, device: MTLDevice, library: MTLLibrary, view: MTKView, texture: MTLTexture) {
+        self.logger = logger
         self.colorTexture = texture
 
         let depthStencilTextureDescriptor = MTLTextureDescriptor.texture2DDescriptor(
@@ -125,7 +286,7 @@ class mglOffScreenTextureRenderingConfig : mglColorRenderingConfig {
         depthStencilTextureDescriptor.storageMode = .private
         depthStencilTextureDescriptor.usage = .renderTarget
         guard let depthStencilTexture = device.makeTexture(descriptor: depthStencilTextureDescriptor) else {
-            os_log("Could not create offscreen depth-and-stencil texture, got nil!", log: .default, type: .error)
+            logger.error(component: "mglOffScreenTextureRenderingConfig", details: "Could not create offscreen depth-and-stencil texture, got nil!")
             return nil
         }
         self.depthStencilTexture = depthStencilTexture
@@ -141,31 +302,31 @@ class mglOffScreenTextureRenderingConfig : mglColorRenderingConfig {
 
         do {
             dotsPipelineState = try device.makeRenderPipelineState(
-                descriptor: mglRenderer.dotsPipelineStateDescriptor(
+                descriptor: dotsPipelineStateDescriptor(
                     colorPixelFormat: texture.pixelFormat,
                     depthPixelFormat: view.depthStencilPixelFormat,
                     stencilPixelFormat: view.depthStencilPixelFormat,
                     library: library))
             arcsPipelineState = try device.makeRenderPipelineState(
-                descriptor: mglRenderer.arcsPipelineStateDescriptor(
+                descriptor: arcsPipelineStateDescriptor(
                     colorPixelFormat: texture.pixelFormat,
                     depthPixelFormat: view.depthStencilPixelFormat,
                     stencilPixelFormat: view.depthStencilPixelFormat,
                     library: library))
             verticesWithColorPipelineState = try device.makeRenderPipelineState(
-                descriptor: mglRenderer.drawVerticesPipelineStateDescriptor(
+                descriptor: drawVerticesPipelineStateDescriptor(
                     colorPixelFormat: texture.pixelFormat,
                     depthPixelFormat: view.depthStencilPixelFormat,
                     stencilPixelFormat: view.depthStencilPixelFormat,
                     library: library))
             texturePipelineState = try device.makeRenderPipelineState(
-                descriptor: mglRenderer.bltTexturePipelineStateDescriptor(
+                descriptor: bltTexturePipelineStateDescriptor(
                     colorPixelFormat: texture.pixelFormat,
                     depthPixelFormat: view.depthStencilPixelFormat,
                     stencilPixelFormat: view.depthStencilPixelFormat,
                     library: library))
         } catch let error {
-            os_log("(mglColorRenderingConfig) Could not create offscreen pipeline state: %@", log: .default, type: .error, String(describing: error))
+            logger.error(component: "mglOffScreenTextureRenderingConfig", details: "Could not create offscreen pipeline state: \(String(describing: error))")
             return nil
         }
     }
@@ -181,17 +342,12 @@ class mglOffScreenTextureRenderingConfig : mglColorRenderingConfig {
     }
 
     func finishDrawing(commandBuffer: MTLCommandBuffer, drawable: CAMetalDrawable) {
+        // Make sure the CPU can read the rendering results when we're done.
         let bltCommandEncoder = commandBuffer.makeBlitCommandEncoder()
         bltCommandEncoder?.synchronize(resource: colorTexture)
         bltCommandEncoder?.endEncoding()
-
-        commandBuffer.present(drawable)
-        commandBuffer.commit()
-
-        // Wait until the bltCommandEncoder is done syncing data from GPU to CPU.
-        commandBuffer.waitUntilCompleted()
     }
-    
+
     // frameGrab, this will write the bytes of the texture into an array
     func frameGrab() -> (width: Int, height: Int, pointer: UnsafeMutablePointer<Float>?) {
         // first make sure we have the right MTLTexture format (this should always be the same - it's set in
@@ -212,10 +368,181 @@ class mglOffScreenTextureRenderingConfig : mglColorRenderingConfig {
         }
         else {
             // write log message
-            os_log("(mglColorRenderingConfig:frameGrab) Render target texture is not in rgba32float format", log: .default, type: .error)
+            logger.error(component: "mglOffScreenTextureRenderingConfig", details: "Cannot get frame because render target texture is not in rgba32float format")
 
             // could not get bytes, return 0,0,nil
             return (0,0,nil)
         }
     }
+}
+
+// Create the config for drawing with our mgl "dots" shaders.
+// This depends on whether we're rendering to screen or to offscreen texture.
+private func dotsPipelineStateDescriptor(
+    colorPixelFormat:  MTLPixelFormat,
+    depthPixelFormat:  MTLPixelFormat,
+    stencilPixelFormat:  MTLPixelFormat,
+    library: MTLLibrary?
+) -> MTLRenderPipelineDescriptor {
+    let pipelineDescriptor = MTLRenderPipelineDescriptor()
+    pipelineDescriptor.depthAttachmentPixelFormat = depthPixelFormat
+    pipelineDescriptor.stencilAttachmentPixelFormat = stencilPixelFormat
+    pipelineDescriptor.colorAttachments[0].pixelFormat = colorPixelFormat
+    pipelineDescriptor.colorAttachments[0].isBlendingEnabled = true;
+    pipelineDescriptor.colorAttachments[0].rgbBlendOperation = MTLBlendOperation.add;
+    pipelineDescriptor.colorAttachments[0].alphaBlendOperation = MTLBlendOperation.add;
+    pipelineDescriptor.colorAttachments[0].sourceRGBBlendFactor = MTLBlendFactor.sourceAlpha;
+    pipelineDescriptor.colorAttachments[0].sourceAlphaBlendFactor = MTLBlendFactor.sourceAlpha;
+    pipelineDescriptor.colorAttachments[0].destinationRGBBlendFactor = MTLBlendFactor.oneMinusSourceAlpha;
+    pipelineDescriptor.colorAttachments[0].destinationAlphaBlendFactor = MTLBlendFactor.oneMinusSourceAlpha;
+
+    let vertexDescriptor = MTLVertexDescriptor()
+    vertexDescriptor.attributes[0].format = .float3
+    vertexDescriptor.attributes[0].offset = 0
+    vertexDescriptor.attributes[0].bufferIndex = 0
+    vertexDescriptor.attributes[1].format = .float4
+    vertexDescriptor.attributes[1].offset = 3 * MemoryLayout<Float>.size
+    vertexDescriptor.attributes[1].bufferIndex = 0
+    vertexDescriptor.attributes[2].format = .float2
+    vertexDescriptor.attributes[2].offset = 7 * MemoryLayout<Float>.size
+    vertexDescriptor.attributes[2].bufferIndex = 0
+    vertexDescriptor.attributes[3].format = .float
+    vertexDescriptor.attributes[3].offset = 9 * MemoryLayout<Float>.size
+    vertexDescriptor.attributes[3].bufferIndex = 0
+    vertexDescriptor.attributes[4].format = .float
+    vertexDescriptor.attributes[4].offset = 10 * MemoryLayout<Float>.size
+    vertexDescriptor.attributes[4].bufferIndex = 0
+    vertexDescriptor.layouts[0].stride = 11 * MemoryLayout<Float>.size
+    pipelineDescriptor.vertexDescriptor = vertexDescriptor
+    pipelineDescriptor.vertexFunction = library?.makeFunction(name: "vertex_dots")
+    pipelineDescriptor.fragmentFunction = library?.makeFunction(name: "fragment_dots")
+
+    return pipelineDescriptor
+}
+
+// Create the config for drawing with our mgl "arcs" shaders.
+// This depends on whether we're rendering to screen or to offscreen texture.
+private func arcsPipelineStateDescriptor(
+    colorPixelFormat:  MTLPixelFormat,
+    depthPixelFormat:  MTLPixelFormat,
+    stencilPixelFormat:  MTLPixelFormat,
+    library: MTLLibrary?
+) -> MTLRenderPipelineDescriptor {
+    let pipelineDescriptor = MTLRenderPipelineDescriptor()
+    pipelineDescriptor.depthAttachmentPixelFormat = depthPixelFormat
+    pipelineDescriptor.stencilAttachmentPixelFormat = stencilPixelFormat
+    pipelineDescriptor.colorAttachments[0].pixelFormat = colorPixelFormat
+    pipelineDescriptor.colorAttachments[0].isBlendingEnabled = true;
+    pipelineDescriptor.colorAttachments[0].rgbBlendOperation = MTLBlendOperation.add;
+    pipelineDescriptor.colorAttachments[0].alphaBlendOperation = MTLBlendOperation.add;
+    pipelineDescriptor.colorAttachments[0].sourceRGBBlendFactor = MTLBlendFactor.sourceAlpha;
+    pipelineDescriptor.colorAttachments[0].sourceAlphaBlendFactor = MTLBlendFactor.sourceAlpha;
+    pipelineDescriptor.colorAttachments[0].destinationRGBBlendFactor = MTLBlendFactor.oneMinusSourceAlpha;
+    pipelineDescriptor.colorAttachments[0].destinationAlphaBlendFactor = MTLBlendFactor.oneMinusSourceAlpha;
+
+    let vertexDescriptor = MTLVertexDescriptor()
+    // xyz
+    vertexDescriptor.attributes[0].format = .float3
+    vertexDescriptor.attributes[0].offset = 0
+    vertexDescriptor.attributes[0].bufferIndex = 0
+    // rgba
+    vertexDescriptor.attributes[1].format = .float4
+    vertexDescriptor.attributes[1].offset = 3 * MemoryLayout<Float>.stride
+    vertexDescriptor.attributes[1].bufferIndex = 0
+    // radii
+    vertexDescriptor.attributes[2].format = .float4
+    vertexDescriptor.attributes[2].offset = 7 * MemoryLayout<Float>.stride
+    vertexDescriptor.attributes[2].bufferIndex = 0
+    // wedge
+    vertexDescriptor.attributes[3].format = .float2
+    vertexDescriptor.attributes[3].offset = 11 * MemoryLayout<Float>.stride
+    vertexDescriptor.attributes[3].bufferIndex = 0
+    // border
+    vertexDescriptor.attributes[4].format = .float
+    vertexDescriptor.attributes[4].offset = 13 * MemoryLayout<Float>.stride
+    vertexDescriptor.attributes[4].bufferIndex = 0
+    // center vertex (computed)
+    vertexDescriptor.attributes[5].format = .float3
+    vertexDescriptor.attributes[5].offset = 14 * MemoryLayout<Float>.stride
+    vertexDescriptor.attributes[5].bufferIndex = 0
+    // viewport size
+    vertexDescriptor.attributes[6].format = .float2
+    vertexDescriptor.attributes[6].offset = 17 * MemoryLayout<Float>.stride
+    vertexDescriptor.attributes[6].bufferIndex = 0
+    vertexDescriptor.layouts[0].stride = 19 * MemoryLayout<Float>.stride
+    pipelineDescriptor.vertexDescriptor = vertexDescriptor
+    pipelineDescriptor.vertexFunction = library?.makeFunction(name: "vertex_arcs")
+    pipelineDescriptor.fragmentFunction = library?.makeFunction(name: "fragment_arcs")
+
+    return pipelineDescriptor
+}
+
+// Create the config for drawing with our mgl "textures" shaders.
+// This depends on whether we're rendering to screen or to offscreen texture.
+private func bltTexturePipelineStateDescriptor(
+    colorPixelFormat:  MTLPixelFormat,
+    depthPixelFormat:  MTLPixelFormat,
+    stencilPixelFormat:  MTLPixelFormat,
+    library: MTLLibrary?
+) -> MTLRenderPipelineDescriptor {
+    let pipelineDescriptor = MTLRenderPipelineDescriptor()
+    pipelineDescriptor.depthAttachmentPixelFormat = depthPixelFormat
+    pipelineDescriptor.stencilAttachmentPixelFormat = stencilPixelFormat
+    pipelineDescriptor.colorAttachments[0].pixelFormat = colorPixelFormat
+    pipelineDescriptor.colorAttachments[0].isBlendingEnabled = true;
+    pipelineDescriptor.colorAttachments[0].rgbBlendOperation = MTLBlendOperation.add;
+    pipelineDescriptor.colorAttachments[0].alphaBlendOperation = MTLBlendOperation.add;
+    pipelineDescriptor.colorAttachments[0].sourceRGBBlendFactor = MTLBlendFactor.sourceAlpha;
+    pipelineDescriptor.colorAttachments[0].sourceAlphaBlendFactor = MTLBlendFactor.sourceAlpha;
+    pipelineDescriptor.colorAttachments[0].destinationRGBBlendFactor = MTLBlendFactor.oneMinusSourceAlpha;
+    pipelineDescriptor.colorAttachments[0].destinationAlphaBlendFactor = MTLBlendFactor.oneMinusSourceAlpha;
+
+    let vertexDescriptor = MTLVertexDescriptor()
+    vertexDescriptor.attributes[0].format = .float3
+    vertexDescriptor.attributes[0].offset = 0
+    vertexDescriptor.attributes[0].bufferIndex = 0
+    vertexDescriptor.attributes[1].format = .float2
+    vertexDescriptor.attributes[1].offset = 3 * MemoryLayout<Float>.size
+    vertexDescriptor.attributes[1].bufferIndex = 0
+    vertexDescriptor.layouts[0].stride = 5 * MemoryLayout<Float>.size
+    pipelineDescriptor.vertexDescriptor = vertexDescriptor
+    pipelineDescriptor.vertexFunction = library?.makeFunction(name: "vertex_textures")
+    pipelineDescriptor.fragmentFunction = library?.makeFunction(name: "fragment_textures")
+
+    return pipelineDescriptor
+}
+
+// Create the config for drawing with our mgl "color vertices" shaders.
+// This depends on whether we're rendering to screen or to offscreen texture.
+private func drawVerticesPipelineStateDescriptor(
+    colorPixelFormat:  MTLPixelFormat,
+    depthPixelFormat:  MTLPixelFormat,
+    stencilPixelFormat:  MTLPixelFormat,
+    library: MTLLibrary?
+) -> MTLRenderPipelineDescriptor {
+    let pipelineDescriptor = MTLRenderPipelineDescriptor()
+    pipelineDescriptor.depthAttachmentPixelFormat = depthPixelFormat
+    pipelineDescriptor.stencilAttachmentPixelFormat = stencilPixelFormat
+    pipelineDescriptor.colorAttachments[0].pixelFormat = colorPixelFormat
+    pipelineDescriptor.colorAttachments[0].isBlendingEnabled = true;
+    pipelineDescriptor.colorAttachments[0].rgbBlendOperation = MTLBlendOperation.add;
+    pipelineDescriptor.colorAttachments[0].alphaBlendOperation = MTLBlendOperation.add;
+    pipelineDescriptor.colorAttachments[0].sourceRGBBlendFactor = MTLBlendFactor.sourceAlpha;
+    pipelineDescriptor.colorAttachments[0].sourceAlphaBlendFactor = MTLBlendFactor.sourceAlpha;
+    pipelineDescriptor.colorAttachments[0].destinationRGBBlendFactor = MTLBlendFactor.oneMinusSourceAlpha;
+    pipelineDescriptor.colorAttachments[0].destinationAlphaBlendFactor = MTLBlendFactor.oneMinusSourceAlpha;
+
+    let vertexDescriptor = MTLVertexDescriptor()
+    vertexDescriptor.attributes[0].format = .float3
+    vertexDescriptor.attributes[0].offset = 0
+    vertexDescriptor.attributes[0].bufferIndex = 0
+    vertexDescriptor.attributes[1].format = .float3
+    vertexDescriptor.attributes[1].offset = 3 * MemoryLayout<Float>.size
+    vertexDescriptor.attributes[1].bufferIndex = 0
+    vertexDescriptor.layouts[0].stride = 6 * MemoryLayout<Float>.size
+    pipelineDescriptor.vertexDescriptor = vertexDescriptor
+    pipelineDescriptor.vertexFunction = library?.makeFunction(name: "vertex_with_color")
+    pipelineDescriptor.fragmentFunction = library?.makeFunction(name: "fragment_with_color")
+
+    return pipelineDescriptor
 }

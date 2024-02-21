@@ -1,6 +1,6 @@
 % mglMetalReadTexture.m
 %
-%       usage: [im, ackTime, processedTime] = mglMetalReadTexture(tex)
+%       usage: [im, results] = mglMetalReadTexture(tex)
 %          by: Ben Heasly
 %        date: 03/04/2022
 %   copyright: (c) 2021 Justin Gardner (GPL see mgl/COPYING)
@@ -28,7 +28,7 @@
 %             an extra dimension indicating which mirror the image came from
 %             [height, width, 4, mirorIndex].
 %
-function [im, ackTime, processedTime] = mglMetalReadTexture(tex, socketInfo)
+function [im, results] = mglMetalReadTexture(tex, socketInfo)
 
 if numel(tex) > 1
     fprintf('(mglMetalReadTexture) Only using the first of %d elements of tex struct array.  To avoid this warning pass in tex(1) instead.\n', numel(tex));
@@ -47,12 +47,12 @@ mglSocketWrite(socketInfo, tex.textureNumber);
 
 % Check each socket for processing results.
 responseIncoming = mglSocketRead(socketInfo, 'double');
-processedTime = zeros([1, numel(socketInfo)]);
+resultCell = cell([1, numel(socketInfo)]);
 textureData = zeros([4, tex.imageWidth, tex.imageHeight, numel(socketInfo)]);
 for ii = 1:numel(socketInfo)
     if (responseIncoming(ii) < 0)
         % This socket shows an error processing the command.
-        processedTime(ii) = mglSocketRead(socketInfo(ii), 'double');
+        resultCell{ii} = mglReadCommandResults(socketInfo(ii), ackTime(1,1,1,ii));
         fprintf("(mglMetalReadTexture) Error reading Metal texture, you might try again with Console running, or: log stream --level info --process mglMetal\n");
     else
         % This socket shows processing was OK, read the image data.
@@ -62,9 +62,10 @@ for ii = 1:numel(socketInfo)
             fprintf("(mglMetalReadTexture) Unexpected size for textureNumber %d -- expected width %d but got %d, expected height %d but got %d\n", tex.textureNumber, tex.imageWidth, width, tex.imageHeight, height);
         end
         textureData(:,:,:,ii) = mglSocketRead(socketInfo(ii), 'single', 4, width, height);
-        processedTime(ii) = mglSocketRead(socketInfo(ii), 'double');
+        resultCell{ii} = mglReadCommandResults(socketInfo(ii), ackTime(1,1,1,ii));
     end
 end
+results = [resultCell{:}];
 
 
 % Rearrange the textre data into the Matlab image format.

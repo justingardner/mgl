@@ -11,9 +11,46 @@
 		4D56190B27628883009AB2E2 /* mglLocalServer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D56190A27628883009AB2E2 /* mglLocalServer.swift */; };
 		4D56190D27629A39009AB2E2 /* mglLocalClientServerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D56190C27629A39009AB2E2 /* mglLocalClientServerTests.swift */; };
 		4D5619112762A8F4009AB2E2 /* mglLocalClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D5619102762A8F4009AB2E2 /* mglLocalClient.swift */; };
+		4D5782C92B4722110050EF81 /* mglInfoCommand.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D5782C82B4722110050EF81 /* mglInfoCommand.swift */; };
+		4D5782CB2B472AAE0050EF81 /* mglLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D5782CA2B472AAE0050EF81 /* mglLogger.swift */; };
+		4D5782CD2B4748530050EF81 /* mglGetErrorMessageCommand.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D5782CC2B4748530050EF81 /* mglGetErrorMessageCommand.swift */; };
+		4D5782CF2B474BA60050EF81 /* mglFrameGrabCommand.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D5782CE2B474BA60050EF81 /* mglFrameGrabCommand.swift */; };
+		4D5782D12B474DA30050EF81 /* mglMinimizeCommand.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D5782D02B474DA30050EF81 /* mglMinimizeCommand.swift */; };
+		4D5782D32B474E820050EF81 /* mglBltTextureCommand.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D5782D22B474E820050EF81 /* mglBltTextureCommand.swift */; };
+		4D5782D52B4752D00050EF81 /* mglDotsCommand.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D5782D42B4752D00050EF81 /* mglDotsCommand.swift */; };
+		4D5782D72B4753AC0050EF81 /* mglLineCommand.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D5782D62B4753AC0050EF81 /* mglLineCommand.swift */; };
+		4D5782D92B47547C0050EF81 /* mglPolygonCommand.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D5782D82B47547C0050EF81 /* mglPolygonCommand.swift */; };
+		4D5782DB2B4755010050EF81 /* mglArcsConmmand.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D5782DA2B4755010050EF81 /* mglArcsConmmand.swift */; };
+		4D5782DD2B4757520050EF81 /* mglUpdateTextureCommand.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D5782DC2B4757520050EF81 /* mglUpdateTextureCommand.swift */; };
+		4D5782DF2B4761350050EF81 /* mglRepeatFlickerCommand.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D5782DE2B4761350050EF81 /* mglRepeatFlickerCommand.swift */; };
+		4D5782E12B4764F60050EF81 /* mglRepeatBltsCommand.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D5782E02B4764F60050EF81 /* mglRepeatBltsCommand.swift */; };
+		4D5782E32B4767730050EF81 /* mglRepeatQuadsCommand.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D5782E22B4767730050EF81 /* mglRepeatQuadsCommand.swift */; };
+		4D5782E52B47693D0050EF81 /* mglRepeatDotsCommand.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D5782E42B47693D0050EF81 /* mglRepeatDotsCommand.swift */; };
+		4D5782E72B476A370050EF81 /* mglRepeatFlushCommand.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D5782E62B476A370050EF81 /* mglRepeatFlushCommand.swift */; };
 		4D5882B2285A89FD005DDF00 /* mglCommandModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D5882B1285A89FD005DDF00 /* mglCommandModel.swift */; };
+		4D5F729D2B45B07600B4DA29 /* mglCreateTextureCommand.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D5F729C2B45B07600B4DA29 /* mglCreateTextureCommand.swift */; };
+		4D5F729F2B45B6C000B4DA29 /* mglSetRenderTargetCommand.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D5F729E2B45B6C000B4DA29 /* mglSetRenderTargetCommand.swift */; };
+		4D5F72A32B45CEFA00B4DA29 /* mglReadTextureCommand.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D5F72A22B45CEFA00B4DA29 /* mglReadTextureCommand.swift */; };
+		4D5F72A52B45D25900B4DA29 /* mglDeleteTextureCommand.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D5F72A42B45D25900B4DA29 /* mglDeleteTextureCommand.swift */; };
+		4D5F72A72B45D53500B4DA29 /* mglPingCommand.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D5F72A62B45D53500B4DA29 /* mglPingCommand.swift */; };
+		4D5F72A92B45D60B00B4DA29 /* mglDrainSystemEventsCommand.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D5F72A82B45D60B00B4DA29 /* mglDrainSystemEventsCommand.swift */; };
+		4D5F72AB2B45D75300B4DA29 /* mglFullscreenCommand.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D5F72AA2B45D75300B4DA29 /* mglFullscreenCommand.swift */; };
+		4D5F72AD2B45D8BD00B4DA29 /* mglWindowedCommand.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D5F72AC2B45D8BD00B4DA29 /* mglWindowedCommand.swift */; };
+		4D5F72AF2B45D93500B4DA29 /* mglSetWindowFrameInDisplayCommand.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D5F72AE2B45D93500B4DA29 /* mglSetWindowFrameInDisplayCommand.swift */; };
+		4D5F72B12B45DAE800B4DA29 /* mglGetWindowFrameInDisplayCommand.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D5F72B02B45DAE800B4DA29 /* mglGetWindowFrameInDisplayCommand.swift */; };
+		4D5F72B32B45DD9B00B4DA29 /* mglSetViewColorPixelFormatCommand.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D5F72B22B45DD9B00B4DA29 /* mglSetViewColorPixelFormatCommand.swift */; };
+		4D5F72B52B45E0A500B4DA29 /* mglDisplayCursorCommand.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D5F72B42B45E0A400B4DA29 /* mglDisplayCursorCommand.swift */; };
+		4D5F72B72B45E24F00B4DA29 /* mglSetXformCommand.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D5F72B62B45E24F00B4DA29 /* mglSetXformCommand.swift */; };
+		4D5F72B92B45E4D500B4DA29 /* mglStartStencilCreationCommand.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D5F72B82B45E4D500B4DA29 /* mglStartStencilCreationCommand.swift */; };
+		4D5F72BB2B45E5DF00B4DA29 /* mglFinishStencilCreationCommand.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D5F72BA2B45E5DE00B4DA29 /* mglFinishStencilCreationCommand.swift */; };
+		4D5F72BD2B45E62900B4DA29 /* mglSelectStencilCommand.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D5F72BC2B45E62900B4DA29 /* mglSelectStencilCommand.swift */; };
+		4D5F72BF2B45E87600B4DA29 /* mglQuadCommand.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D5F72BE2B45E87600B4DA29 /* mglQuadCommand.swift */; };
+		4D755E062B6941FB00ACB083 /* mglSampleTimestampsCommand.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D755E052B6941FB00ACB083 /* mglSampleTimestampsCommand.swift */; };
 		4D8B32812824627800278B6F /* mglDepthStencilConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D8B32802824627800278B6F /* mglDepthStencilConfig.swift */; };
 		4DA4671F2763CB8E00B65B9F /* mglServer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DA4671E2763CB8E00B65B9F /* mglServer.swift */; };
+		4DCD58472B3615BF00E08547 /* mglFlushCommand.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DCD58462B3615BF00E08547 /* mglFlushCommand.swift */; };
+		4DCD58492B36178E00E08547 /* mglSetClearColorCommand.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DCD58482B36178E00E08547 /* mglSetClearColorCommand.swift */; };
+		4DCD584B2B36335500E08547 /* mglRenderer2.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DCD584A2B36335500E08547 /* mglRenderer2.swift */; };
 		D08D4BBE23B8834C00A27C79 /* mglCommandInterface.swift in Sources */ = {isa = PBXBuildFile; fileRef = D08D4BBD23B8834C00A27C79 /* mglCommandInterface.swift */; };
 		D0A59C7A23C2E41900D3AE93 /* mglSecs.m in Sources */ = {isa = PBXBuildFile; fileRef = D0A59C7923C2E41900D3AE93 /* mglSecs.m */; };
 		D0F6B96E23B6D9E700B45409 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0F6B96D23B6D9E700B45409 /* AppDelegate.swift */; };
@@ -22,7 +59,6 @@
 		D0F6B97523B6D9E800B45409 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = D0F6B97323B6D9E800B45409 /* Main.storyboard */; };
 		D0F6B98123B6D9E800B45409 /* mglMetalTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0F6B98023B6D9E800B45409 /* mglMetalTests.swift */; };
 		D0F6B98C23B6D9E800B45409 /* mglMetalUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0F6B98B23B6D9E800B45409 /* mglMetalUITests.swift */; };
-		D0F6B99A23B6DAD600B45409 /* mglRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0F6B99923B6DAD600B45409 /* mglRenderer.swift */; };
 		D0F6B9A223B6ED4300B45409 /* mglPrimitives.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0F6B9A123B6ED4300B45409 /* mglPrimitives.swift */; };
 		D0F6B9A423B6EDE600B45409 /* mglShaders.metal in Sources */ = {isa = PBXBuildFile; fileRef = D0F6B9A323B6EDE600B45409 /* mglShaders.metal */; };
 /* End PBXBuildFile section */
@@ -49,10 +85,47 @@
 		4D56190A27628883009AB2E2 /* mglLocalServer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglLocalServer.swift; sourceTree = "<group>"; };
 		4D56190C27629A39009AB2E2 /* mglLocalClientServerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglLocalClientServerTests.swift; sourceTree = "<group>"; };
 		4D5619102762A8F4009AB2E2 /* mglLocalClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglLocalClient.swift; sourceTree = "<group>"; };
+		4D5782C82B4722110050EF81 /* mglInfoCommand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglInfoCommand.swift; sourceTree = "<group>"; };
+		4D5782CA2B472AAE0050EF81 /* mglLogger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglLogger.swift; sourceTree = "<group>"; };
+		4D5782CC2B4748530050EF81 /* mglGetErrorMessageCommand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglGetErrorMessageCommand.swift; sourceTree = "<group>"; };
+		4D5782CE2B474BA60050EF81 /* mglFrameGrabCommand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglFrameGrabCommand.swift; sourceTree = "<group>"; };
+		4D5782D02B474DA30050EF81 /* mglMinimizeCommand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglMinimizeCommand.swift; sourceTree = "<group>"; };
+		4D5782D22B474E820050EF81 /* mglBltTextureCommand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglBltTextureCommand.swift; sourceTree = "<group>"; };
+		4D5782D42B4752D00050EF81 /* mglDotsCommand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglDotsCommand.swift; sourceTree = "<group>"; };
+		4D5782D62B4753AC0050EF81 /* mglLineCommand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglLineCommand.swift; sourceTree = "<group>"; };
+		4D5782D82B47547C0050EF81 /* mglPolygonCommand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglPolygonCommand.swift; sourceTree = "<group>"; };
+		4D5782DA2B4755010050EF81 /* mglArcsConmmand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglArcsConmmand.swift; sourceTree = "<group>"; };
+		4D5782DC2B4757520050EF81 /* mglUpdateTextureCommand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglUpdateTextureCommand.swift; sourceTree = "<group>"; };
+		4D5782DE2B4761350050EF81 /* mglRepeatFlickerCommand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglRepeatFlickerCommand.swift; sourceTree = "<group>"; };
+		4D5782E02B4764F60050EF81 /* mglRepeatBltsCommand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglRepeatBltsCommand.swift; sourceTree = "<group>"; };
+		4D5782E22B4767730050EF81 /* mglRepeatQuadsCommand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglRepeatQuadsCommand.swift; sourceTree = "<group>"; };
+		4D5782E42B47693D0050EF81 /* mglRepeatDotsCommand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglRepeatDotsCommand.swift; sourceTree = "<group>"; };
+		4D5782E62B476A370050EF81 /* mglRepeatFlushCommand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglRepeatFlushCommand.swift; sourceTree = "<group>"; };
 		4D5882B1285A89FD005DDF00 /* mglCommandModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglCommandModel.swift; sourceTree = "<group>"; };
+		4D5F729C2B45B07600B4DA29 /* mglCreateTextureCommand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglCreateTextureCommand.swift; sourceTree = "<group>"; };
+		4D5F729E2B45B6C000B4DA29 /* mglSetRenderTargetCommand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglSetRenderTargetCommand.swift; sourceTree = "<group>"; };
+		4D5F72A22B45CEFA00B4DA29 /* mglReadTextureCommand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglReadTextureCommand.swift; sourceTree = "<group>"; };
+		4D5F72A42B45D25900B4DA29 /* mglDeleteTextureCommand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglDeleteTextureCommand.swift; sourceTree = "<group>"; };
+		4D5F72A62B45D53500B4DA29 /* mglPingCommand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglPingCommand.swift; sourceTree = "<group>"; };
+		4D5F72A82B45D60B00B4DA29 /* mglDrainSystemEventsCommand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglDrainSystemEventsCommand.swift; sourceTree = "<group>"; };
+		4D5F72AA2B45D75300B4DA29 /* mglFullscreenCommand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglFullscreenCommand.swift; sourceTree = "<group>"; };
+		4D5F72AC2B45D8BD00B4DA29 /* mglWindowedCommand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglWindowedCommand.swift; sourceTree = "<group>"; };
+		4D5F72AE2B45D93500B4DA29 /* mglSetWindowFrameInDisplayCommand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglSetWindowFrameInDisplayCommand.swift; sourceTree = "<group>"; };
+		4D5F72B02B45DAE800B4DA29 /* mglGetWindowFrameInDisplayCommand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglGetWindowFrameInDisplayCommand.swift; sourceTree = "<group>"; };
+		4D5F72B22B45DD9B00B4DA29 /* mglSetViewColorPixelFormatCommand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglSetViewColorPixelFormatCommand.swift; sourceTree = "<group>"; };
+		4D5F72B42B45E0A400B4DA29 /* mglDisplayCursorCommand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglDisplayCursorCommand.swift; sourceTree = "<group>"; };
+		4D5F72B62B45E24F00B4DA29 /* mglSetXformCommand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglSetXformCommand.swift; sourceTree = "<group>"; };
+		4D5F72B82B45E4D500B4DA29 /* mglStartStencilCreationCommand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglStartStencilCreationCommand.swift; sourceTree = "<group>"; };
+		4D5F72BA2B45E5DE00B4DA29 /* mglFinishStencilCreationCommand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglFinishStencilCreationCommand.swift; sourceTree = "<group>"; };
+		4D5F72BC2B45E62900B4DA29 /* mglSelectStencilCommand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglSelectStencilCommand.swift; sourceTree = "<group>"; };
+		4D5F72BE2B45E87600B4DA29 /* mglQuadCommand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglQuadCommand.swift; sourceTree = "<group>"; };
+		4D755E052B6941FB00ACB083 /* mglSampleTimestampsCommand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglSampleTimestampsCommand.swift; sourceTree = "<group>"; };
 		4D8B32802824627800278B6F /* mglDepthStencilConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglDepthStencilConfig.swift; sourceTree = "<group>"; };
 		4DA4671B2763C16200B65B9F /* mglCommandTypes.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = mglCommandTypes.h; sourceTree = "<group>"; };
 		4DA4671E2763CB8E00B65B9F /* mglServer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglServer.swift; sourceTree = "<group>"; };
+		4DCD58462B3615BF00E08547 /* mglFlushCommand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglFlushCommand.swift; sourceTree = "<group>"; };
+		4DCD58482B36178E00E08547 /* mglSetClearColorCommand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglSetClearColorCommand.swift; sourceTree = "<group>"; };
+		4DCD584A2B36335500E08547 /* mglRenderer2.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglRenderer2.swift; sourceTree = "<group>"; };
 		D08D4BBD23B8834C00A27C79 /* mglCommandInterface.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglCommandInterface.swift; sourceTree = "<group>"; };
 		D0A59C7823C2E41900D3AE93 /* mglSecs.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = mglSecs.h; sourceTree = "<group>"; };
 		D0A59C7923C2E41900D3AE93 /* mglSecs.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = mglSecs.m; sourceTree = "<group>"; };
@@ -69,7 +142,6 @@
 		D0F6B98723B6D9E800B45409 /* mglMetalUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = mglMetalUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		D0F6B98B23B6D9E800B45409 /* mglMetalUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglMetalUITests.swift; sourceTree = "<group>"; };
 		D0F6B98D23B6D9E800B45409 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		D0F6B99923B6DAD600B45409 /* mglRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglRenderer.swift; sourceTree = "<group>"; };
 		D0F6B99D23B6DB3A00B45409 /* mglMetal-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "mglMetal-Bridging-Header.h"; sourceTree = "<group>"; };
 		D0F6B9A123B6ED4300B45409 /* mglPrimitives.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglPrimitives.swift; sourceTree = "<group>"; };
 		D0F6B9A323B6EDE600B45409 /* mglShaders.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; lineEnding = 0; path = mglShaders.metal; sourceTree = "<group>"; };
@@ -100,6 +172,48 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		4DCD58452B36159300E08547 /* commands */ = {
+			isa = PBXGroup;
+			children = (
+				4DCD58462B3615BF00E08547 /* mglFlushCommand.swift */,
+				4DCD58482B36178E00E08547 /* mglSetClearColorCommand.swift */,
+				4D5F729C2B45B07600B4DA29 /* mglCreateTextureCommand.swift */,
+				4D5F729E2B45B6C000B4DA29 /* mglSetRenderTargetCommand.swift */,
+				4D5F72A22B45CEFA00B4DA29 /* mglReadTextureCommand.swift */,
+				4D5F72A42B45D25900B4DA29 /* mglDeleteTextureCommand.swift */,
+				4D5F72A62B45D53500B4DA29 /* mglPingCommand.swift */,
+				4D5F72A82B45D60B00B4DA29 /* mglDrainSystemEventsCommand.swift */,
+				4D5F72AA2B45D75300B4DA29 /* mglFullscreenCommand.swift */,
+				4D5F72AC2B45D8BD00B4DA29 /* mglWindowedCommand.swift */,
+				4D5F72AE2B45D93500B4DA29 /* mglSetWindowFrameInDisplayCommand.swift */,
+				4D5F72B02B45DAE800B4DA29 /* mglGetWindowFrameInDisplayCommand.swift */,
+				4D5F72B22B45DD9B00B4DA29 /* mglSetViewColorPixelFormatCommand.swift */,
+				4D5F72B42B45E0A400B4DA29 /* mglDisplayCursorCommand.swift */,
+				4D5F72B62B45E24F00B4DA29 /* mglSetXformCommand.swift */,
+				4D5F72B82B45E4D500B4DA29 /* mglStartStencilCreationCommand.swift */,
+				4D5F72BA2B45E5DE00B4DA29 /* mglFinishStencilCreationCommand.swift */,
+				4D5F72BC2B45E62900B4DA29 /* mglSelectStencilCommand.swift */,
+				4D5F72BE2B45E87600B4DA29 /* mglQuadCommand.swift */,
+				4D5782C82B4722110050EF81 /* mglInfoCommand.swift */,
+				4D5782CC2B4748530050EF81 /* mglGetErrorMessageCommand.swift */,
+				4D5782CE2B474BA60050EF81 /* mglFrameGrabCommand.swift */,
+				4D5782D02B474DA30050EF81 /* mglMinimizeCommand.swift */,
+				4D5782D22B474E820050EF81 /* mglBltTextureCommand.swift */,
+				4D5782D42B4752D00050EF81 /* mglDotsCommand.swift */,
+				4D5782D62B4753AC0050EF81 /* mglLineCommand.swift */,
+				4D5782D82B47547C0050EF81 /* mglPolygonCommand.swift */,
+				4D5782DA2B4755010050EF81 /* mglArcsConmmand.swift */,
+				4D5782DC2B4757520050EF81 /* mglUpdateTextureCommand.swift */,
+				4D5782DE2B4761350050EF81 /* mglRepeatFlickerCommand.swift */,
+				4D5782E02B4764F60050EF81 /* mglRepeatBltsCommand.swift */,
+				4D5782E22B4767730050EF81 /* mglRepeatQuadsCommand.swift */,
+				4D5782E42B47693D0050EF81 /* mglRepeatDotsCommand.swift */,
+				4D5782E62B476A370050EF81 /* mglRepeatFlushCommand.swift */,
+				4D755E052B6941FB00ACB083 /* mglSampleTimestampsCommand.swift */,
+			);
+			path = commands;
+			sourceTree = "<group>";
+		};
 		D0F6B96123B6D9E700B45409 = {
 			isa = PBXGroup;
 			children = (
@@ -123,6 +237,7 @@
 		D0F6B96C23B6D9E700B45409 /* mglMetal */ = {
 			isa = PBXGroup;
 			children = (
+				4DCD58452B36159300E08547 /* commands */,
 				D0F6B97723B6D9E800B45409 /* mglMetal.entitlements */,
 				4DA4671B2763C16200B65B9F /* mglCommandTypes.h */,
 				D0F6B99D23B6DB3A00B45409 /* mglMetal-Bridging-Header.h */,
@@ -135,7 +250,7 @@
 				4D5619102762A8F4009AB2E2 /* mglLocalClient.swift */,
 				4D56190A27628883009AB2E2 /* mglLocalServer.swift */,
 				D0F6B9A123B6ED4300B45409 /* mglPrimitives.swift */,
-				D0F6B99923B6DAD600B45409 /* mglRenderer.swift */,
+				4DCD584A2B36335500E08547 /* mglRenderer2.swift */,
 				4DA4671E2763CB8E00B65B9F /* mglServer.swift */,
 				D0F6B96F23B6D9E700B45409 /* mglViewController.swift */,
 				D0F6B97123B6D9E800B45409 /* Assets.xcassets */,
@@ -143,6 +258,7 @@
 				4D53454C28205AA400B61D3D /* mglColorRenderingConfig.swift */,
 				4D8B32802824627800278B6F /* mglDepthStencilConfig.swift */,
 				4D5882B1285A89FD005DDF00 /* mglCommandModel.swift */,
+				4D5782CA2B472AAE0050EF81 /* mglLogger.swift */,
 			);
 			path = mglMetal;
 			sourceTree = "<group>";
@@ -298,18 +414,54 @@
 			buildActionMask = 2147483647;
 			files = (
 				4DA4671F2763CB8E00B65B9F /* mglServer.swift in Sources */,
+				4D5F72B32B45DD9B00B4DA29 /* mglSetViewColorPixelFormatCommand.swift in Sources */,
+				4D5782CB2B472AAE0050EF81 /* mglLogger.swift in Sources */,
 				4D8B32812824627800278B6F /* mglDepthStencilConfig.swift in Sources */,
 				4D53454D28205AA400B61D3D /* mglColorRenderingConfig.swift in Sources */,
+				4D5F72AD2B45D8BD00B4DA29 /* mglWindowedCommand.swift in Sources */,
+				4D5782D32B474E820050EF81 /* mglBltTextureCommand.swift in Sources */,
+				4D5782DF2B4761350050EF81 /* mglRepeatFlickerCommand.swift in Sources */,
+				4D5F72AF2B45D93500B4DA29 /* mglSetWindowFrameInDisplayCommand.swift in Sources */,
+				4DCD58492B36178E00E08547 /* mglSetClearColorCommand.swift in Sources */,
 				4D56190B27628883009AB2E2 /* mglLocalServer.swift in Sources */,
 				4D5619112762A8F4009AB2E2 /* mglLocalClient.swift in Sources */,
+				4D5F72BD2B45E62900B4DA29 /* mglSelectStencilCommand.swift in Sources */,
+				4D5F729F2B45B6C000B4DA29 /* mglSetRenderTargetCommand.swift in Sources */,
+				4D5782DB2B4755010050EF81 /* mglArcsConmmand.swift in Sources */,
+				4D5F72B12B45DAE800B4DA29 /* mglGetWindowFrameInDisplayCommand.swift in Sources */,
+				4D5F72A92B45D60B00B4DA29 /* mglDrainSystemEventsCommand.swift in Sources */,
+				4D5782E72B476A370050EF81 /* mglRepeatFlushCommand.swift in Sources */,
+				4D5782D12B474DA30050EF81 /* mglMinimizeCommand.swift in Sources */,
+				4D5F72BB2B45E5DF00B4DA29 /* mglFinishStencilCreationCommand.swift in Sources */,
+				4D5F72B72B45E24F00B4DA29 /* mglSetXformCommand.swift in Sources */,
+				4DCD584B2B36335500E08547 /* mglRenderer2.swift in Sources */,
+				4D5782E32B4767730050EF81 /* mglRepeatQuadsCommand.swift in Sources */,
 				D08D4BBE23B8834C00A27C79 /* mglCommandInterface.swift in Sources */,
+				4D5F72A32B45CEFA00B4DA29 /* mglReadTextureCommand.swift in Sources */,
+				4D5F72A72B45D53500B4DA29 /* mglPingCommand.swift in Sources */,
+				4D5782D72B4753AC0050EF81 /* mglLineCommand.swift in Sources */,
 				D0F6B97023B6D9E700B45409 /* mglViewController.swift in Sources */,
-				D0F6B99A23B6DAD600B45409 /* mglRenderer.swift in Sources */,
+				4D5F72B92B45E4D500B4DA29 /* mglStartStencilCreationCommand.swift in Sources */,
+				4D5782CF2B474BA60050EF81 /* mglFrameGrabCommand.swift in Sources */,
 				4D5882B2285A89FD005DDF00 /* mglCommandModel.swift in Sources */,
+				4D5F72BF2B45E87600B4DA29 /* mglQuadCommand.swift in Sources */,
 				D0F6B9A223B6ED4300B45409 /* mglPrimitives.swift in Sources */,
 				D0A59C7A23C2E41900D3AE93 /* mglSecs.m in Sources */,
+				4D5F72A52B45D25900B4DA29 /* mglDeleteTextureCommand.swift in Sources */,
 				D0F6B96E23B6D9E700B45409 /* AppDelegate.swift in Sources */,
+				4D5782D92B47547C0050EF81 /* mglPolygonCommand.swift in Sources */,
+				4D5782D52B4752D00050EF81 /* mglDotsCommand.swift in Sources */,
+				4D5782C92B4722110050EF81 /* mglInfoCommand.swift in Sources */,
 				D0F6B9A423B6EDE600B45409 /* mglShaders.metal in Sources */,
+				4D5F72AB2B45D75300B4DA29 /* mglFullscreenCommand.swift in Sources */,
+				4D5782E12B4764F60050EF81 /* mglRepeatBltsCommand.swift in Sources */,
+				4D5782DD2B4757520050EF81 /* mglUpdateTextureCommand.swift in Sources */,
+				4D5782CD2B4748530050EF81 /* mglGetErrorMessageCommand.swift in Sources */,
+				4D5F729D2B45B07600B4DA29 /* mglCreateTextureCommand.swift in Sources */,
+				4DCD58472B3615BF00E08547 /* mglFlushCommand.swift in Sources */,
+				4D755E062B6941FB00ACB083 /* mglSampleTimestampsCommand.swift in Sources */,
+				4D5F72B52B45E0A500B4DA29 /* mglDisplayCursorCommand.swift in Sources */,
+				4D5782E52B47693D0050EF81 /* mglRepeatDotsCommand.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -483,6 +635,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
+				MACOSX_DEPLOYMENT_TARGET = 10.15;
 				ONLY_ACTIVE_ARCH = NO;
 				PRODUCT_BUNDLE_IDENTIFIER = gru.mglMetal;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -505,6 +658,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
+				MACOSX_DEPLOYMENT_TARGET = 10.15;
 				PRODUCT_BUNDLE_IDENTIFIER = gru.mglMetal;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OBJC_BRIDGING_HEADER = "mglMetal/mglMetal-Bridging-Header.h";
@@ -566,6 +720,7 @@
 					"@executable_path/../Frameworks",
 					"@loader_path/../Frameworks",
 				);
+				MACOSX_DEPLOYMENT_TARGET = 10.15;
 				PRODUCT_BUNDLE_IDENTIFIER = gru.mglMetalUITests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
@@ -585,6 +740,7 @@
 					"@executable_path/../Frameworks",
 					"@loader_path/../Frameworks",
 				);
+				MACOSX_DEPLOYMENT_TARGET = 10.15;
 				PRODUCT_BUNDLE_IDENTIFIER = gru.mglMetalUITests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;

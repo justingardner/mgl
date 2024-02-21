@@ -1,7 +1,7 @@
 % mglCreateTexture.m
 %
 %        $Id$
-%      usage: [texture, ackTime, processedTime] = mglCreateTexture(image)
+%      usage: [texture, results] = mglCreateTexture(image)
 %         by: justin gardner
 %       date: 04/10/06
 %  copyright: (c) 2006 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
@@ -43,7 +43,7 @@
 %             mglBltTexture(tex,[mglGetParam('screenWidth')/2 mglGetParam('screenHeight')/2]);
 %             mglFlush;
 %
-function [texture, ackTime, processedTime] = mglCreateTexture(image, axes, liveBuffer, textureParams, socketInfo)
+function [texture, results] = mglCreateTexture(image, axes, liveBuffer, textureParams, socketInfo)
 
 persistent warnOnce
 if isempty(warnOnce) warnOnce = true; end
@@ -87,10 +87,10 @@ elseif imageSlices == 3
     image = cat(3, image, ones(size(image,1:2)));
 end
 
-[texture, ackTime, processedTime] = mglMetalCreateTexture(image, [], [], [], socketInfo);
+[texture, results] = mglMetalCreateTexture(image, [], [], [], socketInfo);
 
 % check if processedTime is negative which indicates an error
-if any(processedTime < 0)
+if any([results.processedTime] < 0)
   % display error
-  mglPrivateDisplayProcessingError(socketInfo, ackTime, processedTime, mfilename);
+  mglPrivateDisplayProcessingError(socketInfo, results, mfilename);
 end
