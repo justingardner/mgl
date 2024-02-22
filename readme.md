@@ -4,7 +4,7 @@ Mgl is a suite of mex/m files for displaying visual psychophysics stimuli and wr
 
 # mgl Documentation
 
-Full documentation can be found here: [http://gru.stanford.edu/mgl](http://gru.stanford.edu/mgl)
+Full documentation can be found here: [https://gru.stanford.edu/mgl](http://gru.stanford.edu/mgl)
 
 # mgl Citation
 
