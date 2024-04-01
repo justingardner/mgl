@@ -174,7 +174,7 @@ end
 global fixStimulus;
 if ~easyFixTask
   % default values
-  % fixStimulus.diskSize = 0.5;
+  fixStimulus.diskSize = 1;
   fixStimulus.fixWidth = 1;
   % fixStimulus.fixLineWidth = 3;
   fixStimulus.stimTime = 0.4;
@@ -529,7 +529,7 @@ end
 if any(stimulus.stimulusType == [3 4 5])
   if task.thistrial.barAngle == -1
     % first half cycle show blank
-    if (task.thistrial.thisseg < round(stimulus.stepsPerCycle/2)) 
+    if (task.thistrial.thisseg <= round(stimulus.stepsPerCycle/2)) 
       stimulus.blank = 1;
       return;
     % second half jump to next trial
