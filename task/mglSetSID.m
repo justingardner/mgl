@@ -20,7 +20,7 @@
 %             mglSetSID('add');
 %            
 %             To edit a subject
-%             mglSetSID('s001','edit');
+%             mglSe``tSID('s001','edit');
 %             You will need to enter the password for the databse.
 %
 %             To clear the current SID:
@@ -560,15 +560,25 @@ end
 
 % try to unencrypt file using openssl des3
 disp(sprintf('(mglSetSID) Loading SID database, enter password'));
-status = system(sprintf('openssl des3 -d -md sha256 -in %s -out %s',sidDatabaseFilename,sidDatabaseDecrypt));
+status = system(sprintf('openssl des3 -d -md md5 -in %s -out %s',sidDatabaseFilename,sidDatabaseDecrypt));
 
 % see if decrypt was successful
 if isequal(status,1)
-  delete(sidDatabaseDecrypt);
-  disp(sprintf('(mglSetSID) Did not decrypt %s',sidDatabaseFilename));
-  return
+  disp(sprintf('\n(mglSetSID) sha256 decrypt did not work. Trying md5... (please re-enter password)'));
+  status = system(sprintf('openssl des3 -d -md sha256 -in %s -out %s',sidDatabaseFilename,sidDatabaseDecrypt));
+
+  if isequal(status,1)
+      delete(sidDatabaseDecrypt);
+      disp(sprintf('(mglSetSID) Did not decrypt %s',sidDatabaseFilename));
+      return
+  end
 end
 
+  if isequal(status,1)
+      delete(sidDatabaseDecrypt);
+      disp(sprintf('(mglSetSID) Did not decrypt %s',sidDatabaseFilename));
+      return
+  end
 
 % if so, then load it and delete the decrypt file
 sidDatabase = myreadtable(sidDatabaseDecrypt);

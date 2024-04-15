@@ -63,7 +63,7 @@ void showCursor()
 {
   // display cursor
   CGDisplayShowCursor( kCGDirectMainDisplay ) ; 
-  mexPrintf("Display cursor\n");
+  // mexPrintf("Display cursor\n");
   //[NSCursor setHiddenUntilMouseMoves:false];
   //[NSCursor unhide];
   //[[NSCursor pointingHandCursor] set];
@@ -75,7 +75,7 @@ void hideCursor()
 {
   // Hide cursor
   CGDisplayHideCursor( kCGDirectMainDisplay ) ; 
-  mexPrintf("Hide cursor\n");
+  // mexPrintf("Hide cursor\n");
   //[NSCursor setHiddenUntilMouseMoves:false];
   //[NSCursor hide];
 }

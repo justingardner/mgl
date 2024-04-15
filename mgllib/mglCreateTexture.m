@@ -61,7 +61,7 @@ end
 if isequal(class(image),'uint8')
     % shift dimensions as unit8 was 4xnxm (since that was the direct format
     % supported by OpenGL
-    image = shiftdim(image,1);
+    %image = shiftdim(image,1);
     
     % need to convert to double
     image = double(image)/255;

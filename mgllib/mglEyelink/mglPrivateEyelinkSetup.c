@@ -351,7 +351,7 @@ void ELCALLBACK exit_cal_display(void)
  */
 void ELCALLBACK draw_cal_target(INT16 x, INT16 y)
 {    
-  //  mexPrintf("(mglPrivateEyelinkCalibrate) call to draw_cal_target(%i,%i)\n",x,y);
+  // mexPrintf("(mglPrivateEyelinkCalibrate) call to draw_cal_target(%i,%i)\n",x,y);
   mxArray *callInput[4];
   double *inX;
   double *inY;
@@ -377,10 +377,10 @@ void ELCALLBACK draw_cal_target(INT16 x, INT16 y)
   *inSize = 5; // in pixels for now
   memcpy(inColor, _calTarget.outerRGB, sizeof(double)*3);
   // mglGluDisk(xDeg, yDeg, targetSize, targetcolor);
-  mexCallMATLAB(0, NULL, 4, callInput, "mglGluDisk");            
+  mexCallMATLAB(0, NULL, 4, callInput, "mglPoints2");            
   *inSize = 2; // in pixels for now
   memcpy(inColor, _calTarget.innerRGB, sizeof(double)*3);
-  mexCallMATLAB(0, NULL, 4, callInput, "mglGluDisk");            
+  mexCallMATLAB(0, NULL, 4, callInput, "mglPoints2");            
   mexEvalString("mglFlush;");
   if (verbose) mexPrintf("(mglPrivateEyelinkSetup:draw_cal_target) mglGluDisk at (%g,%g) with size %g.\n", *inX, *inY, *inSize);
   // destroy created matrices
