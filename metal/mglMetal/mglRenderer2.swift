@@ -65,6 +65,8 @@ class mglRenderer2: NSObject {
         }
         self.device = device
         metalView.device = device
+        
+        metalView.preferredFramesPerSecond = 120
 
         // Try to set up buffers to holder detailed pipeline stage timestamps.
         // The timestamps we want are "stage boundary" timestamps before and after the vertex and fragment pipeline stages.
