@@ -213,7 +213,7 @@ if info.includeEyelinkFrameworks
 end
 
 % and linker flags
-%ldFlags=['-Wl,-twolevel_namespace -F/Library/Frameworks -undefined error -arch ' archs ' '];
+%ldFlags=['-Wl,-rpath,/Library/Frameworks -twolevel_namespace -F/Library/Frameworks -undefined error -arch ' archs ' '];
 ldFlags=['-Wl,-twolevel_namespace -F/Library/Frameworks -arch ' cflag_arch ' '];
 
 % This specifies the matlab entrance point
