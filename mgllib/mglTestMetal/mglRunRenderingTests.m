@@ -47,13 +47,13 @@ else
         fprintf('     snapshot data: %s\n', result.snapshotData);
         expectedFigure = figure('Name', sprintf('%s Expected', result.testName));
         expectedAxes = axes('Parent', expectedFigure);
-        imshow(result.snapshot(:,:,1:3), 'InitialMagnification', 100, 'Parent', expectedAxes);
+        imshow(result.snapshot(:,:,1:3), 'InitialMagnification', 200, 'Parent', expectedAxes);
         title(sprintf('Expected (%d x %d)', size(result.snapshot, 1), size(result.snapshot, 2)), 'Parent', expectedAxes);
 
         actualFigure = figure('Name', sprintf('%s Actual', result.testName));
         actualAxes = axes('Parent', actualFigure);
         if size(result.renderedImage, 3) >= 3
-            imshow(result.renderedImage(:,:,1:3), 'InitialMagnification', 100, 'Parent', actualAxes);
+            imshow(result.renderedImage(:,:,1:3), 'InitialMagnification', 200, 'Parent', actualAxes);
         end
         title(sprintf('Actual (%d x %d)', size(result.renderedImage, 1), size(result.renderedImage, 2)), 'Parent', actualAxes);
     end

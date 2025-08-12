@@ -1,12 +1,12 @@
 % mglMetalDots.m
 %
 %        $Id$
-%      usage: [ackTime, processedTime, setupTime] = mglMetalDots(xyz, rgba, wh, shape, border)
+%      usage: results = mglMetalDots(xyz, rgba, wh, shape, border)
 %         by: Benjamin heasly
 %       date: 03/16/2022
 %  copyright: (c) 2006 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
 %    purpose: Draw "vectorized" dots with xyz, rgba, width and height.
-%      usage: [ackTime, processedTime] = mglMetalDots(xyz, rgba, wh, shape, border)
+%      usage: results = mglMetalDots(xyz, rgba, wh, shape, border)
 %             This is a common interface to mglMeal for points, dots, etc.
 %             xyz -- 3 x n matrix of point positions [x, y, z]
 %             rgba -- 4 x n matrix of point colors [r, g, b, a]
@@ -14,7 +14,7 @@
 %             shape -- 1 x n shape 0 -> rectangle, 1-> oval
 %             border-- 1 x n antialiasing pixel size
 %
-function [ackTime, processedTime, setupTime] = mglMetalDots(xyz, rgba, wh, shape, border, socketInfo)
+function results = mglMetalDots(xyz, rgba, wh, shape, border, socketInfo)
 
 if nargin < 5
   help mglMetalDots
@@ -51,4 +51,4 @@ mglSocketWrite(socketInfo, socketInfo(1).command.mglDots);
 ackTime = mglSocketRead(socketInfo, 'double');
 mglSocketWrite(socketInfo, uint32(nDots));
 mglSocketWrite(socketInfo, vertexData);
-processedTime = mglSocketRead(socketInfo, 'double');
+results = mglReadCommandResults(socketInfo, ackTime, setupTime);

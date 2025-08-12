@@ -1,6 +1,6 @@
 % mglMetalCreateTexture.m
 %
-%       usage: [tex, ackTime, processedTime] = mglMetalCreateTexture(im, [minMagFilter, mipFilter, addressMode])
+%       usage: [tex, results] = mglMetalCreateTexture(im, [minMagFilter, mipFilter, addressMode])
 %          by: justin gardner
 %        date: 09/28/2021
 %  copyright: (c) 2021 Justin Gardner (GPL see mgl/COPYING)
@@ -32,13 +32,12 @@
 %              and/or mglMirrorActivate, returns a struct arrauy with one
 %              element per active mirror.
 %
-function [tex, ackTime, processedTime] = mglMetalCreateTexture(im, minMagFilter, mipFilter, addressMode, socketInfo)
+function [tex, results] = mglMetalCreateTexture(im, minMagFilter, mipFilter, addressMode, socketInfo)
 
 % empty image, nothing to do.
 if isempty(im)
   tex = [];
-  ackTime = mglGetSecs;
-  processedTime = mglGetSecs;
+  results = [];
   return
 end
 
@@ -98,19 +97,19 @@ mglSocketWrite(socketInfo, single(im(:)));
 % Check each socket for processing results.
 responseIncoming = mglSocketRead(socketInfo, 'double');
 tex = repmat(tex, 1, numel(socketInfo));
-processedTime = zeros([1, numel(socketInfo)]);
+resultCell = cell([1, numel(socketInfo)]);
 numTextures = zeros([1, numel(socketInfo)]);
 for ii = 1:numel(socketInfo)
     if (responseIncoming(ii) < 0)
         % This socket shows an error processing the command.
         tex(ii).textureNumber = -1;
-        processedTime(ii) = mglSocketRead(socketInfo(ii), 'double');
+        resultCell{ii} = mglReadCommandResults(socketInfo(ii), ackTime(1,1,1,ii));
         fprintf('(mglMetalCreateTexture) Error creating Metal texture, you might try again with Console running, or: log stream --level info --process mglMetal\n');
     else
         % This socket shows processing was OK, read the response.
         tex(ii).textureNumber = mglSocketRead(socketInfo(ii), 'uint32');
         numTextures(ii) = mglSocketRead(socketInfo(ii), 'uint32');
-        processedTime(ii) = mglSocketRead(socketInfo(ii), 'double');
+        resultCell{ii} = mglReadCommandResults(socketInfo(ii), ackTime(1,1,1,ii));
     end
 
     % Only update the mgl context from the primary window.
@@ -118,3 +117,4 @@ for ii = 1:numel(socketInfo)
         mglSetParam('numTextures', numTextures(ii));
     end
 end
+results = [resultCell{:}];

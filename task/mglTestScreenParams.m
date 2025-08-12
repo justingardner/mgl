@@ -73,6 +73,8 @@ mglTestGamma(-1);
 calibType = sprintf('calibType: ''%s''',msc.calibType);
 calibType2 = '';
 switch msc.calibType
+    case 'None'
+        calibType2 = sprintf('No calibration specified');
  case {'Specify particular calibration','Find latest calibration'}
     if isempty(msc.calibFilename)
       calibType2 = sprintf('No calibration found');

@@ -30,14 +30,14 @@ if (mglGetParam('stencilBits')==0)
   mglClose;
   return
   end
-mglFillOval(0,0,[5*mglGetParam('xDeviceToPixels') 4*mglGetParam('yDeviceToPixels')]);
+mglFillOval(0,0,[5 4]);
 mglStencilCreateEnd;
 mglClearScreen;
 mglFlush
 
 % Draw an oval stencil
 mglStencilCreateBegin(2,1);
-mglFillOval(0,0,[8*mglGetParam('xDeviceToPixels') 8*mglGetParam('yDeviceToPixels')]);
+mglFillOval(0,0,[8 8]);
 mglStencilCreateEnd;
 mglClearScreen;
 

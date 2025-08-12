@@ -1,7 +1,7 @@
 % mglGluPartialDisk - draw partial disk(s) at location x,y
 %
 %        $Id$ 
-%      usage: [ackTime, processedTime] = mglGluPartialDisk(x, y, isize, osize, startAngles, sweepAngles, color, [nslices], [nloops], antialiasing)
+%      usage: results = mglGluPartialDisk(x, y, isize, osize, startAngles, sweepAngles, color, [nslices], [nloops], antialiasing)
 %         by: Benjamin Heasly
 %       date: 2022-03-17
 %  copyright: (c) 2006 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
@@ -31,7 +31,7 @@
 %colors = jet(10)';
 %mglGluPartialDisk(x, y, isize, osize, startAngles, sweepAngles, colors, 60, 2);
 %mglFlush();
-function [ackTime, processedTime] = mglGluPartialDisk(x, y, isize, osize, startAngles, sweepAngles, color, nSlices, nLoops, antialiasing)
+function results = mglGluPartialDisk(x, y, isize, osize, startAngles, sweepAngles, color, nSlices, nLoops, antialiasing)
 
 % These are no longer needed in Metal, but included for v2 code compatibility.
 nSlices = [];
@@ -94,4 +94,4 @@ end
 border = zeros(1, nDots, 'single');
 border(:) = antialiasing;
 
-[ackTime, processedTime] = mglMetalArcs(xyz, rgba, radii, wedge, border);
+results = mglMetalArcs(xyz, rgba, radii, wedge, border);

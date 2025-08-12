@@ -29,10 +29,10 @@ mglVisualAngleCoordinates(50, [20, 20]);
 
 x = [-5 -6 -3  4 5];
 y = [ 5  1 -4 -2 3];
-mglFillOval(x, y, [4, 3], [1 .25 .25], 5);
+mglFillOval(x, y, [2, 1.5], [1 .25 .25], .1);
 disp('There should be 5 wide, red ovals clustered roughly near the center.')
 
-mglFillOval(x, y, [1, 2], [.25 .5 .75], 5);
+mglFillOval(x, y, [0.5, 1], [.25 .5 .75], .1);
 disp('Each red oval should have a tall, blue-gray oval in the middle.')
 
 mglFlush();

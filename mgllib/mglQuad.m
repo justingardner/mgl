@@ -1,7 +1,7 @@
 % mglQuad.m
 %
 %      $Id$
-%    usage: [ackTime, processedTime, setupTime] = mglQuad( vX, vY, rgbColor, [antiAliasFlag] );
+%    usage: results = mglQuad( vX, vY, rgbColor, [antiAliasFlag] );
 %       by: justin gardner
 %     date: 09/28/2021
 %  copyright: (c) 2021 Justin Gardner (GPL see mgl/COPYING)
@@ -18,7 +18,7 @@
 %mglScreenCoordinates
 %mglQuad([100; 600; 600; 100], [100; 200; 600; 100], [1; 1; 1], 1);
 %mglFlush();
-function [ackTime, processedTime, setupTime] = mglQuad(vX, vY, rgbColor, antiAliasFlag, socketInfo)
+function results = mglQuad(vX, vY, rgbColor, antiAliasFlag, socketInfo)
 
 % Not currently used, but let's maintain compatibility with v2.
 if nargin < 4
@@ -63,4 +63,5 @@ mglSocketWrite(socketInfo, socketInfo(1).command.mglQuad);
 ackTime = mglSocketRead(socketInfo, 'double');
 mglSocketWrite(socketInfo, uint32(nVertices));
 mglSocketWrite(socketInfo, single(v));
-processedTime = mglSocketRead(socketInfo, 'double');
+results = mglReadCommandResults(socketInfo, ackTime, setupTime);
+

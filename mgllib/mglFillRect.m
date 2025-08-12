@@ -1,7 +1,7 @@
 % mglFillRect - draw filled rectangle(s) on the screen
 %
 %        $Id$
-%      usage: [ackTime, processedTime] = mglFillRect(x, y, size, color, antialiasing)
+%      usage: results = mglFillRect(x, y, size, color, antialiasing)
 %         by: Benjamin Heasly
 %       date: 03-17--2022
 %  copyright: (c) 2006 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
@@ -27,7 +27,7 @@
 %mglFillRect(x, y, sz,  [1 1 0]);
 %mglFlush();
 %
-function [ackTime, processedTime] = mglFillRect(x, y, size, color, antialiasing)
+function results = mglFillRect(x, y, size, color, antialiasing)
 
 nDots = numel(x);
 if ~isequal(numel(y), nDots)
@@ -68,6 +68,6 @@ border = zeros(1, nDots, 'single');
 border(:) = antialiasing;
 
 shape = zeros(1, nDots);
-[ackTime, processedTime] = mglMetalDots(xyz, rgba, wh, shape, border);
+results = mglMetalDots(xyz, rgba, wh, shape, border);
 
 

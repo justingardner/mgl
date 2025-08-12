@@ -65,7 +65,7 @@
 function myscreen = mglRetinotopy(varargin)
 
 % evaluate the arguments
-eval(evalargs(varargin,0,0,{'wedges','rings','bars','barsTask','barsFix','barsTaskEasy','barsTaskDefault','backgroundType','barAngle','barContrast','elementAngle','direction','dutyCycle','stepsPerCycle','stimulusPeriod','numCycles','doEyeCalib','initialHalfCycle','volumesPerCycle','displayName','easyFixTask','dispText','barWidth','barSweepExtent','elementSize','barStepsMatchElementSize','synchToVolEachCycle','blanks','fixedRandom','yOffset','xOffset','imageWidth','imageHeight'}));
+eval(evalargs(varargin,0,0,{'wedges','rings','bars','barsTask','barsFix','barsTaskEasy','barsTaskDefault','backgroundType','barAngle','barContrast','elementAngle','direction','dutyCycle','stepsPerCycle','stimulusPeriod','numCycles','doEyeCalib','initialHalfCycle','volumesPerCycle','displayName','easyFixTask','dispText','barWidth','barSweepExtent','elementSize','barStepsMatchElementSize','synchToVolEachCycle','blanks','fixedRandom','yOffset','xOffset','imageWidth','imageHeight','fixLR'}));
 
 global stimulus;
 
@@ -89,7 +89,8 @@ if ieNotDefined('numCycles'),numCycles = 10;end
 if ieNotDefined('doEyeCalib'),doEyeCalib = -1;end
 if ieNotDefined('initialHalfCycle') initialHalfCycle = 1;end
 if ieNotDefined('displayName'),displayName = 'projector';end
-if ieNotDefined('easyFixTask'),easyFixTask = 1;end
+if ieNotDefined('easyFixTask'),easyFixTask = 0;end
+if ieNotDefined('fixLR'),fixLR = 0;end
 if ieNotDefined('dispText'),dispText = '';end
 if ieNotDefined('barWidth'),barWidth = 3;end
 if ieNotDefined('elementAngle'),elementAngle = 'parallel';end
@@ -173,9 +174,9 @@ end
 global fixStimulus;
 if ~easyFixTask
   % default values
-  fixStimulus.diskSize = 0.5;
+  fixStimulus.diskSize = 1;
   fixStimulus.fixWidth = 1;
-  fixStimulus.fixLineWidth = 3;
+  % fixStimulus.fixLineWidth = 3;
   fixStimulus.stimTime = 0.4;
   fixStimulus.responseTime = 1;
 else
@@ -193,7 +194,11 @@ fixStimulus.pos = [xOffset yOffset];
 if stimulusType ~= 4
   fixTaskNum = 1;
   stimulusTaskNum = 2;
-  [task{fixTaskNum} myscreen] = fixStairInitTask(myscreen);
+  if ~fixLR % fixation task should be usual two-interval contrast discrimination
+      [task{fixTaskNum} myscreen] = fixStairInitTask(myscreen);
+  else % fixation task is l/r fixation task
+      [task{fixTaskNum} myscreen] = fixStairInitTaskLR(myscreen);
+  end
 else
   % no fixation task, so set the stimulus task to be 1
   stimulusTaskNum = 1;
@@ -524,7 +529,7 @@ end
 if any(stimulus.stimulusType == [3 4 5])
   if task.thistrial.barAngle == -1
     % first half cycle show blank
-    if (task.thistrial.thisseg < round(stimulus.stepsPerCycle/2)) 
+    if (task.thistrial.thisseg <= round(stimulus.stepsPerCycle/2)) 
       stimulus.blank = 1;
       return;
     % second half jump to next trial

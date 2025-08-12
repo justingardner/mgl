@@ -49,34 +49,34 @@ mglFlush();
 
 if (isInteractive)
     disp('Hit ENTER to test blt with drifting phase (fullscreen): ');mglPause;
-    mglFlush();
     mglMetalFullscreen();
     mglPause(0.5);
+    mglFlush();
 
     nFrames = 300;
-    ackTimes = zeros(1,nFrames);
-    processedTimes = zeros(1,nFrames);
+    draws = cell(1, nFrames);
+    flushes = cell(1, nFrames);
     phase = 0;
     for iFrame = 1:nFrames
-        mglMetalBltTexture(tex,[0 0],0,0,0,phase);
+        draws{iFrame} = mglMetalBltTexture(tex,[0 0],0,0,0,phase);
         phase = phase + (1/60)/4;
-        [ackTimes(iFrame), processedTimes(iFrame)] = mglFlush();
+        flushes{iFrame} = mglFlush();
     end
     mglMetalFullscreen(false);
-    mglPlotFrameTimes(ackTimes, processedTimes, 'blt with drifting phase');
+    mglPlotCommandResults(flushes, draws, 'blt with drifting phase');
 
     disp('Hit any key to test multiple blt with rotation and drifting phase (fullscreen): ');
     mglPause;
-    mglFlush();
     mglMetalFullscreen();
     mglPause(0.5);
+    mglFlush();
 
     nFrames = 300;
-    ackTimes = zeros(1,nFrames);
-    processedTimes = zeros(1,nFrames);
+    draws = cell(1, nFrames);
+    flushes = cell(1, nFrames);
     phase = 0;rotation = 0;width = 0.25;height = 0.25;
     for iFrame = 1:nFrames
-        mglMetalBltTexture(tex,[-0.5 -0.5],0,0,rotation,phase,width,height);
+        draws{iFrame} = mglMetalBltTexture(tex,[-0.5 -0.5],0,0,rotation,phase,width,height);
         mglMetalBltTexture(tex,[-0.5 0.5],0,0,-rotation,phase,width,height);
         mglMetalBltTexture(tex,[0.5 0.5],0,0,rotation,phase,width,height);
         mglMetalBltTexture(tex,[0.5 -0.5],0,0,-rotation,phase,width,height);
@@ -92,10 +92,10 @@ if (isInteractive)
 
         phase = phase + (1/60)/4;
         rotation = rotation+360/nFrames;
-        [ackTimes(iFrame), processedTimes(iFrame)] = mglFlush();
+        flushes{iFrame} = mglFlush();
     end
     mglMetalFullscreen(false);
-    mglPlotFrameTimes(ackTimes, processedTimes, 'blt with rotation and drifting phase');
+    mglPlotCommandResults(flushes, draws, 'blt with rotation and drifting phase');
 end
 
 % Delete will have little effect, since we're about to mglClose().

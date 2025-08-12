@@ -29,8 +29,9 @@ protocol mglServer {
     // Accept a client connection if not already accepted, return immediately either way.
     func acceptClientConnection() -> Bool
 
-    // Check if data has arrived from the client, return immediately either way.
+    // Check if data has arrived from the client, return quickly either way.
     func dataWaiting() -> Bool
+    func dataWaiting(timeout: Int32) -> Bool
 
     // Read data from the client.
     // Block until all of the expected bytes have arrived, or an error.

@@ -1,7 +1,7 @@
 % mglUpdateTexture.m
 %
 %        $Id$
-%      usage: [ackTime, processedTime] = mglUpdateTexture(texture, image)
+%      usage: results = mglUpdateTexture(texture, image)
 %         by: Benjamin Heasly
 %       date: 03/18/2022
 %  copyright: (c) 2006 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
@@ -36,7 +36,7 @@
 %             mglBltTexture(tex,[0 0]);
 %             mglFlush();
 %
-function [ackTime, processedTime] = mglUpdateTexture(tex, im, socketInfo)
+function results = mglUpdateTexture(tex, im, socketInfo)
 
 if numel(tex) > 1
     fprintf('(mglUpdateTexture) Only using the first of %d elements of tex struct array.  To avoid this warning pass in tex(1) instead.\n', numel(tex));
@@ -65,10 +65,13 @@ end
 % mglMetalCreateTexture has additional commentary on this!
 im = permute(im, [3,2,1]);
 
+setupTime = mglGetSecs();
+
 mglSocketWrite(socketInfo, socketInfo(1).command.mglUpdateTexture);
 ackTime = mglSocketRead(socketInfo, 'double');
 mglSocketWrite(socketInfo, uint32(tex.textureNumber));
 mglSocketWrite(socketInfo, uint32(newWidth));
 mglSocketWrite(socketInfo, uint32(newHeight));
 mglSocketWrite(socketInfo, single(im(:)));
-processedTime = mglSocketRead(socketInfo, 'double');
+results = mglReadCommandResults(socketInfo, ackTime, setupTime);
+

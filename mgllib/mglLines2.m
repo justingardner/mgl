@@ -21,7 +21,7 @@
 %mglVisualAngleCoordinates(57,[16 12]);
 %mglLines2(rand(1,100)*5-2.5, rand(1,100)*10-5, rand(1,100)*5-2.5, rand(1,100)*3-1.5, 3, [0 0.6 1],1);
 %mglFlush
-function [ackTime, processedTime] = mglLines2(x0, y0, x1, y1, size, color, antialiasing, socketInfo)
+function results = mglLines2(x0, y0, x1, y1, size, color, antialiasing, socketInfo)
 
 % antialiasing is ignored, but included for v2 parameter compatibility.
 antialiasing = [];
@@ -53,4 +53,4 @@ mglSocketWrite(socketInfo, socketInfo(1).command.mglLine);
 ackTime = mglSocketRead(socketInfo, 'double');
 mglSocketWrite(socketInfo, uint32(2*iLine));
 mglSocketWrite(socketInfo, single(v));
-processedTime = mglSocketRead(socketInfo, 'double');
+results = mglReadCommandResults(socketInfo, ackTime);

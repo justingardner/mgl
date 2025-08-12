@@ -1,12 +1,12 @@
 % mglPoints2.m
 %
 %        $Id$
-%      usage: [ackTime, processedTime] = mglPoints2(x, y, size, color, isRound, antialiasing)
+%      usage: results = mglPoints2(x, y, size, color, isRound, antialiasing)
 %         by: Benjamin Heasly
 %       date: 04/17/2022
 %  copyright: (c) 2006 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
 %    purpose: plot 2D points on an OpenGL screen opened with mglOpen
-%      usage: [ackTime, processedTime] = mglPoints2(x, y, size, color, isRound, antialiasing)
+%      usage: results = mglPoints2(x, y, size, color, isRound, antialiasing)
 %             x,y = position of dots on screen
 %             size = size of dots (device units, not pixels)
 %             color of dots
@@ -22,7 +22,7 @@
 %mglPoints2(16*rand(500,1)-8,12*rand(500,1)-6,2,1);
 %mglFlush();
 %mglClose();
-function [ackTime, processedTime] = mglPoints2(x, y, size, color, isRound, antialiasing)
+function results = mglPoints2(x, y, size, color, isRound, antialiasing)
 
 nDots = numel(x);
 if ~isequal(numel(y), nDots)
@@ -67,4 +67,4 @@ end
 border = zeros(1, nDots, 'single');
 border(:) = antialiasing;
 
-[ackTime, processedTime] = mglMetalDots(xyz, rgba, wh, shape, border);
+results = mglMetalDots(xyz, rgba, wh, shape, border);

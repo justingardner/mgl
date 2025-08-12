@@ -25,7 +25,7 @@ end
 
 %% How to:
 
-nFrames = 30;
+nFrames = 31;
 nDots = 1000;
 randomSeed = 42;
 mglMetalRepeatingDots(nFrames, nDots, randomSeed);

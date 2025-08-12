@@ -1,6 +1,6 @@
 % mglMetalSetRenderTarget.m
 %
-%      usage: [ackTime, processedTime] = mglMetalSetRenderTarget(tex)
+%      usage: results = mglMetalSetRenderTarget(tex)
 %         by: Benjamin Heasly
 %       date: 03/11/2022
 %  copyright: (c) 2006 Justin Gardner, Jonas Larsson (GPL see mgl/COPYING)
@@ -29,7 +29,7 @@
 % mglMetalBltTexture(imageTex,[0 0]);
 % mglFlush();
 %
-function [ackTime, processedTime] = mglMetalSetRenderTarget(tex, socketInfo)
+function results = mglMetalSetRenderTarget(tex, socketInfo)
 
 if (nargin < 1)
     renderTarget = uint32(0);
@@ -49,4 +49,4 @@ end
 mglSocketWrite(socketInfo, socketInfo(1).command.mglSetRenderTarget);
 ackTime = mglSocketRead(socketInfo, 'double');
 mglSocketWrite(socketInfo, renderTarget);
-processedTime = mglSocketRead(socketInfo, 'double');
+results = mglReadCommandResults(socketInfo, ackTime);

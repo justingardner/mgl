@@ -1,14 +1,14 @@
 % mglPoints2c.m
 %
 %        $Id$
-%      usage: [ackTime, processedTime, setupTime] = mglPoints2c(x, y, size, r, g, b, a, isRound, antialiasing)
+%      usage: results = mglPoints2c(x, y, size, r, g, b, a, isRound, antialiasing)
 %         by: Benjamin Heasly
 %       date: 03/17/2022
 %  copyright: (c) 2006 Justin Gardner, Jonas Larsson, Dan Birman (GPL see mgl/COPYING)
 %    purpose: mex function to plot 2D points on the screen opened with mglOpen
 %             allows every dot to have a different color, useful for overlapping
 %             dot patches
-%      usage: [ackTime, processedTime, setupTime] = mglPoints2c(x, y, size, r, g, b, a, isRound, antialiasing)
+%      usage: results = mglPoints2c(x, y, size, r, g, b, a, isRound, antialiasing)
 %             x,y = position of dots on screen
 %             size = size of dots (device units, not pixels)
 %             r,g,b = color of dots in 0->1 range
@@ -23,7 +23,7 @@
 % mglClearScreen
 % mglPoints2c(16*rand(500,1)-8,12*rand(500,1)-6,2,rand(500,1),rand(500,1),rand(500,1));
 % mglFlush
-function [ackTime, processedTime, setupTime] = mglPoints2c(x, y, size, r, g, b, a, isRound, antialiasing)
+function results = mglPoints2c(x, y, size, r, g, b, a, isRound, antialiasing)
 
 nDots = numel(x);
 if ~isequal(numel(y), nDots)
@@ -67,4 +67,4 @@ end
 border = zeros(1, nDots, 'single');
 border(:) = antialiasing;
 
-[ackTime, processedTime, setupTime] = mglMetalDots(xyz, rgba, wh, shape, border);
+results = mglMetalDots(xyz, rgba, wh, shape, border);

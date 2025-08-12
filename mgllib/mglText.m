@@ -1,7 +1,7 @@
 % mglText.m
 %
 %        $Id$
-%      usage: [tex, ackTime, processedTime] = mglText('string')
+%      usage: [tex, results] = mglText('string')
 %         by: justin gardner
 %       date: 09/28/2021 Based on version from 05/10/06
 %  copyright: (c) 2021 Justin Gardner (GPL see mgl/COPYING)
@@ -15,7 +15,7 @@
 %thisText = mglText('Hello')
 %mglBltTexture(thisText,[0 0],'left','top');
 %mglFlush;
-function [tex, ackTime, processedTime] = mglText(str)
+function [tex, results] = mglText(str)
 
 if (nargin ~= 1) || ~isstr(str)
   help mglText;
@@ -52,4 +52,4 @@ end
 %im.textImage(:,:,4) = 255*(im.textImage(:,:,1)>0 | im.textImage(:,:,2)>0 | im.textImage(:,:,3)>0);
 
 % create the texture
-[tex, ackTime, processedTime] = mglCreateTexture(im.textImage);
+[tex, results] = mglCreateTexture(im.textImage);

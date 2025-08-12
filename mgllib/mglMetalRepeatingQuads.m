@@ -58,6 +58,11 @@ ackTime = mglSocketRead(socketInfo, 'double');
 mglSocketWrite(socketInfo, uint32(nFrames));
 mglSocketWrite(socketInfo, uint32(nQuads));
 mglSocketWrite(socketInfo, uint32(randomSeed));
-drawAndFrameTimes = mglSocketRead(socketInfo, 'double', 2 * nFrames);
-drawTimes = drawAndFrameTimes(1:2:end);
-frameTimes = drawAndFrameTimes(2:2:end);
+
+drawTimes = zeros(1, nFrames);
+frameTimes = zeros(1, nFrames);
+for ii = 1:nFrames
+    drawTimes(ii) = mglSocketRead(socketInfo, 'double');
+    results = mglReadCommandResults(socketInfo);
+    frameTimes(ii) = results.processedTime;
+end
