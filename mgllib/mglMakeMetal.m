@@ -214,7 +214,6 @@ end
 
 % and linker flags
 %ldFlags=['-Wl,-twolevel_namespace -F/Library/Frameworks -undefined error -arch ' archs ' '];
-%ldFlags=['-Wl,-twolevel_namespace -F/Library/Frameworks -arch ' cflag_arch ' '];
 ldFlags=['-Wl,-twolevel_namespace,-rpath,/Library/Frameworks -F/Library/Frameworks -arch ' cflag_arch ' '];
 
 % This specifies the matlab entrance point

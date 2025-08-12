@@ -1339,7 +1339,7 @@ for iEthnicity = 1:length(missingStats.ethnicity)
   ethnicityMatch = find(strcmp(missingStats.ethnicity{iEthnicity},stats.ethnicity));
   if ~isempty(ethnicityMatch)
     % then add the count to that count
-    stats.ethnicityN(ethnicityMatch) = stats.ethnicityN(ethnciityMatch) + missingStats.nEthnicity(iEthnicity);
+    stats.ethnicityN(ethnicityMatch) = stats.ethnicityN(ethnicityMatch) + missingStats.nEthnicity(iEthnicity);
   else
     % add the ethnicity category (not tested)
     stats.ethnicity{end+1} = missingStats.ethnicity{iEthnicity};
