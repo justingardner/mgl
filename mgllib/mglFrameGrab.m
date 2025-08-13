@@ -83,7 +83,7 @@ screenHeight = mglGetParam('screenHeight');
 mglFrameGrabTex = mglGetParam('mglFrameGrabTex');
 if isempty(mglFrameGrabTex)
   % now create a texture this size, this texture will be rendered into
-  mglFrameGrabTex = mglMetalCreateTexture(zeros(screenWidth,screenHeight,4));
+  mglFrameGrabTex = mglMetalCreateTexture(zeros(screenHeight,screenWidth,4));
 end
 
 % store the texture handle for later use
@@ -120,7 +120,7 @@ dataLength = mglSocketRead(socketInfo,'uint32');
 
 % then read that many bytes
 frame = mglSocketRead(socketInfo,'single',4,dataWidth,dataHeight);
-frame = permute(frame,[2 3 1]);
+frame = permute(frame,[3 2 1]);
 
 %mglSocketWrite(socketInfo, single(v));
 results = mglReadCommandResults(socketInfo, ackTime);
