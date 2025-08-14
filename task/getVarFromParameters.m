@@ -105,6 +105,7 @@ for i = 1:length(e)
 	  end
 	else
 	  varval = unique(e{i}(j).randVars.(varname));
+      varval(isnan(varval)) = [];
 	end
       else
 	varval = e{i}(j).randVars.(varname);

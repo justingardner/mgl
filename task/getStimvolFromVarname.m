@@ -110,7 +110,8 @@ if (~exist('taskNum','var') || isequal(taskNum,1) || isempty(taskNum))
   % check for multiple tasks
   multiTask = false;
   for iTask = 1:length(task)
-    if length(task{iTask}) > 1, multiTask = true;end
+    % if length(task{iTask}) > 1, multiTask = true;end
+    if length(task) > 1, multiTask = true;end
   end
   % if there are not, then we have a single task with multiple phases
   if ~multiTask
@@ -535,7 +536,7 @@ for i = 1:prod(parameterLength)
   for j = 1:numParameters
     evalStr = sprintf('%s x%i',evalStr, j);
   end
-  evalStr = sprintf('%s] = ind2sub(parameterLength,i);',evalStr);
+  evalStr = sprintf('%s] = ind2sub([parameterLength,1],i);',evalStr);
   eval(evalStr);
   % now that x1, x2, xi equal what index for each parameter, make the correct
   % string for each parameter
