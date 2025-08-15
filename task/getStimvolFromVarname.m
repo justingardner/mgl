@@ -140,9 +140,9 @@ if ~exist('verbose','var'),verbose = true;end
 
 if iscell(varnameIn)
   % make into a 2 level cell array, one element for each set of conditions
-  varnameIn = cellArray(varnameIn,2);
+  varnameIn = cellArray(varnameIn, 2);
   % the purpose of this code is to handle the {} cell array conditions
-  % for every cell aray element
+  % for every cell array element
   for iVarname = 1:length(varnameIn)
     % we are going to create a single entry in the stimvolOut and other arrays
     thisVarnameIn = varnameIn{iVarname};
@@ -150,36 +150,42 @@ if iscell(varnameIn)
     % each element may have several conditions like: side=1 or contrast=[0.5 1]
     for iCond = 1:length(thisVarnameIn)
       thisCond = thisVarnameIn{iCond};
-      % recursively call this fucntion to get the current condition
-      [stimvol stimNames trialNum] = getStimvolFromVarname(thisCond,myscreen,task,taskNum,phaseNum,segmentNum);
-      if isempty(stimvolOut{iVarname}) 
-	% first time, just get stimvols /names and trial nums
-	stimvolOut{iVarname} = stimvol;
-	stimNamesOut{iVarname} = stimNames;
-	trialNumOut{iVarname} = trialNum;
+      % recursively call this function to get the current condition
+      [stimvol, stimNames, trialNum] = getStimvolFromVarname(thisCond, myscreen, task, taskNum, phaseNum, segmentNum);
+      if isempty(stimvolOut{iVarname})
+        % first time, just get stimvols / names and trial nums
+        stimvolOut{iVarname} = stimvol;
+        stimNamesOut{iVarname} = stimNames;
+        trialNumOut{iVarname} = trialNum;
       else
-	% next times, combine what we already have with the new condition
-	oldStimvolOut = stimvolOut;oldStimNamesOut = stimNamesOut;oldTrialNumOut = trialNumOut;
-	stimvolOut{iVarname} = [];stimNamesOut{iVarname} = {};trialNumOut{iVarname} = {};
-	for iOldStimvolOut = 1:length(oldStimvolOut{iVarname})
-	  % intersect each condition with existing conditions and union them together
-	  for iStimvol = 1:length(stimvol)
-	    if iStimvol == 1
-	      stimvolOut{iVarname}{1} = intersect(oldStimvolOut{iVarname}{iOldStimvolOut},stimvol{iStimvol});
-	      stimNamesOut{iVarname}{1} = sprintf('(%s & %s)',oldStimNamesOut{iVarname}{iOldStimvolOut},stimNames{iStimvol});
-	      trialNumOut{iVarname}{1} = intersect(oldTrialNumOut{iVarname}{iOldStimvolOut},trialNum{iStimvol});
-	    else
-	      stimvolOut{iVarname}{1} = union(stimvolOut{iVarname}{1},intersect(oldStimvolOut{iVarname}{iOldStimvolOut},stimvol{iStimvol}));
-	      stimNamesOut{iVarname}{1} = sprintf('%s or (%s & %s)',stimNamesOut{iVarname}{1},oldStimNamesOut{iVarname}{iOldStimvolOut},stimNames{iStimvol});
-	      trialNumOut{iVarname}{1} = union(trialNumOut{iVarname}{1},intersect(oldTrialNumOut{iVarname}{iOldStimvolOut},trialNum{iStimvol}));
-	    end
-	  end
-	end
+        % next times, combine what we already have with the new condition
+        oldStimvolOut = stimvolOut;
+        oldStimNamesOut = stimNamesOut;
+        oldTrialNumOut = trialNumOut;
+        stimvolOut{iVarname} = [];
+        stimNamesOut{iVarname} = {};
+        trialNumOut{iVarname} = {};
+        for iOldStimvolOut = 1:length(oldStimvolOut{iVarname})
+          % intersect each condition with existing conditions and union them together
+          for iStimvol = 1:length(stimvol)
+            if iStimvol == 1
+              stimvolOut{iVarname}{1} = intersect(oldStimvolOut{iVarname}{iOldStimvolOut}, stimvol{iStimvol});
+              stimNamesOut{iVarname}{1} = sprintf('(%s & %s)', oldStimNamesOut{iVarname}{iOldStimvolOut}, stimNames{iStimvol});
+              trialNumOut{iVarname}{1} = intersect(oldTrialNumOut{iVarname}{iOldStimvolOut}, trialNum{iStimvol});
+            else
+              stimvolOut{iVarname}{1} = union(stimvolOut{iVarname}{1}, intersect(oldStimvolOut{iVarname}{iOldStimvolOut}, stimvol{iStimvol}));
+              stimNamesOut{iVarname}{1} = sprintf('%s or (%s & %s)', stimNamesOut{iVarname}{1}, oldStimNamesOut{iVarname}{iOldStimvolOut}, stimNames{iStimvol});
+              trialNumOut{iVarname}{1} = union(trialNumOut{iVarname}{1}, intersect(oldTrialNumOut{iVarname}{iOldStimvolOut}, trialNum{iStimvol}));
+            end
+          end
+        end
       end
     end
   end
-  % make into a cell array with depth 1 (the procedure above returns a cell array of cell arrays
-  oldStimvolOut = stimvolOut;oldStimNamesOut = stimNamesOut;oldTrialNumOut = trialNumOut;
+  % make into a cell array with depth 1 (the procedure above returns a cell array of cell arrays)
+  oldStimvolOut = stimvolOut;
+  oldStimNamesOut = stimNamesOut;
+  oldTrialNumOut = trialNumOut;
   stimvolOut = oldStimvolOut{1};
   stimNamesOut = oldStimNamesOut{1};
   trialNumOut = oldTrialNumOut{1};
@@ -211,14 +217,16 @@ end
 
 % check to see if the varnameIn is a _x_ separated list. In which
 % case we return the stimvols for each variable crossed with each other variable
-if ~isempty(strfind(varnameIn,'_x_'))
-  crossStimvol = [];crossStimNames = [];crossTrialNum = [];
+if ~isempty(strfind(varnameIn, '_x_'))
+  crossStimvol = [];
+  crossStimNames = [];
+  crossTrialNum = [];
   % go through each of the varnames
   while ~isempty(varnameIn)
     % get this varname
-    [thisVarname varnameIn] = mystrtok(varnameIn,'_x_');
-    % recursively call this fucntion to get the current variable name
-    [stimvol stimNames trialNum] = getStimvolFromVarname(thisVarname,myscreen,task,taskNum,phaseNum,segmentNum);
+    [thisVarname, varnameIn] = mystrtok(varnameIn, '_x_');
+    % recursively call this function to get the current variable name
+    [stimvol, stimNames, trialNum] = getStimvolFromVarname(thisVarname, myscreen, task, taskNum, phaseNum, segmentNum);
     % first time, just set the cross variables
     if isempty(crossStimvol)
       crossStimvol = stimvol;
@@ -226,13 +234,15 @@ if ~isempty(strfind(varnameIn,'_x_'))
       crossTrialNum = trialNum;
     else
       % next time we cross each new variable with the last one
-      newCrossStimvol = {};newCrossStimNames = {};newCrossTrialNum = {};
+      newCrossStimvol = {};
+      newCrossStimNames = {};
+      newCrossTrialNum = {};
       for iCross = 1:length(crossStimvol)
-	for iStimvol = 1:length(stimvol)
-	  [newCrossStimvol{end+1} crossIndex] = intersect(crossStimvol{iCross},stimvol{iStimvol});
-	  newCrossStimNames{end+1} = sprintf('%s and %s',crossStimNames{iCross},stimNames{iStimvol});
-	  newCrossTrialNum{end+1} = crossTrialNum{iCross}(crossIndex);
-	end
+        for iStimvol = 1:length(stimvol)
+          [newCrossStimvol{end+1}, crossIndex] = intersect(crossStimvol{iCross}, stimvol{iStimvol});
+          newCrossStimNames{end+1} = sprintf('%s and %s', crossStimNames{iCross}, stimNames{iStimvol});
+          newCrossTrialNum{end+1} = crossTrialNum{iCross}(crossIndex);
+        end
       end
       crossStimvol = newCrossStimvol;
       crossStimNames = newCrossStimNames;
@@ -245,27 +255,29 @@ if ~isempty(strfind(varnameIn,'_x_'))
   trialNumOut = {trialNumOut{:} crossTrialNum{:}};
   return
 end
+
 % now check if we have been called with two segmentNums in which
-% case we should return volumes from the beginning semgent num to
+% case we should return volumes from the beginning segment num to
 % the end segment num, so we recursively call this function to get
 % the start segment and end segment and then create a stimvol cell
 % array that contains all the intervening volumes
 if length(segmentNum) == 2
-  [stimvol1 stimNamesOut trialNum1] = getStimvolFromVarname(varnameIn,myscreen,task,taskNum,phaseNum,segmentNum(1));
-  [stimvol2 stimNamesOut] = getStimvolFromVarname(varnameIn,myscreen,task,taskNum,phaseNum,segmentNum(2));
+  [stimvol1, stimNamesOut, trialNum1] = getStimvolFromVarname(varnameIn, myscreen, task, taskNum, phaseNum, segmentNum(1));
+  [stimvol2, stimNamesOut] = getStimvolFromVarname(varnameIn, myscreen, task, taskNum, phaseNum, segmentNum(2));
   % add all volumes from start to end
   for i = 1:length(stimvol1)
     stimvolOut{i} = [];
     trialNumOut{i} = [];
     for j = 1:length(stimvol1{i})
       if length(stimvol2{i}) >= j
-	stimvolOut{i} = [stimvolOut{i} stimvol1{i}(j):stimvol2{i}(j)];
-	trialNumOut{i} = [trialNumOut{i} repmat(trialNum1{i}(j),1,length(stimvol1{i}(j):stimvol2{i}(j)))];
+        stimvolOut{i} = [stimvolOut{i} stimvol1{i}(j):stimvol2{i}(j)];
+        trialNumOut{i} = [trialNumOut{i} repmat(trialNum1{i}(j), 1, length(stimvol1{i}(j):stimvol2{i}(j)))];
       end
     end
   end
   return
 end
+
 
 if verbose
   disp(sprintf('(getStimvolFromVarname) taskNum=[%s], phaseNum=[%s], segmentNum=[%s]',num2str(taskNum),num2str(phaseNum),num2str(segmentNum)));
@@ -288,9 +300,9 @@ else
   else
     for i = 1:length(varnameIn)
       if isstr(varnameIn{i})
-	varname{i}{1} = varnameIn{i};
+	      varname{i}{1} = varnameIn{i};
       else
-	varname{i} = varnameIn{i};
+	      varname{i} = varnameIn{i};
       end
     end
   end
@@ -301,7 +313,7 @@ e = getTaskParameters(myscreen,task);
 % make sure it is a cell array
 if ~iscell(e),olde = e;clear e;e{1} = olde;,end
 
-% handle when the varname is every (which means to make every combination of variables
+  % handle when the varname is every (which means to make every combination of variables
 if (length(varname{1}) == 1) && strcmp(varname{1}{1},'_every_')
   varname = makeEveryCombination(e{taskNum}(phaseNum).parameter,numSigDigits);
 end
@@ -319,31 +331,31 @@ if (length(varname) == 1) && (length(varname{1}) == 1) && strcmp(varname{1}{1},'
   for iTaskNum = taskNum
     for iPhaseNum = phaseNum
       if ((iTaskNum > 0) && (iTaskNum <= length(e)))
-	if (iPhaseNum > 0) && (iPhaseNum <= length(e{taskNum}))
-	  if length(e{iTaskNum}(iPhaseNum).trials) > 0
-	    if (segmentNum > 0) && (segmentNum <= length(e{iTaskNum}(iPhaseNum).trials(1).volnum))
-	      % if we passed all the checks, then get the volume number for each trial
-	      for trialNum = 1:length(e{iTaskNum}(iPhaseNum).trials)
-		if length(e{iTaskNum}(iPhaseNum).trials(trialNum).volnum) >= segmentNum
-		  stimvolOut{1}(end+1) = e{iTaskNum}(iPhaseNum).trials(trialNum).volnum(segmentNum);
-		  trialNumOut{1}(end+1) = trialNum;
-		end
-	      end
-	    else
-	      disp(sprintf('(getStimvolFromVarname) SegmentNum %i out of range [1 %i]',segmentNum,length(e{taskNum}(phaseNum).trials(1).volnum)));
-	      keyboard
-	    end
-	  else
-	    disp(sprintf('(getStimvolFromVarname) No trials found'));
-	    keyboard
-	  end
-	else
-	  disp(sprintf('(getStimvolFromVarname) PhaseNum %i out of range [1 %i]',phaseNum,length(e{taskNum})));
-	  keyboard
-	end
+        if (iPhaseNum > 0) && (iPhaseNum <= length(e{taskNum}))
+          if length(e{iTaskNum}(iPhaseNum).trials) > 0
+            if (segmentNum > 0) && (segmentNum <= length(e{iTaskNum}(iPhaseNum).trials(1).volnum))
+              % if we passed all the checks, then get the volume number for each trial
+              for trialNum = 1:length(e{iTaskNum}(iPhaseNum).trials)
+                if length(e{iTaskNum}(iPhaseNum).trials(trialNum).volnum) >= segmentNum
+                  stimvolOut{1}(end+1) = e{iTaskNum}(iPhaseNum).trials(trialNum).volnum(segmentNum);
+                  trialNumOut{1}(end+1) = trialNum;
+                end
+              end
+            else
+              disp(sprintf('(getStimvolFromVarname) SegmentNum %i out of range [1 %i]',segmentNum,length(e{taskNum}(phaseNum).trials(1).volnum)));
+              keyboard
+            end
+          else
+            disp(sprintf('(getStimvolFromVarname) No trials found'));
+            keyboard
+          end
+        else
+          disp(sprintf('(getStimvolFromVarname) PhaseNum %i out of range [1 %i]',phaseNum,length(e{taskNum})));
+          keyboard
+        end
       else
-	disp(sprintf('(getStimvolFromVarname) TaskNum %i out of range [1 %i]',taskNum,length(e)));
-	keyboard
+        disp(sprintf('(getStimvolFromVarname) TaskNum %i out of range [1 %i]',taskNum,length(e)));
+        keyboard
       end
     end
   end
@@ -351,147 +363,152 @@ if (length(varname) == 1) && (length(varname{1}) == 1) && strcmp(varname{1}{1},'
   % set the stim name
   stimNamesOut{1} = '_all_';
 else
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% processing for all other stimvol names
-% cycle through the task/phases, when we have a match go look for
-% the stimvosl
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  % processing for all other stimvol names
+  % cycle through the task/phases, when we have a match go look for
+  % the stimvosl
+  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   for tnum = 1:length(e)
     for pnum = 1:length(e{tnum})
       % see if we have a match
       if any(tnum == taskNum) && any(pnum == phaseNum)
-	% now cycle over all array elements
-	for i = 1:length(varname)
-	  stimvol{i} = {};
-	  stimnames{i} = {};
-	  % cycle over all strings in varname
-	  for j = 1:length(varname{i})
-	    % get the value of the variable in question
-	    % on each trial
-	    varval = getVarFromParameters(mystrtok(varname{i}{j},'='),e{tnum}(pnum));
-	    % check to make sure it is not empty
-	    if isempty(varval)
-	      disp(sprintf('(getStimvolFromVarname) Could not find variable %s in task %i phase %i',mystrtok(varname{i}{j},'='),tnum,pnum));
-	      return;
-	    end
-	    % see if it is a strict variable name
-	    if isempty(strfind(varname{i}{j},'='))
-	      % if it is then for each particular setting
-	      % of the variable, we make a stim type. Use getVarFromParameters
-	      % to return all the possible settings for the variable
-	      vartypes = getVarFromParameters(varname{i}{j},e{tnum}(pnum),1);
-	      for k = 1:length(vartypes)
-		stimvol{i}{end+1} = varval==vartypes(k);
-		stimnames{i}{end+1} = sprintf('%s=%s',varname{i}{j},num2str(vartypes(k)));
-	      end
-	    end
-	  end
-	  % now we cycle through again, looking for any modifiers
-	  % that is, if we have something like varname=[1 2 3] then
-	  % it means that we only add the variable in, if it has
-	  % that var set appropriately. 
-	  for j = 1:length(varname{i})
-	    % get the value of the variable in question
-	    % on each trial
-	    varval = getVarFromParameters(mystrtok(varname{i}{j},'='),e{tnum}(pnum));
-	    % round the values to numSigDigits. This is so that if you have
-	    % multiple significant digits you still get the string to match, which
-	    % won't have as many significant digits. (e.g. if your value was pi, and
-	    % your reperesnt as a string, you will lose some digits). First remember how many unique
-	    % values we have so that we can spit out a warning if this manipulation
-	    % causes some conditions to get grouped together (i.e. this would happen
-	    % if you have a variable that only difference after the numSigDigitis decimal place)
-	    if isnumeric(varval)
-	      nUniqueVarval = length(unique(varval));
-	      varval = round(varval*10^numSigDigits)/10^numSigDigits;
-	      if length(unique(varval)) ~= nUniqueVarval
-		disp(sprintf('(getStimvolFromVarname) WARNING: Variable %s has values that only differe after %i significant figures that will be grouped together',mystrtok(varname{i}{j},'='),numSigDigits));
-	      end
-	    end
-	    % see if it is a conditional variable, that is,
-	    % one that is like var=[1 2 3].
-	    if ~isempty(strfind(varname{i}{j},'='))
-	      [t,r] = mystrtok(varname{i}{j},'=');
-	      varcond = mystrtok(r,'=');
-	      % if it is then get the conditions
-	      varval = eval(sprintf('ismember(varval,%s)',varcond));
-  	      % if we dont have any applied conditions applied then
+        % now cycle over all array elements
+        for i = 1:length(varname)
+          stimvol{i} = {};
+          stimnames{i} = {};
+          % cycle over all strings in varname
+          for j = 1:length(varname{i})
+            % get the value of the variable in question
+            % on each trial
+            varval = getVarFromParameters(mystrtok(varname{i}{j},'='),e{tnum}(pnum));
+            % check to make sure it is not empty
+            if isempty(varval)
+              disp(sprintf('(getStimvolFromVarname) Could not find variable %s in task %i phase %i',mystrtok(varname{i}{j},'='),tnum,pnum));
+              return;
+            end
+            % see if it is a strict variable name
+            if isempty(strfind(varname{i}{j},'='))
+              % if it is then for each particular setting
+              % of the variable, we make a stim type. Use getVarFromParameters
+              % to return all the possible settings for the variable
+              vartypes = getVarFromParameters(varname{i}{j},e{tnum}(pnum),1);
+              for k = 1:length(vartypes)
+                stimvol{i}{end+1} = varval==vartypes(k);
+                stimnames{i}{end+1} = sprintf('%s=%s',varname{i}{j},num2str(vartypes(k)));
+              end
+            end
+          end
+          % now we cycle through again, looking for any modifiers
+          % that is, if we have something like varname=[1 2 3] then
+          % it means that we only add the variable in, if it has
+          % that var set appropriately. 
+          for j = 1:length(varname{i})
+            % get the value of the variable in question
+            % on each trial
+            varval = getVarFromParameters(mystrtok(varname{i}{j},'='),e{tnum}(pnum));
+            % round the values to numSigDigits. This is so that if you have
+            % multiple significant digits you still get the string to match, which
+            % won't have as many significant digits. (e.g. if your value was pi, and
+            % your reperesnt as a string, you will lose some digits). First remember how many unique
+            % values we have so that we can spit out a warning if this manipulation
+            % causes some conditions to get grouped together (i.e. this would happen
+            % if you have a variable that only difference after the numSigDigitis decimal place)
+            if isnumeric(varval)
+              nUniqueVarval = length(unique(varval));
+              varval = round(varval*10^numSigDigits)/10^numSigDigits;
+              if length(unique(varval)) ~= nUniqueVarval
+                disp(sprintf('(getStimvolFromVarname) WARNING: Variable %s has values that only differe after %i significant figures that will be grouped together',mystrtok(varname{i}{j},'='),numSigDigits));
+              end
+            end
+            % see if it is a conditional variable, that is,
+            % one that is like var=[1 2 3].
+            if ~isempty(strfind(varname{i}{j},'='))
+              [t,r] = mystrtok(varname{i}{j},'=');
+              varcond = mystrtok(r,'=');
+              % if it is then get the conditions
+              varval = eval(sprintf('ismember(varval,%s)',varcond));
+              % if we dont have any applied conditions applied then
               % this is the condition
-	      if isempty(stimvol{i})
-		stimvol{i}{1} = varval;
-		stimnames{i}{1} = varname{i}{j};
-	      else
-		for k = 1:length(stimvol{i})
-		  stimvol{i}{k} = stimvol{i}{k} & varval;
-		  stimnames{i}{k} = sprintf('%s %s',stimnames{i}{k},varname{i}{j});
-		end
-	      end
-	    end
-	  end
-	end
-	% select which volume to use, this will normally be the volume at which the
-	% trial started, but if the user passes in a segmentNum than we have to return
-	% the volume at which that segment occurred
-	if segmentNum == 1
-	  trialVolume = e{tnum}(pnum).trialVolume;
-	else
-	  for trialNum = 1: e{tnum}(pnum).nTrials
-	    % make sure we have enough segments
-	    if segmentNum <= length(e{tnum}(pnum).trials(trialNum).volnum)
-	      trialVolume(trialNum) = e{tnum}(pnum).trials(trialNum).volnum(segmentNum);
-	    elseif trialNum == e{tnum}(pnum).nTrials
-	      % this is last trial, probably just ended in middle
-	      % without having that segment. Get rid of volume
-	      trialVolume(trialNum) = nan;
-	      for sdim1 = 1:length(stimvol)
-		for sdim2 = 1:length(stimvol{sdim1})
-		  stimvol{sdim1}{sdim2}(trialNum) = 0;
-		end
-	      end
-	    else
-	      disp(sprintf('(getStimvolFromVarname) Asked for segment %i but trials only have %i segments',segmentNum,length(e{tnum}(pnum).trials(trialNum).volnum)));
-	    end	
-	  end
-	end	
-
-	% now we convert the trial numbers into volumes
-	if exist('stimvol','var')
-	  k = 1;
-	  for i = 1:length(stimvol)
-	    for j = 1:length(stimvol{i})
-	      if length(stimvolOut) >= k
-		stimvolOut{k} = [stimvolOut{k} trialVolume(stimvol{i}{j})];
-		stimNamesOut{k} = [stimNamesOut{k} stimnames{i}{j}];
-		trialNumOut{k} = find(stimvol{i}{j});
-	      else
-		stimvolOut{k} = trialVolume(stimvol{i}{j});
-		stimNamesOut{k} = stimnames{i}{j};
-		trialNumOut{k} = find(stimvol{i}{j});
-	      end
-	      k = k+1;
-	    end
-	  end
-	end
+              if isempty(stimvol{i})
+                stimvol{i}{1} = varval;
+                stimnames{i}{1} = varname{i}{j};
+              else
+                for k = 1:length(stimvol{i})
+                  stimvol{i}{k} = stimvol{i}{k} & varval;
+                  stimnames{i}{k} = sprintf('%s %s',stimnames{i}{k},varname{i}{j});
+                end
+              end
+            end
+          end
+        end
+        % select which volume to use, this will normally be the volume at which the
+        % trial started, but if the user passes in a segmentNum than we have to return
+        % the volume at which that segment occurred
+        if segmentNum == 1
+          trialVolume = e{tnum}(pnum).trialVolume;
+        else
+          for trialNum = 1: e{tnum}(pnum).nTrials
+            % make sure we have enough segments
+            if segmentNum <= length(e{tnum}(pnum).trials(trialNum).volnum)
+              trialVolume(trialNum) = e{tnum}(pnum).trials(trialNum).volnum(segmentNum);
+            elseif trialNum == e{tnum}(pnum).nTrials
+              % this is last trial, probably just ended in middle
+              % without having that segment. Get rid of volume
+              trialVolume(trialNum) = nan;
+              for sdim1 = 1:length(stimvol)
+                for sdim2 = 1:length(stimvol{sdim1})
+                  stimvol{sdim1}{sdim2}(trialNum) = 0;
+                end
+              end
+            else
+              disp(sprintf('(getStimvolFromVarname) Asked for segment %i but trials only have %i segments',segmentNum,length(e{tnum}(pnum).trials(trialNum).volnum)));
+            end 
+          end
+        end 
+        % now we convert the trial numbers into volumes
+        if exist('stimvol','var')
+          k = 1;
+          for i = 1:length(stimvol)
+            for j = 1:length(stimvol{i})
+              if length(stimvolOut) >= k
+                stimvolOut{k} = [stimvolOut{k} trialVolume(stimvol{i}{j})];
+                stimNamesOut{k} = [stimNamesOut{k} stimnames{i}{j}];
+                trialNumOut{k} = find(stimvol{i}{j});
+              else
+                stimvolOut{k} = trialVolume(stimvol{i}{j});
+                stimNamesOut{k} = stimnames{i}{j};
+                trialNumOut{k} = find(stimvol{i}{j});
+              end
+              k = k+1;
+            end
+          end
+        end
       end
     end
   end
 end
 
-% remove any 0 stimvols (this happens if a trial occurs
-% before the experiment started)
-for i = 1:length(stimvolOut)
-  if any(stimvolOut{i} == 0)
-    disp(sprintf('(getStimvolFromVarname) !!! Removing %i trials that occurred before scanning !!!',sum(stimvolOut{i}==0)));
-    trialNumOut{i} = trialNumOut{i}(stimvolOut{i} ~= 0);
-    stimvolOut{i} = stimvolOut{i}(stimvolOut{i} ~= 0);
-  end
-end
 
-% remove any nan stimvols (this happens if a trial occurs
-% after the end of the experiment)
-for i = 1:length(stimvolOut)
-  trialNumOut{i} = trialNumOut{i}(~isnan(stimvolOut{i}));
-  stimvolOut{i} = stimvolOut{i}(~isnan(stimvolOut{i}));
+% check if this is a scanner run (has stimvols gerater than 0)
+if (myscreen.volnum > 0)
+  % remove any 0 stimvols (this happens if a trial occurs
+  % before the experiment started)
+  for i = 1:length(stimvolOut)
+    if any(stimvolOut{i} == 0)
+      disp(sprintf('(getStimvolFromVarname) !!! Removing %i trials that occurred before scanning !!!',sum(stimvolOut{i}==0)));
+      trialNumOut{i} = trialNumOut{i}(stimvolOut{i} ~= 0);
+      stimvolOut{i} = stimvolOut{i}(stimvolOut{i} ~= 0);
+    end
+  end
+
+  % remove any nan stimvols (this happens if a trial occurs
+  % after the end of the experiment)
+  for i = 1:length(stimvolOut)
+    trialNumOut{i} = trialNumOut{i}(~isnan(stimvolOut{i}));
+    stimvolOut{i} = stimvolOut{i}(~isnan(stimvolOut{i}));
+  end
+else
+  disp(sprintf('(getStimvolFromVarname) Skipping stimvol checks: No stimvols found in task %i phase %i',taskNum,phaseNum));
 end
 
 % check for non-unique conditions
