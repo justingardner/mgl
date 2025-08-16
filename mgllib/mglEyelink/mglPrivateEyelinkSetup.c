@@ -352,11 +352,12 @@ void ELCALLBACK exit_cal_display(void)
 void ELCALLBACK draw_cal_target(INT16 x, INT16 y)
 {    
   //  mexPrintf("(mglPrivateEyelinkCalibrate) call to draw_cal_target(%i,%i)\n",x,y);
-  mxArray *callInput[4];
+  mxArray *callInput[5];
   double *inX;
   double *inY;
   double *inSize;
   double *inColor;
+  double *elliptical;
 
   // Get any offset that we need to add from shiftOrigin setting
   double shiftX, shiftY;
@@ -367,22 +368,25 @@ void ELCALLBACK draw_cal_target(INT16 x, INT16 y)
   callInput[1] = mxCreateDoubleMatrix(1,1,mxREAL);
   callInput[2] = mxCreateDoubleMatrix(1,1,mxREAL);
   callInput[3] = mxCreateDoubleMatrix(1,3,mxREAL);
+  callInput[4] = mxCreateDoubleMatrix(1,1,mxREAL);
   inX = (double*)mxGetPr(callInput[0]);
   inY = (double*)mxGetPr(callInput[1]);
   inSize = (double*)mxGetPr(callInput[2]);
   inColor = (double*)mxGetPr(callInput[3]);
+  elliptical = (double*)mxGetPr(callInput[4]);
+  *elliptical = 1.0;
   *inX = (double)x + shiftX;
   *inY = (double)y + shiftY;
 
-  *inSize = 50; // in pixels for now
+  *inSize = 25; // in pixels for now
   memcpy(inColor, _calTarget.outerRGB, sizeof(double)*3);
   // mglGluDisk(xDeg, yDeg, targetSize, targetcolor);
   // mexCallMATLAB(0, NULL, 4, callInput, "mglGluDisk");
-  mexCallMATLAB(0, NULL, 4, callInput, "mglPoints2");   
-  *inSize = 50; // in pixels for now
+  mexCallMATLAB(0, NULL, 5, callInput, "mglPoints2");   
+  *inSize = 5; // in pixels for now
   memcpy(inColor, _calTarget.innerRGB, sizeof(double)*3);
   //mexCallMATLAB(0, NULL, 4, callInput, "mglGluDisk");  
-  mexCallMATLAB(0, NULL, 4, callInput, "mglPoints2");  
+  mexCallMATLAB(0, NULL, 5, callInput, "mglPoints2");  
   mexEvalString("mglFlush;");
   if (verbose) mexPrintf("(mglPrivateEyelinkSetup:draw_cal_target) mglGluDisk at (%g,%g) with size %g.\n", *inX, *inY, *inSize);
   // destroy created matrices
@@ -390,6 +394,7 @@ void ELCALLBACK draw_cal_target(INT16 x, INT16 y)
   mxDestroyArray(callInput[1]);
   mxDestroyArray(callInput[2]);
   mxDestroyArray(callInput[3]);
+  mxDestroyArray(callInput[4]);
 }
 
 /*!
