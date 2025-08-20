@@ -39,12 +39,13 @@ xyz(1,:) = x;
 xyz(2,:) = y;
 
 % set radii - inner is always 0, outer is set to size values passsed in
+% note input size refers to diameter
 if nargin < 3
     size = [1, 1];
 end
 radii = zeros([4, nArcs], 'single');
-radii(2,:) = size(1);
-radii(4,:) = size(2);
+radii(2,:) = size(1)/2;
+radii(4,:) = size(2)/2;
 
 % draw complete wedge from 0 to 2pi
 wedge = repmat([0 2*pi]',1,nArcs);
