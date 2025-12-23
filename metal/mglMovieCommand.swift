@@ -11,7 +11,82 @@ import MetalKit
 import AVFoundation
 import AppKit
 
-class mglMovieCommand : mglCommand {
+// command to create a movie 
+class mglMovieCreateCommand : mglCommand {
+
+    private let movie: mglMovie
+    var movieNumber: UInt32 = 0
+    var movieCount: UInt32 = 0
+
+    // direct init called for debugging
+    init(movie: mglMovie) {
+        self.movie = movie
+        super.init()
+    }
+
+    // init. This will be called by mglCommandInterface when
+    // it receives a command from python/matlab. It initializes
+    // an instance of mglMovie and keeps it in mglColorRenderingConfig
+    // it will return an integer number that can be used to reference
+    // the movie for playback etc
+    init?(commandInterface: mglCommandInterface, device: MTLDevice, logger: mglLogger) {
+        
+        // Read the vertex information for the movie
+        logger.info(component: "mglMovie", details: "mglMovieCreateCommand: Reading Vertex Info")
+        
+        guard let (vertexBufferTexture, vertexCount) = commandInterface.readVertices(device: device, extraVals: 2) else {
+            return nil
+        }
+        logger.info(component: "mglMovie", details: "mglMovieCreateCommand: Read \(vertexCount) vertices")
+        
+        // create the movie class
+        guard let movie = mglMovie(vertexCount: vertexCount, vertexBufferTexture: vertexBufferTexture, device: device, logger: logger) else { return nil }
+        self.movie = movie
+        
+        // call super
+        super.init()
+    }
+    
+    // this gets called after initialization, instead of drawing, we
+    // just log the loaded movie
+    override func doNondrawingWork(
+        logger: mglLogger,
+        view: MTKView,
+        depthStencilState: mglDepthStencilState,
+        colorRenderingState: mglColorRenderingState,
+        deg2metal: inout simd_float4x4
+    ) -> Bool {
+        movieNumber = colorRenderingState.addMovie(movie: movie)
+        movieCount = colorRenderingState.getMovieCount()
+        return true
+    }
+
+    
+    // this is used to return the movie number to matlab/python
+    override func writeQueryResults(
+        logger: mglLogger,
+        commandInterface : mglCommandInterface
+    ) -> Bool {
+        if (movieNumber < 1) {
+            // A heads up that something went wrong.
+            _ = commandInterface.writeDouble(data: -commandInterface.secs.get())
+        }
+
+        // A heads up that return data is on the way.
+        _ = commandInterface.writeDouble(data: commandInterface.secs.get())
+
+        // Specific return data for this command.
+        _ = commandInterface.writeUInt32(data: movieNumber)
+        _ = commandInterface.writeUInt32(data: movieCount)
+        return true
+    }
+
+}
+
+class mglMoviePlayCommand : mglCommand {
+}
+
+class mglMovie {
     // Keep references to the AVPlayer and AVPlayerItem
     // which carry the player and the movie
     private var player: AVPlayer?
@@ -40,13 +115,11 @@ class mglMovieCommand : mglCommand {
     // init. This will be called by mglCommandInterface when
     // it receives a command from python/matlab. It should
     // initialize the movie and the display layer
-    init?(commandInterface: mglCommandInterface, device: MTLDevice, logger: mglLogger) {
-        logger.info(component: "mglMovieCommand", details: "mglMovieCommand: Reading Vertex Info")
+    init?(vertexCount: Int, vertexBufferTexture: MTLBuffer, device: MTLDevice, logger: mglLogger) {
         
-        guard let (vertexBufferTexture, vertexCount) = commandInterface.readVertices(device: device, extraVals: 2) else {
-            return nil
-        }
-        logger.info(component: "mglMovieCommand", details: "mglMovieCommand: Read \(vertexCount) vertices")
+        logger.info(component: "mglMovie", details: "mglMovie: Initializing an mglMovie")
+        
+        // keep the vertices that are used for blting the textures from the movie
         self.vertexBufferTexture = vertexBufferTexture
         self.vertexCount = vertexCount
 
@@ -70,12 +143,6 @@ class mglMovieCommand : mglCommand {
         self.device = device
         self.logger = logger
         
-        // call super-class and tell it that the movie takes
-        // 1 frame to draw. The 1 frame is just to tell
-        // mglRenderer to start the video. The video then
-        // plays asynchronous to the main metal loop
-        super.init(framesRemaining: 15)
-        
         // debugging information, can be removed once this code is working and tested
         self.logger?.info(component: "mglMovieCommand", details: "mglMovieCommand: Called")
         
@@ -97,11 +164,14 @@ class mglMovieCommand : mglCommand {
         samplerDescriptor.tAddressMode = .clampToEdge
         let samplerState = device.makeSamplerState(descriptor: samplerDescriptor)
         self.samplerState = samplerState
+        
+        // start the movie playing
+        self.player?.play()
     }
     
     // draw: This will get called from mglRenderer when which
     // has access to the view
-    override func draw(
+    func draw(
         logger: mglLogger,
         view: MTKView,
         depthStencilState: mglDepthStencilState,
@@ -129,7 +199,6 @@ class mglMovieCommand : mglCommand {
         renderEncoder.setFragmentTexture(currentVideoFrame, index:0)
         renderEncoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: vertexCount)
 
-        
         // Nothing for Metal to draw for this command
         return true
     }
@@ -278,7 +347,6 @@ class mglMovieCommand : mglCommand {
             }
         }
     }
-
-    
 }
+
 

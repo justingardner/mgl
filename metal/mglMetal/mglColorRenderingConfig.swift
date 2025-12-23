@@ -23,28 +23,33 @@ import MetalKit
  */
 class mglColorRenderingState {
     private let logger: mglLogger
-
+    
     // The Metal library that holds our compiled shaders.
     private let library: MTLLibrary
-
+    
     // The usual config for on-screen rendering.
     private var onscreenRenderingConfig: mglColorRenderingConfig!
-
+    
     // The current config might be onscreenRenderingConfig, or one targeting a specific texture.
     private var currentColorRenderingConfig: mglColorRenderingConfig!
-
+    
     // A collection of user-managed textures to render to and/or blt to screen.
     private var textureSequence = UInt32(1)
     private var textures : [UInt32: MTLTexture] = [:]
-
+    
+    // A collection of user-managed movies (stored as AVPlayerItems) that
+    // can be rendered to the screen
+    private var movieSequence = UInt32(1)
+    private var movies : [UInt32: mglMovie] = [:]
+    
     init(logger: mglLogger, device: MTLDevice, view: MTKView) {
         self.logger = logger
-
+        
         guard let library = device.makeDefaultLibrary() else {
             fatalError("Could not create Metal shader library!")
         }
         self.library = library
-
+        
         // Default to onscreen rendering config.
         guard let onscreenRenderingConfig = mglOnscreenRenderingConfig(
             logger: logger,
@@ -57,46 +62,46 @@ class mglColorRenderingState {
         self.onscreenRenderingConfig = onscreenRenderingConfig
         self.currentColorRenderingConfig = onscreenRenderingConfig
     }
-
+    
     // Collaborate with mglRenderer to set up a render pass.
     func getRenderPassDescriptor(view: MTKView) -> MTLRenderPassDescriptor? {
         return currentColorRenderingConfig.getRenderPassDescriptor(view: view)
     }
-
+    
     // Collaborate with mglRenderer to set up a render pass.
     func finishDrawing(commandBuffer: MTLCommandBuffer, drawable: CAMetalDrawable) {
         return currentColorRenderingConfig.finishDrawing(commandBuffer: commandBuffer, drawable: drawable)
     }
-
+    
     // Collaborate with mglRenderer to set up a render pass.
     func getDotsPipelineState() -> MTLRenderPipelineState {
         return currentColorRenderingConfig.dotsPipelineState
     }
-
+    
     // Collaborate with mglRenderer to set up a render pass.
     func getArcsPipelineState() -> MTLRenderPipelineState {
         return currentColorRenderingConfig.arcsPipelineState
     }
-
+    
     // Collaborate with mglRenderer to set up a render pass.
     func getTexturePipelineState() -> MTLRenderPipelineState {
         return currentColorRenderingConfig.texturePipelineState
     }
-
+    
     // Collaborate with mglRenderer to set up a render pass.
     func getVerticesWithColorPipelineState() -> MTLRenderPipelineState {
         return currentColorRenderingConfig.verticesWithColorPipelineState
     }
-
+    
     // Let mglRenderer grab the current fame from a texture target.
     func frameGrab() -> (width: Int, height: Int, pointer: UnsafeMutablePointer<Float>?) {
         return currentColorRenderingConfig.frameGrab()
     }
-
+    
     // Select a pixel format for onscreen rendering.
     func setOnscreenColorPixelFormat(view: MTKView, pixelFormat: MTLPixelFormat) -> Bool {
         view.colorPixelFormat = pixelFormat
-
+        
         // Recreate the onscreen color rendering config so that render pipelines will use the new color pixel format.
         guard let device = view.device,
               let newOnscreenRenderingConfig = mglOnscreenRenderingConfig(
@@ -108,24 +113,24 @@ class mglColorRenderingState {
             logger.error(component: "mglColorRenderingState", details: "Could not create onscreen rendering config for pixel format \(String(describing: view.colorPixelFormat)).")
             return false
         }
-
+        
         if (self.currentColorRenderingConfig is mglOnscreenRenderingConfig) {
             // Start using the new config right away!
             self.currentColorRenderingConfig = newOnscreenRenderingConfig
         }
-
+        
         // Remember the new onscreen config for later, even if we're currently rendering offscreen.
         self.onscreenRenderingConfig = newOnscreenRenderingConfig
-
+        
         return true
     }
-
+    
     // Default back to onscreen rendering.
     func setOnscreenRenderingTarget() -> Bool {
         currentColorRenderingConfig = onscreenRenderingConfig
         return true
     }
-
+    
     // Use the given texture as an offscreen rendering target.
     func setRenderTarget(view: MTKView, targetTexture: MTLTexture) -> Bool {
         guard let device = view.device,
@@ -142,12 +147,12 @@ class mglColorRenderingState {
         currentColorRenderingConfig = newTextureRenderingConfig
         return true
     }
-
+    
     // Report the size of the onscreen drawable or offscreen texture.
     func getSize(view: MTKView) -> (Float, Float) {
         return currentColorRenderingConfig.getSize(view: view)
     }
-
+    
     // Add a new texture to the available blt sources and render targets.
     func addTexture(texture: MTLTexture) -> UInt32 {
         // Consume a texture number from the bookkeeping sequence.
@@ -156,7 +161,7 @@ class mglColorRenderingState {
         textureSequence += 1
         return consumedTextureNumber
     }
-
+    
     // Get an existing texture from the collection, if one exists with the given number.
     func getTexture(textureNumber: UInt32) -> MTLTexture? {
         guard let texture = textures[textureNumber] else {
@@ -165,25 +170,63 @@ class mglColorRenderingState {
         }
         return texture
     }
-
+    
     // Remove and return an existing texture from the collection, if one exists with the given number.
     func removeTexture(textureNumber: UInt32) -> MTLTexture? {
         guard let texture = textures.removeValue(forKey: textureNumber) else {
             logger.error(component: "mglColorRenderingState", details: "Can't remove invalid texture number \(textureNumber), valid numbers are \(String(describing: textures.keys))")
             return nil
         }
-
+        
         logger.info(component: "mglColorRenderingState", details: "Removed texture number \(textureNumber), remaining numbers are \(String(describing: textures.keys))")
         return texture
     }
-
+    
     func getTextureCount() -> UInt32 {
         return UInt32(textures.count)
     }
-
+    
     func getTextureNumbers() -> Array<UInt32> {
         return Array(textures.keys).sorted()
     }
+    
+    // Add a new movie to our collection
+    func addMovie(movie: mglMovie) -> UInt32 {
+        // Consume a movie number from the bookkeeping sequence.
+        let consumedMovieNumber = movieSequence
+        movies[consumedMovieNumber] = movie
+        movieSequence += 1
+        return consumedMovieNumber
+    }
+
+    // Get an existing movie from the collection, if one exists with the given number.
+    func getMovie(movieNumber: UInt32) -> mglMovie? {
+        guard let movie = movies[movieNumber] else {
+            logger.error(component: "mglColorRenderingState", details: "Can't get invalid movie number \(movieNumber), valid numbers are \(String(describing: movies.keys))")
+            return nil
+        }
+        return movie
+    }
+
+    // Remove and return an existing movie from the collection, if one exists with the given number.
+    func removeMovie(movieNumber: UInt32) -> mglMovie? {
+        guard let movie = movies.removeValue(forKey: movieNumber) else {
+            logger.error(component: "mglColorRenderingState", details: "Can't remove invalid movie number \(movieNumber), valid numbers are \(String(describing: movies.keys))")
+            return nil
+        }
+
+        logger.info(component: "mglColorRenderingState", details: "Removed movie number \(movieNumber), remaining numbers are \(String(describing: movies.keys))")
+        return movie
+    }
+
+    func getMovieCount() -> UInt32 {
+        return UInt32(movies.count)
+    }
+
+    func getMovieNumbers() -> Array<UInt32> {
+        return Array(movies.keys).sorted()
+    }
+
 }
 
 // This declares the operations that mglRenderer relies on to set up Metal rendering passes and pipelines.
