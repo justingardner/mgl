@@ -84,6 +84,87 @@ class mglMovieCreateCommand : mglCommand {
 }
 
 class mglMoviePlayCommand : mglCommand {
+    var movieNumber: UInt32 = 0
+    var movie: mglMovie? = nil
+    
+    // init. This will be called by mglCommandInterface when
+    // it receives a command from python/matlab. It reads the
+    // movieNumber and starts playback of the movie
+    init?(commandInterface: mglCommandInterface, logger: mglLogger) {
+        // Read the moveNumber
+        guard let movieNumber = commandInterface.readUInt32() else {
+            return nil
+        }
+        self.movieNumber = movieNumber
+        logger.info(component: "mglMovie", details: "mglMoviePlayCommand: Read movieNumber: \(movieNumber)")
+        
+        // call super,set framesRemaining to 1. In the draw function, we
+        // will continue to reset this as long as there is more of the
+        // video to play (so that the command will run for as long is needed
+        // to display the full movie)
+        super.init(framesRemaining: 1)
+    }
+    
+    // this gets called after initialization, we get the movie from the movieNum
+    override func doNondrawingWork(
+        logger: mglLogger,
+        view: MTKView,
+        depthStencilState: mglDepthStencilState,
+        colorRenderingState: mglColorRenderingState,
+        deg2metal: inout simd_float4x4
+    ) -> Bool {
+        
+        if self.movie == nil {
+            guard let movie = colorRenderingState.getMovie(
+                movieNumber: self.movieNumber
+            ) else {
+                
+                logger.error(component: "mglMovie", details: "mglMoviePlay: Failed to get movie \(self.movieNumber)")
+                return false
+            }
+            
+            self.movie = movie
+            
+            // start the movie playing
+            self.movie?.play()
+            logger.info(component: "mglMovie", details: "mglMoviePlay: Got movie and started playing")
+
+
+        }
+        return true
+    }
+
+    
+    // draw: This will get called from mglRenderer when which
+    // has access to the view
+    override func draw(
+        logger: mglLogger,
+        view: MTKView,
+        depthStencilState: mglDepthStencilState,
+        colorRenderingState: mglColorRenderingState,
+        deg2metal: inout simd_float4x4,
+        renderEncoder: MTLRenderCommandEncoder
+    ) -> Bool {
+        
+        logger.info(component: "mglMovie", details: "mglMoviePlay: draw")
+        let didDrawFrame =
+            // tell the movie to draw a frame
+            self.movie?.drawFrame(
+                logger: logger,
+                view: view,
+                colorRenderingState: colorRenderingState,
+                renderEncoder: renderEncoder
+            ) ?? false
+        
+        
+        if didDrawFrame {
+            // frame drawn, so keep going
+            self.framesRemaining += 1
+        }
+        
+        return true
+    }
+
 }
 
 class mglMovie {
@@ -111,6 +192,8 @@ class mglMovie {
     private let vertexBufferTexture: MTLBuffer
     private let vertexCount: Int
     private var phase: Float32 = 0.0
+    
+    var videoAtEnd: Bool = false
 
     // init. This will be called by mglCommandInterface when
     // it receives a command from python/matlab. It should
@@ -165,26 +248,41 @@ class mglMovie {
         let samplerState = device.makeSamplerState(descriptor: samplerDescriptor)
         self.samplerState = samplerState
         
-        // start the movie playing
-        self.player?.play()
+        // set a notification for when the video ends
+        NotificationCenter.default.addObserver(
+             self,
+             selector: #selector(movieDidEnd),
+             name: .AVPlayerItemDidPlayToEndTime,
+             object: playerItem
+         )
+
     }
+    
+    // remember to remove observer if this variable is removed
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+    }
+
+    // function which gets called if the movie ends
+    @objc private func movieDidEnd() {
+        videoAtEnd = true
+    }
+
     
     // draw: This will get called from mglRenderer when which
     // has access to the view
-    func draw(
+    func drawFrame(
         logger: mglLogger,
         view: MTKView,
-        depthStencilState: mglDepthStencilState,
         colorRenderingState: mglColorRenderingState,
-        deg2metal: inout simd_float4x4,
         renderEncoder: MTLRenderCommandEncoder
     ) -> Bool {
         // debugging information, can be removed once this code is working and tested
-        logger.info(component: "mglMovieCommand", details: "Draw called")
-        
-        // This is used for testing layer drawing, can be removed if no longer needed:
-        // jg 12/22/2025
-        //drawInLayer(logger: logger, view: view)
+        logger.info(component: "mglMovieCommand", details: "DrawFrame called")
+        if videoAtEnd {
+            logger.info(component: "mglMovieCommand", details: "Video is over")
+            return false
+        }
         
         if let frame = getCurrentFrameAsTexture(hostTime: CACurrentMediaTime()) {
             currentVideoFrame = frame
@@ -232,6 +330,11 @@ class mglMovie {
             self.player = player
                 
         }
+    }
+    
+    // play the video
+    func play() {
+        self.player?.play()
     }
     
     // getCurrentFrameAsTexture: will extract a metal texture from

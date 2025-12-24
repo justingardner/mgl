@@ -165,6 +165,7 @@ class mglCommandInterface {
             case mglRepeatDots: command = mglRepeatDotsCommand(commandInterface: self)
             case mglRepeatFlush: command = mglRepeatFlushCommand(commandInterface: self)
             case mglMovieCreate: command = mglMovieCreateCommand(commandInterface: self, device: device, logger: self.logger)
+            case mglMoviePlay: command = mglMoviePlayCommand(commandInterface: self, logger: self.logger)
             default: command = nil
         }
  
