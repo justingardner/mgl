@@ -91,9 +91,7 @@ class mglMoviePlayCommand : mglCommand {
     var movieNumber: UInt32 = 0
     var movie: mglMovie? = nil
     var videoAtEnd: Bool = false
-    
-    var lastSecs: Double = 0.0
-    var lastDrawablePresented: Double = 0.0
+    var frameTimes: [Double] = []
     
     // init. This will be called by mglCommandInterface when
     // it receives a command from python/matlab. It reads the
@@ -166,7 +164,9 @@ class mglMoviePlayCommand : mglCommand {
                 colorRenderingState: colorRenderingState,
                 renderEncoder: renderEncoder
             )
+            // keep returned values
             didDrawFrame = frameDrawn
+            frameTimes.append(CMTimeGetSeconds(frameTime ?? CMTime.zero))
         }
         
         if didDrawFrame {
@@ -185,35 +185,15 @@ class mglMoviePlayCommand : mglCommand {
         logger: mglLogger,
         commandInterface : mglCommandInterface
     ) -> Bool {
-        // format all of the presentedTimes
-        let allPresentedTimes = presentedTimes.enumerated().map { index, holder -> String in
-            guard
-                index > 0,
-                let t = holder.presentedTime,
-                let prev = presentedTimes[index - 1].presentedTime
-            else {
-                return "—"
-            }
 
-            let deltaMs = (t - prev) * 1000.0
-            return String(format: "%.3f (%.3f)", deltaMs,t)
-        }.joined(separator: " ")
-        
-        let nFrames = movie?.nFrames ?? 0
-        logger.info(
-            component: "mglMovie",
-            details: "\(nFrames):\(presentedTimes.count) \(allPresentedTimes)"
-        )
-        // return the number of frames
-        _ = commandInterface.writeUInt32(data: UInt32(nFrames))
-        
         // convert presentedTimes to seconds and return that
         let presentedTimesSeconds: [Double] = presentedTimes.map { $0.presentedTime ?? 0.0 }
         _ = commandInterface.writeDoubleArray(data: presentedTimesSeconds)
-        logger.info(
-            component: "mglMovie",
-            details: "First presentedTimeSeconds: \(presentedTimesSeconds[0])"
-        )
+        
+        // return frameTimes
+        _ = commandInterface.writeDoubleArray(data: frameTimes)
+
+
         return true
     }
 
@@ -321,18 +301,6 @@ class mglMovie {
     var width: Int?
     var height: Int?
     
-    // array for keeping frameTimes (these are video times
-    // at which frames were extracted by drawFrame
-    private var frameTimes: [Double] = []
-    var nFrames: Int = 0
-    
-    // keep the times at which drawable was presented
-    // for each of the frames - should track exactly
-    // with the frameTimes array above. These values
-    // are filled in by the command calling the drawFrame
-    // function - as the commands have access to the presentedTimes
-    var presentedTimes: [CMTime] = []
-
     // init. This will be called by mglCommandInterface when
     // it receives a command from python/matlab. It should
     // initialize the movie and the display layer
@@ -436,7 +404,7 @@ class mglMovie {
             
             // Allocate 1.5x to be safe
             let reserveCount = Int(Double(expectedFrameCount) * 1.5)
-            frameTimes.reserveCapacity(reserveCount)
+            //frameTimes.reserveCapacity(reserveCount)
             
             logger?.info(
                 component: "mglMovieCommand",
@@ -477,9 +445,6 @@ class mglMovie {
             logger.info(component: "mglMovieCommand", details: "Video is over")
             return (false, nil)
         }
-        
-        // update number of frames drawn
-        nFrames += 1
         
         // get frame and frameTime
         let (frame, frameTime) = getCurrentFrameAsTexture(hostTime: CACurrentMediaTime())
