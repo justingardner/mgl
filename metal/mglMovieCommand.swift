@@ -56,6 +56,10 @@ class mglMovieCreateCommand : mglCommand {
         colorRenderingState: mglColorRenderingState,
         deg2metal: inout simd_float4x4
     ) -> Bool {
+        // try to preload to get things going
+        movie.preload(view: view)
+        
+        // store the movie in colorRenderingState
         movieNumber = colorRenderingState.addMovie(movie: movie)
         movieCount = colorRenderingState.getMovieCount()
         return true
@@ -86,6 +90,10 @@ class mglMovieCreateCommand : mglCommand {
 class mglMoviePlayCommand : mglCommand {
     var movieNumber: UInt32 = 0
     var movie: mglMovie? = nil
+    var videoAtEnd: Bool = false
+    
+    var lastSecs: Double = 0.0
+    var lastDrawablePresented: Double = 0.0
     
     // init. This will be called by mglCommandInterface when
     // it receives a command from python/matlab. It reads the
@@ -114,6 +122,7 @@ class mglMoviePlayCommand : mglCommand {
         deg2metal: inout simd_float4x4
     ) -> Bool {
         
+        // get the movie indexed by movieNumber
         if self.movie == nil {
             guard let movie = colorRenderingState.getMovie(
                 movieNumber: self.movieNumber
@@ -122,14 +131,11 @@ class mglMoviePlayCommand : mglCommand {
                 logger.error(component: "mglMovie", details: "mglMoviePlay: Failed to get movie \(self.movieNumber)")
                 return false
             }
-            
             self.movie = movie
             
             // start the movie playing
             self.movie?.play()
             logger.info(component: "mglMovie", details: "mglMoviePlay: Got movie and started playing")
-
-
         }
         return true
     }
@@ -145,28 +151,138 @@ class mglMoviePlayCommand : mglCommand {
         deg2metal: inout simd_float4x4,
         renderEncoder: MTLRenderCommandEncoder
     ) -> Bool {
+
+        // if video is finished playing, then just return
+        if videoAtEnd == true {
+            return true
+        }
         
-        logger.info(component: "mglMovie", details: "mglMoviePlay: draw")
-        let didDrawFrame =
-            // tell the movie to draw a frame
-            self.movie?.drawFrame(
+        logger.info(component: "mglMovie", details: "mglMoviePlay: Draw")
+        var didDrawFrame = false
+        if let movie = self.movie {
+            let (frameDrawn, frameTime) = movie.drawFrame(
                 logger: logger,
                 view: view,
                 colorRenderingState: colorRenderingState,
                 renderEncoder: renderEncoder
-            ) ?? false
-        
+            )
+            didDrawFrame = frameDrawn
+        }
         
         if didDrawFrame {
             // frame drawn, so keep going
+            self.framesRemaining += 1
+        } else {
+            videoAtEnd = true
             self.framesRemaining += 1
         }
         
         return true
     }
 
+    // this is used to return the movie number to matlab/python
+    override func writeQueryResults(
+        logger: mglLogger,
+        commandInterface : mglCommandInterface
+    ) -> Bool {
+        // format all of the presentedTimes
+        let allPresentedTimes = presentedTimes.enumerated().map { index, holder -> String in
+            guard
+                index > 0,
+                let t = holder.presentedTime,
+                let prev = presentedTimes[index - 1].presentedTime
+            else {
+                return "—"
+            }
+
+            let deltaMs = (t - prev) * 1000.0
+            return String(format: "%.3f (%.3f)", deltaMs,t)
+        }.joined(separator: " ")
+        
+        let nFrames = movie?.nFrames ?? 0
+        logger.info(
+            component: "mglMovie",
+            details: "\(nFrames):\(presentedTimes.count) \(allPresentedTimes)"
+        )
+        // return the number of frames
+        _ = commandInterface.writeUInt32(data: UInt32(nFrames))
+        
+        // convert presentedTimes to seconds and return that
+        let presentedTimesSeconds: [Double] = presentedTimes.map { $0.presentedTime ?? 0.0 }
+        _ = commandInterface.writeDoubleArray(data: presentedTimesSeconds)
+        logger.info(
+            component: "mglMovie",
+            details: "First presentedTimeSeconds: \(presentedTimesSeconds[0])"
+        )
+        return true
+    }
+
 }
 
+class mglMovieStatusCommand : mglCommand {
+    var movieNumber: UInt32 = 0
+    var movie: mglMovie? = nil
+    
+    // init. This will be called by mglCommandInterface when
+    // it receives a command from python/matlab. It reads the
+    // movieNumber and starts playback of the movie
+    init?(commandInterface: mglCommandInterface, logger: mglLogger) {
+        // Read the moveNumber
+        guard let movieNumber = commandInterface.readUInt32() else {
+            return nil
+        }
+        self.movieNumber = movieNumber
+        logger.info(component: "mglMovie", details: "mglMovieStatusCommand: Read movieNumber: \(movieNumber)")
+        
+        // call super
+        super.init()
+    }
+    
+    // this gets called after initialization, we get the movie from the movieNum
+    override func doNondrawingWork(
+        logger: mglLogger,
+        view: MTKView,
+        depthStencilState: mglDepthStencilState,
+        colorRenderingState: mglColorRenderingState,
+        deg2metal: inout simd_float4x4
+    ) -> Bool {
+        
+        if self.movie == nil {
+            guard let movie = colorRenderingState.getMovie(
+                movieNumber: self.movieNumber
+            ) else {
+                logger.error(component: "mglMovie", details: "mglMovieStatus: Failed to get movie \(self.movieNumber)")
+                return false
+            }
+            
+            self.movie = movie
+        }
+        return true
+    }
+    
+    // this is used to return the status to matlab/python
+    override func writeQueryResults(
+        logger: mglLogger,
+        commandInterface : mglCommandInterface
+    ) -> Bool {
+
+        guard let movie = self.movie else {
+            // state 0 is error
+            _ = commandInterface.writeUInt32(data: 0)
+            return true
+        }
+
+        // Specific return data for this command.
+        _ = commandInterface.writeUInt32(data: 1)
+        return true
+    }
+
+}
+
+
+
+// class that holds the movie, AVPlayer and all the stuff needed
+// to make the movie run
 class mglMovie {
     // Keep references to the AVPlayer and AVPlayerItem
     // which carry the player and the movie
@@ -189,11 +305,33 @@ class mglMovie {
     private var playerLayer: AVPlayerLayer?
     
     private var currentVideoFrame: MTLTexture?
+    
+    // variables used for blting the texture
     private let vertexBufferTexture: MTLBuffer
     private let vertexCount: Int
     private var phase: Float32 = 0.0
     
+    // sets whether the video has been played to the end
     var videoAtEnd: Bool = false
+    
+    // these will be extracted when info is called
+    var frameRate: Float?
+    var duration: CMTime?
+    var totalFrames: Int?
+    var width: Int?
+    var height: Int?
+    
+    // array for keeping frameTimes (these are video times
+    // at which frames were extracted by drawFrame
+    private var frameTimes: [Double] = []
+    var nFrames: Int = 0
+    
+    // keep the times at which drawable was presented
+    // for each of the frames - should track exactly
+    // with the frameTimes array above. These values
+    // are filled in by the command calling the drawFrame
+    // function - as the commands have access to the presentedTimes
+    var presentedTimes: [CMTime] = []
 
     // init. This will be called by mglCommandInterface when
     // it receives a command from python/matlab. It should
@@ -231,7 +369,7 @@ class mglMovie {
         
         // load the video
         self.loadVideo()
-        
+
         // add the videoOutput to the playerItem which should
         // now be allocated from loadVideo
         if let playerItem = self.playerItem {
@@ -255,8 +393,10 @@ class mglMovie {
              name: .AVPlayerItemDidPlayToEndTime,
              object: playerItem
          )
-
+        
     }
+    
+    
     
     // remember to remove observer if this variable is removed
     deinit {
@@ -266,27 +406,89 @@ class mglMovie {
     // function which gets called if the movie ends
     @objc private func movieDidEnd() {
         videoAtEnd = true
+        // seek video to beginning (so it can be replayed)
+        self.player?.seek(to: .zero)
     }
 
     
-    // draw: This will get called from mglRenderer when which
-    // has access to the view
+    // try to preload video and preallocate buffers for faster start
+    func preload(view: MTKView) {
+        // preallocate buffer for keeping frame times, first we will
+        // need to know the maximum frame rate. Default to 120 fps
+        // for systems that do not report
+        let fps: Int
+        if let screen = view.window?.screen {
+            if #available(macOS 12.0, *) {
+                fps = screen.maximumFramesPerSecond
+            } else {
+                fps = 120   // fallback for older macOS
+            }
+        } else {
+            fps = 120       // conservative default if no screen yet
+        }
+        logger?.info(component: "mglMovie", details: "mglMovie.preAllocateBuffers: fps=\(fps)")
+
+        // now try to preallocate space in frameTimes gracefully
+        // if anything returns nil then reserveCapacity will nto be set.
+        if let duration = self.duration, duration.seconds.isFinite && duration.seconds > 0 && fps > 0 {
+            // Compute expected frames
+            let expectedFrameCount = Int(ceil(duration.seconds * Double(fps)))
+            
+            // Allocate 1.5x to be safe
+            let reserveCount = Int(Double(expectedFrameCount) * 1.5)
+            frameTimes.reserveCapacity(reserveCount)
+            
+            logger?.info(
+                component: "mglMovieCommand",
+                details: "Preallocated \(reserveCount) frameTimes 1.5x(duration=\(duration.seconds)s, fps=\(fps))"
+            )
+        }
+        
+        // various things that should get video decoding
+        if let playerItem = self.playerItem {
+            // also, try to buffer some video for quick startup
+            playerItem.preferredForwardBufferDuration = 1.0
+            playerItem.canUseNetworkResourcesForLiveStreamingWhilePaused = true
+            // try to decode one frame to trigger startup
+            _ = videoOutput.hasNewPixelBuffer(forItemTime: .zero)
+            // seek to beginning of video
+            player?.pause()
+            player?.seek(to: .zero, toleranceBefore: .zero, toleranceAfter: .zero)
+            logger?.info(
+                component: "mglMovieCommand",
+                details: "preloading video for quick startup"
+            )
+        }
+
+    }
+    
+
+    // draw:Frame This will get called every frame (by way of the
+    // mglMoviePlay function
     func drawFrame(
         logger: mglLogger,
         view: MTKView,
         colorRenderingState: mglColorRenderingState,
         renderEncoder: MTLRenderCommandEncoder
-    ) -> Bool {
-        // debugging information, can be removed once this code is working and tested
-        logger.info(component: "mglMovieCommand", details: "DrawFrame called")
+    ) -> (didDrawFrame: Bool, frameTime: CMTime?) {
+
+        // check if video has ended
         if videoAtEnd {
             logger.info(component: "mglMovieCommand", details: "Video is over")
-            return false
+            return (false, nil)
         }
         
-        if let frame = getCurrentFrameAsTexture(hostTime: CACurrentMediaTime()) {
+        // update number of frames drawn
+        nFrames += 1
+        
+        // get frame and frameTime
+        let (frame, frameTime) = getCurrentFrameAsTexture(hostTime: CACurrentMediaTime())
+        
+        // if it is a new frame, then update the currentVideoFrame which is displaying
+        if frame != nil  {
             currentVideoFrame = frame
-            self.logger?.info(component: "mglMovieCommand:", details: "Got a new frame at time: \(CACurrentMediaTime())")
+            let displayTime = CMTimeGetSeconds(frameTime ?? CMTime.zero) * 1000
+            self.logger?.info(component: "mglMovieCommand:", details: "Got a new frame at time: \(displayTime)")
         }
         
         // display the frame
@@ -298,7 +500,7 @@ class mglMovie {
         renderEncoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: vertexCount)
 
         // Nothing for Metal to draw for this command
-        return true
+        return (true, frameTime)
     }
     
     // load the video, creating an AVPlayerItem for the video and an AVPlayer which
@@ -324,6 +526,10 @@ class mglMovie {
 
             // print info about the movie
             self.info(asset: playerItem.asset, logger: self.logger)
+            
+            // wait for the tracks and duration to load up
+            //await playerItem.asset.load(.tracks)
+            //await playerItem.asset.load(.duration)
                 
             // Create the AVPlayer (handles video + audio)
             let player = AVPlayer(playerItem: playerItem)
@@ -334,13 +540,15 @@ class mglMovie {
     
     // play the video
     func play() {
+        // play, clear flag for videoAtEnd
+        videoAtEnd = false
         self.player?.play()
     }
     
     // getCurrentFrameAsTexture: will extract a metal texture from
     // AVPlayerItem that corresponds to the current time (usually CACurrentMediaTime())
     // Note that this will return nil if there is no new texture
-    func getCurrentFrameAsTexture(hostTime: CFTimeInterval) -> MTLTexture? {
+    func getCurrentFrameAsTexture(hostTime: CFTimeInterval) -> (texture: MTLTexture?, timestamp: CMTime?) {
         
         // get the itemTime corresponding to the current hostTime
         let itemTime = videoOutput.itemTime(
@@ -354,7 +562,7 @@ class mglMovie {
                     itemTimeForDisplay: nil
               )
         else {
-            return nil
+            return (nil, nil)
         }
 
         // get width and height of pixelBuffer
@@ -379,9 +587,9 @@ class mglMovie {
         guard status == kCVReturnSuccess,
               let metalTexture = CVMetalTextureGetTexture(cvTexture!)
         else {
-            return nil
+            return (nil, nil)
         }
-        return metalTexture
+        return (metalTexture, itemTime)
     }
 
     // drawInLayer: This is test code which loads the test movie asset
@@ -422,34 +630,46 @@ class mglMovie {
     // info: Extracts information like frame rate, length, native pixel
     // dimensions from AV file.
     func info(asset: AVAsset, logger: mglLogger?) {
-        // Frame rate
+        // Extract values from the first video track
         if let track = asset.tracks(withMediaType: .video).first {
-            let frameRate = track.nominalFrameRate
-            logger?.info(component: "mglMovieCommand", details: "Frame rate: \(frameRate) fps")
+            // Frame rate
+            let trackFrameRate = track.nominalFrameRate
+            self.frameRate = trackFrameRate
+            logger?.info(component: "mglMovieCommand", details: "Frame rate: \(trackFrameRate) fps")
+            
+            // Duration
+            let trackDuration = track.timeRange.duration
+            self.duration = trackDuration
+            logger?.info(component: "mglMovieCommand", details: "Track duration: \(trackDuration.seconds) seconds")
             
             // Total frames
-            let duration = track.timeRange.duration
-            let totalFrames = Int(duration.seconds * Double(frameRate))
-            logger?.info(component: "mglMovieCommand", details: "Total frames: \(totalFrames)")
+            let frames = Int(trackDuration.seconds * Double(trackFrameRate))
+            self.totalFrames = frames
+            logger?.info(component: "mglMovieCommand", details: "Total frames: \(frames)")
+            
+            // Width and height
+            let trackSize = track.naturalSize.applying(track.preferredTransform)
+            self.width = Int(abs(trackSize.width))
+            self.height = Int(abs(trackSize.height))
+            logger?.info(component: "mglMovieCommand", details: "Width: \(self.width!), Height: \(self.height!)")
+        } else {
+            logger?.info(component: "mglMovieCommand", details: "No video track found")
+            
+            // Clear properties if no track
+            self.frameRate = nil
+            self.duration = nil
+            self.totalFrames = nil
+            self.width = nil
+            self.height = nil
         }
         
-        // List all tracks
+        // List all tracks in one line each
         for track in asset.tracks {
-            // extract the track ID, media type, size and duration.
-            logger?.info(component: "mglMovieCommand", details: "Track ID: \(track.trackID)")
-            logger?.info(component: "mglMovieCommand", details: "Media type: \(track.mediaType.rawValue)")
-            logger?.info(component: "mglMovieCommand", details: "Natural size: \(track.naturalSize)")
-            logger?.info(component: "mglMovieCommand", details: "Duration: \(track.timeRange.duration.seconds) seconds")
-            
-            // gets the description of the track, this seems to carry a lot of
-            // custom information and has a large print out, maybe not needed
-            if let formatDescriptions = track.formatDescriptions as? [CMFormatDescription] {
-                for desc in formatDescriptions {
-                    //logger.info(component: "mglMovieCommand", details: "Format description: \(desc)")
-                }
-            }
-        }
-    }
+            logger?.info(
+                component: "mglMovieCommand",
+                details: "Track ID: \(track.trackID), Media type: \(track.mediaType.rawValue), Natural size: \(track.naturalSize.width)x\(track.naturalSize.height), Duration: \(track.timeRange.duration.seconds) seconds"
+            )
+        }    }
 }
 
 

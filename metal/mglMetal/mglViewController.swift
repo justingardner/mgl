@@ -65,6 +65,12 @@ class ViewController: NSViewController {
         // that handles drawing and where all the action is.
         let commandInterface = commandInterfaceFromCliArgs()
         setUpRenderer(view: metalView, commandInterface: commandInterface)
+        
+        // These lines should enable the view to run at high frame rates
+        metalView.preferredFramesPerSecond = 120 
+        metalView.enableSetNeedsDisplay = false
+        metalView.isPaused = false
+
     }
 
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/

@@ -296,7 +296,14 @@ extension mglRenderer2: MTKViewDelegate {
                 resolveRenderPassGpuTimestamps(commandBuffer: commandBuffer, command: command)
 
                 // Set up this command as the flush command in-flight.
-                setUpFlushInFlight(drawable: drawable, commandBuffer: commandBuffer, command: command)
+                // JG: This was not working as originally written because
+                // the callback fro each frame needed to be given an
+                // independent variable to report the presentedTime in
+                // otherwise it would write over the old ones, and since
+                // order is not guaranteed would give weird results. So, now
+                // call the one that is written in mglCommandModel which
+                // properly keeps an array of presentedTimes
+                command.setUpFlushInFlight(renderer: self, drawable: drawable, commandBuffer: commandBuffer)
 
                 // Present this frame.
                 colorRenderingState.finishDrawing(commandBuffer: commandBuffer, drawable: drawable)
