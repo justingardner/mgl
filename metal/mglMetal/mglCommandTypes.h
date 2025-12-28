@@ -61,7 +61,8 @@ typedef enum mglCommandCode : uint16_t {
     mglRepeatFlush = 1018,
     mglMovieCreate = 1019,
     mglMoviePlay = 1020,
-    mglMovieStatus = 1021,
+    mglMovieDrawFrame = 1021,
+    mglMovieStatus = 1022,
     mglUnknownCommand = UINT16_MAX
 } mglCommandCode;
 
@@ -113,6 +114,7 @@ const mglCommandCode mglCommandCodes[] = {
     mglRepeatFlush,
     mglMovieCreate,
     mglMoviePlay,
+    mglMovieDrawFrame,
     mglMovieStatus
 };
 const char* mglCommandNames[] = {
@@ -161,6 +163,7 @@ const char* mglCommandNames[] = {
     "mglFrameGrab",
     "mglMovieCreate",
     "mglMoviePlay",
+    "mglMovieDrawFrame",
     "mglMovieStatus"
 };
 

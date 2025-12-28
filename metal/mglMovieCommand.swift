@@ -199,6 +199,82 @@ class mglMoviePlayCommand : mglCommand {
 
 }
 
+class mglMovieDrawFrameCommand : mglCommand {
+    var movieNumber: UInt32 = 0
+    var movie: mglMovie? = nil
+    var frameTime: CMTime?
+    var videoAtEnd: Bool = false
+
+    init?(commandInterface: mglCommandInterface, logger: mglLogger) {
+        // Read the moveNumber
+        guard let movieNumber = commandInterface.readUInt32() else {
+            return nil
+        }
+        self.movieNumber = movieNumber
+        logger.info(component: "mglMovie", details: "mglMovieDrawFrameCommand: Read movieNumber: \(movieNumber)")
+        
+        // call super
+        super.init(framesRemaining: 1)
+    }
+    
+    // this gets called after initialization, we get the movie from the movieNum
+    override func doNondrawingWork(
+        logger: mglLogger,
+        view: MTKView,
+        depthStencilState: mglDepthStencilState,
+        colorRenderingState: mglColorRenderingState,
+        deg2metal: inout simd_float4x4
+    ) -> Bool {
+        
+        // retrieve movie
+        guard let movie = colorRenderingState.getMovie(
+            movieNumber: self.movieNumber
+        ) else {
+            logger.error(component: "mglMovie", details: "mglMovieDrawFrame: Failed to get movie \(self.movieNumber)")
+            return false
+        }
+        
+        // keep movie and start it playing
+        self.movie = movie
+        if let movie = self.movie, !movie.isPlaying() {
+            movie.play()
+            logger.error(component: "mglMovie", details: "mglMovieDrawFrame: Playing movie")
+        }
+        return true
+    }
+    
+    // draw: This will get called from mglRenderer when it is ready to draw a frame of the movie
+    override func draw(
+        logger: mglLogger,
+        view: MTKView,
+        depthStencilState: mglDepthStencilState,
+        colorRenderingState: mglColorRenderingState,
+        deg2metal: inout simd_float4x4,
+        renderEncoder: MTLRenderCommandEncoder
+    ) -> Bool {
+
+        logger.info(component: "mglMovie", details: "mglMovieDrawFrame: drawFrame")
+        var didDrawFrame = false
+        if let movie = self.movie {
+            let (frameDrawn, frameTime) = movie.drawFrame(
+                logger: logger,
+                view: view,
+                colorRenderingState: colorRenderingState,
+                renderEncoder: renderEncoder
+            )
+            // keep returned values
+            didDrawFrame = frameDrawn
+            self.frameTime = frameTime
+        }
+        
+        if !didDrawFrame {
+            // video is over
+            videoAtEnd = true
+        }
+        return true
+    }
+}
+
 class mglMovieStatusCommand : mglCommand {
     var movieNumber: UInt32 = 0
     var movie: mglMovie? = nil
@@ -502,7 +578,15 @@ class mglMovie {
                 
         }
     }
-    
+
+    // check if playing
+    func isPlaying() -> Bool {
+        if self.player?.timeControlStatus == .playing {
+            return true
+        }
+        return false
+    }
+
     // play the video
     func play() {
         // play, clear flag for videoAtEnd
