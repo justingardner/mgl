@@ -166,7 +166,7 @@ class mglMoviePlayCommand : mglCommand {
             )
             // keep returned values
             didDrawFrame = frameDrawn
-            frameTimes.append(CMTimeGetSeconds(frameTime ?? CMTime.zero))
+            frameTimes.append(frameTime.map { CMTimeGetSeconds($0) } ?? -1)
         }
         
         if didDrawFrame {
@@ -273,6 +273,19 @@ class mglMovieDrawFrameCommand : mglCommand {
         }
         return true
     }
+    
+    // this is used to return the frameTime
+    override func writeQueryResults(
+        logger: mglLogger,
+        commandInterface : mglCommandInterface
+    ) -> Bool {
+
+        // return frameTime or -1 if it does not exists (was not drawn)
+        _ = commandInterface.writeDouble(data: frameTime.map { CMTimeGetSeconds($0) } ?? -1)
+
+        return true
+    }
+
 }
 
 class mglMovieStatusCommand : mglCommand {
@@ -600,15 +613,17 @@ class mglMovie {
     func getCurrentFrameAsTexture(hostTime: CFTimeInterval) -> (texture: MTLTexture?, timestamp: CMTime?) {
         
         // get the itemTime corresponding to the current hostTime
-        let itemTime = videoOutput.itemTime(
-            forHostTime: hostTime
-        )
+        let itemTime = videoOutput.itemTime(forHostTime: hostTime)
 
         // Check for a new frame, return nil if there is nothing
+        // itemTimeForDisplay is what videoOutput gives us back as
+        // the time the frame should be displayed at (rather that
+        // what we asked for which is itemTime
+        var itemTimeForDisplay = CMTime.invalid
         guard videoOutput.hasNewPixelBuffer(forItemTime: itemTime),
               let pixelBuffer = videoOutput.copyPixelBuffer(
                     forItemTime: itemTime,
-                    itemTimeForDisplay: nil
+                    itemTimeForDisplay: &itemTimeForDisplay
               )
         else {
             return (nil, nil)
@@ -632,13 +647,13 @@ class mglMovie {
             &cvTexture
         )
 
-        // if successful, return the texture
+        // if successful, return the texture and itemTimeForDisplay
         guard status == kCVReturnSuccess,
               let metalTexture = CVMetalTextureGetTexture(cvTexture!)
         else {
             return (nil, nil)
         }
-        return (metalTexture, itemTime)
+        return (metalTexture, itemTimeForDisplay)
     }
 
     // drawInLayer: This is test code which loads the test movie asset
