@@ -8,6 +8,7 @@
 
 import Foundation
 import MetalKit
+import QuartzCore
 
 /*
  This mglRenderer2 processes commands and handles details of setting up Metal rendering passes for each frame.
@@ -24,7 +25,22 @@ class mglRenderer2: NSObject {
 
     // GPU Device!
     private let device: MTLDevice
+    
+    // link to metalView
+    var metalView: MTKView?
 
+    // MetalDIsplayLink. On systems 14.0 and later, this
+    // provides more prediction and control over frame timing
+    // then allowing the MTKView to control when render updates happen
+    // since it is only available 14.0, we make the variable AnyObject so
+    // it will compile and work on older systems, and we provide a way
+    // to get it cast as a CAMetalDisplayLInk on 14.0+ systems
+    private var displayLink: AnyObject?
+    @available(macOS 14.0, *)
+    private var metalDisplayLink: CAMetalDisplayLink? {
+        return displayLink as? CAMetalDisplayLink
+    }
+    
     // GPU and CPU buffers where we can gather and read out detailed redering pipeline timestamps (if GPU supports).
     // We configure render passes to store timestamps in the GPU buffer, then explicitly blit the results to the CPU buffer.
     // There's supposed to be an easier API with one shared GPU buffer, but it seems not to work in general -- even on an M1 iMac!
@@ -54,6 +70,10 @@ class mglRenderer2: NSObject {
 
     // Keeps the current coordinate xform specified by the client, like screen pixels vs device visual degrees.
     private var deg2metal = matrix_identity_float4x4
+    
+    // For use with CTMetalDisplayLink which requires setting up the
+    // renderPassDescriptor once, and updating its texture
+    private var onscreenRenderPassDescriptor: MTLRenderPassDescriptor?
 
     init(logger: mglLogger, metalView: MTKView, commandInterface: mglCommandInterface) {
         self.logger = logger
@@ -65,7 +85,8 @@ class mglRenderer2: NSObject {
         }
         self.device = device
         metalView.device = device
-
+        self.metalView = metalView
+        
         // Try to set up buffers to holder detailed pipeline stage timestamps.
         // The timestamps we want are "stage boundary" timestamps before and after the vertex and fragment pipeline stages.
         // Not all OS versions and GPUs support these timestamps.
@@ -109,8 +130,51 @@ class mglRenderer2: NSObject {
         // init the super class
         super.init()
 
-        // Tell the view that this class will be used as the delegate for draw() and resize() callbacks.
-        metalView.delegate = self
+        // for 14.0, we are good to use a CAMetalDisplayLInk instead of MTKView
+        // for controlling timing of when our rendeer is called.
+        if #available(macOS 14.0, *), let metalLayer = metalView.layer as? CAMetalLayer {
+            
+            logger.info(component: "mglRenderer2", details: "Using CAMetalDisplayLink delegate")
+
+            // these lines keep the metalView from calling our render function
+            metalView.isPaused = true
+            metalView.enableSetNeedsDisplay = false
+            metalView.delegate = nil
+
+            // Get the CAMetalDisplayLInk
+            let link = CAMetalDisplayLink(metalLayer: metalLayer)
+            
+            // set the delegate to be this object, so that it gets its metalDisplayLInk called each frame
+            link.delegate = self
+            link.add(to: .current, forMode: .common)
+            link.isPaused = false
+            self.displayLink = link
+            
+            // for CAMetalDisplayLink updating, we keep one renderPassDescriptor and
+            // update its texture its frame, rather then getting the renderPassDescriptor
+            // from the view
+            let renderPassDescriptor = MTLRenderPassDescriptor()
+
+            // Color attachment
+            renderPassDescriptor.colorAttachments[0].loadAction = .clear
+            renderPassDescriptor.colorAttachments[0].storeAction = .store
+            renderPassDescriptor.colorAttachments[0].clearColor = metalView.clearColor
+
+            // Depth + stencil configuration (no texture yet)
+            depthStencilState.configureRenderPassDescriptor(renderPassDescriptor: renderPassDescriptor)
+
+            // Timestamp attachment setup that never changes
+            setUpRenderPassGpuTimestamps(renderPassDescriptor: renderPassDescriptor)
+
+            self.onscreenRenderPassDescriptor = renderPassDescriptor
+        }
+        else {
+            logger.info(component: "mglRenderer2", details: "Using metalView delegate")
+           // Tell the view that this class will be used as the delegate for draw() and resize() callbacks.
+            metalView.isPaused = false
+            metalView.enableSetNeedsDisplay = false
+            metalView.delegate = self
+        }
 
         // Get some info about the underlying layer and drawables.
         let layer = metalView.layer as? CAMetalLayer
@@ -123,11 +187,24 @@ class mglRenderer2: NSObject {
     }
 }
 
+
+// for 14.0+ add an extension that mglRenderer2 can get callbacks from CAMetalDiplayLink
+@available(macOS 14.0, *)
+extension mglRenderer2: CAMetalDisplayLinkDelegate {
+    // this is the callback which will get called every frame, it will call renderFrame
+    func metalDisplayLink(_ link: CAMetalDisplayLink,
+                          needsUpdate update: CAMetalDisplayLink.Update) {
+        guard let view = metalView else { return }
+        // run render with the update drawable and targetPresentationTimestamp
+        self.render(in: view, metalDisplayLinkDrawable: update.drawable, targetPresentationTime: update.targetPresentationTimestamp)
+    }
+}
+
 extension mglRenderer2: MTKViewDelegate {
     func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {
         logger.info(component: "mglRenderer2", details: "drawableSizeWillChange \(String(describing: size))")
     }
-
+    
     // We expect the view to be configured for "Timed updates" (the default),
     // which is the traditional way of running once per "video frame", "screen refresh", etc.
     // as described here:
@@ -140,9 +217,10 @@ extension mglRenderer2: MTKViewDelegate {
             render(in: view)
         }
     }
-
-    // This is called by the system on a frame-by-frame schedule.
-    private func render(in view: MTKView) {
+    
+    // This is called by the view on a frame-by-frame schedule. If we are using CAMetalDisplayLink,
+    // it gets called by the display link frame-by-frame and provides the drawable and targetPresentationTime (see delegate above)
+    private func render(in view: MTKView, metalDisplayLinkDrawable: CAMetalDrawable? = nil, targetPresentationTime: CFTimeInterval? = nil) {
         // Resolve the current flush command in-flight, if any.
         // This could involve a short wait to make sure:
         //  - any previous renders to texture are done and synced for CPU access like reading / frame grabbing.
@@ -162,12 +240,13 @@ extension mglRenderer2: MTKViewDelegate {
         // so we'd drop this frame and wait all the way until the next frame before reading the next command.
         // However, we dont' want to wait forever, so this won't block indefinitely.
         commandInterface.readAny(device: device)
-
+        
         // Get the next command to be processed from the command interface, if any.
         // If we don't get one this time, that's fine, we'll check again on the next frame.
         guard var command = commandInterface.next() else {
             return
         }
+        logger.info(component: "mglRenderer2", details: "Command issued")
 
         // Let the command do non-drawing work, like getting and setting the state of the app.
         let nondrawingSuccess = command.doNondrawingWork(
@@ -177,29 +256,31 @@ extension mglRenderer2: MTKViewDelegate {
             colorRenderingState: colorRenderingState,
             deg2metal: &deg2metal
         )
-
+        
         // On failure, exit right away.
         if !nondrawingSuccess {
             commandInterface.done(command: command, success: false)
+            logger.info(component: "mglRenderer2", details: "Failed non-drawing")
             return
         }
-
+        
         // On success, check whether the command also wants to draw something.
         if command.framesRemaining <= 0 {
+            logger.info(component: "mglRenderer2", details: "Nothing to draw")
             // No "frames remaining" means that this nondrawing command is all done.
             commandInterface.done(command: command)
             return
         }
-
+        
         // Yes "frames remaining" means that this command wants to draw something.  So:
         //  1. Set up a Metal rendering pass.
         //  2. Enter a tight loop to accept more commands in the same frame.
         //  3. Present the frame representing all commands until "flush".
-
+        
         //
         // 1. Set up a Metal rendering pass.
         //
-
+        
         // This call to view.currentDrawable accesses an expensive system resource, the "drawable".
         // Normally this is fast and not a problem.
         // But we've seen it get slow when using large amounts of video memory.
@@ -219,31 +300,60 @@ extension mglRenderer2: MTKViewDelegate {
         // So, are we just finding out how to tax the system and seeing what happens in that case?
         // Does the system "know best" and we are blocking/synchronizing as expected?
         // Or is there somethign else we can do about these long call durations?
-        guard let drawable = view.currentDrawable else {
-            logger.error(component: "mglRenderer2", details: "Could not get current drawable, aborting render pass.")
-            commandInterface.done(command: command, success: false)
-            return
+        let drawable: CAMetalDrawable
+        if #available(macOS 14.0, *) {
+            guard let displayLinkDrawable = metalDisplayLinkDrawable else {
+                logger.error(component: "mglRenderer2", details: "Could not get current drawable")
+                commandInterface.done(command: command, success: false)
+                return
+            }
+            drawable = displayLinkDrawable
+        } else {
+            guard let currentDrawable = view.currentDrawable else {
+                logger.error(component: "mglRenderer2", details: "Could not get current drawable")
+                commandInterface.done(command: command, success: false)
+                return
+            }
+            drawable = currentDrawable
         }
 
         // Record how long it took to acquire the drawable in response to this drawing command.
         let drawableAcquired = secs.get()
 
-        // This call to getRenderPassDescriptor(view: view) internally calls view.currentRenderPassDescriptor.
-        // The call to view.currentRenderPassDescriptor impicitly accessed the view's currentDrawable, as mentioned above.
-        // It's possible to swap the order of these calls.
-        // But whichever one we call first seems to pay the same blocking/synchronization price when memory usage is high.
-        guard let renderPassDescriptor = colorRenderingState.getRenderPassDescriptor(view: view) else {
-            logger.error(component: "mglRenderer2", details: "Could not get render pass descriptor from current color rendering config, aborting render pass.")
-            commandInterface.done(command: command, success: false)
-            return
+        let renderPassDescriptor: MTLRenderPassDescriptor
+        if #available(macOS 14.0, *) {
+            // get the renderPassDescriptor that has been preconfigured in init
+            guard let metalDisplayLinkRenderPassDescriptor = self.onscreenRenderPassDescriptor else {
+                logger.error(component: "mglRenderer2", details: "Could not get renderPassDescriptor")
+                commandInterface.done(command: command, success: false)
+                return
+            }
+            // and attach the drawables texture
+            metalDisplayLinkRenderPassDescriptor.colorAttachments[0].texture = drawable.texture
+            // and set to one that will be used below
+            renderPassDescriptor = metalDisplayLinkRenderPassDescriptor
         }
-
-        depthStencilState.configureRenderPassDescriptor(renderPassDescriptor: renderPassDescriptor)
-
-        // If supported by OS and GPU, set up to store detailed pipeline stage timestamps during the render pass.
-        // Later, when we have a flush command in hand, we'll read the timestamps into the flush command's results struct.
-        setUpRenderPassGpuTimestamps(renderPassDescriptor: renderPassDescriptor)
-
+        else {
+            // This call to getRenderPassDescriptor(view: view) internally calls view.currentRenderPassDescriptor.
+            // The call to view.currentRenderPassDescriptor impicitly accessed the view's currentDrawable, as mentioned above.
+            // It's possible to swap the order of these calls.
+            // But whichever one we call first seems to pay the same blocking/synchronization price when memory usage is high.
+            guard let viewRenderPassDescriptor = colorRenderingState.getRenderPassDescriptor(view: view) else {
+                logger.error(component: "mglRenderer2", details: "Could not get render pass descriptor from current color rendering config, aborting render pass.")
+                commandInterface.done(command: command, success: false)
+                return
+            }
+            // configure the depthStencil
+            depthStencilState.configureRenderPassDescriptor(renderPassDescriptor: viewRenderPassDescriptor)
+                
+            // If supported by OS and GPU, set up to store detailed pipeline stage timestamps during the render pass.
+            // Later, when we have a flush command in hand, we'll read the timestamps into the flush command's results struct.
+            setUpRenderPassGpuTimestamps(renderPassDescriptor: viewRenderPassDescriptor)
+            // and set to one that is used below
+            renderPassDescriptor = viewRenderPassDescriptor
+        }
+            
+        
         // The command buffer and render encoder are how we instruct the GPU to draw things on each frame.
         guard let commandBuffer = commandQueue.makeCommandBuffer(),
               let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor) else {
@@ -252,15 +362,16 @@ extension mglRenderer2: MTKViewDelegate {
             return
         }
         depthStencilState.configureRenderEncoder(renderEncoder: renderEncoder)
-
+        
         // Attach our view transform to the same location expected by all vertex shaders (our convention).
         renderEncoder.setVertexBytes(&deg2metal, length: MemoryLayout<float4x4>.stride, index: 1)
-
+        
         //
         // 2. Enter a tight loop to accept more commands in the same frame.
         //
 
         while !(command is mglFlushCommand) {
+
             // Here at the top of the tight loop, this command is either:
             //  - the command received above with framesRemaining > 0, which initiated this frame's tight loop
             //  - another command received below which is being processed as part of the same frame
@@ -273,7 +384,7 @@ extension mglRenderer2: MTKViewDelegate {
                 deg2metal: &deg2metal,
                 renderEncoder: renderEncoder
             )
-
+            
             // On failure, end the frame.
             if !drawSuccess {
                 commandInterface.done(command: command, success: false)
@@ -283,18 +394,18 @@ extension mglRenderer2: MTKViewDelegate {
                 commandBuffer.commit()
                 return
             }
-
+            
             // On success, count the command as having drawn a frame.
             command.framesRemaining -= 1
-
+            
             // We have special case for "repeating" commands which draw across multiple frames.
             if command.framesRemaining > 0 {
                 // Done adding drawing commands for this frame.
                 renderEncoder.endEncoding()
-
+                
                 // If supported by OS and GPU, resolve pipeline stage timestamps gethered during the render pass.
                 resolveRenderPassGpuTimestamps(commandBuffer: commandBuffer, command: command)
-
+                
                 // Set up this command as the flush command in-flight.
                 // JG: This was not working as originally written because
                 // the callback fro each frame needed to be given an
@@ -304,27 +415,27 @@ extension mglRenderer2: MTKViewDelegate {
                 // call the one that is written in mglCommandModel which
                 // properly keeps an array of presentedTimes
                 command.setUpFlushInFlight(renderer: self, drawable: drawable, commandBuffer: commandBuffer)
-
+                
                 // Present this frame.
                 colorRenderingState.finishDrawing(commandBuffer: commandBuffer, drawable: drawable)
                 commandBuffer.present(drawable)
                 commandBuffer.commit()
-
+                
                 // And also re-add this command so it will be the one processed on the next frame.
                 commandInterface.addNext(command: command)
                 return
             }
-
+            
             // Normal, non-repeating commands can just be done now.
             commandInterface.done(command: command)
-
+            
             // Tight loop: wait for the next command here in the same frame.
             // At this point we assume the client has sent another command, or intends to soon.
             // We don't want to exit the frame early on a race condition, so we are willing to block and wait.
             commandInterface.awaitNext(device: device)
             if let nextCommand = commandInterface.next() {
                 command = nextCommand
-
+                
                 // Let the next command get or set app state, even during the frame tight loop.
                 let nextNondrawingSuccess = command.doNondrawingWork(
                     logger: logger,
@@ -333,7 +444,7 @@ extension mglRenderer2: MTKViewDelegate {
                     colorRenderingState: colorRenderingState,
                     deg2metal: &deg2metal
                 )
-
+                
                 // On failure, end the frame.
                 if !nextNondrawingSuccess {
                     commandInterface.done(command: command, success: false)
@@ -343,7 +454,7 @@ extension mglRenderer2: MTKViewDelegate {
                     commandBuffer.commit()
                     return
                 }
-
+                
             } else {
                 // This is unexpected, maybe the client disconnected or sent bad data.
                 // Just end the frame.
@@ -355,7 +466,7 @@ extension mglRenderer2: MTKViewDelegate {
                 return
             }
         }
-
+        
         //
         // 3. Present the frame representing all commands until "flush".
         //
@@ -363,23 +474,24 @@ extension mglRenderer2: MTKViewDelegate {
         // This command is the flush command that got us out of the frame tight loop.
         command.results.drawableAcquired = drawableAcquired
         command.framesRemaining -= 1
-
+        
         // Done adding drawing commands for this frame.
         renderEncoder.endEncoding()
-
+        
         // If supported by OS and GPU, resolve pipeline stage timestamps gethered during the render pass.
         resolveRenderPassGpuTimestamps(commandBuffer: commandBuffer, command: command)
-
+        
         // Set up this command as the flush command in-flight.
         // We'll report this to the client at the start of the next frame's render() call.
         setUpFlushInFlight(drawable: drawable, commandBuffer: commandBuffer, command: command)
-
+        
         // Present this frame.
         colorRenderingState.finishDrawing(commandBuffer: commandBuffer, drawable: drawable)
         commandBuffer.present(drawable)
         commandBuffer.commit()
-    }
 
+    }
+    
     // Wait for a flush command in-flight, as set up by setUpFlushInFlight().
     // This waits until we know the command is complete and records a completion timesetamp.
     private func waitForFlushInFlight() {
@@ -394,7 +506,7 @@ extension mglRenderer2: MTKViewDelegate {
             flushInFlight?.results.drawablePresented = secs.get()
         }
     }
-
+    
     // Set up a flush command as being in-flight, which means:
     // The client may be blocked, waiting for this command to be complete.
     // We won't report it as complete until we think the the drawable has been presented.
@@ -409,7 +521,7 @@ extension mglRenderer2: MTKViewDelegate {
                 strongSelf.lastPresentedTime = drawable.presentedTime
             })
         }
-
+        
         // Setting flushInFlight will make us wait for completion at the start of the next frame's render() call.
         // So, always pair setting flushInFlight with a semaphore signal().
         // In this case, let the system call back when the command is all done processing, and signal then.
@@ -420,7 +532,7 @@ extension mglRenderer2: MTKViewDelegate {
         }
         self.flushInFlight = command
     }
-
+    
     /*
      Set up the current render pass to record detailed pipeline stage timestamps, if supported by OS and GPU.
      This only seems to be available on macOS 11.0 and later (Big Sur 2020).
@@ -429,7 +541,7 @@ extension mglRenderer2: MTKViewDelegate {
         guard let gpuTimestampBuffer = self.gpuTimestampBuffer else {
             return
         }
-
+        
         if #available(macOS 11.0, *) {
             guard let sampleAttachment = renderPassDescriptor.sampleBufferAttachments[0] else {
                 return
@@ -441,7 +553,7 @@ extension mglRenderer2: MTKViewDelegate {
             sampleAttachment.endOfFragmentSampleIndex = 3
         }
     }
-
+    
     /*
      Resolve detailed pipeline state timestamps from the GPU buffer to the CPU buffer.
      This only seems to be available on macOS 11.0 and later (Big Sur 2020).
@@ -451,7 +563,7 @@ extension mglRenderer2: MTKViewDelegate {
               let cpuTimestampBuffer = self.cpuTimestampBuffer else {
             return
         }
-
+        
         if #available(macOS 11.0, *) {
             // Explicitly blit recorded timestamps from the GPU's private buffer to the CPU buffer we can read.
             // Doing this explicitly with two buffers and a blit seems to be the more reliable of two documented approaches:
@@ -461,29 +573,29 @@ extension mglRenderer2: MTKViewDelegate {
             }
             bltCommandEncoder.resolveCounters(gpuTimestampBuffer, range: 0..<4, destinationBuffer: cpuTimestampBuffer, destinationOffset: 0)
             bltCommandEncoder.endEncoding()
-
+            
             // The GPU timestamps will be recorded and blited later, while the render pass is executing.
             // This callback will run afterwards, when we expect the data to be available.
             commandBuffer.addCompletedHandler { [cpuTimestampBuffer, command] commandBuffer in
                 // Copy each timestamp sample into the given command's timing results.
                 // This uses the sample buffer array indexes we specified above in setUpRenderPassGpuTimestamps().
                 let elementSize = MemoryLayout<MTLCounterResultTimestamp>.size
-
+                
                 // sampleAttachment.startOfVertexSampleIndex = 0
                 var vertexStart = MTLCounterResultTimestamp(timestamp: 0)
                 memcpy(&vertexStart, cpuTimestampBuffer.contents(), elementSize)
                 command.results.vertexStart = Double(vertexStart.timestamp)
-
+                
                 // sampleAttachment.endOfVertexSampleIndex = 1
                 var vertexEnd = MTLCounterResultTimestamp(timestamp: 0)
                 memcpy(&vertexEnd, cpuTimestampBuffer.contents().advanced(by: elementSize), elementSize)
                 command.results.vertexEnd = Double(vertexEnd.timestamp)
-
+                
                 // sampleAttachment.startOfFragmentSampleIndex = 2
                 var fragmentStart = MTLCounterResultTimestamp(timestamp: 0)
                 memcpy(&fragmentStart, cpuTimestampBuffer.contents().advanced(by: 2 * elementSize), elementSize)
                 command.results.fragmentStart = Double(fragmentStart.timestamp)
-
+                
                 // sampleAttachment.endOfFragmentSampleIndex = 3
                 var fragmentEnd = MTLCounterResultTimestamp(timestamp: 0)
                 memcpy(&fragmentEnd, cpuTimestampBuffer.contents().advanced(by: 3 * elementSize), elementSize)
