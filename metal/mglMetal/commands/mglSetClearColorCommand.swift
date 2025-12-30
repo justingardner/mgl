@@ -30,7 +30,8 @@ class mglSetClearColorCommand : mglCommand {
         view: MTKView,
         depthStencilState: mglDepthStencilState,
         colorRenderingState: mglColorRenderingState,
-        deg2metal: inout simd_float4x4
+        deg2metal: inout simd_float4x4,
+        targetPresentationTimestamp: CFTimeInterval?
     ) -> Bool {
         view.clearColor = clearColor
         return true

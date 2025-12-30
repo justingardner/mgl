@@ -31,7 +31,8 @@ class mglReadTextureCommand : mglCommand {
         view: MTKView,
         depthStencilState: mglDepthStencilState,
         colorRenderingState: mglColorRenderingState,
-        deg2metal: inout simd_float4x4
+        deg2metal: inout simd_float4x4,
+        targetPresentationTimestamp: CFTimeInterval?
     ) -> Bool {
         guard let existingTexture = colorRenderingState.getTexture(textureNumber: textureNumber) else {
             return false

@@ -35,6 +35,7 @@ class mglQuadCommand : mglCommand {
         depthStencilState: mglDepthStencilState,
         colorRenderingState: mglColorRenderingState,
         deg2metal: inout simd_float4x4,
+        targetPresentationTimestamp: CFTimeInterval?,
         renderEncoder: MTLRenderCommandEncoder
     ) -> Bool {
         // Render vertices as triangles, expect two triangles per quad.

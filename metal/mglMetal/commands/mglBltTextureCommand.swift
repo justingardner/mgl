@@ -62,6 +62,7 @@ class mglBltTextureCommand : mglCommand {
         depthStencilState: mglDepthStencilState,
         colorRenderingState: mglColorRenderingState,
         deg2metal: inout simd_float4x4,
+        targetPresentationTimestamp: CFTimeInterval?,
         renderEncoder: MTLRenderCommandEncoder
     ) -> Bool {
         // Make sure we have the actual requested texture.

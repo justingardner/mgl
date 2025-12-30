@@ -19,7 +19,8 @@ class mglFrameGrabCommand : mglCommand {
         view: MTKView,
         depthStencilState: mglDepthStencilState,
         colorRenderingState: mglColorRenderingState,
-        deg2metal: inout simd_float4x4
+        deg2metal: inout simd_float4x4,
+        targetPresentationTimestamp: CFTimeInterval?
     ) -> Bool {
         // grab from from the currentColorRenderingTarget. Note that
         // this will return (0,0,nil) if the current target is the screen

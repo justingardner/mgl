@@ -30,7 +30,8 @@ class mglSetRenderTargetCommand : mglCommand {
         view: MTKView,
         depthStencilState: mglDepthStencilState,
         colorRenderingState: mglColorRenderingState,
-        deg2metal: inout simd_float4x4
+        deg2metal: inout simd_float4x4,
+        targetPresentationTimestamp: CFTimeInterval?
     ) -> Bool {
         guard let targetTexture = colorRenderingState.getTexture(textureNumber: textureNumber) else {
             logger.info(component: "mglSetRenderTargetCommand", details: "For textureNumber \(textureNumber), choosing onscreen rendering.")

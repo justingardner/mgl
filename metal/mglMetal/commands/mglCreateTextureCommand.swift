@@ -32,7 +32,8 @@ class mglCreateTextureCommand : mglCommand {
         view: MTKView,
         depthStencilState: mglDepthStencilState,
         colorRenderingState: mglColorRenderingState,
-        deg2metal: inout simd_float4x4
+        deg2metal: inout simd_float4x4,
+        targetPresentationTimestamp: CFTimeInterval?
     ) -> Bool {
         textureNumber = colorRenderingState.addTexture(texture: texture)
         textureCount = colorRenderingState.getTextureCount()

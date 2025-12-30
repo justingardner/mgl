@@ -24,7 +24,8 @@ class mglSampleTimestampsCommand : mglCommand {
         view: MTKView,
         depthStencilState: mglDepthStencilState,
         colorRenderingState: mglColorRenderingState,
-        deg2metal: inout simd_float4x4
+        deg2metal: inout simd_float4x4,
+        targetPresentationTimestamp: CFTimeInterval?
     ) -> Bool {
         if #available(macOS 11.0, *) {
             // Sample CPU and GPU timestamps "from the same moment in time", according to sampleTimestamps() docs.

@@ -36,6 +36,7 @@ class mglArcsCommand : mglCommand {
         depthStencilState: mglDepthStencilState,
         colorRenderingState: mglColorRenderingState,
         deg2metal: inout simd_float4x4,
+        targetPresentationTimestamp: CFTimeInterval?,
         renderEncoder: MTLRenderCommandEncoder
     ) -> Bool {
         // get an MTLBuffer from the GPU for storing the vertices for two triangles (i.e.

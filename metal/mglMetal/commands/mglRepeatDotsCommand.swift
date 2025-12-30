@@ -46,6 +46,7 @@ class mglRepeatDotsCommand : mglCommand {
         depthStencilState: mglDepthStencilState,
         colorRenderingState: mglColorRenderingState,
         deg2metal: inout simd_float4x4,
+        targetPresentationTimestamp: CFTimeInterval?,
         renderEncoder: MTLRenderCommandEncoder
     ) -> Bool {
         // Pack a vertex buffer with dots: each has 1 vertex and 11 values per vertex vertex: [xyz rgba wh isRound borderSize].

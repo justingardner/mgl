@@ -15,7 +15,8 @@ class mglDrainSystemEventsCommand : mglCommand {
         view: MTKView,
         depthStencilState: mglDepthStencilState,
         colorRenderingState: mglColorRenderingState,
-        deg2metal: inout simd_float4x4
+        deg2metal: inout simd_float4x4,
+        targetPresentationTimestamp: CFTimeInterval?
     ) -> Bool {
         guard let window = view.window else {
             logger.error(component: "mglDrainSystemEventsCommand", details: "Could not get window from view, skipping drain events command.")

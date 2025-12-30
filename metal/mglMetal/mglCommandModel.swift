@@ -44,7 +44,8 @@ class mglCommand {
         view: MTKView,
         depthStencilState: mglDepthStencilState,
         colorRenderingState: mglColorRenderingState,
-        deg2metal: inout simd_float4x4
+        deg2metal: inout simd_float4x4,
+        targetPresentationTimestamp: CFTimeInterval?
     ) -> Bool {
         return true
     }
@@ -65,6 +66,7 @@ class mglCommand {
         depthStencilState: mglDepthStencilState,
         colorRenderingState: mglColorRenderingState,
         deg2metal: inout simd_float4x4,
+        targetPresentationTimestamp: CFTimeInterval?,
         renderEncoder: MTLRenderCommandEncoder
     ) -> Bool {
         return true

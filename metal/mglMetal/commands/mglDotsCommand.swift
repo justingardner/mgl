@@ -34,6 +34,7 @@ class mglDotsCommand : mglCommand {
         depthStencilState: mglDepthStencilState,
         colorRenderingState: mglColorRenderingState,
         deg2metal: inout simd_float4x4,
+        targetPresentationTimestamp: CFTimeInterval?,
         renderEncoder: MTLRenderCommandEncoder
     ) -> Bool {
         // Draw all the vertices as points with 11 values per vertex: [xyz rgba wh isRound borderSize].

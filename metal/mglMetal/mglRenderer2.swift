@@ -148,6 +148,11 @@ class mglRenderer2: NSObject {
             link.delegate = self
             link.add(to: .current, forMode: .common)
             link.isPaused = false
+            
+            // set preferred frame rate
+            link.preferredFrameRateRange = CAFrameRateRange(minimum: 120, maximum: 120, preferred: 120)
+            
+            // keep pointer
             self.displayLink = link
             
             // for CAMetalDisplayLink updating, we keep one renderPassDescriptor and
@@ -196,7 +201,7 @@ extension mglRenderer2: CAMetalDisplayLinkDelegate {
                           needsUpdate update: CAMetalDisplayLink.Update) {
         guard let view = metalView else { return }
         // run render with the update drawable and targetPresentationTimestamp
-        self.render(in: view, metalDisplayLinkDrawable: update.drawable, targetPresentationTime: update.targetPresentationTimestamp)
+        self.render(in: view, metalDisplayLinkDrawable: update.drawable, targetPresentationTimestamp: update.targetPresentationTimestamp)
     }
 }
 
@@ -219,8 +224,8 @@ extension mglRenderer2: MTKViewDelegate {
     }
     
     // This is called by the view on a frame-by-frame schedule. If we are using CAMetalDisplayLink,
-    // it gets called by the display link frame-by-frame and provides the drawable and targetPresentationTime (see delegate above)
-    private func render(in view: MTKView, metalDisplayLinkDrawable: CAMetalDrawable? = nil, targetPresentationTime: CFTimeInterval? = nil) {
+    // it gets called by the display link frame-by-frame and provides the drawable and targetPresentationTimestamp (see delegate above)
+    private func render(in view: MTKView, metalDisplayLinkDrawable: CAMetalDrawable? = nil, targetPresentationTimestamp: CFTimeInterval? = nil) {
         // Resolve the current flush command in-flight, if any.
         // This could involve a short wait to make sure:
         //  - any previous renders to texture are done and synced for CPU access like reading / frame grabbing.
@@ -254,7 +259,8 @@ extension mglRenderer2: MTKViewDelegate {
             view: view,
             depthStencilState: depthStencilState,
             colorRenderingState: colorRenderingState,
-            deg2metal: &deg2metal
+            deg2metal: &deg2metal,
+            targetPresentationTimestamp: targetPresentationTimestamp
         )
         
         // On failure, exit right away.
@@ -382,6 +388,7 @@ extension mglRenderer2: MTKViewDelegate {
                 depthStencilState: depthStencilState,
                 colorRenderingState: colorRenderingState,
                 deg2metal: &deg2metal,
+                targetPresentationTimestamp: targetPresentationTimestamp,
                 renderEncoder: renderEncoder
             )
             
@@ -442,7 +449,8 @@ extension mglRenderer2: MTKViewDelegate {
                     view: view,
                     depthStencilState: depthStencilState,
                     colorRenderingState: colorRenderingState,
-                    deg2metal: &deg2metal
+                    deg2metal: &deg2metal,
+                    targetPresentationTimestamp: targetPresentationTimestamp
                 )
                 
                 // On failure, end the frame.

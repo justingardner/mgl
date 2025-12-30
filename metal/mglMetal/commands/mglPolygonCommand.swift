@@ -35,6 +35,7 @@ class mglPolygonCommand : mglCommand {
         depthStencilState: mglDepthStencilState,
         colorRenderingState: mglColorRenderingState,
         deg2metal: inout simd_float4x4,
+        targetPresentationTimestamp: CFTimeInterval?,
         renderEncoder: MTLRenderCommandEncoder
     ) -> Bool {
         // Render vertices as a connected triangle strip, expecting vertices to alternate sides of a convex polygon.

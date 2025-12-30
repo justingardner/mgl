@@ -54,7 +54,8 @@ class mglMovieCreateCommand : mglCommand {
         view: MTKView,
         depthStencilState: mglDepthStencilState,
         colorRenderingState: mglColorRenderingState,
-        deg2metal: inout simd_float4x4
+        deg2metal: inout simd_float4x4,
+        targetPresentationTimestamp: CFTimeInterval?
     ) -> Bool {
         // try to preload to get things going
         movie.preload(view: view)
@@ -117,7 +118,8 @@ class mglMoviePlayCommand : mglCommand {
         view: MTKView,
         depthStencilState: mglDepthStencilState,
         colorRenderingState: mglColorRenderingState,
-        deg2metal: inout simd_float4x4
+        deg2metal: inout simd_float4x4,
+        targetPresentationTimestamp: CFTimeInterval?
     ) -> Bool {
         
         // get the movie indexed by movieNumber
@@ -147,6 +149,7 @@ class mglMoviePlayCommand : mglCommand {
         depthStencilState: mglDepthStencilState,
         colorRenderingState: mglColorRenderingState,
         deg2metal: inout simd_float4x4,
+        targetPresentationTimestamp: CFTimeInterval?,
         renderEncoder: MTLRenderCommandEncoder
     ) -> Bool {
 
@@ -162,6 +165,7 @@ class mglMoviePlayCommand : mglCommand {
                 logger: logger,
                 view: view,
                 colorRenderingState: colorRenderingState,
+                targetPresentationTimestamp: targetPresentationTimestamp,
                 renderEncoder: renderEncoder
             )
             // keep returned values
@@ -223,7 +227,8 @@ class mglMovieDrawFrameCommand : mglCommand {
         view: MTKView,
         depthStencilState: mglDepthStencilState,
         colorRenderingState: mglColorRenderingState,
-        deg2metal: inout simd_float4x4
+        deg2metal: inout simd_float4x4,
+        targetPresentationTimestamp: CFTimeInterval?
     ) -> Bool {
         
         // retrieve movie
@@ -250,6 +255,7 @@ class mglMovieDrawFrameCommand : mglCommand {
         depthStencilState: mglDepthStencilState,
         colorRenderingState: mglColorRenderingState,
         deg2metal: inout simd_float4x4,
+        targetPresentationTimestamp: CFTimeInterval?,
         renderEncoder: MTLRenderCommandEncoder
     ) -> Bool {
 
@@ -260,6 +266,7 @@ class mglMovieDrawFrameCommand : mglCommand {
                 logger: logger,
                 view: view,
                 colorRenderingState: colorRenderingState,
+                targetPresentationTimestamp: targetPresentationTimestamp,
                 renderEncoder: renderEncoder
             )
             // keep returned values
@@ -313,7 +320,8 @@ class mglMovieStatusCommand : mglCommand {
         view: MTKView,
         depthStencilState: mglDepthStencilState,
         colorRenderingState: mglColorRenderingState,
-        deg2metal: inout simd_float4x4
+        deg2metal: inout simd_float4x4,
+        targetPresentationTimestamp: CFTimeInterval?
     ) -> Bool {
         
         if self.movie == nil {
@@ -526,6 +534,7 @@ class mglMovie {
         logger: mglLogger,
         view: MTKView,
         colorRenderingState: mglColorRenderingState,
+        targetPresentationTimestamp: CFTimeInterval?,
         renderEncoder: MTLRenderCommandEncoder
     ) -> (didDrawFrame: Bool, frameTime: CMTime?) {
 
@@ -535,8 +544,13 @@ class mglMovie {
             return (false, nil)
         }
         
+        // Use targetPresentationTimestamp if it is avaialable. This is what CAMetalDIsplayLink
+        // gives us as the target time at which the frame will display, which is more accurate.
+        // If that does not exist, fall back to CACUrrentMediaTime()
+        let hostTime = targetPresentationTimestamp ?? CACurrentMediaTime()
+        
         // get frame and frameTime
-        let (frame, frameTime) = getCurrentFrameAsTexture(hostTime: CACurrentMediaTime())
+        let (frame, frameTime) = getCurrentFrameAsTexture(hostTime: hostTime)
         
         // if it is a new frame, then update the currentVideoFrame which is displaying
         if frame != nil  {

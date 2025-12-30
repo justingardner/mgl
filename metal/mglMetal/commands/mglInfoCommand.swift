@@ -18,7 +18,8 @@ class mglInfoCommand : mglCommand {
         view: MTKView,
         depthStencilState: mglDepthStencilState,
         colorRenderingState: mglColorRenderingState,
-        deg2metal: inout simd_float4x4
+        deg2metal: inout simd_float4x4,
+        targetPresentationTimestamp: CFTimeInterval?
     ) -> Bool {
         // Stash references to the current app view and device for readout, below.
         // This is a little unusual compared to other commands.

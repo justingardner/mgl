@@ -40,7 +40,8 @@ class mglUpdateTextureCommand : mglCommand {
         view: MTKView,
         depthStencilState: mglDepthStencilState,
         colorRenderingState: mglColorRenderingState,
-        deg2metal: inout simd_float4x4
+        deg2metal: inout simd_float4x4,
+        targetPresentationTimestamp: CFTimeInterval?
     ) -> Bool {
         // Resolve the existing texture and sanity check against the new, incoming texture.
         guard let existingTexture = colorRenderingState.getTexture(textureNumber: textureNumber) else {
