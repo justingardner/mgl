@@ -103,7 +103,8 @@ class mglCommand {
 // an array of doubles represented in seconds, you could do:
 // let presentedTimesSeconds: [Double] = presentedTimes.map { $0.presentedTime ?? 0.0 }
 final class presentedTimeHolder {
-    var presentedTime: CFTimeInterval?
+    // default to -1 to signify that no value has been put in (0 means frame dropped)
+    var presentedTime: CFTimeInterval = -1.0
 }
 
 /*
