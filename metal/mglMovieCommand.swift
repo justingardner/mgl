@@ -10,8 +10,11 @@ import Foundation
 import MetalKit
 import AVFoundation
 import AppKit
+import CoreMedia
 
-// command to create a movie 
+//++//++//++//++//++//++//++//++//++//++//++//++//++//++//++//++
+// command to create a movie
+//++//++//++//++//++//++//++//++//++//++//++//++//++//++//++//++
 class mglMovieCreateCommand : mglCommand {
 
     private let movie: mglMovie
@@ -87,13 +90,17 @@ class mglMovieCreateCommand : mglCommand {
     }
 
 }
-
+//++//++//++//++//++//++//++//++//++//++//++//++//++//++//++//++
+// play command
+//++//++//++//++//++//++//++//++//++//++//++//++//++//++//++//++
 class mglMoviePlayCommand : mglCommand {
     var movieNumber: UInt32 = 0
     var movie: mglMovie? = nil
     var videoAtEnd: Bool = false
     var frameTimes: [Double] = []
-    
+    var targetPresentationTimestamps: [Double] = []
+    var drawFrameTimes: [Double] = []
+
     // init. This will be called by mglCommandInterface when
     // it receives a command from python/matlab. It reads the
     // movieNumber and starts playback of the movie
@@ -171,6 +178,8 @@ class mglMoviePlayCommand : mglCommand {
             // keep returned values
             didDrawFrame = frameDrawn
             frameTimes.append(frameTime.map { CMTimeGetSeconds($0) } ?? -1)
+            targetPresentationTimestamps.append( targetPresentationTimestamp ?? -1)
+            drawFrameTimes.append(CACurrentMediaTime())
         }
         
         if didDrawFrame {
@@ -189,13 +198,22 @@ class mglMoviePlayCommand : mglCommand {
         logger: mglLogger,
         commandInterface : mglCommandInterface
     ) -> Bool {
+        
+        // return the start time in CPU time of the movie
+        _ = commandInterface.writeDouble(data: self.movie?.playStartTime ?? -1.0)
 
         // convert presentedTimes to seconds and return that
-        let presentedTimesSeconds: [Double] = presentedTimes.map { $0.presentedTime ?? 0.0 }
+        let presentedTimesSeconds: [Double] = presentedTimes.map { $0.presentedTime ?? -1.0 }
         _ = commandInterface.writeDoubleArray(data: presentedTimesSeconds)
         
         // return frameTimes
         _ = commandInterface.writeDoubleArray(data: frameTimes)
+        
+        // return the targetPresentationTimes
+        _ = commandInterface.writeDoubleArray(data: targetPresentationTimestamps)
+        
+        // return the draw frame times
+        _ = commandInterface.writeDoubleArray(data: drawFrameTimes)
 
 
         return true
@@ -203,6 +221,9 @@ class mglMoviePlayCommand : mglCommand {
 
 }
 
+//++//++//++//++//++//++//++//++//++//++//++//++//++//++//++//++
+// draw frame command
+//++//++//++//++//++//++//++//++//++//++//++//++//++//++//++//++
 class mglMovieDrawFrameCommand : mglCommand {
     var movieNumber: UInt32 = 0
     var movie: mglMovie? = nil
@@ -295,6 +316,9 @@ class mglMovieDrawFrameCommand : mglCommand {
 
 }
 
+//++//++//++//++//++//++//++//++//++//++//++//++//++//++//++//++
+// movie status command
+//++//++//++//++//++//++//++//++//++//++//++//++//++//++//++//++
 class mglMovieStatusCommand : mglCommand {
     var movieNumber: UInt32 = 0
     var movie: mglMovie? = nil
@@ -357,10 +381,11 @@ class mglMovieStatusCommand : mglCommand {
 }
 
 
-
+//++//++//++//++//++//++//++//++//++//++//++//++//++//++//++//++
 // class that holds the movie, AVPlayer and all the stuff needed
 // to make the movie run
-class mglMovie {
+//++//++//++//++//++//++//++//++//++//++//++//++//++//++//++//++
+class mglMovie : NSObject {
     // Keep references to the AVPlayer and AVPlayerItem
     // which carry the player and the movie
     private var player: AVPlayer?
@@ -398,9 +423,13 @@ class mglMovie {
     var width: Int?
     var height: Int?
     
+    var playStartTime: CFTimeInterval?
+
+    //..//..//..//..//..//..//..//..//..//..//..//..//
     // init. This will be called by mglCommandInterface when
     // it receives a command from python/matlab. It should
     // initialize the movie and the display layer
+    //..//..//..//..//..//..//..//..//..//..//..//..//
     init?(vertexCount: Int, vertexBufferTexture: MTLBuffer, device: MTLDevice, logger: mglLogger) {
         
         logger.info(component: "mglMovie", details: "mglMovie: Initializing an mglMovie")
@@ -432,6 +461,9 @@ class mglMovie {
         // debugging information, can be removed once this code is working and tested
         self.logger?.info(component: "mglMovieCommand", details: "mglMovieCommand: Called")
         
+        // init super
+        super.init()
+
         // load the video
         self.loadVideo()
 
@@ -458,17 +490,19 @@ class mglMovie {
              name: .AVPlayerItemDidPlayToEndTime,
              object: playerItem
          )
-        
     }
     
     
-    
+    //..//..//..//..//..//..//..//..//..//..//..//..//
     // remember to remove observer if this variable is removed
+    //..//..//..//..//..//..//..//..//..//..//..//..//
     deinit {
         NotificationCenter.default.removeObserver(self)
     }
 
+    //..//..//..//..//..//..//..//..//..//..//..//..//
     // function which gets called if the movie ends
+    //..//..//..//..//..//..//..//..//..//..//..//..//
     @objc private func movieDidEnd() {
         videoAtEnd = true
         // seek video to beginning (so it can be replayed)
@@ -476,7 +510,9 @@ class mglMovie {
     }
 
     
+    //..//..//..//..//..//..//..//..//..//..//..//..//
     // try to preload video and preallocate buffers for faster start
+    //..//..//..//..//..//..//..//..//..//..//..//..//
     func preload(view: MTKView) {
         // preallocate buffer for keeping frame times, first we will
         // need to know the maximum frame rate. Default to 120 fps
@@ -524,55 +560,12 @@ class mglMovie {
                 details: "preloading video for quick startup"
             )
         }
-
     }
     
-
-    // draw:Frame This will get called every frame (by way of the
-    // mglMoviePlay function
-    func drawFrame(
-        logger: mglLogger,
-        view: MTKView,
-        colorRenderingState: mglColorRenderingState,
-        targetPresentationTimestamp: CFTimeInterval?,
-        renderEncoder: MTLRenderCommandEncoder
-    ) -> (didDrawFrame: Bool, frameTime: CMTime?) {
-
-        // check if video has ended
-        if videoAtEnd {
-            logger.info(component: "mglMovieCommand", details: "Video is over")
-            return (false, nil)
-        }
-        
-        // Use targetPresentationTimestamp if it is avaialable. This is what CAMetalDIsplayLink
-        // gives us as the target time at which the frame will display, which is more accurate.
-        // If that does not exist, fall back to CACUrrentMediaTime()
-        let hostTime = targetPresentationTimestamp ?? CACurrentMediaTime()
-        
-        // get frame and frameTime
-        let (frame, frameTime) = getCurrentFrameAsTexture(hostTime: hostTime)
-        
-        // if it is a new frame, then update the currentVideoFrame which is displaying
-        if frame != nil  {
-            currentVideoFrame = frame
-            let displayTime = CMTimeGetSeconds(frameTime ?? CMTime.zero) * 1000
-            self.logger?.info(component: "mglMovieCommand:", details: "Got a new frame at time: \(displayTime)")
-        }
-        
-        // display the frame
-        renderEncoder.setRenderPipelineState(colorRenderingState.getTexturePipelineState())
-        renderEncoder.setVertexBuffer(vertexBufferTexture, offset: 0, index: 0)
-        renderEncoder.setFragmentSamplerState(samplerState, index: 0)
-        renderEncoder.setFragmentBytes(&phase, length: MemoryLayout<Float>.stride, index: 2)
-        renderEncoder.setFragmentTexture(currentVideoFrame, index:0)
-        renderEncoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: vertexCount)
-
-        // Nothing for Metal to draw for this command
-        return (true, frameTime)
-    }
-    
+    //..//..//..//..//..//..//..//..//..//..//..//..//
     // load the video, creating an AVPlayerItem for the video and an AVPlayer which
     // manages playing of the video
+    //..//..//..//..//..//..//..//..//..//..//..//..//
     func loadVideo() {
         
         if player == nil {
@@ -602,11 +595,38 @@ class mglMovie {
             // Create the AVPlayer (handles video + audio)
             let player = AVPlayer(playerItem: playerItem)
             self.player = player
+            
+            // register this class as an observer, so that it will get its
+            // observeValue function called when timeControl has changed (e.g. from
+            // .paused to .waitingToPlayAtSpecifiedRate to .playing
+            player.addObserver(self, forKeyPath: #keyPath(AVPlayer.timeControlStatus), options: [.new], context: nil)
                 
         }
     }
+    
+    //..//..//..//..//..//..//..//..//..//..//..//..//
+    // observe changes in tiemControl so that we can detect play and
+    // determine the exact time that the player has started playing
+    //..//..//..//..//..//..//..//..//..//..//..//..//
+    override func observeValue(forKeyPath keyPath: String?, of object: Any?, change: [NSKeyValueChangeKey : Any]?, context: UnsafeMutableRawPointer?) {
+        if keyPath == "timeControlStatus",
+           let statusNumber = change?[.newKey] as? NSNumber,
+           let status = AVPlayer.TimeControlStatus(rawValue: statusNumber.intValue),
+           status == .paused {
 
+            if let timebase = player?.currentItem?.timebase {
+                let itemTime = CMTimebaseGetTime(timebase).seconds
+                let hostTime = CACurrentMediaTime()
+                //playStartTime = hostTime-itemTime
+                self.logger?.info(component: "mglMovie", details: "Playback actually started at host time: \(hostTime - itemTime)")
+            }
+        }
+    }
+
+
+    //..//..//..//..//..//..//..//..//..//..//..//..//
     // check if playing
+    //..//..//..//..//..//..//..//..//..//..//..//..//
     func isPlaying() -> Bool {
         if self.player?.timeControlStatus == .playing {
             return true
@@ -614,16 +634,74 @@ class mglMovie {
         return false
     }
 
+    //..//..//..//..//..//..//..//..//..//..//..//..//
     // play the video
+    //..//..//..//..//..//..//..//..//..//..//..//..//
     func play() {
         // play, clear flag for videoAtEnd
         videoAtEnd = false
+        // reset start time
+        playStartTime = nil
+        // and play
         self.player?.play()
     }
     
+    //..//..//..//..//..//..//..//..//..//..//..//..//
+    // draw:Frame This will get called every frame (by way of the
+    // mglMoviePlay function
+    //..//..//..//..//..//..//..//..//..//..//..//..//
+    func drawFrame(
+        logger: mglLogger,
+        view: MTKView,
+        colorRenderingState: mglColorRenderingState,
+        targetPresentationTimestamp: CFTimeInterval?,
+        renderEncoder: MTLRenderCommandEncoder
+    ) -> (didDrawFrame: Bool, frameTime: CMTime?) {
+
+        // check if video has ended
+        if videoAtEnd {
+            logger.info(component: "mglMovieCommand", details: "Video is over")
+            return (false, nil)
+        }
+        
+        // Use targetPresentationTimestamp if it is avaialable. This is what CAMetalDIsplayLink
+        // gives us as the target time at which the frame will display, which is more accurate.
+        // If that does not exist, fall back to CACUrrentMediaTime()
+        let hostTime = targetPresentationTimestamp ?? CACurrentMediaTime()
+        
+        // get frame and frameTime
+        let (frame, frameTime) = getCurrentFrameAsTexture(hostTime: hostTime)
+        
+        // if it is a new frame, then update the currentVideoFrame which is displaying
+        if frame != nil  {
+            currentVideoFrame = frame
+            let displayTime = CMTimeGetSeconds(frameTime ?? CMTime.zero) * 1000
+            self.logger?.info(component: "mglMovieCommand:", details: "Got a new frame at time: \(displayTime)")
+            if let timebase = player?.currentItem?.timebase {
+                let itemTime = CMTimebaseGetTime(timebase).seconds
+                let hostTime = CACurrentMediaTime()
+                playStartTime = hostTime-itemTime
+                self.logger?.info(component: "mglMovie", details: "Playback actually started at host time: \(hostTime - itemTime)")
+            }
+        }
+        
+        // display the frame
+        renderEncoder.setRenderPipelineState(colorRenderingState.getTexturePipelineState())
+        renderEncoder.setVertexBuffer(vertexBufferTexture, offset: 0, index: 0)
+        renderEncoder.setFragmentSamplerState(samplerState, index: 0)
+        renderEncoder.setFragmentBytes(&phase, length: MemoryLayout<Float>.stride, index: 2)
+        renderEncoder.setFragmentTexture(currentVideoFrame, index:0)
+        renderEncoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: vertexCount)
+
+        // Nothing for Metal to draw for this command
+        return (true, frameTime)
+    }
+    
+    //..//..//..//..//..//..//..//..//..//..//..//..//
     // getCurrentFrameAsTexture: will extract a metal texture from
     // AVPlayerItem that corresponds to the current time (usually CACurrentMediaTime())
     // Note that this will return nil if there is no new texture
+    //..//..//..//..//..//..//..//..//..//..//..//..//
     func getCurrentFrameAsTexture(hostTime: CFTimeInterval) -> (texture: MTLTexture?, timestamp: CMTime?) {
         
         // get the itemTime corresponding to the current hostTime
@@ -670,6 +748,7 @@ class mglMovie {
         return (metalTexture, itemTimeForDisplay)
     }
 
+    //..//..//..//..//..//..//..//..//..//..//..//..//
     // drawInLayer: This is test code which loads the test movie asset
     // used AVPlayer and AVPlayerLayer to display the movie. The AVPlayerLayer
     // is drawn above the metal layer. If needed, this could be expanded to
@@ -678,6 +757,7 @@ class mglMovie {
     // do the video drawing ourselves by extracting frames and directly rendering
     // in our metal pipeline. Leaving this code in here as it is working, but
     // likely will not be called later: jlg 12/22/2025
+    //..//..//..//..//..//..//..//..//..//..//..//..//
     func drawInLayer(logger: mglLogger, view: MTKView) {
         // Only set up the movie once
         if self.player != nil && self.playerLayer == nil {
@@ -705,8 +785,10 @@ class mglMovie {
         }
     }
 
+    //..//..//..//..//..//..//..//..//..//..//..//..//
     // info: Extracts information like frame rate, length, native pixel
     // dimensions from AV file.
+    //..//..//..//..//..//..//..//..//..//..//..//..//
     func info(asset: AVAsset, logger: mglLogger?) {
         // Extract values from the first video track
         if let track = asset.tracks(withMediaType: .video).first {
@@ -747,7 +829,8 @@ class mglMovie {
                 component: "mglMovieCommand",
                 details: "Track ID: \(track.trackID), Media type: \(track.mediaType.rawValue), Natural size: \(track.naturalSize.width)x\(track.naturalSize.height), Duration: \(track.timeRange.duration.seconds) seconds"
             )
-        }    }
+        }
+    }
 }
 
 
