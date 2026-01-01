@@ -168,6 +168,7 @@ class mglCommandInterface {
             case mglMoviePlay: command = mglMoviePlayCommand(commandInterface: self, logger: self.logger)
             case mglMovieStatus: command = mglMovieStatusCommand(commandInterface: self, logger: self.logger)
             case mglMovieDrawFrame: command = mglMovieDrawFrameCommand (commandInterface: self, logger: self.logger)
+            case mglMovieSetDisplayPosition: command = mglMovieSetDisplayPositionCommand (commandInterface: self, device: device, logger: self.logger)
             case mglSetDesiredFrameRate: command = mglSetDesiredFrameRateCommand (commandInterface: self, logger: self.logger)
             default: command = nil
         }

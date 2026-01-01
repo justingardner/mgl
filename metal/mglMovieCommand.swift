@@ -52,13 +52,6 @@ class mglMovieCreateCommand : mglCommand {
         movieFilename = commandInterface.readString()
         logger.info(component: "mglMovie", details: "mglMovieCreateCommand: \(movieFilename)")
         
-        // Read the vertex information for the movie
-        guard let (vertexBufferTexture, vertexCount) = commandInterface.readVertices(device: device, extraVals: 2) else {
-            returnStatus = movieError.readVertex
-            return
-        }
-        logger.info(component: "mglMovie", details: "mglMovieCreateCommand: Read \(vertexCount) vertices")
-        
         guard FileManager.default.fileExists(atPath: movieFilename) else {
             logger.error(component: "mglMovie:", details: "Movie file not found at path \(movieFilename)")
             returnStatus = movieError.fileNotFound
@@ -71,7 +64,7 @@ class mglMovieCreateCommand : mglCommand {
             return
         }
         // create the movie class
-        guard let movie = mglMovie(movieFilename: movieFilename, vertexCount: vertexCount, vertexBufferTexture: vertexBufferTexture, device: device, logger: logger) else {
+        guard let movie = mglMovie(movieFilename: movieFilename, device: device, logger: logger) else {
             returnStatus = movieError.movieCreate
             return
         }
@@ -154,6 +147,70 @@ class mglMovieCreateCommand : mglCommand {
     }
 
 }
+
+//++//++//++//++//++//++//++//++//++//++//++//++//++//++//++//++
+// movie setDisplayPosition
+//++//++//++//++//++//++//++//++//++//++//++//++//++//++//++//++
+class mglMovieSetDisplayPositionCommand : mglCommand {
+    var movieNumber: UInt32 = 0
+    var movie: mglMovie? = nil
+    var vertexCount: Int
+    var vertexBufferTexture: MTLBuffer
+    
+    // init. This will be called by mglCommandInterface when
+    // it receives a command from python/matlab. It reads the
+    // movieNumber and starts playback of the movie
+    init?(commandInterface: mglCommandInterface, device: MTLDevice, logger: mglLogger) {
+        // Read the moveNumber
+        guard let movieNumber = commandInterface.readUInt32() else {
+            return nil
+        }
+        self.movieNumber = movieNumber
+        logger.info(component: "mglMovie", details: "mglMovieSetDisplayPositionCommand: Read movieNumber: \(movieNumber)")
+        self.movieNumber = movieNumber
+        
+        // Read the vertex information for the movie
+        guard let (vertexBufferTexture, vertexCount) = commandInterface.readVertices(device: device, extraVals: 2) else {
+            return nil
+        }
+        logger.info(component: "mglMovie", details: "mglMovieSetDisplayPositionCommand: Read \(vertexCount) vertices")
+        self.vertexCount = vertexCount
+        self.vertexBufferTexture = vertexBufferTexture
+        
+        // call super
+        super.init()
+    }
+    
+    // this gets called after initialization, we get the movie from the movieNum
+    override func doNondrawingWork(
+        logger: mglLogger,
+        view: MTKView,
+        depthStencilState: mglDepthStencilState,
+        colorRenderingState: mglColorRenderingState,
+        renderer: mglRenderer2,
+        deg2metal: inout simd_float4x4,
+        targetPresentationTimestamp: CFTimeInterval?
+    ) -> Bool {
+        
+        if self.movie == nil {
+            guard let movie = colorRenderingState.getMovie(
+                movieNumber: self.movieNumber
+            ) else {
+                logger.error(component: "mglMovie", details: "mglMovieSetDisplayPositionCommand: Failed to get movie \(self.movieNumber)")
+                return false
+            }
+            self.movie = movie
+            
+        }
+        // set the vertices that are used for blting the textures in the movie
+        self.movie?.vertexBufferTexture = vertexBufferTexture
+        self.movie?.vertexCount = vertexCount
+
+        return true
+    }
+}
+
+
 //++//++//++//++//++//++//++//++//++//++//++//++//++//++//++//++
 // play command
 //++//++//++//++//++//++//++//++//++//++//++//++//++//++//++//++
@@ -543,8 +600,8 @@ class mglMovie : NSObject {
     private var currentVideoFrame: MTLTexture?
     
     // variables used for blting the texture
-    private let vertexBufferTexture: MTLBuffer
-    private let vertexCount: Int
+    var vertexBufferTexture: MTLBuffer?
+    var vertexCount: Int?
     private var phase: Float32 = 0.0
     
     // sets whether the video has been played to the end
@@ -565,14 +622,10 @@ class mglMovie : NSObject {
     // it receives a command from python/matlab. It should
     // initialize the movie and the display layer
     //..//..//..//..//..//..//..//..//..//..//..//..//
-    init?(movieFilename: String, vertexCount: Int, vertexBufferTexture: MTLBuffer, device: MTLDevice, logger: mglLogger) {
+    init?(movieFilename: String, device: MTLDevice, logger: mglLogger) {
         
         logger.info(component: "mglMovie", details: "mglMovie: Initializing an mglMovie")
         
-        // keep the vertices that are used for blting the textures from the movie
-        self.vertexBufferTexture = vertexBufferTexture
-        self.vertexCount = vertexCount
-
         // Pixel format compatible with Metal
         let attributes: [String: Any] = [
             kCVPixelBufferPixelFormatTypeKey as String:
@@ -760,6 +813,10 @@ class mglMovie : NSObject {
         }
         
         // display the frame
+        guard let vertexCount = self.vertexCount, let vertexBufferTexture = self.vertexBufferTexture, let samplerState = self.samplerState else {
+            return (false, nil)
+        }
+        
         renderEncoder.setRenderPipelineState(colorRenderingState.getTexturePipelineState())
         renderEncoder.setVertexBuffer(vertexBufferTexture, offset: 0, index: 0)
         renderEncoder.setFragmentSamplerState(samplerState, index: 0)
