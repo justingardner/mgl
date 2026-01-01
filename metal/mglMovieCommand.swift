@@ -12,14 +12,26 @@ import AVFoundation
 import AppKit
 import CoreMedia
 
+// Error codes
+enum movieError {
+    static let fileNotFound = -1.0
+    static let noPermission  = -2.0
+    static let invalidFormat = -3.0
+    static let readVertex = -4.0
+    static let movieCreate = -5.0
+    static let addMovie = -6.0
+}
+
 //++//++//++//++//++//++//++//++//++//++//++//++//++//++//++//++
 // command to create a movie
 //++//++//++//++//++//++//++//++//++//++//++//++//++//++//++//++
 class mglMovieCreateCommand : mglCommand {
 
-    private let movie: mglMovie
+    private var movie: mglMovie? = nil
     var movieNumber: UInt32 = 0
     var movieCount: UInt32 = 0
+    var movieFilename: String = ""
+    var returnStatus: Double = 1.0
 
     // direct init called for debugging
     init(movie: mglMovie) {
@@ -33,21 +45,37 @@ class mglMovieCreateCommand : mglCommand {
     // it will return an integer number that can be used to reference
     // the movie for playback etc
     init?(commandInterface: mglCommandInterface, device: MTLDevice, logger: mglLogger) {
+        // call super
+        super.init()
+
+        // Read the movie filename
+        movieFilename = commandInterface.readString()
+        logger.info(component: "mglMovie", details: "mglMovieCreateCommand: \(movieFilename)")
         
         // Read the vertex information for the movie
-        logger.info(component: "mglMovie", details: "mglMovieCreateCommand: Reading Vertex Info")
-        
         guard let (vertexBufferTexture, vertexCount) = commandInterface.readVertices(device: device, extraVals: 2) else {
-            return nil
+            returnStatus = movieError.readVertex
+            return
         }
         logger.info(component: "mglMovie", details: "mglMovieCreateCommand: Read \(vertexCount) vertices")
         
+        guard FileManager.default.fileExists(atPath: movieFilename) else {
+            logger.error(component: "mglMovie:", details: "Movie file not found at path \(movieFilename)")
+            returnStatus = movieError.fileNotFound
+            return
+        }
+        guard FileManager.default.isReadableFile(atPath: movieFilename) else {
+            logger.error(component: "mglMovie:",
+                          details: "No read permission for file at path \(movieFilename)")
+            returnStatus = movieError.noPermission
+            return
+        }
         // create the movie class
-        guard let movie = mglMovie(vertexCount: vertexCount, vertexBufferTexture: vertexBufferTexture, device: device, logger: logger) else { return nil }
+        guard let movie = mglMovie(movieFilename: movieFilename, vertexCount: vertexCount, vertexBufferTexture: vertexBufferTexture, device: device, logger: logger) else {
+            returnStatus = movieError.movieCreate
+            return
+        }
         self.movie = movie
-        
-        // call super
-        super.init()
     }
     
     // this gets called after initialization, instead of drawing, we
@@ -57,15 +85,21 @@ class mglMovieCreateCommand : mglCommand {
         view: MTKView,
         depthStencilState: mglDepthStencilState,
         colorRenderingState: mglColorRenderingState,
+        renderer: mglRenderer2,
         deg2metal: inout simd_float4x4,
         targetPresentationTimestamp: CFTimeInterval?
     ) -> Bool {
+        // check if we have a movie initialize
+        guard let movie = self.movie else {
+            return true
+        }
         // try to preload to get things going
         movie.preload(view: view)
-        
+            
         // store the movie in colorRenderingState
         movieNumber = colorRenderingState.addMovie(movie: movie)
         movieCount = colorRenderingState.getMovieCount()
+        
         return true
     }
 
@@ -75,17 +109,47 @@ class mglMovieCreateCommand : mglCommand {
         logger: mglLogger,
         commandInterface : mglCommandInterface
     ) -> Bool {
+        
+        // return an error if we have one
+        if returnStatus < 0 {
+            // write the error
+            _ = commandInterface.writeDouble(data: returnStatus)
+            return true
+        }
+           
+        // return an error if movieNumber did not return a valid value
         if (movieNumber < 1) {
-            // A heads up that something went wrong.
-            _ = commandInterface.writeDouble(data: -commandInterface.secs.get())
+            // write the error
+            _ = commandInterface.writeDouble(data: movieError.addMovie)
+            return true
+        }
+        
+        // Get the movie
+        guard let movie = self.movie else {
+            _ = commandInterface.writeDouble(data: movieError.movieCreate)
+            return true
+        }
+        // if the movie is ready, then send back its info
+        if movie.ready {
+            // return success as 2.0, to indicate sending data
+            _ = commandInterface.writeDouble(data: 2.0)
+            // send movie data
+            _ = commandInterface.writeDouble(data: Double(movie.frameRate ?? 0))
+            _ = commandInterface.writeDouble(data: CMTimeGetSeconds(movie.duration ?? CMTime.zero))
+            _ = commandInterface.writeUInt32(data: UInt32(movie.totalFrames ?? 0))
+            _ = commandInterface.writeUInt32(data: UInt32(movie.width ?? 0))
+            _ = commandInterface.writeUInt32(data: UInt32(movie.height ?? 0))
+
+        }
+        else {
+            // return success
+            _ = commandInterface.writeDouble(data: 1.0)
         }
 
-        // A heads up that return data is on the way.
-        _ = commandInterface.writeDouble(data: commandInterface.secs.get())
-
-        // Specific return data for this command.
+        // Return movieNumber and movieCount
         _ = commandInterface.writeUInt32(data: movieNumber)
         _ = commandInterface.writeUInt32(data: movieCount)
+        
         return true
     }
 
@@ -131,6 +195,7 @@ class mglMoviePlayCommand : mglCommand {
         view: MTKView,
         depthStencilState: mglDepthStencilState,
         colorRenderingState: mglColorRenderingState,
+        renderer: mglRenderer2,
         deg2metal: inout simd_float4x4,
         targetPresentationTimestamp: CFTimeInterval?
     ) -> Bool {
@@ -219,7 +284,7 @@ class mglMoviePlayCommand : mglCommand {
     ) -> Bool {
         
         // convert presentedTimes to seconds and return that
-        let presentedTimesSeconds: [Double] = presentedTimes.map { $0.presentedTime ?? -1.0 }
+        let presentedTimesSeconds: [Double] = presentedTimes.map { $0.presentedTime }
         _ = commandInterface.writeDoubleArray(data: Array(presentedTimesSeconds.prefix(nFrames)))
         
         // return movieTimes
@@ -300,6 +365,7 @@ class mglMovieDrawFrameCommand : mglCommand {
         view: MTKView,
         depthStencilState: mglDepthStencilState,
         colorRenderingState: mglColorRenderingState,
+        renderer: mglRenderer2,
         deg2metal: inout simd_float4x4,
         targetPresentationTimestamp: CFTimeInterval?
     ) -> Bool {
@@ -385,7 +451,8 @@ class mglMovieStatusCommand : mglCommand {
         }
         self.movieNumber = movieNumber
         logger.info(component: "mglMovie", details: "mglMovieStatusCommand: Read movieNumber: \(movieNumber)")
-        
+        self.movieNumber = movieNumber
+
         // call super
         super.init()
     }
@@ -396,6 +463,7 @@ class mglMovieStatusCommand : mglCommand {
         view: MTKView,
         depthStencilState: mglDepthStencilState,
         colorRenderingState: mglColorRenderingState,
+        renderer: mglRenderer2,
         deg2metal: inout simd_float4x4,
         targetPresentationTimestamp: CFTimeInterval?
     ) -> Bool {
@@ -419,14 +487,28 @@ class mglMovieStatusCommand : mglCommand {
         commandInterface : mglCommandInterface
     ) -> Bool {
 
+        // get movie
         guard let movie = self.movie else {
-            // state 0 is error
-            _ = commandInterface.writeUInt32(data: 0)
+            // no movie is an error
+            _ = commandInterface.writeDouble(data: -1)
             return true
         }
+        
+        if movie.ready {
+            // return succes
+            _ = commandInterface.writeDouble(data: 1.0)
+            // IF we are ready, return info about video
+            _ = commandInterface.writeDouble(data: Double(movie.frameRate ?? 0))
+            _ = commandInterface.writeDouble(data: CMTimeGetSeconds(movie.duration ?? CMTime.zero))
+            _ = commandInterface.writeUInt32(data: UInt32(movie.totalFrames ?? 0))
+            _ = commandInterface.writeUInt32(data: UInt32(movie.width ?? 0))
+            _ = commandInterface.writeUInt32(data: UInt32(movie.height ?? 0))
+        }
+        else {
+            // return not ready
+            _ = commandInterface.writeDouble(data: 0.0)
+        }
 
-        // Specific return data for this command.
-        _ = commandInterface.writeUInt32(data: 1)
         return true
     }
 
@@ -438,10 +520,13 @@ class mglMovieStatusCommand : mglCommand {
 // to make the movie run
 //++//++//++//++//++//++//++//++//++//++//++//++//++//++//++//++
 class mglMovie : NSObject {
+    // this will be set to true when the movie is ready for playback
+    var ready = false
+    
     // Keep references to the AVPlayer and AVPlayerItem
     // which carry the player and the movie
     private var player: AVPlayer?
-    private var playerItem: AVPlayerItem?
+    var playerItem: AVPlayerItem?
     
     // these are for rendering each frame from the AVPlayerItem
     private var videoOutput: AVPlayerItemVideoOutput
@@ -451,13 +536,10 @@ class mglMovie : NSObject {
     // Keep around a pointer to the mglLogger for debugging info
     private var logger: mglLogger?
     
+    // sampler state for displaying
     private var samplerState: MTLSamplerState!
 
-    // This is just used for testing with drawInLayer and is not used
-    // for typical operation in which we grab frames from the AVPlayerItem
-    // and render them with our metal pipeline.
-    private var playerLayer: AVPlayerLayer?
-    
+    // texture representing the current video frame that is displaying
     private var currentVideoFrame: MTLTexture?
     
     // variables used for blting the texture
@@ -475,12 +557,15 @@ class mglMovie : NSObject {
     var width: Int?
     var height: Int?
     
+    // whether the movie is valid or not
+    var validMovie: Bool?
+    
     //..//..//..//..//..//..//..//..//..//..//..//..//
     // init. This will be called by mglCommandInterface when
     // it receives a command from python/matlab. It should
     // initialize the movie and the display layer
     //..//..//..//..//..//..//..//..//..//..//..//..//
-    init?(vertexCount: Int, vertexBufferTexture: MTLBuffer, device: MTLDevice, logger: mglLogger) {
+    init?(movieFilename: String, vertexCount: Int, vertexBufferTexture: MTLBuffer, device: MTLDevice, logger: mglLogger) {
         
         logger.info(component: "mglMovie", details: "mglMovie: Initializing an mglMovie")
         
@@ -515,10 +600,13 @@ class mglMovie : NSObject {
         super.init()
 
         // load the video
-        self.loadVideo()
+        self.validMovie = self.load(movieFilename: movieFilename)
+        if validMovie == nil {
+            return nil
+        }
 
         // add the videoOutput to the playerItem which should
-        // now be allocated from loadVideo
+        // now be allocated from load
         if let playerItem = self.playerItem {
             playerItem.add(videoOutput)
         }
@@ -581,34 +669,44 @@ class mglMovie : NSObject {
     // load the video, creating an AVPlayerItem for the video and an AVPlayer which
     // manages playing of the video
     //..//..//..//..//..//..//..//..//..//..//..//..//
-    func loadVideo() {
+    func load(movieFilename: String) -> Bool {
         
         if player == nil {
-            // Locate the movie file in the app bundle
-            // This is for test purposes
-            guard let videoAsset = Bundle.main.url(
-                forResource: "shibuya",
-                withExtension: "mp4"
-            ) else {
-                self.logger?.error(component: "mglMovieCommand:", details: "Movie asset not found")
-                return
-            }
+            
+            // get the videoAsset from the filename
+            let movieURL = URL(fileURLWithPath: movieFilename)
+            let videoAsset = AVURLAsset(url: movieURL)
                 
             // Create a player item from the file
-            let playerItem = AVPlayerItem(url: videoAsset)
+            let playerItem = AVPlayerItem(asset: videoAsset)
             self.playerItem = playerItem
 
-            // print info about the movie
-            self.info(asset: playerItem.asset, logger: self.logger)
-            
-            // wait for the tracks and duration to load up
-            //await playerItem.asset.load(.tracks)
-            //await playerItem.asset.load(.duration)
+            // Now, we are going to check for tracks and duration asynchronously
+            let keys = ["tracks", "duration"]
+            videoAsset.loadValuesAsynchronously(forKeys: keys) {
+                // check the keys
+                var error: NSError?
+                for key in keys {
+                    let status = videoAsset.statusOfValue(forKey: key, error: &error)
+                    if status != .loaded {
+                        self.logger?.error(component: "mglMovie", details: "Failed to load \(key): \(error?.localizedDescription ?? "unknown")")
+                        return
+                    }
+                }
                 
+                // Extract info
+                self.info(asset: videoAsset, logger: self.logger)
+                
+                // All keys and info should be loaded now, so return true
+                self.ready = true
+            }
+
             // Create the AVPlayer (handles video + audio)
             let player = AVPlayer(playerItem: playerItem)
             self.player = player
+            
         }
+        return true
     }
     
     //..//..//..//..//..//..//..//..//..//..//..//..//
@@ -722,43 +820,6 @@ class mglMovie : NSObject {
             return (nil, nil)
         }
         return (metalTexture, itemTimeForDisplay)
-    }
-
-    //..//..//..//..//..//..//..//..//..//..//..//..//
-    // drawInLayer: This is test code which loads the test movie asset
-    // used AVPlayer and AVPlayerLayer to display the movie. The AVPlayerLayer
-    // is drawn above the metal layer. If needed, this could be expanded to
-    // put the AVPlayerLayer below the metal layer, make the metal layer transaparent
-    // so that it can draw above it, but instead we are building out code to
-    // do the video drawing ourselves by extracting frames and directly rendering
-    // in our metal pipeline. Leaving this code in here as it is working, but
-    // likely will not be called later: jlg 12/22/2025
-    //..//..//..//..//..//..//..//..//..//..//..//..//
-    func drawInLayer(logger: mglLogger, view: MTKView) {
-        // Only set up the movie once
-        if self.player != nil && self.playerLayer == nil {
-            logger.info(component: "mglMovieCommand", details: "drawInLayer:Starting")
-            
-            // Ensure the Metal view is layer-backed
-            view.wantsLayer = true
-            
-            // Create a layer that can render the video
-            let playerLayer = AVPlayerLayer(player: self.player)
-            self.playerLayer = playerLayer
-            
-            // Preserve aspect ratio, add black bars if needed
-            playerLayer.videoGravity = .resizeAspect
-            
-            // Make the video fill the Metal view
-            playerLayer.frame = view.bounds
-            
-            // Insert the video behind the Metal content
-            //view.layer?.insertSublayer(playerLayer, at: 0)
-            view.layer?.addSublayer(playerLayer)
-            
-            // Start playback
-            player?.play()
-        }
     }
 
     //..//..//..//..//..//..//..//..//..//..//..//..//

@@ -63,6 +63,7 @@ typedef enum mglCommandCode : uint16_t {
     mglMoviePlay = 1020,
     mglMovieDrawFrame = 1021,
     mglMovieStatus = 1022,
+    mglSetDesiredFrameRate = 1023,
     mglUnknownCommand = UINT16_MAX
 } mglCommandCode;
 
@@ -115,7 +116,8 @@ const mglCommandCode mglCommandCodes[] = {
     mglMovieCreate,
     mglMoviePlay,
     mglMovieDrawFrame,
-    mglMovieStatus
+    mglMovieStatus,
+    mglSetDesiredFrameRate
 };
 const char* mglCommandNames[] = {
     "mglPing",
@@ -164,7 +166,8 @@ const char* mglCommandNames[] = {
     "mglMovieCreate",
     "mglMoviePlay",
     "mglMovieDrawFrame",
-    "mglMovieStatus"
+    "mglMovieStatus",
+    "mglSetDesiredFrameRate"
 };
 
 // Type aliases for supported scalar data types of known, fixed sizes.

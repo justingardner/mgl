@@ -37,9 +37,10 @@ class mglRenderer2: NSObject {
     // to get it cast as a CAMetalDisplayLInk on 14.0+ systems
     private var displayLink: AnyObject?
     @available(macOS 14.0, *)
-    private var metalDisplayLink: CAMetalDisplayLink? {
+    var metalDisplayLink: CAMetalDisplayLink? {
         return displayLink as? CAMetalDisplayLink
     }
+    
     
     // GPU and CPU buffers where we can gather and read out detailed redering pipeline timestamps (if GPU supports).
     // We configure render passes to store timestamps in the GPU buffer, then explicitly blit the results to the CPU buffer.
@@ -251,7 +252,6 @@ extension mglRenderer2: MTKViewDelegate {
         guard var command = commandInterface.next() else {
             return
         }
-        logger.info(component: "mglRenderer2", details: "Command issued")
 
         // Let the command do non-drawing work, like getting and setting the state of the app.
         let nondrawingSuccess = command.doNondrawingWork(
@@ -259,6 +259,7 @@ extension mglRenderer2: MTKViewDelegate {
             view: view,
             depthStencilState: depthStencilState,
             colorRenderingState: colorRenderingState,
+            renderer: self,
             deg2metal: &deg2metal,
             targetPresentationTimestamp: targetPresentationTimestamp
         )
@@ -266,13 +267,11 @@ extension mglRenderer2: MTKViewDelegate {
         // On failure, exit right away.
         if !nondrawingSuccess {
             commandInterface.done(command: command, success: false)
-            logger.info(component: "mglRenderer2", details: "Failed non-drawing")
             return
         }
         
         // On success, check whether the command also wants to draw something.
         if command.framesRemaining <= 0 {
-            logger.info(component: "mglRenderer2", details: "Nothing to draw")
             // No "frames remaining" means that this nondrawing command is all done.
             commandInterface.done(command: command)
             return
@@ -449,6 +448,7 @@ extension mglRenderer2: MTKViewDelegate {
                     view: view,
                     depthStencilState: depthStencilState,
                     colorRenderingState: colorRenderingState,
+                    renderer: self,
                     deg2metal: &deg2metal,
                     targetPresentationTimestamp: targetPresentationTimestamp
                 )

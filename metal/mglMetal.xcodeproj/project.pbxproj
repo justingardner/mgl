@@ -54,6 +54,7 @@
 		D08D4BBE23B8834C00A27C79 /* mglCommandInterface.swift in Sources */ = {isa = PBXBuildFile; fileRef = D08D4BBD23B8834C00A27C79 /* mglCommandInterface.swift */; };
 		D0964F772EF74EDB00143B84 /* mglMovieCommand.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0964F762EF74EDB00143B84 /* mglMovieCommand.swift */; };
 		D0A59C7A23C2E41900D3AE93 /* mglSecs.m in Sources */ = {isa = PBXBuildFile; fileRef = D0A59C7923C2E41900D3AE93 /* mglSecs.m */; };
+		D0CBF5BA2F065C110042D4C5 /* mglSetDesiredFrameRate.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0CBF5B92F065C030042D4C5 /* mglSetDesiredFrameRate.swift */; };
 		D0F6B96E23B6D9E700B45409 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0F6B96D23B6D9E700B45409 /* AppDelegate.swift */; };
 		D0F6B97023B6D9E700B45409 /* mglViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0F6B96F23B6D9E700B45409 /* mglViewController.swift */; };
 		D0F6B97223B6D9E800B45409 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D0F6B97123B6D9E800B45409 /* Assets.xcassets */; };
@@ -131,6 +132,7 @@
 		D0964F762EF74EDB00143B84 /* mglMovieCommand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglMovieCommand.swift; sourceTree = SOURCE_ROOT; };
 		D0A59C7823C2E41900D3AE93 /* mglSecs.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = mglSecs.h; sourceTree = "<group>"; };
 		D0A59C7923C2E41900D3AE93 /* mglSecs.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = mglSecs.m; sourceTree = "<group>"; };
+		D0CBF5B92F065C030042D4C5 /* mglSetDesiredFrameRate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglSetDesiredFrameRate.swift; sourceTree = "<group>"; };
 		D0F6B96A23B6D9E700B45409 /* mglMetal.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = mglMetal.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		D0F6B96D23B6D9E700B45409 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		D0F6B96F23B6D9E700B45409 /* mglViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglViewController.swift; sourceTree = "<group>"; };
@@ -181,6 +183,7 @@
 		4DCD58452B36159300E08547 /* commands */ = {
 			isa = PBXGroup;
 			children = (
+				D0CBF5B92F065C030042D4C5 /* mglSetDesiredFrameRate.swift */,
 				D0964F762EF74EDB00143B84 /* mglMovieCommand.swift */,
 				4DCD58462B3615BF00E08547 /* mglFlushCommand.swift */,
 				4DCD58482B36178E00E08547 /* mglSetClearColorCommand.swift */,
@@ -453,6 +456,7 @@
 				4D5782D72B4753AC0050EF81 /* mglLineCommand.swift in Sources */,
 				D0F6B97023B6D9E700B45409 /* mglViewController.swift in Sources */,
 				4D5F72B92B45E4D500B4DA29 /* mglStartStencilCreationCommand.swift in Sources */,
+				D0CBF5BA2F065C110042D4C5 /* mglSetDesiredFrameRate.swift in Sources */,
 				4D5782CF2B474BA60050EF81 /* mglFrameGrabCommand.swift in Sources */,
 				4D5882B2285A89FD005DDF00 /* mglCommandModel.swift in Sources */,
 				4D5F72BF2B45E87600B4DA29 /* mglQuadCommand.swift in Sources */,
@@ -642,6 +646,20 @@
 				CODE_SIGN_ENTITLEMENTS = mglMetal/mglMetal.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_FILE_ACCESS_DOWNLOADS_FOLDER = readonly;
+				ENABLE_FILE_ACCESS_MOVIES_FOLDER = readonly;
+				ENABLE_FILE_ACCESS_PICTURE_FOLDER = readonly;
+				ENABLE_INCOMING_NETWORK_CONNECTIONS = NO;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = NO;
+				ENABLE_RESOURCE_ACCESS_AUDIO_INPUT = NO;
+				ENABLE_RESOURCE_ACCESS_BLUETOOTH = NO;
+				ENABLE_RESOURCE_ACCESS_CALENDARS = NO;
+				ENABLE_RESOURCE_ACCESS_CAMERA = NO;
+				ENABLE_RESOURCE_ACCESS_CONTACTS = NO;
+				ENABLE_RESOURCE_ACCESS_LOCATION = NO;
+				ENABLE_RESOURCE_ACCESS_PRINTING = NO;
+				ENABLE_RESOURCE_ACCESS_USB = NO;
 				INFOPLIST_FILE = mglMetal/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -665,6 +683,20 @@
 				CODE_SIGN_ENTITLEMENTS = mglMetal/mglMetal.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_FILE_ACCESS_DOWNLOADS_FOLDER = readonly;
+				ENABLE_FILE_ACCESS_MOVIES_FOLDER = readonly;
+				ENABLE_FILE_ACCESS_PICTURE_FOLDER = readonly;
+				ENABLE_INCOMING_NETWORK_CONNECTIONS = NO;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = NO;
+				ENABLE_RESOURCE_ACCESS_AUDIO_INPUT = NO;
+				ENABLE_RESOURCE_ACCESS_BLUETOOTH = NO;
+				ENABLE_RESOURCE_ACCESS_CALENDARS = NO;
+				ENABLE_RESOURCE_ACCESS_CAMERA = NO;
+				ENABLE_RESOURCE_ACCESS_CONTACTS = NO;
+				ENABLE_RESOURCE_ACCESS_LOCATION = NO;
+				ENABLE_RESOURCE_ACCESS_PRINTING = NO;
+				ENABLE_RESOURCE_ACCESS_USB = NO;
 				INFOPLIST_FILE = mglMetal/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",

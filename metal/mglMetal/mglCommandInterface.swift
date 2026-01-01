@@ -168,6 +168,7 @@ class mglCommandInterface {
             case mglMoviePlay: command = mglMoviePlayCommand(commandInterface: self, logger: self.logger)
             case mglMovieStatus: command = mglMovieStatusCommand(commandInterface: self, logger: self.logger)
             case mglMovieDrawFrame: command = mglMovieDrawFrameCommand (commandInterface: self, logger: self.logger)
+            case mglSetDesiredFrameRate: command = mglSetDesiredFrameRateCommand (commandInterface: self, logger: self.logger)
             default: command = nil
         }
  
@@ -452,6 +453,31 @@ class mglCommandInterface {
         let column2 = simd_make_float4(data[8], data[9], data[10], data[11])
         let column3 = simd_make_float4(data[12], data[13], data[14], data[15])
         return(simd_float4x4(column0, column1, column2, column3))
+    }
+
+    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
+    // readString
+    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/
+    func readString() -> String {
+        // read how long the string is
+        guard let stringLen = readUInt32() else {
+            return ""
+        }
+        // allocate memory
+        var data = UnsafeMutablePointer<UInt16>.allocate(capacity: Int(stringLen))
+        defer {
+            data.deallocate()
+        }
+        // read the string data
+        let expectedByteCount = MemoryLayout<UInt16>.size * Int(stringLen)
+        let bytesRead = server.readData(buffer: UnsafeMutableRawPointer(data), expectedByteCount: expectedByteCount)
+        if (bytesRead != expectedByteCount) {
+            logger.error(component: "mglCommandInterface", details: "Expeted to read string with \(expectedByteCount) bytes but read \(bytesRead)")
+            return ""
+        }
+        // convert to string and return
+        let buffer = UnsafeBufferPointer(start: data, count: Int(stringLen))
+        return String(decoding: buffer, as: UTF16.self)
     }
 
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/

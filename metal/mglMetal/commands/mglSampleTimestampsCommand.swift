@@ -24,6 +24,7 @@ class mglSampleTimestampsCommand : mglCommand {
         view: MTKView,
         depthStencilState: mglDepthStencilState,
         colorRenderingState: mglColorRenderingState,
+        renderer: mglRenderer2,
         deg2metal: inout simd_float4x4,
         targetPresentationTimestamp: CFTimeInterval?
     ) -> Bool {
