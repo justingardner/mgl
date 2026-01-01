@@ -34,7 +34,17 @@ class mglSetClearColorCommand : mglCommand {
         deg2metal: inout simd_float4x4,
         targetPresentationTimestamp: CFTimeInterval?
     ) -> Bool {
-        view.clearColor = clearColor
+        // check to see if we are running CAMetalDisplayLink
+        guard #available(macOS 14.0, *), let displayLink = renderer.metalDisplayLink
+        else {
+            view.clearColor = clearColor
+            return true
+        }
+        guard let renderPassDescriptor = renderer.onscreenRenderPassDescriptor else {
+            return true
+        }
+        renderPassDescriptor.colorAttachments[0].clearColor = clearColor
+
         return true
     }
 }

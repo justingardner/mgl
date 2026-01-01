@@ -74,7 +74,7 @@ class mglRenderer2: NSObject {
     
     // For use with CTMetalDisplayLink which requires setting up the
     // renderPassDescriptor once, and updating its texture
-    private var onscreenRenderPassDescriptor: MTLRenderPassDescriptor?
+    var onscreenRenderPassDescriptor: MTLRenderPassDescriptor?
 
     init(logger: mglLogger, metalView: MTKView, commandInterface: mglCommandInterface) {
         self.logger = logger
