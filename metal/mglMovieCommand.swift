@@ -401,8 +401,11 @@ class mglMoviePlayCommand : mglCommand {
 class mglMovieDrawFrameCommand : mglCommand {
     var movieNumber: UInt32 = 0
     var movie: mglMovie? = nil
-    var movieTime: CMTime?
     var videoAtEnd: Bool = false
+    
+    var drawFrameTime: Double = -1.0
+    var movieTime: Double = -1.0
+    var targetPresentationTimestamp: Double = -1.0
 
     init?(commandInterface: mglCommandInterface, logger: mglLogger) {
         // Read the moveNumber
@@ -467,7 +470,9 @@ class mglMovieDrawFrameCommand : mglCommand {
             )
             // keep returned values
             didDrawFrame = frameDrawn
-            self.movieTime = movieTime
+            self.drawFrameTime = CACurrentMediaTime()
+            self.targetPresentationTimestamp = targetPresentationTimestamp ?? -1
+            self.movieTime = movieTime.map { CMTimeGetSeconds($0) } ?? -1
         }
         
         if !didDrawFrame {
@@ -483,8 +488,10 @@ class mglMovieDrawFrameCommand : mglCommand {
         commandInterface : mglCommandInterface
     ) -> Bool {
 
-        // return frameTime or -1 if it does not exists (was not drawn)
-        _ = commandInterface.writeDouble(data: movieTime.map { CMTimeGetSeconds($0) } ?? -1)
+        // return time stamps
+        _ = commandInterface.writeDouble(data: drawFrameTime)
+        _ = commandInterface.writeDouble(data: targetPresentationTimestamp)
+        _ = commandInterface.writeDouble(data: movieTime)
 
         return true
     }

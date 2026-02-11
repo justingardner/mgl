@@ -51,6 +51,7 @@
 		4DCD58472B3615BF00E08547 /* mglFlushCommand.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DCD58462B3615BF00E08547 /* mglFlushCommand.swift */; };
 		4DCD58492B36178E00E08547 /* mglSetClearColorCommand.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DCD58482B36178E00E08547 /* mglSetClearColorCommand.swift */; };
 		4DCD584B2B36335500E08547 /* mglRenderer2.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DCD584A2B36335500E08547 /* mglRenderer2.swift */; };
+		D03ED9CA2F3C3FD70015879F /* mglGetTargetPresentationTimestamp.swift in Sources */ = {isa = PBXBuildFile; fileRef = D03ED9C92F3C3FCD0015879F /* mglGetTargetPresentationTimestamp.swift */; };
 		D08D4BBE23B8834C00A27C79 /* mglCommandInterface.swift in Sources */ = {isa = PBXBuildFile; fileRef = D08D4BBD23B8834C00A27C79 /* mglCommandInterface.swift */; };
 		D0964F772EF74EDB00143B84 /* mglMovieCommand.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0964F762EF74EDB00143B84 /* mglMovieCommand.swift */; };
 		D0A59C7A23C2E41900D3AE93 /* mglSecs.m in Sources */ = {isa = PBXBuildFile; fileRef = D0A59C7923C2E41900D3AE93 /* mglSecs.m */; };
@@ -128,6 +129,7 @@
 		4DCD58462B3615BF00E08547 /* mglFlushCommand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglFlushCommand.swift; sourceTree = "<group>"; };
 		4DCD58482B36178E00E08547 /* mglSetClearColorCommand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglSetClearColorCommand.swift; sourceTree = "<group>"; };
 		4DCD584A2B36335500E08547 /* mglRenderer2.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglRenderer2.swift; sourceTree = "<group>"; };
+		D03ED9C92F3C3FCD0015879F /* mglGetTargetPresentationTimestamp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglGetTargetPresentationTimestamp.swift; sourceTree = "<group>"; };
 		D08D4BBD23B8834C00A27C79 /* mglCommandInterface.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglCommandInterface.swift; sourceTree = "<group>"; };
 		D0964F762EF74EDB00143B84 /* mglMovieCommand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglMovieCommand.swift; sourceTree = SOURCE_ROOT; };
 		D0A59C7823C2E41900D3AE93 /* mglSecs.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = mglSecs.h; sourceTree = "<group>"; };
@@ -184,6 +186,7 @@
 			isa = PBXGroup;
 			children = (
 				D0CBF5B92F065C030042D4C5 /* mglSetDesiredFrameRate.swift */,
+				D03ED9C92F3C3FCD0015879F /* mglGetTargetPresentationTimestamp.swift */,
 				D0964F762EF74EDB00143B84 /* mglMovieCommand.swift */,
 				4DCD58462B3615BF00E08547 /* mglFlushCommand.swift */,
 				4DCD58482B36178E00E08547 /* mglSetClearColorCommand.swift */,
@@ -460,6 +463,7 @@
 				4D5782CF2B474BA60050EF81 /* mglFrameGrabCommand.swift in Sources */,
 				4D5882B2285A89FD005DDF00 /* mglCommandModel.swift in Sources */,
 				4D5F72BF2B45E87600B4DA29 /* mglQuadCommand.swift in Sources */,
+				D03ED9CA2F3C3FD70015879F /* mglGetTargetPresentationTimestamp.swift in Sources */,
 				D0F6B9A223B6ED4300B45409 /* mglPrimitives.swift in Sources */,
 				D0A59C7A23C2E41900D3AE93 /* mglSecs.m in Sources */,
 				4D5F72A52B45D25900B4DA29 /* mglDeleteTextureCommand.swift in Sources */,
