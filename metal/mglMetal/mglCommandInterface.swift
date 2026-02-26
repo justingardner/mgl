@@ -169,6 +169,8 @@ class mglCommandInterface {
             case mglMovieStatus: command = mglMovieStatusCommand(commandInterface: self, logger: self.logger)
             case mglMovieDrawFrame: command = mglMovieDrawFrameCommand(commandInterface: self, logger: self.logger)
             case mglMovieSetDisplayPosition: command = mglMovieSetDisplayPositionCommand(commandInterface: self, device: device, logger: self.logger)
+            case mglMovieDelete: command = mglMovieDeleteCommand(commandInterface: self, logger: self.logger)
+
             case mglSetDesiredFrameRate: command = mglSetDesiredFrameRateCommand(commandInterface: self, logger: self.logger)
             case mglGetTargetPresentationTimestamp: command = mglGetTargetPresentationTimestampCommand(commandInterface: self, logger: self.logger)
             default: command = nil
@@ -466,7 +468,7 @@ class mglCommandInterface {
             return ""
         }
         // allocate memory
-        var data = UnsafeMutablePointer<UInt16>.allocate(capacity: Int(stringLen))
+        let data = UnsafeMutablePointer<UInt16>.allocate(capacity: Int(stringLen))
         defer {
             data.deallocate()
         }

@@ -64,6 +64,7 @@ typedef enum mglCommandCode : uint16_t {
     mglMovieDrawFrame = 1021,
     mglMovieStatus = 1022,
     mglMovieSetDisplayPosition = 1023,
+    mglMovieDelete = 1026,
     mglSetDesiredFrameRate = 1024,
     mglGetTargetPresentationTimestamp = 1025,
     mglUnknownCommand = UINT16_MAX
@@ -120,6 +121,7 @@ const mglCommandCode mglCommandCodes[] = {
     mglMovieDrawFrame,
     mglMovieStatus,
     mglMovieSetDisplayPosition,
+    mglMovieDelete,
     mglSetDesiredFrameRate,
     mglGetTargetPresentationTimestamp
 };
@@ -171,6 +173,8 @@ const char* mglCommandNames[] = {
     "mglMoviePlay",
     "mglMovieDrawFrame",
     "mglMovieStatus",
+    "mglMovieSetDisplayPosition",
+    "mglMovieDelete",
     "mglSetDesiredFrameRate",
     "mglGetTargetPresentationTimestamp"
 };

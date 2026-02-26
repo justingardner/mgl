@@ -578,6 +578,62 @@ class mglMovieStatusCommand : mglCommand {
 
 }
 
+//++//++//++//++//++//++//++//++//++//++//++//++//++//++//++//++
+// movie delete command
+//++//++//++//++//++//++//++//++//++//++//++//++//++//++//++//++
+class mglMovieDeleteCommand : mglCommand {
+    var movieNumber: UInt32 = 0
+    var deleteSuccess: Bool = false
+    
+    init?(commandInterface: mglCommandInterface, logger: mglLogger) {
+        guard let movieNumber = commandInterface.readUInt32() else {
+            return nil
+        }
+        self.movieNumber = movieNumber
+        logger.info(component: "mglMovie", details: "mglMovieDeleteCommand: movieNumber \(movieNumber)")
+        super.init()
+    }
+    
+    override func doNondrawingWork(
+        logger: mglLogger,
+        view: MTKView,
+        depthStencilState: mglDepthStencilState,
+        colorRenderingState: mglColorRenderingState,
+        renderer: mglRenderer2,
+        deg2metal: inout simd_float4x4,
+        targetPresentationTimestamp: CFTimeInterval?
+    ) -> Bool {
+        
+        // Remove from the collection
+        if let removedMovie = colorRenderingState.removeMovie(movieNumber: self.movieNumber) {
+            deleteSuccess = true
+            logger.info(component: "mglMovie", details: "Deleted movie \(self.movieNumber)")
+
+            // TESTING ONLY. This checks with a thread whether the movie actually got deleted
+            weak var weakMovie = removedMovie
+             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                 if weakMovie == nil {
+                     logger.info(component: "mglMovie", details: "✅ Movie \(self.movieNumber) was successfully deallocated")
+                 } else {
+                     logger.info(component: "mglMovie", details: "⚠️ Movie \(self.movieNumber) still in memory - potential retain cycle!")
+                 }
+             }
+
+         } else {
+            logger.error(component: "mglMovie", details: "Failed to delete movie \(self.movieNumber)")
+        }
+        
+        return true
+    }
+    
+    override func writeQueryResults(
+        logger: mglLogger,
+        commandInterface: mglCommandInterface
+    ) -> Bool {
+        _ = commandInterface.writeDouble(data: deleteSuccess ? 1.0 : -1.0)
+        return true
+    }
+}
 
 //++//++//++//++//++//++//++//++//++//++//++//++//++//++//++//++
 // class that holds the movie, AVPlayer and all the stuff needed
@@ -695,6 +751,16 @@ class mglMovie : NSObject {
     // remember to remove observer if this variable is removed
     //..//..//..//..//..//..//..//..//..//..//..//..//
     deinit {
+        // Stop playback
+        player?.pause()
+         
+        // Remove video output from player item
+        if let playerItem = self.playerItem {
+            playerItem.remove(videoOutput)
+        }
+         
+        logger?.info(component: "mglMovie", details: "mglMovie deallocated")
+
         NotificationCenter.default.removeObserver(self)
     }
 
