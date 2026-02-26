@@ -7,7 +7,30 @@
 		<key>mglMetal.xcscheme_^#shared#^_</key>
 		<dict>
 			<key>orderHint</key>
+			<integer>1</integer>
+		</dict>
+		<key>mglMetalRelease.xcscheme</key>
+		<dict>
+			<key>orderHint</key>
 			<integer>0</integer>
+		</dict>
+	</dict>
+	<key>SuppressBuildableAutocreation</key>
+	<dict>
+		<key>D0F6B96923B6D9E700B45409</key>
+		<dict>
+			<key>primary</key>
+			<true/>
+		</dict>
+		<key>D0F6B97B23B6D9E800B45409</key>
+		<dict>
+			<key>primary</key>
+			<true/>
+		</dict>
+		<key>D0F6B98623B6D9E800B45409</key>
+		<dict>
+			<key>primary</key>
+			<true/>
 		</dict>
 	</dict>
 </dict>
