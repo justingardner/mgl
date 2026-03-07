@@ -132,7 +132,13 @@ class mglMovieCreateCommand : mglCommand {
             _ = commandInterface.writeUInt32(data: UInt32(movie.totalFrames ?? 0))
             _ = commandInterface.writeUInt32(data: UInt32(movie.width ?? 0))
             _ = commandInterface.writeUInt32(data: UInt32(movie.height ?? 0))
-
+            // send preferred transform
+            _ = commandInterface.writeDouble(data: Double(movie.preferredTransform?.a ?? 1.0))
+            _ = commandInterface.writeDouble(data: Double(movie.preferredTransform?.b ?? 0.0))
+            _ = commandInterface.writeDouble(data: Double(movie.preferredTransform?.c ?? 0.0))
+            _ = commandInterface.writeDouble(data: Double(movie.preferredTransform?.d ?? 1.0))
+            _ = commandInterface.writeDouble(data: Double(movie.preferredTransform?.tx ?? 0.0))
+            _ = commandInterface.writeDouble(data: Double(movie.preferredTransform?.ty ?? 0.0))
         }
         else {
             // return success
@@ -567,6 +573,14 @@ class mglMovieStatusCommand : mglCommand {
             _ = commandInterface.writeUInt32(data: UInt32(movie.totalFrames ?? 0))
             _ = commandInterface.writeUInt32(data: UInt32(movie.width ?? 0))
             _ = commandInterface.writeUInt32(data: UInt32(movie.height ?? 0))
+            // send preferred transform
+            _ = commandInterface.writeDouble(data: Double(movie.preferredTransform?.a ?? 1.0))
+            _ = commandInterface.writeDouble(data: Double(movie.preferredTransform?.b ?? 0.0))
+            _ = commandInterface.writeDouble(data: Double(movie.preferredTransform?.c ?? 0.0))
+            _ = commandInterface.writeDouble(data: Double(movie.preferredTransform?.d ?? 1.0))
+            _ = commandInterface.writeDouble(data: Double(movie.preferredTransform?.tx ?? 0.0))
+            _ = commandInterface.writeDouble(data: Double(movie.preferredTransform?.ty ?? 0.0))
+
         }
         else {
             // return not ready
@@ -605,20 +619,9 @@ class mglMovieDeleteCommand : mglCommand {
     ) -> Bool {
         
         // Remove from the collection
-        if let removedMovie = colorRenderingState.removeMovie(movieNumber: self.movieNumber) {
+        if colorRenderingState.removeMovie(movieNumber: self.movieNumber) != nil {
             deleteSuccess = true
             logger.info(component: "mglMovie", details: "Deleted movie \(self.movieNumber)")
-
-            // TESTING ONLY. This checks with a thread whether the movie actually got deleted
-            weak var weakMovie = removedMovie
-             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                 if weakMovie == nil {
-                     logger.info(component: "mglMovie", details: "✅ Movie \(self.movieNumber) was successfully deallocated")
-                 } else {
-                     logger.info(component: "mglMovie", details: "⚠️ Movie \(self.movieNumber) still in memory - potential retain cycle!")
-                 }
-             }
-
          } else {
             logger.error(component: "mglMovie", details: "Failed to delete movie \(self.movieNumber)")
         }
@@ -671,6 +674,7 @@ class mglMovie : NSObject {
     var videoAtEnd: Bool = false
     
     // these will be extracted when info is called
+    var preferredTransform: CGAffineTransform?
     var frameRate: Float?
     var duration: CMTime?
     var totalFrames: Int?
@@ -959,6 +963,9 @@ class mglMovie : NSObject {
     func info(asset: AVAsset, logger: mglLogger?) {
         // Extract values from the first video track
         if let track = asset.tracks(withMediaType: .video).first {
+            // get preferred transform
+            self.preferredTransform = track.preferredTransform
+            
             // Frame rate
             let trackFrameRate = track.nominalFrameRate
             self.frameRate = trackFrameRate
