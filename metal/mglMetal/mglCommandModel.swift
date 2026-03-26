@@ -77,7 +77,7 @@ class mglCommand {
     // the default logic assumes that a command will get only one
     // drawablePresented time - if there are multiple, we need to buffer
     // them - and assume that they may not come in order.
-    func setUpFlushInFlight(renderer: mglRenderer2, drawable: MTLDrawable, commandBuffer: MTLCommandBuffer) {
+    func setUpFlushInFlight(renderer: mglRenderer2, drawable: MTLDrawable?, commandBuffer: MTLCommandBuffer) {
         
         // create a varaible for keeping the drawable presentedTime
         let presentedTimeHolder = presentedTimeHolder()
@@ -88,7 +88,7 @@ class mglCommand {
         // the drawable is presented, do that and get the presentedTime
         // from the drawable when it has been presented
         if #available(macOS 10.15.4, *) {
-            drawable.addPresentedHandler { drawable in
+            drawable?.addPresentedHandler { drawable in
                 presentedTimeHolder.presentedTime = drawable.presentedTime
             }
         }

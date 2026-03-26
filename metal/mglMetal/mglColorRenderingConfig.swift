@@ -68,8 +68,37 @@ class mglColorRenderingState {
         return currentColorRenderingConfig.getRenderPassDescriptor(view: view)
     }
     
+    // JG: THis is the new one, which works with both MTKView and metalDisplayLink
+    func getRenderPassDescriptor(
+        view: MTKView,
+        drawable: CAMetalDrawable?,
+        onscreenRenderPassDescriptor: MTLRenderPassDescriptor?
+    ) -> MTLRenderPassDescriptor? {
+        if currentColorRenderingConfig is mglOffScreenTextureRenderingConfig {
+            // Rendering offscreen - drawable and onscreenRenderPassDescriptor are ignored
+            return currentColorRenderingConfig.getRenderPassDescriptor(view: view)
+        } else {
+            // Rendering onscreen, onscreenRenderPassDescriptor will be nil for
+            // old MTKView pathway, as it is only initialized in metalDisplayLInk
+            if let onscreenDescriptor = onscreenRenderPassDescriptor {
+                // CAMetalDisplayLink path - update pre-configured descriptor
+                guard let drawableTexture = drawable?.texture else {
+                    logger.error(component: "mglColorRenderingState", details: "Onscreen rendering requires a drawable with texture")
+                    return nil
+                }
+                onscreenDescriptor.colorAttachments[0].texture = drawableTexture
+                onscreenDescriptor.colorAttachments[0].clearColor = view.clearColor
+                return onscreenDescriptor
+            } else {
+                // MTKView path - get fresh descriptor from view
+                return currentColorRenderingConfig.getRenderPassDescriptor(view: view)
+            }
+        }
+    }
+
+    
     // Collaborate with mglRenderer to set up a render pass.
-    func finishDrawing(commandBuffer: MTLCommandBuffer, drawable: CAMetalDrawable) {
+    func finishDrawing(commandBuffer: MTLCommandBuffer, drawable: CAMetalDrawable?) {
         return currentColorRenderingConfig.finishDrawing(commandBuffer: commandBuffer, drawable: drawable)
     }
     
@@ -131,6 +160,29 @@ class mglColorRenderingState {
         return true
     }
     
+    // Check whether we're currently rendering to an offscreen texture
+    func isRenderingOffscreen() -> Bool {
+        return currentColorRenderingConfig is mglOffScreenTextureRenderingConfig
+    }
+
+    // Should we configure depth/stencil and timestamps?
+    // Returns true if we need to configure (offscreen OR MTKView path)
+    // Returns false if already pre-configured (CAMetalDisplayLink onscreen path)
+    func needsRenderPassConfiguration(onscreenRenderPassDescriptor: MTLRenderPassDescriptor?) -> Bool {
+        // If rendering offscreen, always need to configure
+        if currentColorRenderingConfig is mglOffScreenTextureRenderingConfig {
+            return true
+        }
+         
+        // If rendering onscreen with CAMetalDisplayLink (has pre-configured descriptor), don't need to configure
+        if onscreenRenderPassDescriptor != nil {
+            return false  // Already configured in init
+        }
+         
+        // MTKView path (no pre-configured descriptor), need to configure
+        return true
+    }
+
     // Use the given texture as an offscreen rendering target.
     func setRenderTarget(view: MTKView, targetTexture: MTLTexture) -> Bool {
         guard let device = view.device,
@@ -240,7 +292,7 @@ private protocol mglColorRenderingConfig {
     func getRenderPassDescriptor(view: MTKView) -> MTLRenderPassDescriptor?
     func getSize(view: MTKView) -> (Float, Float)
 
-    func finishDrawing(commandBuffer: MTLCommandBuffer, drawable: CAMetalDrawable)
+    func finishDrawing(commandBuffer: MTLCommandBuffer, drawable: CAMetalDrawable?)
     func frameGrab()->(width: Int, height: Int, pointer: UnsafeMutablePointer<Float>?)
 }
 
@@ -287,12 +339,13 @@ private class mglOnscreenRenderingConfig : mglColorRenderingConfig {
     func getRenderPassDescriptor(view: MTKView) -> MTLRenderPassDescriptor? {
         return view.currentRenderPassDescriptor
     }
+    
 
     func getSize(view: MTKView) -> (Float, Float) {
         return (Float(view.drawableSize.width), Float(view.drawableSize.height))
     }
 
-    func finishDrawing(commandBuffer: MTLCommandBuffer, drawable: CAMetalDrawable) {
+    func finishDrawing(commandBuffer: MTLCommandBuffer, drawable: CAMetalDrawable?) {
     }
 
     // frameGrab, since everything is being drawn to a CAMetalDrawable, it does not
@@ -384,7 +437,7 @@ private class mglOffScreenTextureRenderingConfig : mglColorRenderingConfig {
         return (Float(colorTexture.width), Float(colorTexture.height))
     }
 
-    func finishDrawing(commandBuffer: MTLCommandBuffer, drawable: CAMetalDrawable) {
+    func finishDrawing(commandBuffer: MTLCommandBuffer, drawable: CAMetalDrawable?) {
         // Make sure the CPU can read the rendering results when we're done.
         let bltCommandEncoder = commandBuffer.makeBlitCommandEncoder()
         bltCommandEncoder?.synchronize(resource: colorTexture)
