@@ -347,7 +347,7 @@ if isfield(myscreen,'digin')
 end
 
 % decide which rand algorithim to use
-if (myscreen.matlab.majorVersion>=7) && (myscreen.matlab.minorVersion>=4)
+if myscreen.matlab.majorVersion>=8 
   myscreen.randstate.type = 'twister';
 else
   myscreen.randstate.type = 'state';
