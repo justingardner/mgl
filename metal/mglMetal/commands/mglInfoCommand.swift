@@ -12,6 +12,13 @@ import MetalKit
 class mglInfoCommand : mglCommand {
     var device: MTLDevice!
     var view: MTKView!
+    
+    // info about displays
+    var displayID: CGDirectDisplayID = 0
+    var displayUUID: String = ""
+    var displayVendor: UInt32 = 0
+    var displayModel: UInt32 = 0
+    var displaySerialNumber: UInt32 = 0
 
     override func doNondrawingWork(
         logger: mglLogger,
@@ -29,6 +36,34 @@ class mglInfoCommand : mglCommand {
         }
         self.device = device
         self.view = view
+        
+        // Initialize display information in case we can't retrieve it.
+        displayID = 0
+        displayUUID = ""
+        displayVendor = 0
+        displayModel = 0
+        displaySerialNumber = 0
+
+        guard
+            let window = view.window,
+            let screen = window.screen,
+            let screenNumber = screen.deviceDescription[
+                NSDeviceDescriptionKey("NSScreenNumber")
+            ] as? NSNumber
+        else {
+            return true
+        }
+        
+        // get display info
+        displayID = CGDirectDisplayID(screenNumber.uint32Value)
+        displayVendor = CGDisplayVendorNumber(displayID)
+        displayModel = CGDisplayModelNumber(displayID)
+        displaySerialNumber = CGDisplaySerialNumber(displayID)
+
+        if let uuid = CGDisplayCreateUUIDFromDisplayID(displayID)?.takeRetainedValue() {
+            displayUUID = CFUUIDCreateString(nil, uuid) as String
+        }
+
         return true
     }
 
@@ -109,6 +144,27 @@ class mglInfoCommand : mglCommand {
         _ = commandInterface.writeCommand(data: mglSendDoubleArray)
         let drawableSize: [Double] = [Double(view.drawableSize.width), Double(view.drawableSize.height)]
         _ = commandInterface.writeDoubleArray(data: drawableSize)
+
+        // send display information
+        _ = commandInterface.writeCommand(data: mglSendString)
+        _ = commandInterface.writeString(data: "display.uuid")
+        _ = commandInterface.writeCommand(data: mglSendString)
+        _ = commandInterface.writeString(data: displayUUID)
+
+        _ = commandInterface.writeCommand(data: mglSendString)
+        _ = commandInterface.writeString(data: "display.vendor")
+        _ = commandInterface.writeCommand(data: mglSendDouble)
+        _ = commandInterface.writeDouble(data: Double(displayVendor))
+        
+        _ = commandInterface.writeCommand(data: mglSendString)
+        _ = commandInterface.writeString(data: "display.model")
+        _ = commandInterface.writeCommand(data: mglSendDouble)
+        _ = commandInterface.writeDouble(data: Double(displayModel))
+        
+        _ = commandInterface.writeCommand(data: mglSendString)
+        _ = commandInterface.writeString(data: "display.serialNumber")
+        _ = commandInterface.writeCommand(data: mglSendDouble)
+        _ = commandInterface.writeDouble(data: Double(displaySerialNumber))
 
         // send finished
         _ = commandInterface.writeCommand(data: mglSendFinished)
