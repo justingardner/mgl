@@ -44,10 +44,6 @@ class mglCreateTextTextureCommand: mglCommand {
         deg2metal: inout simd_float4x4,
         targetPresentationTimestamp: CFTimeInterval?
     ) -> Bool {
-        logger.error(
-            component: "mglCreateTextTextureCommand",
-            details: "Starting text texture creation for '\(text)'."
-        )
 
         guard let device = view.device else {
             logger.error(
@@ -58,11 +54,6 @@ class mglCreateTextTextureCommand: mglCommand {
         }
 
         let parameters = colorRenderingState.getTextRenderingParameters()
-
-        logger.error(
-            component: "mglCreateTextTextureCommand",
-            details: "Rendering '\(text)' with font '\(parameters.fontName)' at size \(parameters.fontSize)."
-        )
 
         guard let renderedText = mglTextTextureRenderer.makeTexture(
             device: device,
@@ -77,11 +68,6 @@ class mglCreateTextTextureCommand: mglCommand {
             return false
         }
 
-        logger.error(
-            component: "mglCreateTextTextureCommand",
-            details: "Rendered text texture is \(renderedText.width) x \(renderedText.height)."
-        )
-
         texture = renderedText.texture
         textureWidth = renderedText.width
         textureHeight = renderedText.height
@@ -91,11 +77,6 @@ class mglCreateTextTextureCommand: mglCommand {
         )
 
         textureCount = colorRenderingState.getTextureCount()
-
-        logger.error(
-            component: "mglCreateTextTextureCommand",
-            details: "Registered text texture \(textureNumber), total textures \(textureCount)."
-        )
 
         return textureNumber > 0
     }
