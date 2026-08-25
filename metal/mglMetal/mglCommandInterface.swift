@@ -135,6 +135,8 @@ class mglCommandInterface {
             case mglWindowed: command = mglWindowedCommand()
             case mglCreateTexture: command = mglCreateTextureCommand(commandInterface: self, device: device)
             case mglReadTexture: command = mglReadTextureCommand(commandInterface: self)
+            case mglCreateTextTexture: command = mglCreateTextTextureCommand(commandInterface: self)
+            case mglSetTextRenderingParameters: command = mglSetTextRenderingParametersCommand(commandInterface: self)
             case mglSetRenderTarget: command = mglSetRenderTargetCommand(commandInterface: self)
             case mglSetWindowFrameInDisplay: command = mglSetWindowFrameInDisplayCommand(commandInterface: self)
             case mglGetWindowFrameInDisplay: command = mglGetWindowFrameInDisplayCommand()

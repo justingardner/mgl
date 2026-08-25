@@ -55,6 +55,9 @@
 		D08D4BBE23B8834C00A27C79 /* mglCommandInterface.swift in Sources */ = {isa = PBXBuildFile; fileRef = D08D4BBD23B8834C00A27C79 /* mglCommandInterface.swift */; };
 		D0964F772EF74EDB00143B84 /* mglMovieCommand.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0964F762EF74EDB00143B84 /* mglMovieCommand.swift */; };
 		D0A59C7A23C2E41900D3AE93 /* mglSecs.m in Sources */ = {isa = PBXBuildFile; fileRef = D0A59C7923C2E41900D3AE93 /* mglSecs.m */; };
+		D0C96825303D47F50043AB05 /* mglCreateTextTexture.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0C96824303D47DF0043AB05 /* mglCreateTextTexture.swift */; };
+		D0C96827303D48220043AB05 /* mglSetTextRenderingParameters.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0C96826303D47FA0043AB05 /* mglSetTextRenderingParameters.swift */; };
+		D0C96829303D4ABF0043AB05 /* mglText.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0C96828303D4ABC0043AB05 /* mglText.swift */; };
 		D0CBF5BA2F065C110042D4C5 /* mglSetDesiredFrameRate.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0CBF5B92F065C030042D4C5 /* mglSetDesiredFrameRate.swift */; };
 		D0F6B96E23B6D9E700B45409 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0F6B96D23B6D9E700B45409 /* AppDelegate.swift */; };
 		D0F6B97023B6D9E700B45409 /* mglViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0F6B96F23B6D9E700B45409 /* mglViewController.swift */; };
@@ -134,6 +137,9 @@
 		D0964F762EF74EDB00143B84 /* mglMovieCommand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglMovieCommand.swift; sourceTree = SOURCE_ROOT; };
 		D0A59C7823C2E41900D3AE93 /* mglSecs.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = mglSecs.h; sourceTree = "<group>"; };
 		D0A59C7923C2E41900D3AE93 /* mglSecs.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = mglSecs.m; sourceTree = "<group>"; };
+		D0C96824303D47DF0043AB05 /* mglCreateTextTexture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglCreateTextTexture.swift; sourceTree = "<group>"; };
+		D0C96826303D47FA0043AB05 /* mglSetTextRenderingParameters.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglSetTextRenderingParameters.swift; sourceTree = "<group>"; };
+		D0C96828303D4ABC0043AB05 /* mglText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglText.swift; sourceTree = "<group>"; };
 		D0CBF5B92F065C030042D4C5 /* mglSetDesiredFrameRate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mglSetDesiredFrameRate.swift; sourceTree = "<group>"; };
 		D0F6B96A23B6D9E700B45409 /* mglMetal.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = mglMetal.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		D0F6B96D23B6D9E700B45409 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
@@ -185,6 +191,8 @@
 		4DCD58452B36159300E08547 /* commands */ = {
 			isa = PBXGroup;
 			children = (
+				D0C96826303D47FA0043AB05 /* mglSetTextRenderingParameters.swift */,
+				D0C96824303D47DF0043AB05 /* mglCreateTextTexture.swift */,
 				D0CBF5B92F065C030042D4C5 /* mglSetDesiredFrameRate.swift */,
 				D03ED9C92F3C3FCD0015879F /* mglGetTargetPresentationTimestamp.swift */,
 				D0964F762EF74EDB00143B84 /* mglMovieCommand.swift */,
@@ -273,6 +281,7 @@
 				4D8B32802824627800278B6F /* mglDepthStencilConfig.swift */,
 				4D5882B1285A89FD005DDF00 /* mglCommandModel.swift */,
 				4D5782CA2B472AAE0050EF81 /* mglLogger.swift */,
+				D0C96828303D4ABC0043AB05 /* mglText.swift */,
 			);
 			path = mglMetal;
 			sourceTree = "<group>";
@@ -432,6 +441,7 @@
 			files = (
 				4DA4671F2763CB8E00B65B9F /* mglServer.swift in Sources */,
 				4D5F72B32B45DD9B00B4DA29 /* mglSetViewColorPixelFormatCommand.swift in Sources */,
+				D0C96825303D47F50043AB05 /* mglCreateTextTexture.swift in Sources */,
 				4D5782CB2B472AAE0050EF81 /* mglLogger.swift in Sources */,
 				4D8B32812824627800278B6F /* mglDepthStencilConfig.swift in Sources */,
 				4D53454D28205AA400B61D3D /* mglColorRenderingConfig.swift in Sources */,
@@ -452,6 +462,7 @@
 				4D5F72BB2B45E5DF00B4DA29 /* mglFinishStencilCreationCommand.swift in Sources */,
 				4D5F72B72B45E24F00B4DA29 /* mglSetXformCommand.swift in Sources */,
 				4DCD584B2B36335500E08547 /* mglRenderer2.swift in Sources */,
+				D0C96827303D48220043AB05 /* mglSetTextRenderingParameters.swift in Sources */,
 				4D5782E32B4767730050EF81 /* mglRepeatQuadsCommand.swift in Sources */,
 				D08D4BBE23B8834C00A27C79 /* mglCommandInterface.swift in Sources */,
 				4D5F72A32B45CEFA00B4DA29 /* mglReadTextureCommand.swift in Sources */,
@@ -479,6 +490,7 @@
 				4D5782CD2B4748530050EF81 /* mglGetErrorMessageCommand.swift in Sources */,
 				4D5F729D2B45B07600B4DA29 /* mglCreateTextureCommand.swift in Sources */,
 				4DCD58472B3615BF00E08547 /* mglFlushCommand.swift in Sources */,
+				D0C96829303D4ABF0043AB05 /* mglText.swift in Sources */,
 				4D755E062B6941FB00ACB083 /* mglSampleTimestampsCommand.swift in Sources */,
 				4D5F72B52B45E0A500B4DA29 /* mglDisplayCursorCommand.swift in Sources */,
 				4D5782E52B47693D0050EF81 /* mglRepeatDotsCommand.swift in Sources */,

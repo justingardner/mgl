@@ -9,6 +9,28 @@
 import Foundation
 import MetalKit
 
+// structure for keeping track of text drawing parameters
+struct mglTextRenderingParameters {
+    // Match the current Python textCreate() defaults.
+    var fontName: String = "Helvetica"
+    var fontSize: Float = 40.0
+
+    // Match Python's padding = 11.
+    var paddingPixels: UInt32 = 11
+
+    // Likely the current validateColor(None) behavior.
+    var foregroundRed: Float = 1.0
+    var foregroundGreen: Float = 1.0
+    var foregroundBlue: Float = 1.0
+    var foregroundAlpha: Float = 1.0
+
+    // Match:
+    // Image.new("RGBA", size, (0, 0, 0, 0))
+    var backgroundRed: Float = 0.0
+    var backgroundGreen: Float = 0.0
+    var backgroundBlue: Float = 0.0
+    var backgroundAlpha: Float = 0.0
+}
 /*
  mglColorRenderingState keeps track the current color rendering state for the app, including:
  - whether we're rendering to screen or to an offscreen texture
@@ -37,6 +59,9 @@ class mglColorRenderingState {
     private var textureSequence = UInt32(1)
     private var textures : [UInt32: MTLTexture] = [:]
     
+    // Current/default parameters used when creating text textures.
+    private var textRenderingParameters = mglTextRenderingParameters()
+
     // A collection of user-managed movies (stored as AVPlayerItems) that
     // can be rendered to the screen
     private var movieSequence = UInt32(1)
@@ -240,6 +265,59 @@ class mglColorRenderingState {
     
     func getTextureNumbers() -> Array<UInt32> {
         return Array(textures.keys).sorted()
+    }
+    
+    // Get a snapshot of the current parameters for creating text textures.
+    func getTextRenderingParameters() -> mglTextRenderingParameters {
+        return textRenderingParameters
+    }
+    
+    // Replace all current text-rendering parameters.
+    //
+    // Future commands can:
+    // 1. get the current parameters,
+    // 2. modify selected fields,
+    // 3. set the complete updated parameter value back here.
+    func setTextRenderingParameters(
+        parameters: mglTextRenderingParameters
+    ) -> Bool {
+        guard !parameters.fontName.isEmpty else {
+            logger.error(
+                component: "mglColorRenderingState",
+                details: "Cannot set text rendering parameters with an empty font name."
+            )
+            return false
+        }
+
+        guard parameters.fontSize.isFinite, parameters.fontSize > 0 else {
+            logger.error(
+                component: "mglColorRenderingState",
+                details: "Cannot set text rendering parameters with invalid font size \(parameters.fontSize)."
+            )
+            return false
+        }
+
+        let colorValues = [
+            parameters.foregroundRed,
+            parameters.foregroundGreen,
+            parameters.foregroundBlue,
+            parameters.foregroundAlpha,
+            parameters.backgroundRed,
+            parameters.backgroundGreen,
+            parameters.backgroundBlue,
+            parameters.backgroundAlpha
+        ]
+
+        guard colorValues.allSatisfy({ $0.isFinite }) else {
+            logger.error(
+                component: "mglColorRenderingState",
+                details: "Cannot set text rendering parameters with non-finite color values."
+            )
+            return false
+        }
+
+        textRenderingParameters = parameters
+        return true
     }
     
     // Add a new movie to our collection
