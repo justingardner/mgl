@@ -75,6 +75,10 @@ class mglRenderer2: NSObject {
     // For use with CTMetalDisplayLink which requires setting up the
     // renderPassDescriptor once, and updating its texture
     var onscreenRenderPassDescriptor: MTLRenderPassDescriptor?
+    
+    // Persistent depth/stencil storage for the CAMetalDisplayLink path.
+    // Recreated when the drawable dimensions or depth/stencil format change.
+    private var onscreenDepthStencilTexture: MTLTexture?
 
     init(logger: mglLogger, metalView: MTKView, commandInterface: mglCommandInterface) {
         self.logger = logger
@@ -333,13 +337,88 @@ extension mglRenderer2: MTKViewDelegate {
             return
         }
 
-        // Configure depth/stencil and timestamps if needed
-        // (Skip if CAMetalDisplayLink onscreen path - already pre-configured in init)
-        if colorRenderingState.needsRenderPassConfiguration(onscreenRenderPassDescriptor: self.onscreenRenderPassDescriptor) {
-            depthStencilState.configureRenderPassDescriptor(renderPassDescriptor: renderPassDescriptor)
-            setUpRenderPassGpuTimestamps(renderPassDescriptor: renderPassDescriptor)
+        // The manually created CAMetalDisplayLink descriptor needs its own
+        // persistent depth/stencil attachment. The MTKView and offscreen
+        // paths already supply their attachments.
+        var initializeOnscreenStencil = false
+
+        if !isRenderingOffscreen && self.onscreenRenderPassDescriptor != nil {
+            guard let drawableTexture = drawable?.texture else {
+                logger.error(
+                    component: "mglRenderer2",
+                    details: "Missing drawable texture for depth/stencil setup."
+                )
+                commandInterface.done(command: command, success: false)
+                return
+            }
+
+            // Match the actual drawable dimensions, including Retina scaling.
+            let width = drawableTexture.width
+            let height = drawableTexture.height
+            let pixelFormat = view.depthStencilPixelFormat
+
+            let needsNewTexture =
+                onscreenDepthStencilTexture == nil ||
+                onscreenDepthStencilTexture?.width != width ||
+                onscreenDepthStencilTexture?.height != height ||
+                onscreenDepthStencilTexture?.pixelFormat != pixelFormat
+
+            if needsNewTexture {
+                let textureDescriptor = MTLTextureDescriptor.texture2DDescriptor(
+                    pixelFormat: pixelFormat,
+                    width: width,
+                    height: height,
+                    mipmapped: false
+                )
+                textureDescriptor.storageMode = .private
+                textureDescriptor.usage = .renderTarget
+
+                guard let texture = device.makeTexture(descriptor: textureDescriptor) else {
+                    logger.error(
+                        component: "mglRenderer2",
+                        details: "Could not allocate onscreen depth/stencil texture."
+                    )
+                    commandInterface.done(command: command, success: false)
+                    return
+                }
+
+                texture.label = "mglMetal onscreen depth/stencil"
+                onscreenDepthStencilTexture = texture
+                initializeOnscreenStencil = true
+
+                logger.info(
+                    component: "mglRenderer2",
+                    details: "Created onscreen depth/stencil texture \(width)x\(height). Existing stencil masks must be recreated."
+                )
+            }
+
+            // Depth and stencil share one combined-format texture.
+            renderPassDescriptor.depthAttachment.texture = onscreenDepthStencilTexture
+            renderPassDescriptor.stencilAttachment.texture = onscreenDepthStencilTexture
+
+            // Depth starts fresh each pass; stencil masks persist separately.
+            renderPassDescriptor.depthAttachment.loadAction = .clear
+            renderPassDescriptor.depthAttachment.storeAction = .dontCare
+            renderPassDescriptor.depthAttachment.clearDepth = view.clearDepth
         }
-            
+
+        // Stencil configuration depends on the current creation/testing state.
+        // Apply it every pass, even when reusing a cached descriptor.
+        depthStencilState.configureRenderPassDescriptor(
+            renderPassDescriptor: renderPassDescriptor
+        )
+
+        // Newly allocated texture contents are undefined. Clear all stencil
+        // bits on its first pass, before any mask geometry is drawn.
+        // Do this after state configuration so its .load does not override us.
+        if initializeOnscreenStencil {
+            renderPassDescriptor.stencilAttachment.loadAction = .clear
+            renderPassDescriptor.stencilAttachment.clearStencil = 0
+        }
+
+        // Timestamp attachment configuration is safe to repeat each pass.
+        setUpRenderPassGpuTimestamps(renderPassDescriptor: renderPassDescriptor)
+        
         // The command buffer and render encoder are how we instruct the GPU to draw things on each frame.
         guard let commandBuffer = commandQueue.makeCommandBuffer(),
               let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor) else {

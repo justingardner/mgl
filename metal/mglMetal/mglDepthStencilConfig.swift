@@ -138,9 +138,11 @@ private class mglEnableDepthAndStencilTest : mglDepthStencilConfig {
     }
 
     func configureRenderPassDescriptor(renderPassDescriptor: MTLRenderPassDescriptor) {
-        // Start with the same stencil buffer each frame, as stored previously via mglEnableDepthAndStencilCreate
+        // Load previously created masks and preserve them for later frames.
+        // .dontCare would allow Metal to discard the contents after this pass,
+        // even though ordinary drawing does not modify the stencil values.
         renderPassDescriptor.stencilAttachment.loadAction = .load
-        renderPassDescriptor.stencilAttachment.storeAction = .dontCare
+        renderPassDescriptor.stencilAttachment.storeAction = .store
     }
 
     func configureRenderEncoder(renderEncoder: MTLRenderCommandEncoder) {
