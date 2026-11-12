@@ -26,25 +26,17 @@ class mglSetClearColorCommand : mglCommand {
     }
 
     override func doNondrawingWork(
-        logger: mglLogger,
-        view: MTKView,
-        depthStencilState: mglDepthStencilState,
-        colorRenderingState: mglColorRenderingState,
-        renderer: mglRenderer2,
-        deg2metal: inout simd_float4x4,
-        targetPresentationTimestamp: CFTimeInterval?
-    ) -> Bool {
-        // check to see if we are running CAMetalDisplayLink
-        guard #available(macOS 14.0, *), let displayLink = renderer.metalDisplayLink
-        else {
+            logger: mglLogger,
+            view: MTKView,
+            depthStencilState: mglDepthStencilState,
+            colorRenderingState: mglColorRenderingState,
+            renderer: mglRenderer2,
+            deg2metal: inout simd_float4x4,
+            targetPresentationTimestamp: CFTimeInterval?
+        ) -> Bool {
+            // Keep the view as the source of truth for the clear color.
+            // Both onscreen and offscreen descriptor setup read this value.
             view.clearColor = clearColor
             return true
         }
-        guard let renderPassDescriptor = renderer.onscreenRenderPassDescriptor else {
-            return true
-        }
-        renderPassDescriptor.colorAttachments[0].clearColor = clearColor
-
-        return true
-    }
 }
